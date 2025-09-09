@@ -12,8 +12,15 @@ export default function Logo({ className }: { className?: string }) {
       strokeLinejoin="round"
       className={cn("h-48 w-48 mx-auto text-primary", className)}
     >
-      <path d="M16 3.01s-2.3 2.1-5.9 4.9c-2.3 1.8-4.2 3.8-5.7 5.3-2.6 2.6-2.5 6.8.3 9.4s6.8 2.8 9.4.3c1.5-1.5 3.5-3.4 5.3-5.7 2.8-3.6 4.9-5.9 4.9-5.9s-1-2.2-2.9-4.1c-2-2-4.1-2.9-4.1-2.9" />
-      <path d="M12 12a3 3 0 1 0-4.2-4.2" />
+      <path d="M13.5 8.5A3.5 3.5 0 0 0 7 8.5" />
+      <path d="M13.5 8.5L15 4" />
+      <path d="M7 8.5L5.5 4" />
+      <path d="M12 15.5a2.5 2.5 0 0 0-5 0" />
+      <path d="M14.5 15.5a2.5 2.5 0 0 1 5 0" />
+      <path d="M12 15.5a4.5 4.5 0 0 0-9 0" />
+      <path d="M12 15.5a4.5 4.5 0 0 1 9 0" />
+      <path d="M12 2v2" />
+      <path d="M12 20v2" />
     </svg>
   );
 }
