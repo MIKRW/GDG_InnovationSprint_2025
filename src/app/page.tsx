@@ -2,11 +2,10 @@
 
 import { useState, useRef, useEffect, type FC } from 'react';
 import Image from 'next/image';
-import { Bird, Loader, Mic, Upload, X, Check, Search, AudioLines } from 'lucide-react';
+import { Bird, Loader, Mic, X, Check, Search, AudioLines } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import type { Bird as BirdType } from '@/lib/types';
 import { getBirdAnalysis } from '@/lib/actions';
@@ -31,7 +30,6 @@ export default function Home() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
   const { addBirdToLog } = useBirdLog();
@@ -98,17 +96,6 @@ export default function Home() {
     if (recorderRef.current && recorderRef.current.state === 'recording') {
       recorderRef.current.stop();
     }
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setAudioBlob(file);
-      const url = URL.createObjectURL(file);
-      setAudioUrl(url);
-      setUiState('preview');
-    }
-    event.target.value = '';
   };
   
   const blobToDataURL = (blob: Blob): Promise<string> => {
@@ -188,13 +175,9 @@ export default function Home() {
         return (
           <div className="text-center">
             <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4">Identify Birds by Their Song</h1>
-            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">Record or upload audio to discover the birds around you.</p>
+            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">Record audio to discover the birds around you.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" onClick={startRecording}><Mic className="mr-2" /> Record Audio</Button>
-              <Button size="lg" variant="secondary" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="mr-2" /> Upload File
-              </Button>
-              <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept="audio/*" className="hidden" />
             </div>
           </div>
         );
