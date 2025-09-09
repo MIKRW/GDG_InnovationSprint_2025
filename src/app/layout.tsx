@@ -42,10 +42,12 @@ export default function RootLayout({
         )}
       >
         <div className="relative flex min-h-dvh flex-col">
-          <Header />
           <div className="flex-1 grid grid-cols-1 md:grid-cols-[1fr_minmax(0,4fr)_1fr]">
             <aside className="hidden md:block"></aside>
-            <main className="flex-1 col-span-1">{children}</main>
+            <div className="flex-1 col-span-1 flex flex-col">
+                <Header />
+                <main className="flex-1">{children}</main>
+            </div>
             <aside className="hidden md:block"></aside>
           </div>
         </div>
