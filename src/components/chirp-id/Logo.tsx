@@ -1,10 +1,12 @@
+"use client";
+
 import { cn } from '@/lib/utils';
 
 export default function Logo({ className }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
+      viewBox="0 0 100 100"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
@@ -12,15 +14,12 @@ export default function Logo({ className }: { className?: string }) {
       strokeLinejoin="round"
       className={cn("h-48 w-48 mx-auto text-primary", className)}
     >
-      <path d="M13.5 8.5A3.5 3.5 0 0 0 7 8.5" />
-      <path d="M13.5 8.5L15 4" />
-      <path d="M7 8.5L5.5 4" />
-      <path d="M12 15.5a2.5 2.5 0 0 0-5 0" />
-      <path d="M14.5 15.5a2.5 2.5 0 0 1 5 0" />
-      <path d="M12 15.5a4.5 4.5 0 0 0-9 0" />
-      <path d="M12 15.5a4.5 4.5 0 0 1 9 0" />
-      <path d="M12 2v2" />
-      <path d="M12 20v2" />
+      <path d="M45 10 C 50 5, 60 5, 65 10 C 75 20, 75 35, 60 45" />
+      <path d="M62 43 C 80 55, 85 70, 80 85" />
+      <path d="M45 10 C 35 15, 25 30, 30 50 C 35 70, 40 90, 25 95" />
+      <path d="M30 50 C 40 55, 55 60, 60 60" />
+      <circle cx="59" cy="22" r="1.5" fill="currentColor" stroke="none" />
+      <path d="M64 12 C 67 15, 67 18, 64 21" />
     </svg>
   );
 }
