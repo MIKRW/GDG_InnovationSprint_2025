@@ -13,6 +13,7 @@ import { useBirdLog } from '@/lib/hooks/use-bird-log';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import Logo from '@/components/chirp-id/Logo';
 
 type UIState = 'idle' | 'recording' | 'preview' | 'loading' | 'results' | 'location_prompt' | 'error';
 
@@ -174,6 +175,7 @@ export default function RecordPage() {
       case 'idle':
         return (
           <div className="text-center flex-1 flex flex-col justify-center">
+            <Logo className="mb-8" />
             <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4">Identify Birds by Their Song</h1>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">Record audio to discover the birds around you.</p>
           </div>
