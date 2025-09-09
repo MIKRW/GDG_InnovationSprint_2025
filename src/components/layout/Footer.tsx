@@ -17,7 +17,7 @@ interface FooterButtonProps {
 const FooterButton: React.FC<FooterButtonProps> = ({ href, icon: Icon, label, className }) => (
   <Link href={href} passHref className="flex-1 flex justify-center items-center">
     <Button variant="nav" aria-label={label}>
-      <Icon className={cn("w-12 h-12", className)} />
+      <Icon className={cn("w-6 h-6", className)} />
     </Button>
   </Link>
 );
@@ -35,8 +35,11 @@ export default function Footer() {
   // Always filter out the button for the current page
   const navButtons = allNavButtons.filter(button => button.href !== pathname);
 
+  // A grid with 3 columns is needed to position the buttons correctly
+  const gridColsClass = 'grid-cols-3';
+
   return (
-    <footer className="row-start-3 col-span-3 grid grid-cols-3 items-stretch p-4 gap-4">
+    <footer className={`row-start-3 col-span-3 grid ${gridColsClass} items-stretch p-4 gap-4`}>
       {navButtons.map((button) => (
         <FooterButton key={button.href} {...button} />
       ))}
