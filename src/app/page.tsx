@@ -4,7 +4,7 @@ import Logo from "@/components/chirp-id/Logo";
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col items-center justify-center text-center p-4">
+    <div className="flex flex-col items-center justify-center text-center">
       <div className="mb-8">
         <Logo />
         <h1 className="text-5xl md:text-6xl font-bold font-headline mt-4">
