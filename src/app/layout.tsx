@@ -56,7 +56,7 @@ export default function RootLayout({
           {/* Center */}
           <main className="col-start-2 row-start-2 grid grid-rows-[1fr_3fr_1fr]">
             <div className="row-start-2 flex flex-col justify-center">{children}</div>
-            <div className="row-start-3 flex items-center justify-center">
+            <div className="row-start-3 flex items-stretch justify-center p-4">
               <Footer />
             </div>
           </main>
