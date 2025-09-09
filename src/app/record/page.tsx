@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import type { Bird as BirdType } from '@/lib/types';
 import { getBirdAnalysis } from '@/lib/actions';
-import { useBirdLog } from '@/lib/hooks/use-bird-log';
+import { useBirdLog } from '@/hooks/use-bird-log';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -174,7 +174,11 @@ export default function RecordPage() {
     switch (uiState) {
       case 'idle':
         return (
-          <div className="text-center flex-1 flex flex-col justify-center">
+          <div className="text-center flex-1 flex flex-col justify-center items-center">
+            <Button variant="record" onClick={startRecording}>
+              <Mic className="w-16 h-16" />
+              <span>Tap to Record</span>
+            </Button>
           </div>
         );
 

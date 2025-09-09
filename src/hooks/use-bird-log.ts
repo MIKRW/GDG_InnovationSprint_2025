@@ -1,22 +1,22 @@
-"use client";
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import type { Bird } from '@/lib/types';
 
-const STORAGE_KEY = 'chirp-id-bird-log';
+const BIRD_LOG_STORAGE_KEY = 'chirp-id-bird-log';
 
-export const useBirdLog = () => {
+export function useBirdLog() {
   const [loggedBirds, setLoggedBirds] = useState<Bird[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     try {
-      const items = window.localStorage.getItem(STORAGE_KEY);
-      if (items) {
-        setLoggedBirds(JSON.parse(items));
+      const storedBirds = localStorage.getItem(BIRD_LOG_STORAGE_KEY);
+      if (storedBirds) {
+        setLoggedBirds(JSON.parse(storedBirds));
       }
     } catch (error) {
-      console.error("Failed to read from localStorage", error);
+      console.error("Failed to read from local storage", error);
     }
     setIsInitialized(true);
   }, []);
@@ -24,20 +24,20 @@ export const useBirdLog = () => {
   useEffect(() => {
     if (isInitialized) {
       try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(loggedBirds));
+        localStorage.setItem(BIRD_LOG_STORAGE_KEY, JSON.stringify(loggedBirds));
       } catch (error) {
-        console.error("Failed to write to localStorage", error);
+        console.error("Failed to write to local storage", error);
       }
     }
   }, [loggedBirds, isInitialized]);
 
   const addBirdToLog = useCallback((bird: Bird) => {
     setLoggedBirds(prevBirds => {
-      // Avoid duplicates
+      // Avoid adding duplicates
       if (prevBirds.some(b => b.scientificName === bird.scientificName)) {
         return prevBirds;
       }
-      return [bird, ...prevBirds];
+      return [...prevBirds, bird];
     });
   }, []);
 
@@ -50,4 +50,4 @@ export const useBirdLog = () => {
   }, []);
 
   return { loggedBirds, addBirdToLog, removeBirdFromLog, clearLog, isInitialized };
-};
+}

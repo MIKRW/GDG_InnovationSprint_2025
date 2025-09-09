@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useBirdLog } from '@/lib/hooks/use-bird-log';
+import { useBirdLog } from '@/hooks/use-bird-log';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { X, Trash2 } from 'lucide-react';
