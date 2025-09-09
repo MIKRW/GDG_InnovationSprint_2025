@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Bird, BookOpen } from 'lucide-react';
+import { Bird, Mic } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,15 @@ export default function Header() {
           </span>
         </Link>
         <nav className="flex items-center space-x-6 text-sm font-medium">
+          <Link
+            href="/record"
+            className={cn(
+              "transition-colors hover:text-foreground/80",
+              pathname === "/record" ? "text-foreground" : "text-foreground/60"
+            )}
+          >
+            Record
+          </Link>
           <Link
             href="/log"
             className={cn(
