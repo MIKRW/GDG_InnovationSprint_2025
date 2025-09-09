@@ -67,15 +67,6 @@
   body {
     @apply bg-background text-foreground;
   }
-  body.template_grid .grid-cols-\[1fr_minmax\(0\,_10fr\)_1fr\] > * {
-    @apply border-2 border-red-500/50;
-  }
-  body.template_grid main {
-    @apply border-4 border-blue-500/50;
-  }
-  body.template_grid main > * {
-    @apply border border-dashed border-green-500/50;
-  }
 }
 
 @layer utilities {

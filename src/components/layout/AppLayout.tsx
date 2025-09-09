@@ -3,10 +3,6 @@
 import { useWindowSize } from '@/hooks/use-window-size';
 import ResizePrompt from '@/components/layout/ResizePrompt';
 import Footer from '@/components/layout/Footer';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import Contrast from '../chirp-id/icons/Contrast';
-import Speaker from '../chirp-id/icons/Speaker';
 
 const MIN_WIDTH = 320;
 const MIN_HEIGHT = 480;
@@ -24,43 +20,20 @@ export default function AppLayout({
   }
   
   return (
-    <div className="relative grid min-h-dvh grid-cols-[1fr_minmax(0,_10fr)_1fr] grid-rows-[1fr_minmax(0,_10fr)_1fr]">
-      {/* Top-left */}
-      <div className="bg-eggshell row-start-1 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
-      {/* Top-center */}
-      <div className="bg-eggshell row-start-1 col-start-2" style={{ backgroundImage: eggshellPattern }}></div>
-      {/* Top-right */}
-      <div className="bg-eggshell row-start-1 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
-
-      {/* Middle-left */}
-      <div className="bg-eggshell row-start-2 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
-      {/* Center */}
-      <main className="col-start-2 row-start-2 grid grid-rows-[1.5fr_3fr_1.5fr] grid-cols-3">
-        <header className="row-start-1 col-span-3 grid grid-cols-3 items-stretch p-4 gap-4">
-          <Link href="#" passHref className="flex justify-center items-center">
-            <Button variant="nav" aria-label="Speaker">
-              <Speaker />
-            </Button>
-          </Link>
-          <div />
-          <Link href="#" passHref className="flex justify-center items-center">
-            <Button variant="nav" aria-label="Contrast">
-              <Contrast />
-            </Button>
-          </Link>
-        </header>
-        <div className="row-start-2 col-start-2 col-span-1 flex flex-col justify-center">{children}</div>
+    <div className="flex h-dvh w-full">
+      {/* Textured Border - Left */}
+      <div className="hidden md:block md:w-[10vw] lg:w-[15vw] xl:w-[20vw] bg-eggshell" style={{ backgroundImage: eggshellPattern }}></div>
+      
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col max-w-full md:max-w-screen-sm mx-auto">
+        <main className="flex-1 flex flex-col p-4 overflow-y-auto">
+          {children}
+        </main>
         <Footer />
-      </main>
-      {/* Middle-right */}
-      <div className="bg-eggshell row-start-2 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
+      </div>
 
-      {/* Bottom-left */}
-      <div className="bg-eggshell row-start-3 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
-      {/* Bottom-center */}
-      <div className="bg-eggshell row-start-3 col-start-2" style={{ backgroundImage: eggshellPattern }}></div>
-      {/* Bottom-right */}
-      <div className="bg-eggshell row-start-3 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
+      {/* Textured Border - Right */}
+      <div className="hidden md:block md:w-[10vw] lg:w-[15vw] xl:w-[20vw] bg-eggshell" style={{ backgroundImage: eggshellPattern }}></div>
     </div>
   );
 }

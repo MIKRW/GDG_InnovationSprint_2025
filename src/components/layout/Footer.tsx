@@ -11,37 +11,52 @@ interface FooterButtonProps {
   href: string;
   icon: React.ElementType;
   label: string;
-  className?: string;
+  isActive: boolean;
 }
 
-const FooterButton: React.FC<FooterButtonProps> = ({ href, icon: Icon, label, className }) => (
-  <Link href={href} passHref className="flex-1 flex justify-center items-center">
-    <Button variant="nav" aria-label={label}>
-      <Icon className={cn("w-6 h-6", className)} />
-    </Button>
-  </Link>
-);
+const FooterButton: React.FC<FooterButtonProps> = ({ href, icon: Icon, label, isActive }) => {
+  // Hide the record button from the footer nav if we're on the record page
+  const pathname = usePathname();
+  if (href === '/record' && pathname === '/record') {
+    return null;
+  }
+  
+  // Conditionally apply a different style for the main record button
+  const isRecordButton = href === '/record';
+  
+  return (
+    <Link href={href} passHref className="flex-1 flex justify-center items-center">
+       <Button 
+         variant={isActive ? "secondary" : "ghost"}
+         className={cn(
+           "w-16 h-16 rounded-full", 
+           { "bg-primary text-primary-foreground hover:bg-primary/90": isRecordButton && pathname !== '/record' }
+         )}
+         aria-label={label}
+       >
+        <Icon className={cn(isRecordButton ? "w-8 h-8" : "w-7 h-7")} />
+      </Button>
+    </Link>
+  );
+};
 
 export default function Footer() {
   const pathname = usePathname();
 
-  const allNavButtons: FooterButtonProps[] = [
+  const navButtons: Omit<FooterButtonProps, 'isActive'>[] = [
     { href: '/', icon: Home, label: 'Home' },
-    { href: '/record', icon: Microphone, label: 'Start Identifying', className: "w-8 h-8" },
+    { href: '/record', icon: Microphone, label: 'Start Identifying' },
     { href: '/log', icon: List, label: 'View Log' },
     { href: '/settings', icon: Settings, label: 'Settings' },
   ];
-
-  // Always filter out the button for the current page
-  const navButtons = allNavButtons.filter(button => button.href !== pathname);
-
-  // A grid with 3 columns is needed to position the buttons correctly
-  const gridColsClass = 'grid-cols-3';
+  
+  // Filter out the record button on the record page itself
+  const filteredNavButtons = navButtons.filter(button => button.href !== '/record' || pathname !== '/record');
 
   return (
-    <footer className={`row-start-3 col-span-3 grid ${gridColsClass} items-stretch p-4 gap-4`}>
-      {navButtons.map((button) => (
-        <FooterButton key={button.href} {...button} />
+    <footer className="flex justify-around items-center p-2 border-t">
+      {filteredNavButtons.map((button) => (
+        <FooterButton key={button.href} {...button} isActive={pathname === button.href} />
       ))}
     </footer>
   );

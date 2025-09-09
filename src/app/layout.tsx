@@ -37,7 +37,7 @@ export default function RootLayout({
       </head>
       <body
         className={cn(
-          'min-h-screen bg-background font-body antialiased template_grid',
+          'min-h-screen bg-background font-body antialiased',
           ptSans.variable
         )}
       >
