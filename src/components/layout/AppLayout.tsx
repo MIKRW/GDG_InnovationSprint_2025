@@ -5,7 +5,7 @@ import ResizePrompt from '@/components/layout/ResizePrompt';
 import Footer from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import Lightbulb from '../chirp-id/icons/Lightbulb';
+import Contrast from '../chirp-id/icons/Contrast';
 import Speaker from '../chirp-id/icons/Speaker';
 
 const MIN_WIDTH = 320;
@@ -44,8 +44,8 @@ export default function AppLayout({
           </Link>
           <div />
           <Link href="#" passHref className="flex justify-center items-center">
-            <Button variant="nav" aria-label="Hint">
-              <Lightbulb />
+            <Button variant="nav" aria-label="Contrast">
+              <Contrast />
             </Button>
           </Link>
         </header>
