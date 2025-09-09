@@ -174,9 +174,9 @@ export default function RecordPage() {
     switch (uiState) {
       case 'idle':
         return (
-          <div className="text-center flex-1 flex flex-col justify-center items-center">
-            <Button variant="record" onClick={startRecording}>
-              <Mic className="w-16 h-16" />
+          <div className="flex-1 flex flex-col justify-stretch items-stretch">
+            <Button variant="record" onClick={startRecording} className="w-full h-full text-4xl">
+              <Mic className="w-24 h-24" />
               <span>Tap to Record</span>
             </Button>
           </div>
@@ -328,3 +328,5 @@ const BirdCard: FC<{ bird: BirdType; onLog: (bird: BirdType) => void; primary?: 
     </CardContent>
   </Card>
 );
+
+    
