@@ -34,11 +34,9 @@ export default function Footer() {
 
   // Always filter out the button for the current page
   const navButtons = allNavButtons.filter(button => button.href !== pathname);
-  
-  const gridColsClass = `grid-cols-${navButtons.length}`;
 
   return (
-    <footer className={cn("row-start-3 col-span-3 grid items-stretch p-4 gap-4", gridColsClass)}>
+    <footer className="row-start-3 col-span-3 grid grid-cols-3 items-stretch p-4 gap-4">
       {navButtons.map((button) => (
         <FooterButton key={button.href} {...button} />
       ))}
