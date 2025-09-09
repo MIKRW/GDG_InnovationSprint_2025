@@ -45,30 +45,31 @@ export default function RootLayout({
       >
         <div className="relative grid min-h-dvh grid-cols-[1fr_minmax(0,_10fr)_1fr] grid-rows-[1fr_minmax(0,_10fr)_1fr]">
           {/* Top-left */}
-          <div className="bg-eggshell row-start-1 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="bg-eggshell row-start-1 col-start-1 border-2 border-red-500/50" style={{ backgroundImage: eggshellPattern }}></div>
           {/* Top-center */}
-          <div className="bg-eggshell row-start-1 col-start-2" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="bg-eggshell row-start-1 col-start-2 border-2 border-red-500/50" style={{ backgroundImage: eggshellPattern }}></div>
           {/* Top-right */}
-          <div className="bg-eggshell row-start-1 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="bg-eggshell row-start-1 col-start-3 border-2 border-red-500/50" style={{ backgroundImage: eggshellPattern }}></div>
 
           {/* Middle-left */}
-          <div className="bg-eggshell row-start-2 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="bg-eggshell row-start-2 col-start-1 border-2 border-red-500/50" style={{ backgroundImage: eggshellPattern }}></div>
           {/* Center */}
-          <main className="col-start-2 row-start-2 grid grid-rows-[1fr_3fr_1fr]">
-            <div className="row-start-2 flex flex-col justify-center">{children}</div>
-            <div className="row-start-3 flex items-stretch justify-center p-4">
+          <main className="col-start-2 row-start-2 grid grid-rows-[1fr_3fr_1fr] border-4 border-blue-500/50">
+            <div className="row-start-1 border border-dashed border-green-500/50"></div>
+            <div className="row-start-2 flex flex-col justify-center border border-dashed border-green-500/50">{children}</div>
+            <div className="row-start-3 flex items-stretch justify-center p-4 border border-dashed border-green-500/50">
               <Footer />
             </div>
           </main>
           {/* Middle-right */}
-          <div className="bg-eggshell row-start-2 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="bg-eggshell row-start-2 col-start-3 border-2 border-red-500/50" style={{ backgroundImage: eggshellPattern }}></div>
 
           {/* Bottom-left */}
-          <div className="bg-eggshell row-start-3 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="bg-eggshell row-start-3 col-start-1 border-2 border-red-500/50" style={{ backgroundImage: eggshellPattern }}></div>
           {/* Bottom-center */}
-          <div className="bg-eggshell row-start-3 col-start-2" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="bg-eggshell row-start-3 col-start-2 border-2 border-red-500/50" style={{ backgroundImage: eggshellPattern }}></div>
           {/* Bottom-right */}
-          <div className="bg-eggshell row-start-3 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="bg-eggshell row-start-3 col-start-3 border-2 border-red-500/50" style={{ backgroundImage: eggshellPattern }}></div>
         </div>
         <Toaster />
       </body>
