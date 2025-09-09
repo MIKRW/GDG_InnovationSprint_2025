@@ -38,13 +38,13 @@ export default function AppLayout({
         <div className="row-start-1 flex items-stretch justify-center p-4">
           <nav className="flex justify-evenly items-stretch w-full h-full gap-4">
             <Link href="#" passHref className="flex-1 flex justify-center items-center">
-              <Button aria-label="Speaker" size="responsive">
+              <Button variant="nav" aria-label="Speaker">
                 <Speaker className="h-1/2 w-1/2" />
               </Button>
             </Link>
             <div className="flex-1"></div>
             <Link href="#" passHref className="flex-1 flex justify-center items-center">
-              <Button aria-label="Hint" size="responsive">
+              <Button variant="nav" aria-label="Hint">
                 <Lightbulb className="h-1/2 w-1/2" />
               </Button>
             </Link>
