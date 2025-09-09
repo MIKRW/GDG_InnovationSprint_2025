@@ -42,7 +42,7 @@ export default function RootLayout({
           ptSans.variable
         )}
       >
-        <div className="relative grid min-h-dvh grid-cols-1 md:grid-cols-[1fr_minmax(0,10fr)_1fr] grid-rows-1 md:grid-rows-[1fr_minmax(0,10fr)_1fr]">
+        <div className="relative grid min-h-dvh grid-cols-1 md:grid-cols-[6rem_1fr_6rem] grid-rows-1 md:grid-rows-[6rem_1fr_6rem]">
           {/* Top-left */}
           <div className="hidden md:block bg-eggshell row-start-1 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
           {/* Top-center */}
