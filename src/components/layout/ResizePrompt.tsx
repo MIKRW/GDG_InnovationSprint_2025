@@ -1,4 +1,4 @@
-import { Smartphone } from 'lucide-react';
+import Smartphone from '@/components/chirp-id/icons/Smartphone';
 
 export default function ResizePrompt() {
   return (

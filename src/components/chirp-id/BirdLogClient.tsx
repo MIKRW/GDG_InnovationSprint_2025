@@ -4,7 +4,6 @@ import Image from 'next/image';
 import { useBirdLog } from '@/hooks/use-bird-log';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { X, Trash2 } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import {
   AlertDialog,
@@ -17,6 +16,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import XMark from './icons/XMark';
+import Trash from './icons/Trash';
 
 
 export default function BirdLogClient() {
@@ -56,7 +57,7 @@ export default function BirdLogClient() {
           <div className="flex justify-end mb-4">
              <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive"><Trash2 className="mr-2 h-4 w-4" /> Clear Log</Button>
+                <Button variant="destructive"><Trash className="mr-2 h-4 w-4" /> Clear Log</Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
@@ -99,7 +100,7 @@ export default function BirdLogClient() {
                 onClick={() => removeBirdFromLog(bird.scientificName)}
                 aria-label={`Remove ${bird.speciesName}`}
               >
-                <X className="h-4 w-4" />
+                <XMark className="h-4 w-4" />
               </Button>
             </div>
           </Card>

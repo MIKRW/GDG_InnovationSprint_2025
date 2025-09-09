@@ -3,9 +3,10 @@
 import { useWindowSize } from '@/hooks/use-window-size';
 import ResizePrompt from '@/components/layout/ResizePrompt';
 import Footer from '@/components/layout/Footer';
-import { Lightbulb, Speaker } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import Lightbulb from '../chirp-id/icons/Lightbulb';
+import Speaker from '../chirp-id/icons/Speaker';
 
 const MIN_WIDTH = 320;
 const MIN_HEIGHT = 480;

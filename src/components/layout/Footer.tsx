@@ -1,13 +1,15 @@
 import Link from 'next/link';
-import type { LucideIcon } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { Home, List, Mic, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import Home from '../chirp-id/icons/Home';
+import List from '../chirp-id/icons/List';
+import Microphone from '../chirp-id/Microphone';
+import Settings from '../chirp-id/icons/Settings';
 
 interface FooterButtonProps {
   href: string;
-  icon: LucideIcon;
+  icon: React.ElementType;
   label: string;
   className?: string;
 }
@@ -15,7 +17,7 @@ interface FooterButtonProps {
 const FooterButton: React.FC<FooterButtonProps> = ({ href, icon: Icon, label, className }) => (
   <Link href={href} passHref className="flex-1 flex justify-center items-center">
     <Button variant="nav" aria-label={label}>
-      <Icon className={cn(className)} />
+      <Icon className={cn("w-12 h-12", className)} />
     </Button>
   </Link>
 );
@@ -25,7 +27,7 @@ export default function Footer() {
 
   const allNavButtons: FooterButtonProps[] = [
     { href: '/', icon: Home, label: 'Home' },
-    { href: '/record', icon: Mic, label: 'Start Identifying' },
+    { href: '/record', icon: Microphone, label: 'Start Identifying' },
     { href: '/log', icon: List, label: 'View Log' },
     { href: '/settings', icon: Settings, label: 'Settings' },
   ];

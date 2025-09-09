@@ -1,10 +1,10 @@
-import { Settings } from 'lucide-react';
+import SettingsIcon from '@/components/chirp-id/icons/Settings';
 
 export default function SettingsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center mb-6">
-        <Settings className="h-8 w-8 mr-4" />
+        <SettingsIcon className="h-8 w-8 mr-4" />
         <h1 className="text-3xl font-bold font-headline">Settings</h1>
       </div>
       <div className="text-center py-20 border-2 border-dashed rounded-lg">

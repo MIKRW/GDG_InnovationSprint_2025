@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, type FC } from 'react';
 import Image from 'next/image';
-import { Bird, Loader, X, Check, Search, AudioLines } from 'lucide-react';
+import { Loader, AudioLines } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -13,8 +13,10 @@ import { useBirdLog } from '@/hooks/use-bird-log';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import Logo from '@/components/chirp-id/Logo';
 import Microphone from '@/components/chirp-id/Microphone';
+import Check from '@/components/chirp-id/icons/Check';
+import XMark from '@/components/chirp-id/icons/XMark';
+import Search from '@/components/chirp-id/icons/Search';
 
 type UIState = 'idle' | 'recording' | 'preview' | 'loading' | 'results' | 'location_prompt' | 'error';
 
@@ -247,7 +249,7 @@ export default function RecordPage() {
         return (
           <div className="text-center max-w-md mx-auto flex-1 flex flex-col justify-center">
             <div className="mx-auto bg-destructive/10 text-destructive w-16 h-16 rounded-full flex items-center justify-center mb-4">
-              <X className="w-8 h-8"/>
+              <XMark className="w-8 h-8"/>
             </div>
             <h2 className="text-3xl font-bold font-headline mb-4">An Error Occurred</h2>
             <p className="text-muted-foreground mb-6">{error || 'Something went wrong.'}</p>
@@ -329,5 +331,3 @@ const BirdCard: FC<{ bird: BirdType; onLog: (bird: BirdType) => void; primary?: 
     </CardContent>
   </Card>
 );
-
-    
