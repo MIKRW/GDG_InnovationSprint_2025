@@ -20,8 +20,7 @@ export default function Footer() {
         </Link>
         <Link href="/settings" passHref className="flex-1">
           <Button className="w-full h-full">
-            <Settings className="mr-2" />
-            Settings
+            <Settings />
           </Button>
         </Link>
       </nav>
