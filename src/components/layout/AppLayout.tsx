@@ -48,7 +48,7 @@ export default function AppLayout({
             </Button>
           </Link>
         </header>
-        <div className="row-start-2 col-span-3 flex flex-col justify-center">{children}</div>
+        <div className="row-start-2 col-start-2 col-span-1 flex flex-col justify-center">{children}</div>
         <Footer />
       </main>
       {/* Middle-right */}
