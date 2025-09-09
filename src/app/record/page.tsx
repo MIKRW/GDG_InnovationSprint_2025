@@ -180,8 +180,10 @@ export default function RecordPage() {
         return (
           <div className="flex-1 flex flex-col justify-stretch items-stretch">
             <Button variant="record" onClick={startRecording} className="w-full h-full text-4xl">
-              <Microphone />
-              <RecordButtonLabel />
+              <div className="flex flex-col items-center justify-center gap-2">
+                <Microphone className="w-16 h-16" />
+                <RecordButtonLabel />
+              </div>
             </Button>
           </div>
         );
