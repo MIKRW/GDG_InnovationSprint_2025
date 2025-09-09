@@ -3,6 +3,9 @@
 import { useWindowSize } from '@/hooks/use-window-size';
 import ResizePrompt from '@/components/layout/ResizePrompt';
 import Footer from '@/components/layout/Footer';
+import { Speaker } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 const MIN_WIDTH = 320;
 const MIN_HEIGHT = 480;
@@ -32,7 +35,17 @@ export default function AppLayout({
       <div className="bg-eggshell row-start-2 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
       {/* Center */}
       <main className="col-start-2 row-start-2 grid grid-rows-[1fr_3fr_1fr]">
-        <div className="row-start-1"></div>
+        <div className="row-start-1 flex items-stretch justify-center p-4">
+          <nav className="flex justify-evenly items-stretch w-full h-full gap-4">
+            <div className="flex-1"></div>
+            <Link href="#" passHref className="flex-1 flex justify-center items-center">
+              <Button aria-label="Speaker" size="responsive">
+                <Speaker className="h-1/2 w-1/2" />
+              </Button>
+            </Link>
+            <div className="flex-1"></div>
+          </nav>
+        </div>
         <div className="row-start-2 flex flex-col justify-center">{children}</div>
         <div className="row-start-3 flex items-stretch justify-center p-4">
           <Footer />
