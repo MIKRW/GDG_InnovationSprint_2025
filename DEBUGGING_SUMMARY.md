@@ -1,3 +1,29 @@
+# General Debugging Checklist
+
+To make future debugging sessions faster, here is a checklist of common issues and steps to consider when troubleshooting this Next.js application:
+
+1.  **Restart the Dev Server:** If code changes don't appear or behavior seems illogical (especially after many quick changes), stop and restart the development server. This is the primary fix for stale cache issues, which can mimic code errors.
+
+2.  **Check Browser Console for Hydration Errors:** Always look for the `Hydration failed...` error. It's a critical clue that the server-rendered HTML and client-rendered HTML do not match. The error details often point to the exact component.
+
+3.  **Analyze Component Variants (CVA):** When using `class-variance-authority`, ensure that base styles don't conflict with variant styles. Each variant should contain a complete and non-overlapping set of classes for properties like color and background. Avoid `null` in `defaultVariants`.
+
+4.  **Isolate the Problem:** Try to reproduce the error on a minimal component or a new page. If the error disappears, it suggests a conflict with parent components or global styles.
+
+5.  **Use React DevTools:** Inspect the component in the browser using React DevTools. Check its props and state to ensure they are what you expect them to be at render time.
+
+6.  **Hard Refresh the Browser:** Sometimes the browser's own cache can be the problem. Do a hard refresh (Ctrl+Shift+R or Cmd+Shift+R) to bypass the local cache.
+
+7.  **Simplify Before Modifying:** When a component is misbehaving, temporarily strip it down to its simplest form (e.g., remove all variants and complex styles). If the error disappears, re-introduce features one by one to find the breaking change.
+
+8.  **Compare to Working Code:** Revert the problematic file to a known-good version from a previous commit or an earlier state in the session to see if the error is resolved. This helps confirm where the error was introduced.
+
+9.  **Review Prop and HTML Structure:** Double-check for invalid HTML nesting (e.g., a `<p>` inside another `<p>`) or incorrect prop types being passed to a component.
+
+10. **Question the Error Location:** While the error message often points to the right place, consider that the root cause might be in a parent or child component that is passing incorrect data or styles.
+
+---
+
 # Debugging Summary: Button Component Hydration Error
 
 ## 1. Initial Problem Description
