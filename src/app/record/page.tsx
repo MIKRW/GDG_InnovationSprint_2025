@@ -173,7 +173,7 @@ export default function RecordPage() {
     switch (uiState) {
       case 'idle':
         return (
-          <div className="text-center">
+          <div className="text-center flex-1 flex flex-col justify-center">
             <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4">Identify Birds by Their Song</h1>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">Record audio to discover the birds around you.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -184,7 +184,7 @@ export default function RecordPage() {
 
       case 'recording':
         return (
-          <div className="text-center">
+          <div className="text-center flex-1 flex flex-col justify-center">
             <h2 className="text-3xl font-bold font-headline mb-4">Recording...</h2>
             <div className="flex justify-center items-center mb-8">
               <AudioLines className="w-16 h-16 text-primary animate-pulse" />
@@ -195,7 +195,7 @@ export default function RecordPage() {
 
       case 'preview':
         return (
-          <div className="text-center max-w-md mx-auto">
+          <div className="text-center max-w-md mx-auto flex-1 flex flex-col justify-center">
             <h2 className="text-3xl font-bold font-headline mb-4">Audio Ready</h2>
             <p className="text-muted-foreground mb-6">Preview your audio below or proceed with analysis.</p>
             {audioUrl && <audio controls src={audioUrl} className="w-full mb-6 rounded-lg"></audio>}
@@ -208,7 +208,7 @@ export default function RecordPage() {
 
       case 'loading':
         return (
-          <div className="text-center">
+          <div className="text-center flex-1 flex flex-col justify-center">
             <h2 className="text-3xl font-bold font-headline mb-4">Analyzing...</h2>
             <p className="text-muted-foreground mb-8">Our AI is identifying the birds in your audio. This might take a moment.</p>
             <div className="flex justify-center items-center">
@@ -219,7 +219,7 @@ export default function RecordPage() {
 
       case 'results':
         return (
-          <div className="w-full max-w-4xl mx-auto text-center">
+          <div className="w-full max-w-4xl mx-auto text-center flex-1 flex flex-col justify-center">
             {!showOtherSuggestions && mainSuggestion ? (
               <>
                 <h2 className="text-3xl font-bold font-headline mb-2">Is this your bird?</h2>
@@ -244,7 +244,7 @@ export default function RecordPage() {
 
       case 'error':
         return (
-          <div className="text-center max-w-md mx-auto">
+          <div className="text-center max-w-md mx-auto flex-1 flex flex-col justify-center">
             <div className="mx-auto bg-destructive/10 text-destructive w-16 h-16 rounded-full flex items-center justify-center mb-4">
               <X className="w-8 h-8"/>
             </div>
@@ -272,7 +272,7 @@ export default function RecordPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center text-center flex-grow">
+    <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center text-center flex-1">
       {renderContent()}
 
       <Dialog open={uiState === 'location_prompt'} onOpenChange={(open) => !open && resetState()}>

@@ -48,11 +48,11 @@ export default function RootLayout({
           <div className="hidden md:block bg-eggshell row-start-2 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
           <div className="hidden md:block bg-background row-start-3 col-start-1"></div>
           
-          <div className="col-start-1 md:col-start-2 row-start-1">
+          <div className="col-start-1 md:col-start-2 row-start-1 z-10">
             <Header />
           </div>
 
-          <main className="col-start-1 md:col-start-2 row-start-2 flex-1">{children}</main>
+          <main className="col-start-1 md:col-start-2 row-start-2 flex flex-col">{children}</main>
 
           <div className="hidden md:block bg-eggshell row-start-1 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
           <div className="hidden md:block bg-eggshell row-start-2 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
