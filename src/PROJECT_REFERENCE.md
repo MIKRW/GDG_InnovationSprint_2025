@@ -1,0 +1,27 @@
+# Project Reference
+
+This document outlines the core layout structure and theme of the application.
+
+## Layout System
+
+The application uses a consistent layout system defined in `src/components/layout/`.
+
+### Core Components
+
+- **`AppLayout.tsx`**: The main wrapper for all pages. It enforces the standard page structure, consisting of a header, a main content area, and a footer. It is applied in the root layout (`src/app/layout.tsx`).
+
+- **`Header.tsx`**: The top navigation bar of the application. It displays the application title.
+
+- **`Footer.tsx`**: The bottom navigation bar. It contains the primary navigation links for moving between the main sections of the app.
+
+### Page Structure
+
+All pages inherit the same header and footer from `AppLayout`. The unique content for each page is rendered within its own component, which is then displayed by a corresponding `page.tsx` file in the `src/app` directory.
+
+- **Main Page (`/src/app/page.tsx`)**: This is the primary landing page. Its content is defined directly within this file.
+
+- **Record Page (`/src/app/record/page.tsx`)**: This page contains the UI for the recording screen. Its layout is defined directly within the file.
+
+- **Log Page (`/src/components/pages/LogPage.tsx`)**: This component contains the photo album grid for the log. It is rendered by `/src/app/log/page.tsx`.
+
+- **Settings Page (`/src/components/pages/SettingsPage.tsx`)**: This component contains the content for the settings screen. It is rendered by `/src/app/settings/page.tsx`.
