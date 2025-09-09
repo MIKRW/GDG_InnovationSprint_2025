@@ -2,9 +2,9 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { List } from 'lucide-react';
 
-export default function Header() {
+export default function Footer() {
   return (
-    <header className="p-4">
+    <footer className="p-4 flex justify-center items-center">
       <nav>
         <Link href="/log" passHref>
           <Button variant="outline">
@@ -13,6 +13,6 @@ export default function Header() {
           </Button>
         </Link>
       </nav>
-    </header>
+    </footer>
   );
 }
