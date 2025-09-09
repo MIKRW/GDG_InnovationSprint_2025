@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { Home, List, Mic, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -20,15 +21,24 @@ const FooterButton: React.FC<FooterButtonProps> = ({ href, icon: Icon, label, cl
 );
 
 export default function Footer() {
-  const navButtons: FooterButtonProps[] = [
+  const pathname = usePathname();
+
+  const allNavButtons: FooterButtonProps[] = [
     { href: '/', icon: Home, label: 'Home' },
     { href: '/record', icon: Mic, label: 'Start Identifying' },
     { href: '/log', icon: List, label: 'View Log' },
     { href: '/settings', icon: Settings, label: 'Settings' },
   ];
 
+  const navButtons =
+    pathname === '/'
+      ? allNavButtons.filter((button) => button.href !== '/')
+      : allNavButtons;
+  
+  const gridColsClass = `grid-cols-${navButtons.length}`;
+
   return (
-    <footer className="row-start-3 col-span-3 grid grid-cols-4 items-stretch p-4 gap-4">
+    <footer className={cn("row-start-3 col-span-3 grid items-stretch p-4 gap-4", gridColsClass)}>
       {navButtons.map((button) => (
         <FooterButton key={button.href} {...button} />
       ))}
