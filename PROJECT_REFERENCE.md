@@ -23,8 +23,6 @@ These are the main building blocks of your app.
     *   `BirdLogPage`: The page displaying your bird log (`/log`).
     *   `SettingsPage`: The settings screen (`/settings`).
 
----
-
 ### **Button Variants**
 
 When you want to change a button's style, you can refer to its `variant`.
@@ -35,8 +33,6 @@ When you want to change a button's style, you can refer to its `variant`.
 *   `secondary`: A less prominent button (e.g., "Show other options").
 *   `nav`: The square icon buttons in the `Footer` (e.g., Home, Log, Settings).
 *   `record`: The large, circular "Tap to Record" button.
-
----
 
 ### **UI States (on the Record Page)**
 
