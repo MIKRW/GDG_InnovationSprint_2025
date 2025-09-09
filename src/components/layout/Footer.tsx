@@ -13,7 +13,7 @@ export default function Footer() {
           </Button>
         </Link>
         <Link href="/log" passHref>
-          <Button variant="outline">
+          <Button>
             <List className="mr-2" />
             My Log
           </Button>
