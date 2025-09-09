@@ -3,7 +3,7 @@
 import { useWindowSize } from '@/hooks/use-window-size';
 import ResizePrompt from '@/components/layout/ResizePrompt';
 import Footer from '@/components/layout/Footer';
-import { Speaker } from 'lucide-react';
+import { Lightbulb, Speaker } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
@@ -43,7 +43,11 @@ export default function AppLayout({
               </Button>
             </Link>
             <div className="flex-1"></div>
-            <div className="flex-1"></div>
+            <Link href="#" passHref className="flex-1 flex justify-center items-center">
+              <Button aria-label="Hint" size="responsive">
+                <Lightbulb className="h-1/2 w-1/2" />
+              </Button>
+            </Link>
           </nav>
         </div>
         <div className="row-start-2 flex flex-col justify-center">{children}</div>
