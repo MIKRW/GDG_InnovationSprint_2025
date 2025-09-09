@@ -24,11 +24,12 @@ const buttonVariants = cva(
         sm: "h-9 rounded-md px-3",
         lg: "h-11 rounded-md px-8",
         icon: "h-10 w-10",
+        responsive: "aspect-square h-full w-auto max-w-full text-base md:text-lg",
       },
     },
     defaultVariants: {
       variant: "default",
-      size: "default",
+      size: "responsive",
     },
   }
 )
