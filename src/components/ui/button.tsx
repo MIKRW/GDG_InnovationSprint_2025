@@ -18,7 +18,7 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
-        nav: "aspect-square h-full rounded-full bg-primary text-primary-foreground hover:bg-primary/90 px-0 py-0",
+        nav: "aspect-square h-full rounded-full bg-yellow-500 text-black hover:bg-yellow-600 px-0 py-0",
         record: "rounded-full w-48 h-48 text-lg shadow-lg flex flex-col items-center justify-center bg-blue-600 text-white hover:bg-blue-700",
       },
       size: {
