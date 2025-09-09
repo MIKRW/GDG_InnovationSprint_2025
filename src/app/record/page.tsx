@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, type FC } from 'react';
 import Image from 'next/image';
-import { Bird, Loader, Mic, X, Check, Search, AudioLines } from 'lucide-react';
+import { Bird, Loader, X, Check, Search, AudioLines } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import Logo from '@/components/chirp-id/Logo';
+import Microphone from '@/components/chirp-id/Microphone';
 
 type UIState = 'idle' | 'recording' | 'preview' | 'loading' | 'results' | 'location_prompt' | 'error';
 
@@ -176,7 +177,7 @@ export default function RecordPage() {
         return (
           <div className="flex-1 flex flex-col justify-stretch items-stretch">
             <Button variant="record" onClick={startRecording} className="w-full h-full text-4xl">
-              <Mic className="w-24 h-24" />
+              <Microphone />
               <span>Tap to Record</span>
             </Button>
           </div>
