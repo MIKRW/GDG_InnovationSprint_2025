@@ -232,7 +232,7 @@ export default function Home() {
             ) : (
               <>
                 <h2 className="text-3xl font-bold font-headline mb-6">Top Suggestions</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                   {mainSuggestion && <BirdCard bird={mainSuggestion} onLog={handleLogBird} />}
                   {otherSuggestions.map(bird => <BirdCard key={bird.scientificName} bird={bird} onLog={handleLogBird} />)}
                 </div>
@@ -272,7 +272,7 @@ export default function Home() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-12 flex flex-col items-center justify-center text-center flex-grow">
+    <div className="container mx-auto px-4 py-8 flex flex-col items-center justify-center text-center flex-grow">
       {renderContent()}
 
       <Dialog open={uiState === 'location_prompt'} onOpenChange={(open) => !open && resetState()}>

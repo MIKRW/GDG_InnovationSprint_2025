@@ -8,6 +8,10 @@ import Header from '@/components/layout/Header';
 export const metadata: Metadata = {
   title: 'ChirpID',
   description: 'Identify birds by their song',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
+  appleWebAppCapable: 'yes',
+  appleMobileWebAppStatusBarStyle: 'default',
+  appleMobileWebAppTitle: 'ChirpID',
 };
 
 const ptSans = PT_Sans({
@@ -37,7 +41,7 @@ export default function RootLayout({
           ptSans.variable
         )}
       >
-        <div className="relative flex min-h-screen flex-col">
+        <div className="relative flex min-h-dvh flex-col">
           <Header />
           <main className="flex-1">{children}</main>
         </div>
