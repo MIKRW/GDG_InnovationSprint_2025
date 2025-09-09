@@ -34,7 +34,7 @@ export default function AppLayout({
       {/* Middle-left */}
       <div className="bg-eggshell row-start-2 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
       {/* Center */}
-      <main className="col-start-2 row-start-2 grid grid-rows-[1fr_3fr_1fr]">
+      <main className="col-start-2 row-start-2 grid grid-rows-[1.5fr_3fr_1.5fr]">
         <div className="row-start-1 flex items-stretch justify-center p-4">
           <nav className="flex justify-evenly items-stretch w-full h-full gap-4">
             <Link href="#" passHref className="flex-1 flex justify-center items-center">
