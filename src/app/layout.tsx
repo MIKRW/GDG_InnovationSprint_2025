@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { PT_Sans } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
@@ -12,9 +12,8 @@ export const metadata: Metadata = {
   appleMobileWebAppStatusBarStyle: 'default',
 };
 
-const ptSans = PT_Sans({
+const inter = Inter({
   subsets: ['latin'],
-  weight: ['400', '700'],
   variable: '--font-sans',
 });
 
@@ -27,8 +26,8 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         className={cn(
-          'min-h-screen bg-background font-body antialiased',
-          ptSans.variable
+          'min-h-screen bg-background font-sans antialiased',
+          inter.variable
         )}
       >
         {children}
