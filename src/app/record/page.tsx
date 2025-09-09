@@ -176,9 +176,6 @@ export default function RecordPage() {
           <div className="text-center flex-1 flex flex-col justify-center">
             <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4">Identify Birds by Their Song</h1>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">Record audio to discover the birds around you.</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" onClick={startRecording}><Mic className="mr-2" /> Record Audio</Button>
-            </div>
           </div>
         );
 
