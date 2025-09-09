@@ -3,6 +3,7 @@ import { PT_Sans } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
+import Header from '@/components/layout/Header';
 
 export const metadata: Metadata = {
   title: 'ChirpID',
@@ -42,7 +43,7 @@ export default function RootLayout({
           ptSans.variable
         )}
       >
-        <div className="relative grid min-h-dvh grid-cols-1 md:grid-cols-[1fr_10fr_1fr] grid-rows-1 md:grid-rows-[1fr_10fr_1fr]">
+        <div className="relative grid min-h-dvh grid-cols-1 md:grid-cols-[1fr_10fr_1fr] grid-rows-[1fr_10fr_1fr]">
           {/* Top-left */}
           <div className="hidden md:block bg-eggshell row-start-1 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
           {/* Top-center */}
@@ -53,7 +54,10 @@ export default function RootLayout({
           {/* Middle-left */}
           <div className="hidden md:block bg-eggshell row-start-2 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
           {/* Center */}
-          <main className="col-start-1 md:col-start-2 row-start-1 md:row-start-2 row-span-1 md:row-span-1 flex flex-col">{children}</main>
+          <main className="col-start-1 md:col-start-2 row-start-1 md:row-start-2 row-span-1 md:row-span-1 flex flex-col">
+            <Header />
+            {children}
+          </main>
           {/* Middle-right */}
           <div className="hidden md:block bg-eggshell row-start-2 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
 
