@@ -1,5 +1,7 @@
 "use client";
 
+import { Bird } from 'lucide-react';
+
 export default function LandingPage() {
   return (
     <div className="flex flex-col items-center justify-center text-center p-4">
@@ -14,8 +16,10 @@ export default function LandingPage() {
           strokeLinejoin="round"
           className="h-24 w-24 mx-auto text-primary"
         >
-          <path d="M12,2C6.5,2,2,6.5,2,12s4.5,10,10,10s10-4.5,10-10S17.5,2,12,2z" />
-          <path d="M12,18c-3.3,0-6-2.7-6-6s2.7-6,6-6" />
+          <path d="M12 22c-5.523 0-10-4.477-10-10S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
+          <path d="M15.5 8.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5" />
+          <path d="M9.5 8.5c-1.4 0-2.5 1.1-2.5 2.5s1.1 2.5 2.5 2.5" />
+          <path d="M12 15s1.5-2 3-2 3 2 3 2" />
         </svg>
         <h1 className="text-5xl md:text-6xl font-bold font-headline mt-4">
           ChirpID
