@@ -14,7 +14,7 @@ interface FooterButtonProps {
 const FooterButton: React.FC<FooterButtonProps> = ({ href, icon: Icon, label, className }) => (
   <Link href={href} passHref className="flex-1 flex justify-center items-center">
     <Button variant="nav" aria-label={label}>
-      <Icon className={cn("h-4/5 w-4/5", className)} />
+      <Icon className={cn(className)} />
     </Button>
   </Link>
 );
@@ -27,7 +27,7 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="flex justify-center items-center w-full h-full">
+    <footer className="flex justify-center items-center w-full h-full p-4">
       <nav className="flex justify-evenly items-stretch w-full h-full gap-4">
         {navButtons.map((button) => (
           <FooterButton key={button.href} {...button} />

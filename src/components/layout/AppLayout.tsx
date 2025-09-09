@@ -35,23 +35,23 @@ export default function AppLayout({
       <div className="bg-eggshell row-start-2 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
       {/* Center */}
       <main className="col-start-2 row-start-2 grid grid-rows-[1.5fr_3fr_1.5fr]">
-        <div className="row-start-1 flex items-stretch justify-center p-4">
-          <nav className="flex justify-evenly items-stretch w-full h-full gap-4">
+        <div className="row-start-1 flex items-stretch justify-center">
+          <nav className="flex justify-evenly items-stretch w-full h-full gap-4 p-4">
             <Link href="#" passHref className="flex-1 flex justify-center items-center">
               <Button variant="nav" aria-label="Speaker">
-                <Speaker className="h-4/5 w-4/5" />
+                <Speaker />
               </Button>
             </Link>
             <div className="flex-1"></div>
             <Link href="#" passHref className="flex-1 flex justify-center items-center">
               <Button variant="nav" aria-label="Hint">
-                <Lightbulb className="h-4/5 w-4/5" />
+                <Lightbulb />
               </Button>
             </Link>
           </nav>
         </div>
         <div className="row-start-2 flex flex-col justify-center">{children}</div>
-        <div className="row-start-3 flex items-stretch justify-center p-4">
+        <div className="row-start-3 flex items-stretch justify-center">
           <Footer />
         </div>
       </main>
