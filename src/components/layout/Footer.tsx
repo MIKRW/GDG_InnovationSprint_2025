@@ -15,11 +15,7 @@ interface FooterButtonProps {
 }
 
 const FooterButton: React.FC<FooterButtonProps> = ({ href, icon: Icon, label, isActive }) => {
-  // Hide the record button from the footer nav if we're on the record page
   const pathname = usePathname();
-  if (href === '/record' && pathname === '/record') {
-    return null;
-  }
   
   // Conditionally apply a different style for the main record button
   const isRecordButton = href === '/record';
@@ -50,8 +46,11 @@ export default function Footer() {
     { href: '/settings', icon: Settings, label: 'Settings' },
   ];
   
-  // Filter out the record button on the record page itself
-  const filteredNavButtons = navButtons.filter(button => button.href !== '/record' || pathname !== '/record');
+  // Filter out the record button on the record page, and the home button on the home page
+  const filteredNavButtons = navButtons.filter(button => 
+    (button.href !== '/record' || pathname !== '/record') &&
+    (button.href !== '/' || pathname !== '/')
+  );
 
   return (
     <footer className="flex justify-around items-center p-2 border-t">
