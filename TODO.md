@@ -14,3 +14,6 @@ This is a list of tasks and ideas for improving the ChirpID application.
 ## Low Priority
 - [ ] Add different color themes for the app.
 - [ ] Implement gamification (badges, streaks) for identifying birds.
+
+## Design
+- [ ] Create logo in Illustrator and save as SVG file.
