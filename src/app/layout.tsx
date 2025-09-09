@@ -43,12 +43,12 @@ export default function RootLayout({
       >
         <div className="relative flex min-h-dvh flex-col">
           <div className="flex-1 grid grid-cols-1 md:grid-cols-[1fr_minmax(0,4fr)_1fr]">
-            <aside className="hidden md:block bg-eggshell" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23d1e3ff' fill-opacity='0.15' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E")` }}></aside>
+            <aside className="hidden md:block bg-eggshell" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='0.15'%3E%3Cpath fill-rule='evenodd' d='M43.982 43.982c-6.627 6.627-17.38 6.627-24 0s-6.627-17.38 0-24c6.627-6.627 17.38-6.627 24 0s6.627 17.38 0 24zM16.5 16.5c-7.81 7.81-7.81 20.474 0 28.284s20.474 7.81 28.284 0c7.81-7.81 7.81-20.474 0-28.284s-20.474-7.81-28.284 0z'/%3E%3C/g%3E%3C/svg%3E")` }}></aside>
             <div className="flex-1 col-span-1 flex flex-col">
                 <Header />
                 <main className="flex-1">{children}</main>
             </div>
-            <aside className="hidden md:block bg-eggshell" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23d1e3ff' fill-opacity='0.15' fill-rule='evenodd'%3E%3Cpath d='M0 40L40 0H20L0 20M40 40V20L20 40'/%3E%3C/g%3E%3C/svg%3E")` }}></aside>
+            <aside className="hidden md:block bg-eggshell" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='0.15'%3E%3Cpath fill-rule='evenodd' d='M43.982 43.982c-6.627 6.627-17.38 6.627-24 0s-6.627-17.38 0-24c6.627-6.627 17.38-6.627 24 0s6.627 17.38 0 24zM16.5 16.5c-7.81 7.81-7.81 20.474 0 28.284s20.474 7.81 28.284 0c7.81-7.81 7.81-20.474 0-28.284s-20.474-7.81-28.284 0z'/%3E%3C/g%3E%3C/svg%3E")` }}></aside>
           </div>
         </div>
         <Toaster />
