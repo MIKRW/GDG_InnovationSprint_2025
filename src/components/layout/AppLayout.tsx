@@ -34,26 +34,22 @@ export default function AppLayout({
       {/* Middle-left */}
       <div className="bg-eggshell row-start-2 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
       {/* Center */}
-      <main className="col-start-2 row-start-2 grid grid-rows-[1.5fr_3fr_1.5fr]">
-        <header className="row-start-1 flex items-stretch justify-center">
-          <nav className="flex justify-evenly items-stretch w-full h-full gap-4 p-4">
-            <Link href="#" passHref className="flex-1 flex justify-center items-center">
-              <Button variant="nav" aria-label="Speaker">
-                <Speaker />
-              </Button>
-            </Link>
-            <div className="flex-1"></div>
-            <Link href="#" passHref className="flex-1 flex justify-center items-center">
-              <Button variant="nav" aria-label="Hint">
-                <Lightbulb />
-              </Button>
-            </Link>
-          </nav>
+      <main className="col-start-2 row-start-2 grid grid-rows-[1.5fr_3fr_1.5fr] grid-cols-3">
+        <header className="row-start-1 col-span-3 grid grid-cols-3 items-stretch p-4 gap-4">
+          <Link href="#" passHref className="flex justify-center items-center">
+            <Button variant="nav" aria-label="Speaker">
+              <Speaker />
+            </Button>
+          </Link>
+          <div />
+          <Link href="#" passHref className="flex justify-center items-center">
+            <Button variant="nav" aria-label="Hint">
+              <Lightbulb />
+            </Button>
+          </Link>
         </header>
-        <div className="row-start-2 flex flex-col justify-center">{children}</div>
-        <div className="row-start-3 flex items-stretch justify-center">
-          <Footer />
-        </div>
+        <div className="row-start-2 col-span-3 flex flex-col justify-center">{children}</div>
+        <Footer />
       </main>
       {/* Middle-right */}
       <div className="bg-eggshell row-start-2 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>

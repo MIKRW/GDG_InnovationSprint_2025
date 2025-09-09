@@ -27,12 +27,10 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="flex justify-center items-center w-full h-full p-4">
-      <nav className="flex justify-evenly items-stretch w-full h-full gap-4">
-        {navButtons.map((button) => (
-          <FooterButton key={button.href} {...button} />
-        ))}
-      </nav>
+    <footer className="row-start-3 col-span-3 grid grid-cols-3 items-stretch p-4 gap-4">
+      {navButtons.map((button) => (
+        <FooterButton key={button.href} {...button} />
+      ))}
     </footer>
   );
 }
