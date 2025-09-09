@@ -43,30 +43,30 @@ export default function RootLayout({
           ptSans.variable
         )}
       >
-        <div className="relative grid min-h-dvh grid-cols-[1fr_10fr_1fr] grid-rows-[1fr_10fr_1fr]">
+        <div className="relative grid min-h-dvh grid-cols-[1fr_minmax(0,_10fr)_1fr] grid-rows-[1fr_minmax(0,_10fr)_1fr]">
           {/* Top-left */}
-          <div className="hidden md:block bg-eggshell row-start-1 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="bg-eggshell row-start-1 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
           {/* Top-center */}
-          <div className="hidden md:block bg-eggshell row-start-1 col-start-2" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="bg-eggshell row-start-1 col-start-2" style={{ backgroundImage: eggshellPattern }}></div>
           {/* Top-right */}
-          <div className="hidden md:block bg-eggshell row-start-1 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="bg-eggshell row-start-1 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
 
           {/* Middle-left */}
-          <div className="hidden md:block bg-eggshell row-start-2 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="bg-eggshell row-start-2 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
           {/* Center */}
-          <main className="col-start-1 md:col-start-2 row-start-1 md:row-start-2 row-span-1 md:row-span-1 flex flex-col">
+          <main className="col-start-2 row-start-2 flex flex-col">
             <div className="flex-grow">{children}</div>
             <Footer />
           </main>
           {/* Middle-right */}
-          <div className="hidden md:block bg-eggshell row-start-2 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="bg-eggshell row-start-2 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
 
           {/* Bottom-left */}
-          <div className="hidden md:block bg-eggshell row-start-3 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="bg-eggshell row-start-3 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
           {/* Bottom-center */}
-          <div className="hidden md:block bg-eggshell row-start-3 col-start-2" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="bg-eggshell row-start-3 col-start-2" style={{ backgroundImage: eggshellPattern }}></div>
           {/* Bottom-right */}
-          <div className="hidden md:block bg-eggshell row-start-3 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="bg-eggshell row-start-3 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
         </div>
         <Toaster />
       </body>
