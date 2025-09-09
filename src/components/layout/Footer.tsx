@@ -4,8 +4,8 @@ import { List, Mic, Settings } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="p-4 flex justify-center items-center">
-      <nav className="flex gap-4">
+    <footer className="p-4 flex justify-center items-center w-full">
+      <nav className="flex justify-around w-full max-w-2xl">
         <Link href="/record" passHref>
           <Button>
             <Mic className="mr-2" />
