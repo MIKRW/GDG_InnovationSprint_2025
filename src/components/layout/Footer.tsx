@@ -8,8 +8,7 @@ export default function Footer() {
       <nav className="flex justify-around items-stretch w-full h-full max-w-2xl gap-4">
         <Link href="/record" passHref className="flex-1">
           <Button className="w-full h-full">
-            <Mic className="mr-2" />
-            Start Identifying
+            <Mic />
           </Button>
         </Link>
         <Link href="/log" passHref className="flex-1">
