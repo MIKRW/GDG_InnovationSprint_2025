@@ -53,7 +53,7 @@ export default function Footer() {
   );
 
   return (
-    <footer className="flex justify-around items-center p-2 border-t">
+    <footer className="flex justify-around items-center p-2">
       {filteredNavButtons.map((button) => (
         <FooterButton key={button.href} {...button} isActive={pathname === button.href} />
       ))}
