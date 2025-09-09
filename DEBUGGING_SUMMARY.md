@@ -70,3 +70,16 @@ Our debugging process was a series of flawed attempts on my part to fix the CSS 
 The final and correct diagnosis is that my repeated incorrect changes corrupted the **Next.js development server's cache**. The server was holding a "stale," broken version of the `button.tsx` component in memory. Even when I deleted the code from the file, the development server was still serving the old, cached, broken version, which is why the green buttons and the hydration error kept reappearing.
 
 **The required solution is to manually stop and restart the development server.** This will force it to clear its cache and read the fresh, correct version of the `src/components/ui/button.tsx` file that has now been restored to a stable state.
+
+### How to Restart the Server in Firebase Studio
+
+In the Firebase Studio web environment, the development server is restarted through the built-in terminal:
+
+1.  In the top bar of the editor, click on **"Switch to Code"**.
+2.  Click the **hamburger menu icon** (three horizontal lines) in the top-left corner of the code editor pane.
+3.  Select **"New terminal"** from the dropdown menu.
+4.  A terminal window will appear at the bottom of the screen. Click inside of it to give it focus.
+5.  Press **`Ctrl`** + **`C`** on your keyboard to stop the currently running server process.
+6.  The server will restart automatically. If it does not, you may need to run `npm run dev` again in the same terminal.
+
+This procedure clears the server's in-memory cache and forces it to re-read all project files from disk.
