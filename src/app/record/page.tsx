@@ -175,9 +175,6 @@ export default function RecordPage() {
       case 'idle':
         return (
           <div className="text-center flex-1 flex flex-col justify-center">
-            <Logo className="mb-8" />
-            <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4">Identify Birds by Their Song</h1>
-            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">Record audio to discover the birds around you.</p>
           </div>
         );
 
