@@ -17,6 +17,7 @@ import Microphone from '@/components/chirp-id/Microphone';
 import Check from '@/components/chirp-id/icons/Check';
 import XMark from '@/components/chirp-id/icons/XMark';
 import Search from '@/components/chirp-id/icons/Search';
+import RecordButtonLabel from '@/components/chirp-id/RecordButtonLabel';
 
 type UIState = 'idle' | 'recording' | 'preview' | 'loading' | 'results' | 'location_prompt' | 'error';
 
@@ -180,7 +181,7 @@ export default function RecordPage() {
           <div className="flex-1 flex flex-col justify-stretch items-stretch">
             <Button variant="record" onClick={startRecording} className="w-full h-full text-4xl">
               <Microphone />
-              <span>Tap to Record</span>
+              <RecordButtonLabel />
             </Button>
           </div>
         );
@@ -331,3 +332,5 @@ const BirdCard: FC<{ bird: BirdType; onLog: (bird: BirdType) => void; primary?: 
     </CardContent>
   </Card>
 );
+
+    
