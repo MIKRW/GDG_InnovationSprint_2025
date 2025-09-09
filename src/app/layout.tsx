@@ -54,9 +54,11 @@ export default function RootLayout({
           {/* Middle-left */}
           <div className="bg-eggshell row-start-2 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
           {/* Center */}
-          <main className="col-start-2 row-start-2 flex flex-col justify-center">
-            <div className="flex-1 flex flex-col">{children}</div>
-            <Footer />
+          <main className="col-start-2 row-start-2 grid grid-rows-[3fr_4fr_3fr]">
+            <div className="row-start-2 flex flex-col justify-center">{children}</div>
+            <div className="row-start-3 flex items-center justify-center">
+              <Footer />
+            </div>
           </main>
           {/* Middle-right */}
           <div className="bg-eggshell row-start-2 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
