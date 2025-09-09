@@ -44,7 +44,7 @@ export default function RootLayout({
         )}
       >
         <div className="relative grid min-h-dvh grid-cols-1 md:grid-cols-[1fr_minmax(0,4fr)_1fr] grid-rows-[auto_1fr_auto]">
-          <div className="hidden md:block bg-eggshell row-span-3" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="hidden md:block bg-eggshell row-start-2" style={{ backgroundImage: eggshellPattern }}></div>
           
           <div className="col-start-2 row-start-1">
             <Header />
@@ -52,11 +52,7 @@ export default function RootLayout({
 
           <main className="col-start-2 row-start-2 flex-1">{children}</main>
 
-          <div className="col-start-2 row-start-3">
-            {/* You could add a footer here if you wanted */}
-          </div>
-
-          <div className="hidden md:block bg-eggshell row-span-3" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="hidden md:block bg-eggshell row-start-2" style={{ backgroundImage: eggshellPattern }}></div>
         </div>
         <Toaster />
       </body>
