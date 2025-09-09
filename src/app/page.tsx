@@ -10,7 +10,7 @@ export default function LandingPage() {
         <Logo />
       </div>
       <div className="flex-1 flex flex-col items-center justify-center text-center">
-        <h1 className="text-5xl md:text-6xl font-bold font-headline mt-4">
+        <h1 className="text-5xl md:text-6xl font-bold font-headline">
           ChirpID
         </h1>
         <Byline />
