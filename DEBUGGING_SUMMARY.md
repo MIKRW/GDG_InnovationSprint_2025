@@ -81,5 +81,3 @@ In the Firebase Studio web environment, the development server is restarted thro
 4.  A terminal window will appear at the bottom of the screen. Click inside of it to give it focus.
 5.  Press **`Ctrl`** + **`C`** on your keyboard to stop the currently running server process.
 6.  The server will restart automatically. If it does not, you may need to run `npm run dev` again in the same terminal.
-
-This procedure clears the server's in-memory cache and forces it to re-read all project files from disk.
