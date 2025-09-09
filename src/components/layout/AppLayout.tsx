@@ -39,13 +39,13 @@ export default function AppLayout({
           <nav className="flex justify-evenly items-stretch w-full h-full gap-4">
             <Link href="#" passHref className="flex-1 flex justify-center items-center">
               <Button variant="nav" aria-label="Speaker">
-                <Speaker className="h-2/3 w-2/3" />
+                <Speaker className="h-4/5 w-4/5" />
               </Button>
             </Link>
             <div className="flex-1"></div>
             <Link href="#" passHref className="flex-1 flex justify-center items-center">
               <Button variant="nav" aria-label="Hint">
-                <Lightbulb className="h-2/3 w-2/3" />
+                <Lightbulb className="h-4/5 w-4/5" />
               </Button>
             </Link>
           </nav>
