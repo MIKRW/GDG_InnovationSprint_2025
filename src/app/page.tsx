@@ -1,20 +1,11 @@
-"use client";
-
-import Logo from "@/components/chirp-id/Logo";
-import Byline from "@/components/chirp-id/Byline";
-
-export default function LandingPage() {
+export default function Home() {
   return (
-    <div className="flex flex-col h-full items-center justify-center text-center">
-      <div className="flex-1 flex items-end justify-center pb-4">
-        <Logo />
-      </div>
-      <div className="flex-1 flex flex-col items-center justify-start pt-4">
-        <h1 className="text-5xl md:text-6xl font-bold font-headline">
-          ChirpID
-        </h1>
-        <Byline />
-      </div>
-    </div>
+    <main className="flex min-h-screen flex-col items-center justify-center p-24">
+      <h1 className="text-4xl font-bold">Next.js Starter</h1>
+      <p className="mt-4 text-lg text-muted-foreground">
+        Your project is ready. Start editing this page in{" "}
+        <code>src/app/page.tsx</code>.
+      </p>
+    </main>
   );
 }

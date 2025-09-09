@@ -1,7 +1,8 @@
-export interface Bird {
-  speciesName: string;
-  scientificName: string;
-  description: string;
-  imageUrl: string;
-  dataAiHint: string;
-}
+// This file can be used to define shared types and interfaces.
+
+// For example:
+// export interface User {
+//   id: string;
+//   name: string;
+//   email: string;
+// }
