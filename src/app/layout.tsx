@@ -43,20 +43,19 @@ export default function RootLayout({
           ptSans.variable
         )}
       >
-        <div className="relative grid min-h-dvh grid-cols-1 md:grid-cols-[1fr_minmax(0,4fr)_1fr] grid-rows-[auto_1fr_120px]">
-          <div className="hidden md:block bg-eggshell row-start-1 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
-          <div className="hidden md:block bg-eggshell row-start-2 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
-          <div className="hidden md:block bg-black row-start-3 col-start-1"></div>
-          
+        <div className="relative grid min-h-dvh grid-cols-1 md:grid-cols-[1fr_minmax(0,4fr)_1fr] grid-rows-[auto_1fr_auto]">
+          {/* Left Column */}
+          <div className="hidden md:block bg-eggshell row-span-3 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
+
+          {/* Center Column */}
           <div className="col-start-1 md:col-start-2 row-start-1 z-10">
             <Header />
           </div>
-
           <main className="col-start-1 md:col-start-2 row-start-2 flex flex-col">{children}</main>
+          <div className="hidden md:block col-start-2 row-start-3 h-32" />
 
-          <div className="hidden md:block bg-eggshell row-start-1 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
-          <div className="hidden md:block bg-eggshell row-start-2 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
-          <div className="hidden md:block bg-black row-start-3 col-start-3"></div>
+          {/* Right Column */}
+          <div className="hidden md:block bg-eggshell row-span-3 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
         </div>
         <Toaster />
       </body>
