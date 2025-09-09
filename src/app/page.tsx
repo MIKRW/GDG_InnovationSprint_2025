@@ -1,8 +1,6 @@
 "use client";
 
-import Link from 'next/link';
-import { Bird, Mic } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Bird } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -14,13 +12,6 @@ export default function LandingPage() {
         </h1>
         <p className="text-lg text-muted-foreground mt-2">Your pocket guide to bird songs.</p>
       </div>
-
-      <Link href="/record" passHref>
-        <Button size="lg">
-          <Mic className="mr-2" />
-          Start Identifying
-        </Button>
-      </Link>
     </div>
   );
 }
