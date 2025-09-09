@@ -3,6 +3,9 @@
 import { useWindowSize } from '@/hooks/use-window-size';
 import ResizePrompt from '@/components/layout/ResizePrompt';
 import Footer from '@/components/layout/Footer';
+import { Button } from '@/components/ui/button';
+import Speaker from '../chirp-id/icons/Speaker';
+import Contrast from '../chirp-id/icons/Contrast';
 
 const MIN_WIDTH = 320;
 const MIN_HEIGHT = 480;
@@ -26,6 +29,14 @@ export default function AppLayout({
       
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col max-w-full md:max-w-screen-sm mx-auto">
+        <header className="flex justify-between items-center p-4">
+          <Button variant="ghost" size="icon" aria-label="Toggle Sound">
+            <Speaker className="h-6 w-6" />
+          </Button>
+          <Button variant="ghost" size="icon" aria-label="Toggle Contrast">
+            <Contrast className="h-6 w-6" />
+          </Button>
+        </header>
         <main className="flex-1 flex flex-col p-4 overflow-y-auto">
           {children}
         </main>
