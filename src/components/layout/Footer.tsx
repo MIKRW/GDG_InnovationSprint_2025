@@ -30,10 +30,8 @@ export default function Footer() {
     { href: '/settings', icon: Settings, label: 'Settings' },
   ];
 
-  const navButtons =
-    pathname === '/'
-      ? allNavButtons.filter((button) => button.href !== '/')
-      : allNavButtons;
+  // Always filter out the button for the current page
+  const navButtons = allNavButtons.filter(button => button.href !== pathname);
   
   const gridColsClass = `grid-cols-${navButtons.length}`;
 
