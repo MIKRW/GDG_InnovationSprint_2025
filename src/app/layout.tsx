@@ -25,6 +25,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const eggshellPattern = `url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill-rule='evenodd' fill-opacity='0.1'%3E%3Cellipse fill='%236b4f2c' cx='60' cy='60' rx='5' ry='4.5'/%3E%3Cellipse fill='%239a7856' cx='20' cy='20' rx='4' ry='5'/%3E%3Cellipse fill='%236b4f2c' cx='100' cy='100' rx='5.5' ry='5'/%3E%3Cellipse fill='%23c7a788' cx='30' cy='90' rx='4' ry='3.5'/%3E%3Cellipse fill='%239a7856' cx='90' cy='30' rx='3.5' ry='4'/%3E%3Cellipse fill='%236b4f2c' cx='60' cy='20' rx='3' ry='2.5' transform='rotate(15 60 20)'/%3E%3Cellipse fill='%23c7a788' cx='20' cy='60' rx='2.5' ry='3' transform='rotate(-15 20 60)'/%3E%3Cellipse fill='%239a7856' cx='100' cy='60' rx='3' ry='3.5'/%3E%3Cellipse fill='%236b4f2c' cx='60' cy='100' rx='3.5' ry='3'/%3E%3Cellipse fill='%23c7a788' cx='10' cy='70' rx='2' ry='1.5' transform='rotate(30 10 70)'/%3E%3Cellipse fill='%239a7856' cx='110' cy='50' rx='1.5' ry='2' transform='rotate(-30 110 50)'/%3E%3Cellipse fill='%236b4f2c' cx='40' cy='110' rx='2.5' ry='2'/%3E%3Cellipse fill='%23c7a788' cx='80' cy='10' rx='2' ry='2.5'/%3E%3C/g%3E%3C/svg%3E")`;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -41,15 +43,20 @@ export default function RootLayout({
           ptSans.variable
         )}
       >
-        <div className="relative flex min-h-dvh flex-col">
-          <div className="flex-1 grid grid-cols-1 md:grid-cols-[1fr_minmax(0,4fr)_1fr]">
-            <aside className="hidden md:block bg-eggshell" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill-rule='evenodd' fill-opacity='0.1'%3E%3Cellipse fill='%236b4f2c' cx='60' cy='60' rx='5' ry='4.5'/%3E%3Cellipse fill='%239a7856' cx='20' cy='20' rx='4' ry='5'/%3E%3Cellipse fill='%236b4f2c' cx='100' cy='100' rx='5.5' ry='5'/%3E%3Cellipse fill='%23c7a788' cx='30' cy='90' rx='4' ry='3.5'/%3E%3Cellipse fill='%239a7856' cx='90' cy='30' rx='3.5' ry='4'/%3E%3Cellipse fill='%236b4f2c' cx='60' cy='20' rx='3' ry='2.5' transform='rotate(15 60 20)'/%3E%3Cellipse fill='%23c7a788' cx='20' cy='60' rx='2.5' ry='3' transform='rotate(-15 20 60)'/%3E%3Cellipse fill='%239a7856' cx='100' cy='60' rx='3' ry='3.5'/%3E%3Cellipse fill='%236b4f2c' cx='60' cy='100' rx='3.5' ry='3'/%3E%3Cellipse fill='%23c7a788' cx='10' cy='70' rx='2' ry='1.5' transform='rotate(30 10 70)'/%3E%3Cellipse fill='%239a7856' cx='110' cy='50' rx='1.5' ry='2' transform='rotate(-30 110 50)'/%3E%3Cellipse fill='%236b4f2c' cx='40' cy='110' rx='2.5' ry='2'/%3E%3Cellipse fill='%23c7a788' cx='80' cy='10' rx='2' ry='2.5'/%3E%3C/g%3E%3C/svg%3E")` }}></aside>
-            <div className="flex-1 col-span-1 flex flex-col">
-                <Header />
-                <main className="flex-1">{children}</main>
-            </div>
-            <aside className="hidden md:block bg-eggshell" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill-rule='evenodd' fill-opacity='0.1'%3E%3Cellipse fill='%236b4f2c' cx='60' cy='60' rx='5' ry='4.5'/%3E%3Cellipse fill='%239a7856' cx='20' cy='20' rx='4' ry='5'/%3E%3Cellipse fill='%236b4f2c' cx='100' cy='100' rx='5.5' ry='5'/%3E%3Cellipse fill='%23c7a788' cx='30' cy='90' rx='4' ry='3.5'/%3E%3Cellipse fill='%239a7856' cx='90' cy='30' rx='3.5' ry='4'/%3E%3Cellipse fill='%236b4f2c' cx='60' cy='20' rx='3' ry='2.5' transform='rotate(15 60 20)'/%3E%3Cellipse fill='%23c7a788' cx='20' cy='60' rx='2.5' ry='3' transform='rotate(-15 20 60)'/%3E%3Cellipse fill='%239a7856' cx='100' cy='60' rx='3' ry='3.5'/%3E%3Cellipse fill='%236b4f2c' cx='60' cy='100' rx='3.5' ry='3'/%3E%3Cellipse fill='%23c7a788' cx='10' cy='70' rx='2' ry='1.5' transform='rotate(30 10 70)'/%3E%3Cellipse fill='%239a7856' cx='110' cy='50' rx='1.5' ry='2' transform='rotate(-30 110 50)'/%3E%3Cellipse fill='%236b4f2c' cx='40' cy='110' rx='2.5' ry='2'/%3E%3Cellipse fill='%23c7a788' cx='80' cy='10' rx='2' ry='2.5'/%3E%3C/g%3E%3C/svg%3E")` }}></aside>
+        <div className="relative grid min-h-dvh grid-cols-1 md:grid-cols-[1fr_minmax(0,4fr)_1fr] grid-rows-[auto_1fr_auto]">
+          <div className="hidden md:block bg-eggshell row-span-3" style={{ backgroundImage: eggshellPattern }}></div>
+          
+          <div className="col-start-2 row-start-1">
+            <Header />
           </div>
+
+          <main className="col-start-2 row-start-2 flex-1">{children}</main>
+
+          <div className="col-start-2 row-start-3">
+            {/* You could add a footer here if you wanted */}
+          </div>
+
+          <div className="hidden md:block bg-eggshell row-span-3" style={{ backgroundImage: eggshellPattern }}></div>
         </div>
         <Toaster />
       </body>
