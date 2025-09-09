@@ -44,15 +44,19 @@ export default function RootLayout({
         )}
       >
         <div className="relative grid min-h-dvh grid-cols-1 md:grid-cols-[1fr_minmax(0,4fr)_1fr] grid-rows-[auto_1fr_auto]">
-          <div className="hidden md:block bg-eggshell row-start-2" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="hidden md:block bg-eggshell row-start-1 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="hidden md:block bg-eggshell row-start-2 col-start-1" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="hidden md:block bg-background row-start-3 col-start-1"></div>
           
-          <div className="col-start-2 row-start-1">
+          <div className="col-start-1 md:col-start-2 row-start-1">
             <Header />
           </div>
 
-          <main className="col-start-2 row-start-2 flex-1">{children}</main>
+          <main className="col-start-1 md:col-start-2 row-start-2 flex-1">{children}</main>
 
-          <div className="hidden md:block bg-eggshell row-start-2" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="hidden md:block bg-eggshell row-start-1 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="hidden md:block bg-eggshell row-start-2 col-start-3" style={{ backgroundImage: eggshellPattern }}></div>
+          <div className="hidden md:block bg-background row-start-3 col-start-3"></div>
         </div>
         <Toaster />
       </body>
