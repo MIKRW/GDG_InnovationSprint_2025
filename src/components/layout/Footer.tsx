@@ -27,7 +27,7 @@ export default function Footer() {
 
   const allNavButtons: FooterButtonProps[] = [
     { href: '/', icon: Home, label: 'Home' },
-    { href: '/record', icon: Microphone, label: 'Start Identifying' },
+    { href: '/record', icon: Microphone, label: 'Start Identifying', className: "w-8 h-8" },
     { href: '/log', icon: List, label: 'View Log' },
     { href: '/settings', icon: Settings, label: 'Settings' },
   ];
