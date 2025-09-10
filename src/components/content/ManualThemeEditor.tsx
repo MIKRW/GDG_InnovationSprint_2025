@@ -1,7 +1,6 @@
 
 'use client';
 
-import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import type { Theme, ThemeColor } from '@/lib/types';
@@ -33,7 +32,7 @@ const ColorEditor = ({
   };
 
   return (
-    <Button asChild className="h-full cursor-default hover:bg-primary">
+    <Button asChild className="h-full w-full cursor-default hover:bg-primary">
       <div className="flex flex-col justify-center h-full p-4 space-y-4">
         <div className="flex items-center gap-4">
           <Label className="w-12 text-primary-foreground">Hue</Label>
@@ -84,7 +83,7 @@ export function ManualThemeEditor({
             Manual Theme Editor
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 items-stretch gap-4">
-            <div className="h-40">
+            <div className="w-full h-40">
                 <ColorEditor
                     color={theme.colors.background}
                     onColorChange={(newColor) => onColorChange('background', newColor)}
