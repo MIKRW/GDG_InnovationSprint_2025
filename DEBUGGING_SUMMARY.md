@@ -6,13 +6,15 @@ To make future debugging sessions faster, here is a checklist of common issues a
 
 2.  **Check Browser Console for Hydration Errors:** Always look for the `Hydration failed...` error. It's a critical clue that the server-rendered HTML and client-rendered HTML do not match. The error details often point to the exact component.
 
-3.  **Isolate the Problem:** Try to reproduce the error on a minimal component or a new page. If the error disappears, it suggests a conflict with parent components or global styles.
+3.  **Check for Missing API Keys**: If you are using a feature that relies on an external service, such as the AI-powered theme generator, make sure you have provided the necessary API key. The application will look for a `GEMINI_API_KEY` in your `.env` file. Without it, any call to the AI will fail.
 
-4.  **Use React DevTools:** Inspect the component in the browser using React DevTools. Check its props and state to ensure they are what you expect them to be at render time.
+4.  **Isolate the Problem:** Try to reproduce the error on a minimal component or a new page. If the error disappears, it suggests a conflict with parent components or global styles.
 
-5.  **Hard Refresh the Browser:** Sometimes the browser's own cache can be the problem. Do a hard refresh (Ctrl+Shift+R or Cmd+Shift+R) to bypass the local cache.
+5.  **Use React DevTools:** Inspect the component in the browser using React DevTools. Check its props and state to ensure they are what you expect them to be at render time.
 
-6.  **Review Prop and HTML Structure:** Double-check for invalid HTML nesting (e.g., a `<p>` inside another `<p>`) or incorrect prop types being passed to a component.
+6.  **Hard Refresh the Browser:** Sometimes the browser's own cache can be the problem. Do a hard refresh (Ctrl+Shift+R or Cmd+Shift+R) to bypass the local cache.
+
+7.  **Review Prop and HTML Structure:** Double-check for invalid HTML nesting (e.g., a `<p>` inside another `<p>`) or incorrect prop types being passed to a component.
 
 ## How to Restart the Server in Firebase Studio
 
