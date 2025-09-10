@@ -1,6 +1,6 @@
 import { Mic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Footer } from '@/components/layout/Footer';
+import { RecordPageFooter } from '@/components/layout/RecordPageFooter';
 
 export default function RecordPage() {
   return (
@@ -19,7 +19,7 @@ export default function RecordPage() {
           <Mic className="w-20 h-20" />
         </Button>
       </div>
-      <Footer />
+      <RecordPageFooter />
     </>
   );
 }
