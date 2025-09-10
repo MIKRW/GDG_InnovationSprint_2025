@@ -15,8 +15,8 @@ export function Footer() {
   const pathname = usePathname();
 
   return (
-    <footer className="p-4 border-t">
-      <nav className="flex justify-around">
+    <footer className="border-t">
+      <nav className="flex justify-around py-2 px-4">
         {navItems.map(({ href, label, icon: Icon }) => (
           <Button
             key={href}

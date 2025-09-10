@@ -3,7 +3,7 @@ import { SpeakerButton } from '@/components/content/SpeakerButton';
 
 export function Header() {
   return (
-    <header className="p-4 border-b flex items-center justify-between">
+    <header className="border-b flex items-center justify-between px-4 py-2">
       <SpeakerButton />
       <ContrastButton />
     </header>
