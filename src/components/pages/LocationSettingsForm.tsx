@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,6 +9,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -23,6 +24,8 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { PageTitle } from '@/components/content/PageTitle';
 import type { LocationSettings } from '@/lib/types';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 const FormSchema = z.object({
   mode: z.enum(['device', 'manual', 'privacy']),
@@ -39,6 +42,8 @@ const LOCATION_SETTINGS_KEY = 'location-settings';
 
 export function LocationSettingsForm() {
   const { toast } = useToast();
+  const [permissionStatus, setPermissionStatus] = useState<PermissionState>('prompt');
+
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -58,6 +63,14 @@ export function LocationSettingsForm() {
         console.error('Failed to parse location settings:', error);
       }
     }
+
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: 'geolocation' }).then((status) => {
+        setPermissionStatus(status.state);
+        status.onchange = () => setPermissionStatus(status.state);
+      });
+    }
+
   }, [form]);
 
   const onSubmit = (data: z.infer<typeof FormSchema>) => {
@@ -89,8 +102,8 @@ export function LocationSettingsForm() {
               className="grid grid-cols-1 gap-4 md:grid-cols-3"
             >
               {/* Option 1: Device Location */}
-              <Label htmlFor="device-mode" className="cursor-pointer">
-                <Card className={field.value === 'device' ? 'ring-2 ring-primary' : ''}>
+              <Label htmlFor="device-mode" className="cursor-pointer h-full">
+                <Card className={`h-full ${field.value === 'device' ? 'ring-2 ring-primary' : ''}`}>
                   <CardHeader>
                     <div className="flex items-center gap-4">
                       <RadioGroupItem value="device" id="device-mode" />
@@ -100,12 +113,23 @@ export function LocationSettingsForm() {
                       Use your device's GPS for the most accurate location. Ideal for fieldwork.
                     </CardDescription>
                   </CardHeader>
+                   {selectedMode === 'device' && permissionStatus === 'denied' && (
+                    <CardFooter>
+                        <Alert variant="destructive" className="border-amber-500/50 text-amber-500 [&>svg]:text-amber-500">
+                          <AlertTriangle className="h-4 w-4" />
+                          <AlertTitle>Permission Denied</AlertTitle>
+                          <AlertDescription>
+                            Please enable location access in your browser settings to use this feature.
+                          </AlertDescription>
+                        </Alert>
+                    </CardFooter>
+                   )}
                 </Card>
               </Label>
 
               {/* Option 2: Manual Location */}
-              <Label htmlFor="manual-mode" className="cursor-pointer">
-                <Card className={field.value === 'manual' ? 'ring-2 ring-primary' : ''}>
+              <Label htmlFor="manual-mode" className="cursor-pointer h-full">
+                <Card className={`h-full ${field.value === 'manual' ? 'ring-2 ring-primary' : ''}`}>
                   <CardHeader>
                     <div className="flex items-center gap-4">
                       <RadioGroupItem value="manual" id="manual-mode" />
@@ -135,8 +159,8 @@ export function LocationSettingsForm() {
               </Label>
 
               {/* Option 3: Privacy Mode */}
-              <Label htmlFor="privacy-mode" className="cursor-pointer">
-                <Card className={field.value === 'privacy' ? 'ring-2 ring-primary' : ''}>
+              <Label htmlFor="privacy-mode" className="cursor-pointer h-full">
+                <Card className={`h-full ${field.value === 'privacy' ? 'ring-2 ring-primary' : ''}`}>
                   <CardHeader>
                     <div className="flex items-center gap-4">
                         <RadioGroupItem value="privacy" id="privacy-mode" />
