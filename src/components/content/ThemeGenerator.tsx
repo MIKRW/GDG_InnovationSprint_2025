@@ -288,7 +288,7 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
       <div className="mt-8">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
               <FormField
                 control={form.control}
                 name="word1"
@@ -325,7 +325,7 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
                   </FormItem>
                 )}
               />
-              <Button type="button" variant="outline" onClick={rotateMood} className="h-10">
+              <Button type="button" variant="outline" onClick={rotateMood}>
                 <RefreshCw className="mr-2 h-4 w-4" />
                 {MOODS[currentMoodIndex]}
               </Button>
@@ -394,3 +394,5 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
     </>
   );
 }
+
+    
