@@ -54,7 +54,7 @@ const EMPTY_THEME: Theme = {
   isActive: false,
 };
 
-const MAX_SAVED_THEMES = 5;
+const MAX_SAVED_THEMES = 6;
 
 export function ThemeGenerator() {
   const { toast } = useToast();
@@ -370,17 +370,18 @@ export function ThemeGenerator() {
         <h2 className="text-2xl font-bold text-center mb-4">
           Saved Themes (Click to activate)
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {savedThemes.map((theme, index) => {
             const isActive = theme.isActive;
             return (
-              <ThemeHistoryItem
-                key={theme.id + index}
-                theme={theme}
-                onClick={() => handleSlotClick(index)}
-                isActive={isActive}
-                isSelected={!isPreviewingGenerated && selectedSlot === index}
-              />
+              <div key={theme.id + index} className="h-40">
+                <ThemeHistoryItem
+                  theme={theme}
+                  onClick={() => handleSlotClick(index)}
+                  isActive={isActive}
+                  isSelected={!isPreviewingGenerated && selectedSlot === index}
+                />
+              </div>
             );
           })}
         </div>

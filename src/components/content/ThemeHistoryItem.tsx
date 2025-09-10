@@ -44,8 +44,8 @@ export function ThemeHistoryItem({
 
   if (isEmpty) {
     return (
-       <Card className={cn('border-dashed')}>
-        <CardContent className="p-4 space-y-2 h-48 flex flex-col justify-center items-center text-muted-foreground">
+       <Card className={cn('border-dashed h-full')}>
+        <CardContent className="p-4 space-y-2 h-full flex flex-col justify-center items-center text-muted-foreground">
             <Ban className="w-10 h-10" />
             <p className="text-sm font-medium">Empty</p>
             <p className="text-xs text-center">{emptyText}</p>
@@ -58,12 +58,12 @@ export function ThemeHistoryItem({
     <Card
       onClick={onClick}
       className={cn(
-        'cursor-pointer transition-all hover:shadow-lg',
+        'cursor-pointer transition-all hover:shadow-lg h-full',
         isActive && 'ring-2 ring-ring ring-offset-2',
         isSelected && 'ring-2 ring-blue-500 ring-offset-2'
       )}
     >
-      <CardContent className="p-4 space-y-4 relative">
+      <CardContent className="p-4 space-y-4 relative h-full flex flex-col">
         {isActive && <Badge className="absolute top-2 right-2">Active</Badge>}
         {showRotate && onRotateClick && (
             <Button
@@ -76,7 +76,7 @@ export function ThemeHistoryItem({
                 <RefreshCw className="w-4 h-4" />
             </Button>
         )}
-        <div className="h-24 rounded-md flex overflow-hidden mt-4" style={{ backgroundColor: styles.background }}>
+        <div className="flex-grow rounded-md flex overflow-hidden mt-4" style={{ backgroundColor: styles.background }}>
           <div className="w-1/3 h-full" style={{ backgroundColor: styles.foreground }}></div>
           <div className="w-1/3 h-full" style={{ backgroundColor: styles.primary }}></div>
         </div>
