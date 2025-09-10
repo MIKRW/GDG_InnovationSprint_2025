@@ -18,11 +18,12 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { generateTheme } from '@/ai/flows/generate-theme-flow';
-import type { Theme } from '@/lib/types';
+import type { Theme, ThemeColor } from '@/lib/types';
 import { Info, Loader2, RefreshCw, Save } from 'lucide-react';
 import { ThemeHistoryItem } from './ThemeHistoryItem';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
+import { ManualThemeEditor } from './ManualThemeEditor';
 
 const formSchema = z.object({
   word1: z.string(),
@@ -70,6 +71,7 @@ export function ThemeGenerator() {
   const [selectedSlot, setSelectedSlot] = useState(0);
   const [isPreviewingGenerated, setIsPreviewingGenerated] = useState(false);
   const [currentMoodIndex, setCurrentMoodIndex] = useState(0);
+  const [activeThemeForManualEdit, setActiveThemeForManualEdit] = useState<Theme | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -134,6 +136,7 @@ export function ThemeGenerator() {
             } else {
                 hasActive = true;
                 setSelectedSlot(i);
+                setActiveThemeForManualEdit(theme);
             }
         }
         return theme;
@@ -142,6 +145,7 @@ export function ThemeGenerator() {
     if (!hasActive && filledThemes.length > 0) {
         filledThemes[0].isActive = true;
         setSelectedSlot(0);
+        setActiveThemeForManualEdit(filledThemes[0]);
     }
     setSavedThemes(filledThemes);
 
@@ -165,6 +169,7 @@ export function ThemeGenerator() {
     const activeTheme = savedThemes.find(t => t.isActive);
     if (activeTheme && !isPreviewingGenerated) {
       updateCSSVariables(activeTheme.colors);
+      setActiveThemeForManualEdit(activeTheme);
       const currentTheme = localStorage.getItem('theme');
       if (currentTheme !== 'custom') {
         document.documentElement.classList.remove('light', 'dark');
@@ -193,6 +198,7 @@ export function ThemeGenerator() {
           document.documentElement.classList.remove('light', 'dark');
           document.documentElement.classList.add('custom');
           setIsPreviewingGenerated(false);
+          setActiveThemeForManualEdit(newTheme);
         }
         return newTheme;
       }
@@ -231,7 +237,7 @@ export function ThemeGenerator() {
       };
 
       setGeneratedTheme(newTheme);
-localStorage.setItem('generated-theme', JSON.stringify(newTheme));
+      localStorage.setItem('generated-theme', JSON.stringify(newTheme));
       
       toast({
         title: 'Theme Generated!',
@@ -267,6 +273,7 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
     localStorage.setItem('custom-themes', JSON.stringify(newSavedThemes));
     localStorage.setItem('theme', 'custom');
     updateCSSVariables(themeToActivate.colors);
+    setActiveThemeForManualEdit(themeToActivate);
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add('custom');
     setIsPreviewingGenerated(false);
@@ -281,6 +288,7 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
   const previewGeneratedTheme = () => {
     if (generatedTheme.id === 'empty') return;
     updateCSSVariables(generatedTheme.colors);
+    setActiveThemeForManualEdit(generatedTheme);
     localStorage.setItem('theme', 'custom');
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add('custom');
@@ -304,15 +312,50 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
     const newTheme = {...generatedTheme, colors: newColors};
 
     setGeneratedTheme(newTheme);
-localStorage.setItem('generated-theme', JSON.stringify(newTheme));
+    localStorage.setItem('generated-theme', JSON.stringify(newTheme));
 
     if (isPreviewingGenerated) {
         updateCSSVariables(newColors);
+        setActiveThemeForManualEdit(newTheme);
     }
   };
 
   const rotateMood = () => {
     setCurrentMoodIndex((prevIndex) => (prevIndex + 1) % MOODS.length);
+  };
+  
+  const handleManualColorChange = (colorName: keyof Theme['colors'], newColor: ThemeColor) => {
+    if (!activeThemeForManualEdit) return;
+
+    const updatedColors = {
+        ...activeThemeForManualEdit.colors,
+        [colorName]: newColor,
+    };
+
+    const updatedTheme = {
+        ...activeThemeForManualEdit,
+        colors: updatedColors,
+        words: { word1: 'custom', word2: 'edited', word3: 'theme', mood: 'manual' }
+    };
+    
+    setActiveThemeForManualEdit(updatedTheme);
+    updateCSSVariables(updatedColors);
+
+    // If it was a saved theme being edited, update it in the savedThemes array
+    if (!isPreviewingGenerated) {
+      const newSavedThemes = savedThemes.map((theme, index) => {
+        if (index === selectedSlot) {
+          return updatedTheme;
+        }
+        return theme;
+      });
+      setSavedThemes(newSavedThemes);
+      localStorage.setItem('custom-themes', JSON.stringify(newSavedThemes));
+    } else {
+      // If it was the generated theme being previewed and edited
+      setGeneratedTheme(updatedTheme);
+      localStorage.setItem('generated-theme', JSON.stringify(updatedTheme));
+    }
   };
 
   return (
@@ -433,6 +476,15 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
           })}
         </div>
       </div>
+      
+      {activeThemeForManualEdit && (
+        <div className="my-24">
+            <ManualThemeEditor 
+                theme={activeThemeForManualEdit}
+                onColorChange={handleManualColorChange}
+            />
+        </div>
+      )}
     </>
   );
 }
