@@ -17,3 +17,5 @@ When you click the "Generate Theme" button, the AI takes the following four para
 *   **Primary Word**: This word inspires the accent color, which is used for interactive elements like buttons and highlights. Similar to the foreground, this color must also contrast well with the background.
 
 *   **Mood**: This is a powerful, high-level instruction that guides the overall artistic direction. You can use words like "dark," "light," "calm," "vibrant," or even stylistic prompts like "80's" or "retro." The AI uses the mood to influence the final saturation, lightness, and overall style of the entire color palette.
+
+*   **Color Systems**: To improve its suggestions, the AI is instructed to reference established color brands (like Pantone or paint companies) to better understand how colors are named and used in professional contexts. This helps it choose more appropriate and nuanced shades based on your input.

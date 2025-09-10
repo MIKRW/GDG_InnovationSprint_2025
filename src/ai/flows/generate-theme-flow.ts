@@ -50,7 +50,9 @@ const prompt = ai.definePrompt({
     Your task is to generate a creative, unique, and aesthetically pleasing HSL color palette based on user input.
 
     When choosing colors, base your selections on the real-world colors associated with the input words.
+    To do this, you can research how established color brands (like Pantone or paint companies) name their colors.
     For example, if a user provides the word "eggshell", you should associate it with a natural, off-white color.
+    If they say "lavender" or "forest green", learn from professional color systems to choose an appropriate shade.
 
     The user has provided four words as inspiration.
     - The 'background' color should be inspired by the word: "{{background}}".
