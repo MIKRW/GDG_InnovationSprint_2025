@@ -10,9 +10,9 @@ The theme generator is powered by an AI model that has been instructed to act as
 
 When you click the "Generate Theme" button, the AI takes the following four parameters into account to create a theme:
 
-*   **Background Word**: This word serves as the main inspiration for the theme's background color. The AI will associate this word with a color (e.g., "sky" might become a shade of blue, "sand" could be a warm beige).
+*   **Background Word**: This word serves as the main inspiration for the theme's background color. The AI will consider the real-world colors associated with this word (e.g., "sky" might become a shade of blue, "sand" could be a warm beige).
 
-*   **Foreground Word**: This word guides the choice for the primary text and content color. A key instruction for the AI is to ensure this color has a **high contrast ratio** with the background color to maintain readability and accessibility.
+*   **Foreground Word**: This word guides the choice for the primary text and content color. The AI will choose a color based on this word, but a key instruction is to ensure this color has a **high contrast ratio** with the background color to maintain readability and accessibility.
 
 *   **Primary Word**: This word inspires the accent color, which is used for interactive elements like buttons and highlights. Similar to the foreground, this color must also contrast well with the background.
 

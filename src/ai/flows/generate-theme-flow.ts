@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -46,7 +47,10 @@ const prompt = ai.definePrompt({
   output: { schema: GenerateThemeOutputSchema },
   prompt: `
     You are an expert UI theme designer with a deep understanding of color theory and word association.
-    Your task is to generate a creative, unique, and aesthetically pleasing HSL color palette.
+    Your task is to generate a creative, unique, and aesthetically pleasing HSL color palette based on user input.
+
+    When choosing colors, base your selections on the real-world colors associated with the input words.
+    For example, if a user provides the word "eggshell", you should associate it with a natural, off-white color.
 
     The user has provided four words as inspiration.
     - The 'background' color should be inspired by the word: "{{background}}".
