@@ -32,7 +32,7 @@ const ColorEditor = ({
   };
 
   return (
-    <Button asChild className="h-full w-full cursor-default hover:bg-primary">
+    <Button asChild className="w-full h-40 cursor-default hover:bg-primary">
       <div className="flex flex-col justify-center h-full p-4 space-y-4">
         <div className="flex items-center gap-4">
           <Label className="w-12 text-primary-foreground">Hue</Label>
