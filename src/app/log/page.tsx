@@ -1,10 +1,11 @@
 import { LogPage } from '@/components/pages/LogPage';
 import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 
 export default function Log() {
   return (
-    <AppLayout>
+    <AppLayout header={<SecondaryHeader />}>
       <main className="flex-1 overflow-y-auto">
         <LogPage />
       </main>

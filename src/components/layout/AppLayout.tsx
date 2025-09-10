@@ -1,10 +1,16 @@
 import type { ReactNode } from 'react';
-import { Header } from './Header';
+import { PrimaryHeader } from './PrimaryHeader';
 
-export function AppLayout({ children }: { children: ReactNode }) {
+export function AppLayout({
+  children,
+  header,
+}: {
+  children: ReactNode;
+  header?: ReactNode;
+}) {
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
+      {header || <PrimaryHeader />}
       {children}
     </div>
   );
