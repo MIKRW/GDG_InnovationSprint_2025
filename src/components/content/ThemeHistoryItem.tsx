@@ -3,13 +3,24 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { Theme } from '@/lib/types';
+import { Badge } from '../ui/badge';
+import { Ban } from 'lucide-react';
 
 interface ThemeHistoryItemProps {
   theme: Theme;
   onClick: () => void;
+  isActive?: boolean;
+  isSelected?: boolean;
+  isEmpty?: boolean;
 }
 
-export function ThemeHistoryItem({ theme, onClick }: ThemeHistoryItemProps) {
+export function ThemeHistoryItem({
+  theme,
+  onClick,
+  isActive = false,
+  isSelected = false,
+  isEmpty = false,
+}: ThemeHistoryItemProps) {
   const { colors, words } = theme;
 
   const styles = {
@@ -18,12 +29,27 @@ export function ThemeHistoryItem({ theme, onClick }: ThemeHistoryItemProps) {
     primary: `hsl(${colors.primary.h}, ${colors.primary.s}%, ${colors.primary.l}%)`,
   };
 
+  if (isEmpty) {
+    return (
+       <Card className={cn('border-dashed')}>
+        <CardContent className="p-4 space-y-2 h-48 flex flex-col justify-center items-center text-muted-foreground">
+            <Ban className="w-10 h-10" />
+            <p className="text-sm font-medium">No Preview</p>
+            <p className="text-xs text-center">Generate a new theme or select a saved theme.</p>
+        </CardContent>
+       </Card>
+    )
+  }
+
   return (
     <Card
       onClick={onClick}
-      className={cn('cursor-pointer transition-all hover:scale-105 hover:shadow-lg')}
+      className={cn('cursor-pointer transition-all hover:shadow-lg',
+        isSelected && 'ring-2 ring-ring ring-offset-2',
+      )}
     >
-      <CardContent className="p-4 space-y-2">
+      <CardContent className="p-4 space-y-2 relative">
+        {isActive && <Badge className="absolute top-2 right-2">Active</Badge>}
         <div className="flex justify-between items-center text-xs text-muted-foreground pt-4">
           <span>{words.background},</span>
           <span>{words.foreground},</span>

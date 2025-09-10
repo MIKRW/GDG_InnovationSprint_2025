@@ -18,4 +18,5 @@ export type Theme = {
     foreground: ThemeColor;
     primary: ThemeColor;
   };
+  isActive: boolean;
 };

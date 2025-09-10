@@ -38,69 +38,121 @@ const DEFAULTS: Theme = {
     foreground: { h: 39, s: 50, l: 10 },
     primary: { h: 39, s: 50, l: 20 },
   },
+  isActive: true,
 };
+
+const EMPTY_THEME: Theme = {
+  id: 'empty',
+  words: { background: '', foreground: '', primary: '' },
+  colors: {
+    background: { h: 0, s: 0, l: 100 },
+    foreground: { h: 0, s: 0, l: 0 },
+    primary: { h: 0, s: 0, l: 50 },
+  },
+  isActive: false,
+};
+
+const MAX_SAVED_THEMES = 5;
 
 export function ThemeGenerator() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTheme, setActiveTheme] = useState<Theme>(DEFAULTS);
-  const [savedTheme, setSavedTheme] = useState<Theme>(DEFAULTS);
+  const [previewTheme, setPreviewTheme] = useState<Theme>(EMPTY_THEME);
+  const [savedThemes, setSavedThemes] = useState<Theme[]>([]);
+  const [selectedSlot, setSelectedSlot] = useState(0);
 
-  // Load saved theme from localStorage on initial mount
+  // Load saved themes from localStorage on initial mount
   useEffect(() => {
-    const savedThemeJson = localStorage.getItem('custom-theme');
-    let initialTheme = DEFAULTS;
-    if (savedThemeJson) {
-      initialTheme = JSON.parse(savedThemeJson);
+    const savedThemesJson = localStorage.getItem('custom-themes');
+    let initialThemes: Theme[] = [];
+    if (savedThemesJson) {
+      initialThemes = JSON.parse(savedThemesJson);
     }
-    setSavedTheme(initialTheme);
-    setActiveTheme(initialTheme); // Start with the saved theme as the active preview
+    
+    // Ensure there are always MAX_SAVED_THEMES slots
+    const filledThemes = Array.from({ length: MAX_SAVED_THEMES }).map((_, i) => {
+        if (initialThemes[i]) return initialThemes[i];
+        const newTheme = { ...DEFAULTS, id: uuidv4(), isActive: i === 0 };
+        if (i > 0) newTheme.words = { background: 'new', foreground: 'theme', primary: 'slot' };
+        return newTheme;
+    });
+
+    setSavedThemes(filledThemes);
   }, []);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      background: '',
-      foreground: '',
-      primary: '',
-    },
+    defaultValues: { background: '', foreground: '', primary: '' },
   });
-  
-  // Set form values when active theme changes
-  useEffect(() => {
-    form.reset(activeTheme.words);
-  }, [activeTheme, form]);
-
 
   const updateCSSVariables = useCallback((colors: Theme['colors']) => {
     const root = document.documentElement;
     root.style.setProperty('--custom-background-h', `${colors.background.h}`);
     root.style.setProperty('--custom-background-s', `${colors.background.s}%`);
     root.style.setProperty('--custom-background-l', `${colors.background.l}%`);
-
     root.style.setProperty('--custom-foreground-h', `${colors.foreground.h}`);
     root.style.setProperty('--custom-foreground-s', `${colors.foreground.s}%`);
     root.style.setProperty('--custom-foreground-l', `${colors.foreground.l}%`);
-
     root.style.setProperty('--custom-primary-h', `${colors.primary.h}`);
     root.style.setProperty('--custom-primary-s', `${colors.primary.s}%`);
     root.style.setProperty('--custom-primary-l', `${colors.primary.l}%`);
   }, []);
   
-  // This effect only updates the live preview (CSS variables)
+  // This effect only updates the live preview (CSS variables) from the preview theme
   useEffect(() => {
-    updateCSSVariables(activeTheme.colors);
-  }, [activeTheme, updateCSSVariables]);
+    if (previewTheme.id !== 'empty') {
+      updateCSSVariables(previewTheme.colors);
+    }
+  }, [previewTheme, updateCSSVariables]);
+  
+  // Effect to apply the active theme from savedThemes on load
+  useEffect(() => {
+    const activeTheme = savedThemes.find(t => t.isActive);
+    if (activeTheme) {
+      updateCSSVariables(activeTheme.colors);
+    }
+  }, [savedThemes, updateCSSVariables]);
 
-  const saveActiveTheme = () => {
-    localStorage.setItem('custom-theme', JSON.stringify(activeTheme));
-    localStorage.setItem('theme', 'custom');
-    setSavedTheme(activeTheme);
+
+  const saveToSlot = () => {
+    if (previewTheme.id === 'empty') {
+      toast({
+        variant: 'destructive',
+        title: 'No Preview',
+        description: 'Please generate a theme before trying to save.',
+      });
+      return;
+    }
+
+    const newSavedThemes = savedThemes.map((theme, index) => {
+      if (index === selectedSlot) {
+        // The theme being saved into slot 0 becomes the active theme
+        const newTheme = { ...previewTheme, id: uuidv4(), isActive: index === 0 };
+        return newTheme;
+      }
+      // If we're saving to slot 0, all other themes must be inactive
+      if (selectedSlot === 0) {
+        return { ...theme, isActive: false };
+      }
+      return theme;
+    });
+
+    setSavedThemes(newSavedThemes);
+    localStorage.setItem('custom-themes', JSON.stringify(newSavedThemes));
+    
+    // If we saved to the active slot, also update the global theme setting
+    if (selectedSlot === 0) {
+        localStorage.setItem('theme', 'custom');
+    }
+
     toast({
       title: 'Theme Saved!',
-      description: 'Your custom theme is now active across the app.',
+      description: `Saved to slot ${selectedSlot + 1}.`,
     });
+    setPreviewTheme(EMPTY_THEME);
+    form.reset({ background: '', foreground: '', primary: '' });
   };
+
 
   async function onSubmit(values: FormValues) {
     setIsLoading(true);
@@ -111,13 +163,14 @@ export function ThemeGenerator() {
         id: uuidv4(),
         words: values,
         colors: newColors,
+        isActive: false,
       };
 
-      setActiveTheme(newTheme);
+      setPreviewTheme(newTheme);
       
       toast({
         title: 'Theme Generated!',
-        description: 'Click "Save Theme" to make it active.',
+        description: 'Click a save slot, then "Save Theme".',
       });
     } catch (error) {
       console.error(error);
@@ -129,6 +182,13 @@ export function ThemeGenerator() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  const handleSlotClick = (index: number) => {
+    setSelectedSlot(index);
+    const themeToPreview = savedThemes[index];
+    setPreviewTheme(themeToPreview);
+    form.reset(themeToPreview.words);
   }
 
   return (
@@ -187,28 +247,36 @@ export function ThemeGenerator() {
       </Form>
       
       <div className="mt-8 flex justify-center">
-        <Button onClick={saveActiveTheme} size="lg">
+        <Button onClick={saveToSlot} size="lg" disabled={previewTheme.id === 'empty'}>
           <Save className="mr-2 h-4 w-4" />
-          Save Theme
+          Save Theme to Selected Slot
         </Button>
       </div>
 
       <div className="mt-12">
         <Separator className="my-4" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-            <div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className='lg:col-span-1'>
                 <h2 className="text-2xl font-bold text-center mb-4">Preview</h2>
                 <ThemeHistoryItem
-                    theme={activeTheme}
+                    theme={previewTheme.id === 'empty' ? EMPTY_THEME : previewTheme}
                     onClick={() => {}}
+                    isEmpty={previewTheme.id === 'empty'}
                 />
             </div>
-            <div>
-                <h2 className="text-2xl font-bold text-center mb-4">Saved</h2>
-                <ThemeHistoryItem
-                    theme={savedTheme}
-                    onClick={() => setActiveTheme(savedTheme)}
-                />
+            <div className="lg:col-span-2">
+                <h2 className="text-2xl font-bold text-center mb-4">Saved Themes (Slot 1 is Active)</h2>
+                <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
+                    {savedThemes.map((theme, index) => (
+                        <ThemeHistoryItem
+                            key={theme.id + index}
+                            theme={theme}
+                            onClick={() => handleSlotClick(index)}
+                            isActive={theme.isActive}
+                            isSelected={selectedSlot === index}
+                        />
+                    ))}
+                </div>
             </div>
         </div>
       </div>
