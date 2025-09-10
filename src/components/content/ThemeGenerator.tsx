@@ -62,6 +62,7 @@ export function ThemeGenerator() {
   const [generatedTheme, setGeneratedTheme] = useState<Theme>(EMPTY_THEME);
   const [savedThemes, setSavedThemes] = useState<Theme[]>([]);
   const [selectedSlot, setSelectedSlot] = useState(0);
+  const [isPreviewingGenerated, setIsPreviewingGenerated] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -72,6 +73,19 @@ export function ThemeGenerator() {
       mood: '',
     },
   });
+
+  const updateCSSVariables = useCallback((colors: Theme['colors']) => {
+    const root = document.documentElement;
+    root.style.setProperty('--custom-background-h', `${colors.background.h}`);
+    root.style.setProperty('--custom-background-s', `${colors.background.s}%`);
+    root.style.setProperty('--custom-background-l', `${colors.background.l}%`);
+    root.style.setProperty('--custom-foreground-h', `${colors.foreground.h}`);
+    root.style.setProperty('--custom-foreground-s', `${colors.foreground.s}%`);
+    root.style.setProperty('--custom-foreground-l', `${colors.foreground.l}%`);
+    root.style.setProperty('--custom-primary-h', `${colors.primary.h}`);
+    root.style.setProperty('--custom-primary-s', `${colors.primary.s}%`);
+    root.style.setProperty('--custom-primary-l', `${colors.primary.l}%`);
+  }, []);
 
   // Load saved themes from localStorage on initial mount
   useEffect(() => {
@@ -126,23 +140,11 @@ export function ThemeGenerator() {
     }
   }, []);
 
-  const updateCSSVariables = useCallback((colors: Theme['colors']) => {
-    const root = document.documentElement;
-    root.style.setProperty('--custom-background-h', `${colors.background.h}`);
-    root.style.setProperty('--custom-background-s', `${colors.background.s}%`);
-    root.style.setProperty('--custom-background-l', `${colors.background.l}%`);
-    root.style.setProperty('--custom-foreground-h', `${colors.foreground.h}`);
-    root.style.setProperty('--custom-foreground-s', `${colors.foreground.s}%`);
-    root.style.setProperty('--custom-foreground-l', `${colors.foreground.l}%`);
-    root.style.setProperty('--custom-primary-h', `${colors.primary.h}`);
-    root.style.setProperty('--custom-primary-s', `${colors.primary.s}%`);
-    root.style.setProperty('--custom-primary-l', `${colors.primary.l}%`);
-  }, []);
   
   // Effect to apply the active theme from savedThemes on load
   useEffect(() => {
     const activeTheme = savedThemes.find(t => t.isActive);
-    if (activeTheme) {
+    if (activeTheme && !isPreviewingGenerated) {
       updateCSSVariables(activeTheme.colors);
       const currentTheme = localStorage.getItem('theme');
       if (currentTheme !== 'custom') {
@@ -150,7 +152,7 @@ export function ThemeGenerator() {
         document.documentElement.classList.add('custom');
       }
     }
-  }, [savedThemes, updateCSSVariables]);
+  }, [savedThemes, updateCSSVariables, isPreviewingGenerated]);
 
 
   const saveToSlot = () => {
@@ -171,6 +173,7 @@ export function ThemeGenerator() {
           localStorage.setItem('theme', 'custom');
           document.documentElement.classList.remove('light', 'dark');
           document.documentElement.classList.add('custom');
+          setIsPreviewingGenerated(false);
         }
         return newTheme;
       }
@@ -233,7 +236,20 @@ export function ThemeGenerator() {
     updateCSSVariables(themeToActivate.colors);
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add('custom');
+    setIsPreviewingGenerated(false);
     form.reset(themeToActivate.words);
+  }
+
+  const previewGeneratedTheme = () => {
+    if (generatedTheme.id === 'empty') return;
+    updateCSSVariables(generatedTheme.colors);
+    localStorage.setItem('theme', 'custom');
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add('custom');
+    setIsPreviewingGenerated(true);
+    // Unselect any saved slots
+    const newSavedThemes = savedThemes.map(theme => ({ ...theme, isActive: false }));
+    setSavedThemes(newSavedThemes);
   }
 
   return (
@@ -317,9 +333,10 @@ export function ThemeGenerator() {
                 <h2 className="text-2xl font-bold text-center mb-4">Generated Theme</h2>
                 <ThemeHistoryItem
                     theme={generatedTheme}
-                    onClick={() => {}}
+                    onClick={previewGeneratedTheme}
                     isEmpty={generatedTheme.id === 'empty'}
                     emptyText="Generate a new theme to see it here."
+                    isSelected={isPreviewingGenerated}
                 />
             </div>
             <div className="lg:col-span-2">
@@ -333,7 +350,7 @@ export function ThemeGenerator() {
                             theme={theme}
                             onClick={() => handleSlotClick(index)}
                             isActive={isActive}
-                            isSelected={selectedSlot === index}
+                            isSelected={!isPreviewingGenerated && selectedSlot === index}
                         />
                       )
                     })}
