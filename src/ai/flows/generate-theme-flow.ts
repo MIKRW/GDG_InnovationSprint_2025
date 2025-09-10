@@ -60,14 +60,16 @@ const prompt = ai.definePrompt({
     To do this, you should research how established color brands (like Pantone or paint companies) name their colors.
     For example, if a user provides the word "eggshell", you should associate it with a natural, off-white color.
     If they say "lavender" or "forest green", learn from professional color systems to choose an appropriate shade.
+    
+    After selecting the initial colors, use the 'mood' as a strong guideline to modify and adjust the final HSL values.
+    For example, a 'dark' mood should result in lower lightness values for the background. A 'vibrant' mood should increase saturation. 'High Contrast' should maximize the lightness difference between background and foreground.
 
     You must return an object with three HSL color objects: 'background', 'foreground', and 'primary'.
     
     - The 'foreground' color MUST have a high contrast ratio with the background color for accessibility and readability.
     - The 'primary' color also MUST have a high contrast ratio with the background.
-    - Use the 'mood' as a strong guide for the overall style, saturation, and lightness of the colors.
     
-    Interpret the user's words creatively to generate a harmonious and visually appealing theme that has not been generated before.
+    Interpret the user's words creatively to generate a harmonious and visually appealing theme.
   `,
 });
 
