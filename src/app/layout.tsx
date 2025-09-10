@@ -7,7 +7,6 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/layout/ThemeProvider';
-import { useEffect }from 'react';
 
 // This is the root layout for the entire application.
 // It sets up the basic HTML structure, fonts, and global styles.
@@ -17,49 +16,39 @@ const inter = Inter({
   variable: '--font-sans',
 });
 
-// Metadata and Viewport would normally be exported from here,
-// but they are static and can be in a separate server component
-// if we need to wrap this client component. For now, we assume
-// they are handled by Next.js in page.tsx or a server layout wrapper.
+const themeScript = `
+  (function() {
+    try {
+      const savedThemeClass = localStorage.getItem('theme') || 'light';
+      document.documentElement.classList.add(savedThemeClass);
 
-function ThemeLoader() {
-  useEffect(() => {
-    // Apply the theme class ('light', 'dark', 'custom')
-    const savedThemeClass = localStorage.getItem('theme') || 'light';
-    document.documentElement.classList.remove('light', 'dark', 'custom');
-    document.documentElement.classList.add(savedThemeClass);
-
-    // If the theme is 'custom', apply the specific HSL values.
-    if (savedThemeClass === 'custom') {
-      const activeThemeJson = localStorage.getItem('active-theme-json');
-      if (activeThemeJson) {
-        try {
+      if (savedThemeClass === 'custom') {
+        const activeThemeJson = localStorage.getItem('active-theme-json');
+        if (activeThemeJson) {
           const activeTheme = JSON.parse(activeThemeJson);
           const { colors } = activeTheme;
           const ringColor = colors.ring || colors.primary;
           const root = document.documentElement;
 
-          root.style.setProperty('--custom-background-h', `${colors.background.h}`);
-          root.style.setProperty('--custom-background-s', `${colors.background.s}%`);
-          root.style.setProperty('--custom-background-l', `${colors.background.l}%`);
-          root.style.setProperty('--custom-foreground-h', `${colors.foreground.h}`);
-          root.style.setProperty('--custom-foreground-s', `${colors.foreground.s}%`);
-          root.style.setProperty('--custom-foreground-l', `${colors.foreground.l}%`);
-          root.style.setProperty('--custom-primary-h', `${colors.primary.h}`);
-          root.style.setProperty('--custom-primary-s', `${colors.primary.s}%`);
-          root.style.setProperty('--custom-primary-l', `${colors.primary.l}%`);
-          root.style.setProperty('--custom-ring-h', `${ringColor.h}`);
-          root.style.setProperty('--custom-ring-s', `${ringColor.s}%`);
-          root.style.setProperty('--custom-ring-l', `${ringColor.l}%`);
-        } catch (e) {
-          console.error("Failed to parse or apply active custom theme.", e);
+          root.style.setProperty('--custom-background-h', '' + colors.background.h);
+          root.style.setProperty('--custom-background-s', colors.background.s + '%');
+          root.style.setProperty('--custom-background-l', colors.background.l + '%');
+          root.style.setProperty('--custom-foreground-h', '' + colors.foreground.h);
+          root.style.setProperty('--custom-foreground-s', colors.foreground.s + '%');
+          root.style.setProperty('--custom-foreground-l', colors.foreground.l + '%');
+          root.style.setProperty('--custom-primary-h', '' + colors.primary.h);
+          root.style.setProperty('--custom-primary-s', colors.primary.s + '%');
+          root.style.setProperty('--custom-primary-l', colors.primary.l + '%');
+          root.style.setProperty('--custom-ring-h', '' + ringColor.h);
+          root.style.setProperty('--custom-ring-s', ringColor.s + '%');
+          root.style.setProperty('--custom-ring-l', ringColor.l + '%');
         }
       }
+    } catch (e) {
+      console.error('Failed to apply theme from localStorage', e);
     }
-  }, []);
-
-  return null; // This component does not render anything.
-}
+  })();
+`;
 
 
 export default function RootLayout({
@@ -77,6 +66,7 @@ export default function RootLayout({
           <meta name="apple-mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-status-bar-style" content="default" />
           <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+          <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body
         className={cn(
@@ -84,7 +74,6 @@ export default function RootLayout({
           inter.variable
         )}
       >
-        <ThemeLoader />
         <ThemeProvider>
             {children}
         </ThemeProvider>
