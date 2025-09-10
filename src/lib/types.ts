@@ -34,4 +34,6 @@ export type BirdLog = {
     imagePrompt: string;
     audioUrl?: string;
     isMystery: boolean;
+    latitude?: number;
+    longitude?: number;
 }

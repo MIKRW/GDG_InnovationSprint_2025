@@ -17,6 +17,8 @@ const IdentifyBirdInputSchema = z.object({
     .describe(
       "A recording of a bird song, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
+    latitude: z.number().optional().describe('The latitude of where the recording was made.'),
+    longitude: z.number().optional().describe('The longitude of where the recording was made.'),
 });
 export type IdentifyBirdInput = z.infer<typeof IdentifyBirdInputSchema>;
 
@@ -44,6 +46,12 @@ const prompt = ai.definePrompt({
     Analyze the following audio data to identify the bird species.
 
     Audio data: {{media url=audioDataUri}}
+
+    {{#if latitude}}
+    The recording was made at latitude: {{latitude}}, longitude: {{longitude}}.
+    Use this location information as a strong hint. Consider the bird's known geographic range and habitat when making your identification.
+    A bird that is not typically found in this area is less likely to be the correct identification.
+    {{/if}}
 
     Your task is to return a JSON object with the following structure:
     - isBirdSong: A boolean indicating if you are confident a bird song is present in the audio.

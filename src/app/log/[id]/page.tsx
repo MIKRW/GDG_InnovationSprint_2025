@@ -68,9 +68,14 @@ export default function LogDetailPage({ params }: { params: { id: string } }) {
                 </audio>
               </div>
             )}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
                 <Badge variant="secondary">Captured: {new Date(log.timestamp).toLocaleDateString()}</Badge>
                  {log.isMystery && <Badge variant="destructive">Unidentified</Badge>}
+                 {log.latitude && log.longitude && (
+                   <Badge variant="outline">
+                     {`Location: ${log.latitude.toFixed(4)}, ${log.longitude.toFixed(4)}`}
+                   </Badge>
+                 )}
             </div>
           </CardContent>
         </Card>

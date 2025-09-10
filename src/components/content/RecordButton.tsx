@@ -73,7 +73,7 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
     }
   };
 
-  const saveMysteryLog = (audioDataUri: string) => {
+  const saveMysteryLog = (audioDataUri: string, location?: {latitude: number, longitude: number}) => {
     const newLog: BirdLog = {
       id: uuidv4(),
       timestamp: new Date().toISOString(),
@@ -83,6 +83,8 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
       imagePrompt: 'question mark',
       audioUrl: audioDataUri,
       isMystery: true,
+      latitude: location?.latitude,
+      longitude: location?.longitude,
     };
     addLog(newLog);
     router.push(`/log/mystery`);
@@ -90,7 +92,16 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
 
   const handleSaveConfirmation = () => {
     if (lastAudio) {
-      saveMysteryLog(lastAudio);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const { latitude, longitude } = position.coords;
+            saveMysteryLog(lastAudio, { latitude, longitude });
+        },
+        () => {
+            // Geolocation failed or denied, save without it.
+            saveMysteryLog(lastAudio);
+        }
+      );
     }
     setRecordingState('idle');
     setLastAudio(null);
@@ -110,38 +121,60 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
     const reader = new FileReader();
     reader.readAsDataURL(audioBlob);
     reader.onloadend = async () => {
-      const base64Audio = reader.result as string;
-      
-      try {
-        const result = await identifyBirdBySound({ audioDataUri: base64Audio });
-        let newLog: BirdLog;
+        const base64Audio = reader.result as string;
 
-        if (result && result.isBirdSong && result.commonName && result.scientificName && result.description && result.imagePrompt) {
-            newLog = {
-                id: uuidv4(),
-                timestamp: new Date().toISOString(),
-                commonName: result.commonName,
-                scientificName: result.scientificName,
-                description: result.description,
-                imagePrompt: result.imagePrompt,
-                audioUrl: base64Audio,
-                isMystery: false,
-            };
-            addLog(newLog);
-            router.push(`/log/${newLog.id}`);
-        } else {
-             // AI failed, trigger confirmation
-             setLastAudio(base64Audio);
-             setRecordingState('confirming');
-        }
-      } catch (error) {
-        console.error('Error identifying bird sound:', error);
-        // API failed, trigger confirmation
-        setLastAudio(base64Audio);
-        setRecordingState('confirming');
-      }
+        // Get location and then call AI
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+                await processAudio(base64Audio, { latitude, longitude });
+            },
+            async () => {
+                // Geolocation failed or denied, proceed without it
+                console.warn('Geolocation permission denied or failed. Proceeding without location data.');
+                await processAudio(base64Audio);
+            }
+        );
     };
   };
+
+  const processAudio = async (base64Audio: string, location?: { latitude: number, longitude: number }) => {
+    try {
+      const result = await identifyBirdBySound({ 
+          audioDataUri: base64Audio,
+          latitude: location?.latitude,
+          longitude: location?.longitude,
+      });
+      let newLog: BirdLog;
+
+      if (result && result.isBirdSong && result.commonName && result.scientificName && result.description && result.imagePrompt) {
+          newLog = {
+              id: uuidv4(),
+              timestamp: new Date().toISOString(),
+              commonName: result.commonName,
+              scientificName: result.scientificName,
+              description: result.description,
+              imagePrompt: result.imagePrompt,
+              audioUrl: base64Audio,
+              isMystery: false,
+              latitude: location?.latitude,
+              longitude: location?.longitude,
+          };
+          addLog(newLog);
+          router.push(`/log/${newLog.id}`);
+      } else {
+           // AI failed, trigger confirmation
+           setLastAudio(base64Audio);
+           setRecordingState('confirming');
+      }
+    } catch (error) {
+      console.error('Error identifying bird sound:', error);
+      // API failed, trigger confirmation
+      setLastAudio(base64Audio);
+      setRecordingState('confirming');
+    }
+  }
+
 
   const handleClick = () => {
     if (recordingState === 'recording') {
