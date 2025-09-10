@@ -62,6 +62,17 @@ This document tracks recurring errors, their root causes, the solutions implemen
 
 ---
 
+### Error Type: Next.js Promise-based 'params' in useEffect
+
+- **Occurrences**: 1
+- **Description**: A Next.js console warning appeared: `A param property was accessed directly with params.id. params is now a Promise and should be unwrapped...` when viewing a log detail page.
+- **Cause**: A recent update to Next.js changed the `params` object in client components to be a Promise-like object when accessed inside a `useEffect` hook. The code was attempting to read `params.id` directly within the `useEffect` hook on the log detail page (`[id]/page.tsx`), which is no longer the recommended pattern.
+- **Solution**:
+    1. The `id` was destructured from the `params` object at the top level of the `LogDetailPage` component.
+    2. This `id` variable was then used as a dependency in the `useEffect` hook's dependency array and within the hook's logic. This ensures the `id` value is resolved before the effect runs, aligning with the new Next.js behavior and removing the warning.
+
+---
+
 ### Placeholder for Next Error
 - **Occurrences**: 0
 - **Description**: 
