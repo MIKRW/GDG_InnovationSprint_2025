@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { debounce } from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
 
 import {
@@ -18,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { generateTheme } from '@/ai/flows/generate-theme-flow';
-import type { ThemeColor, Theme } from '@/lib/types';
+import type { Theme } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import { ThemeHistoryItem } from './ThemeHistoryItem';
 import { Separator } from '@/components/ui/separator';
@@ -88,6 +87,8 @@ export function ThemeGenerator() {
   const saveToLocalStorage = useCallback((theme: Theme, themeHistory: Theme[]) => {
     localStorage.setItem('custom-theme', JSON.stringify(theme));
     localStorage.setItem('custom-theme-history', JSON.stringify(themeHistory));
+    // Also update the master theme setting so it persists on navigation
+    localStorage.setItem('theme', 'custom');
   }, []);
 
   useEffect(() => {
@@ -190,22 +191,20 @@ export function ThemeGenerator() {
         </form>
       </Form>
 
-      {history.length > 0 && (
-        <div className="mt-12">
-          <h2 className="text-2xl font-bold">History</h2>
-          <Separator className="my-4" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {history.map((theme) => (
-              <ThemeHistoryItem
-                key={theme.id}
-                theme={theme}
-                isActive={activeTheme.id === theme.id}
-                onClick={() => selectHistoryTheme(theme)}
-              />
-            ))}
-          </div>
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold">History</h2>
+        <Separator className="my-4" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {history.map((theme) => (
+            <ThemeHistoryItem
+              key={theme.id}
+              theme={theme}
+              isActive={activeTheme.id === theme.id}
+              onClick={() => selectHistoryTheme(theme)}
+            />
+          ))}
         </div>
-      )}
+      </div>
     </>
   );
 }
