@@ -33,37 +33,40 @@ const ColorEditor = ({
   };
 
   return (
-    <Card className="h-full">
-      <CardContent className="space-y-4 flex flex-col justify-center h-full p-4">
+    <Button asChild className="h-full cursor-default hover:bg-primary">
+      <div className="flex flex-col justify-center h-full p-4 space-y-4">
         <div className="flex items-center gap-4">
-          <Label className="w-12">Hue</Label>
+          <Label className="w-12 text-primary-foreground">Hue</Label>
           <Slider
             max={360}
             step={1}
             value={[color.h]}
             onValueChange={(value) => handleSliderChange('h', value)}
+            className="[&>span]:bg-primary-foreground [&>span>span]:border-primary-foreground [&>span>span]:bg-primary"
           />
         </div>
         <div className="flex items-center gap-4">
-          <Label className="w-12">Sat</Label>
+          <Label className="w-12 text-primary-foreground">Sat</Label>
           <Slider
             max={100}
             step={1}
             value={[color.s]}
             onValueChange={(value) => handleSliderChange('s', value)}
+            className="[&>span]:bg-primary-foreground [&>span>span]:border-primary-foreground [&>span>span]:bg-primary"
           />
         </div>
         <div className="flex items-center gap-4">
-          <Label className="w-12">Light</Label>
+          <Label className="w-12 text-primary-foreground">Light</Label>
           <Slider
             max={100}
             step={1}
             value={[color.l]}
             onValueChange={(value) => handleSliderChange('l', value)}
+            className="[&>span]:bg-primary-foreground [&>span>span]:border-primary-foreground [&>span>span]:bg-primary"
           />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </Button>
   );
 };
 
