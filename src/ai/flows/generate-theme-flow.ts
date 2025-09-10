@@ -40,7 +40,7 @@ const prompt = ai.definePrompt({
   input: { schema: GenerateThemeInputSchema },
   output: { schema: GenerateThemeOutputSchema },
   prompt: `
-    You are an expert UI theme designer. Your task is to generate a color palette
+    You are an expert UI theme designer. Your task is to generate a creative and aesthetically pleasing color palette
     based on the user's text description.
 
     You must return an object with three HSL color objects: 'background', 'foreground', and 'primary'.
@@ -48,11 +48,9 @@ const prompt = ai.definePrompt({
     - The 'background' color is the main canvas of the app.
     - The 'foreground' color is for text and icons, and it MUST have a high contrast ratio with the background color for accessibility.
     - The 'primary' color is for interactive elements like buttons. It also MUST have a high contrast ratio with the background.
-
-    Follow these rules for the HSL values:
-    - h (hue) must be between 0 and 360.
-    - s (saturation) must be between 0 and 100.
-    - l (lightness) must be between 0 and 100.
+    
+    Interpret the user's description creatively to generate a harmonious and visually appealing theme. 
+    Do not be afraid to use bold colors and strong contrasts if the prompt suggests it.
 
     User's theme description: "{{{prompt}}}"
   `,

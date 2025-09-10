@@ -58,7 +58,7 @@ export function ThemeGenerator() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      prompt: '',
+      prompt: 'A serene underwater scene with coral reefs',
     },
   });
 
