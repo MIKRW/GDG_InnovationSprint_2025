@@ -1,30 +1,59 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-import type { BirdLog } from '@/lib/types';
+import type { BirdLog, SortOption } from '@/lib/types';
 import { getLogs } from '@/lib/local-storage';
 
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { PageTitle } from '../content/PageTitle';
 import { HelpCircle } from 'lucide-react';
 
-export function LogPage() {
-  const [identifiedLogs, setIdentifiedLogs] = useState<BirdLog[]>([]);
-  const [hasMysteryLogs, setHasMysteryLogs] = useState(false);
+interface LogPageProps {
+    searchQuery: string;
+    sortOption: SortOption;
+}
+
+export function LogPage({ searchQuery, sortOption }: LogPageProps) {
+  const [allLogs, setAllLogs] = useState<BirdLog[]>([]);
 
   useEffect(() => {
-    const allLogs = getLogs();
-    setIdentifiedLogs(allLogs.filter(log => !log.isMystery));
-    setHasMysteryLogs(allLogs.some(log => log.isMystery));
+    setAllLogs(getLogs());
   }, []);
 
-  const logsToShow = identifiedLogs.length > 0 || hasMysteryLogs;
+  const filteredAndSortedLogs = useMemo(() => {
+    const identifiedLogs = allLogs.filter(log => !log.isMystery);
+    const hasMysteryLogs = allLogs.some(log => log.isMystery);
 
-  if (!logsToShow) {
+    const filtered = identifiedLogs.filter(log =>
+        log.commonName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        log.scientificName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const sorted = [...filtered].sort((a, b) => {
+        switch (sortOption) {
+            case 'newest':
+                return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+            case 'oldest':
+                return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+            case 'a-z':
+                return a.commonName.localeCompare(b.commonName);
+            case 'z-a':
+                return b.commonName.localeCompare(a.commonName);
+            default:
+                return 0;
+        }
+    });
+
+    return { logs: sorted, hasMystery: hasMysteryLogs };
+
+  }, [allLogs, searchQuery, sortOption]);
+
+
+  if (allLogs.length === 0) {
     return (
         <div className="container mx-auto px-4 py-8 text-center">
              <PageTitle>Your Bird Book</PageTitle>
@@ -36,10 +65,8 @@ export function LogPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <PageTitle>Your Bird Book</PageTitle>
-      <p className="text-muted-foreground mb-6">Here are the birds you've successfully identified and your mystery recordings.</p>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {hasMysteryLogs && (
+        {filteredAndSortedLogs.hasMystery && (
            <Link href="/log/mystery">
             <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-secondary">
               <CardContent className="p-0 flex-grow flex items-center justify-center">
@@ -56,7 +83,7 @@ export function LogPage() {
             </Card>
           </Link>
         )}
-        {identifiedLogs.map((log) => (
+        {filteredAndSortedLogs.logs.map((log) => (
           <Link href={`/log/${log.id}`} key={log.id}>
             <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
               <CardContent className="p-0 flex-grow">
@@ -80,6 +107,11 @@ export function LogPage() {
           </Link>
         ))}
       </div>
+       {filteredAndSortedLogs.logs.length === 0 && searchQuery && (
+           <div className="col-span-full text-center py-16">
+                <p className="text-lg text-muted-foreground">No results found for "{searchQuery}".</p>
+           </div>
+       )}
     </div>
   );
 }

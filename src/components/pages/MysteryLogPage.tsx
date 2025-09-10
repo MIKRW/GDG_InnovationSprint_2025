@@ -1,26 +1,51 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
-import type { BirdLog } from '@/lib/types';
+import type { BirdLog, SortOption } from '@/lib/types';
 import { getLogs } from '@/lib/local-storage';
 
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { PageTitle } from '../content/PageTitle';
-import { HelpCircle } from 'lucide-react';
 
-export function MysteryLogPage() {
-  const [mysteryLogs, setMysteryLogs] = useState<BirdLog[]>([]);
+interface MysteryLogPageProps {
+    searchQuery: string;
+    sortOption: SortOption;
+}
+
+export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps) {
+  const [allLogs, setAllLogs] = useState<BirdLog[]>([]);
 
   useEffect(() => {
-    const allLogs = getLogs();
-    setMysteryLogs(allLogs.filter(log => log.isMystery));
+    setAllLogs(getLogs());
   }, []);
 
-  if (mysteryLogs.length === 0) {
+  const filteredAndSortedLogs = useMemo(() => {
+      const mysteryLogs = allLogs.filter(log => log.isMystery);
+      
+      const filtered = mysteryLogs.filter(log => 
+          new Date(log.timestamp).toLocaleDateString().includes(searchQuery)
+      );
+
+      const sorted = [...filtered].sort((a, b) => {
+        switch (sortOption) {
+            case 'newest':
+                return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+            case 'oldest':
+                return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+            default: // a-z and z-a don't apply here, but we can default to newest
+                return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+        }
+    });
+
+    return sorted;
+
+  }, [allLogs, searchQuery, sortOption]);
+
+  if (allLogs.filter(log => log.isMystery).length === 0) {
     return (
         <div className="container mx-auto px-4 py-8 text-center">
              <PageTitle>Mystery Recordings</PageTitle>
@@ -32,10 +57,8 @@ export function MysteryLogPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <PageTitle>Mystery Recordings</PageTitle>
-      <p className="text-muted-foreground mb-6">These are recordings that the AI could not identify. You can listen to them here.</p>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {mysteryLogs.map((log) => (
+        {filteredAndSortedLogs.map((log) => (
           <Link href={`/log/${log.id}`} key={log.id}>
             <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
               <CardContent className="p-0 flex-grow flex items-center justify-center bg-muted">
@@ -59,6 +82,11 @@ export function MysteryLogPage() {
           </Link>
         ))}
       </div>
+       {filteredAndSortedLogs.length === 0 && searchQuery && (
+           <div className="col-span-full text-center py-16">
+                <p className="text-lg text-muted-foreground">No results found for "{searchQuery}".</p>
+           </div>
+       )}
     </div>
   );
 }

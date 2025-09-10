@@ -1,5 +1,4 @@
 
-
 // This file can be used to define shared types and interfaces.
 
 export type ThemeColor = {
@@ -37,3 +36,5 @@ export type BirdLog = {
     latitude?: number;
     longitude?: number;
 }
+
+export type SortOption = 'newest' | 'oldest' | 'a-z' | 'z-a';
