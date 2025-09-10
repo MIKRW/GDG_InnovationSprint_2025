@@ -15,9 +15,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function LogDetailPage({ params }: { params: { id: string } }) {
+export default function LogDetailPage({ params: { id } }: { params: { id: string } }) {
   const [log, setLog] = useState<BirdLog | null | undefined>(undefined);
-  const { id } = params;
 
   useEffect(() => {
     const fetchedLog = getLogById(id);
