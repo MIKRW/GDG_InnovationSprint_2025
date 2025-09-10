@@ -32,10 +32,9 @@ const ColorEditor = ({
   };
 
   return (
-    <Button asChild className="w-full h-40 cursor-default hover:bg-primary">
-      <div className="flex flex-col justify-center h-full p-4 space-y-4">
+    <div className="bg-primary text-primary-foreground rounded-lg p-4 w-full h-40 flex flex-col justify-center space-y-4">
         <div className="flex items-center gap-4">
-          <Label className="w-12 text-primary-foreground">Hue</Label>
+          <Label className="w-12">Hue</Label>
           <Slider
             max={360}
             step={1}
@@ -45,7 +44,7 @@ const ColorEditor = ({
           />
         </div>
         <div className="flex items-center gap-4">
-          <Label className="w-12 text-primary-foreground">Sat</Label>
+          <Label className="w-12">Sat</Label>
           <Slider
             max={100}
             step={1}
@@ -55,7 +54,7 @@ const ColorEditor = ({
           />
         </div>
         <div className="flex items-center gap-4">
-          <Label className="w-12 text-primary-foreground">Light</Label>
+          <Label className="w-12">Light</Label>
           <Slider
             max={100}
             step={1}
@@ -64,8 +63,7 @@ const ColorEditor = ({
             className="[&>span]:bg-primary-foreground [&>span>span]:border-primary-foreground [&>span>span]:bg-primary"
           />
         </div>
-      </div>
-    </Button>
+    </div>
   );
 };
 
@@ -83,12 +81,10 @@ export function ManualThemeEditor({
             Manual Theme Editor
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 items-stretch gap-4">
-            <div className="w-full h-40">
-                <ColorEditor
-                    color={theme.colors.background}
-                    onColorChange={(newColor) => onColorChange('background', newColor)}
-                />
-            </div>
+            <ColorEditor
+                color={theme.colors.background}
+                onColorChange={(newColor) => onColorChange('background', newColor)}
+            />
             <div className="h-40">
                 <ThemeHistoryItem
                     theme={theme}
