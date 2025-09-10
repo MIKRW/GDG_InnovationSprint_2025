@@ -44,47 +44,49 @@ export default function LogDetailPage({ params }: { params: { id: string } }) {
 
   return (
     <AppLayout header={<SecondaryHeader title={log.commonName} />}>
-      <main className="flex-1 overflow-y-auto p-4 md:p-6">
-        <Card>
-          <CardHeader>
-            <div className="aspect-video relative w-full rounded-md overflow-hidden bg-muted">
-               <Image
-                  src={log.isMystery ? `https://picsum.photos/seed/mystery/600/400` : `https://picsum.photos/seed/${log.id}/600/400`}
-                  alt={log.commonName}
-                  fill
-                  className="object-cover"
-                  data-ai-hint={log.imagePrompt}
-                />
-            </div>
-             <CardTitle className="pt-4 text-3xl">{log.commonName}</CardTitle>
-             <p className="text-lg text-muted-foreground italic">{log.scientificName}</p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-base">{log.description}</p>
-            {log.isMystery && log.audioUrl && (
-              <div>
-                <h3 className="font-semibold mb-2">Saved Recording</h3>
-                <audio controls src={log.audioUrl} className="w-full">
-                  Your browser does not support the audio element.
-                </audio>
-              </div>
-            )}
-            <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary">Captured: {new Date(log.timestamp).toLocaleDateString()}</Badge>
-                 {log.isMystery && <Badge variant="destructive">Unidentified</Badge>}
-                 {log.latitude && log.longitude && (
-                   <Badge variant="outline">
-                     {`Location: ${log.latitude.toFixed(4)}, ${log.longitude.toFixed(4)}`}
-                   </Badge>
-                 )}
-                  {log.locationDescription && (
-                    <Badge variant="outline">
-                        {`Location: ${log.locationDescription}`}
-                    </Badge>
-                  )}
-            </div>
-          </CardContent>
-        </Card>
+      <main className="flex-1 overflow-y-auto p-4 md:p-6 flex justify-center">
+        <div className="w-full max-w-2xl">
+            <Card>
+              <CardHeader>
+                <div className="aspect-square relative w-full rounded-md overflow-hidden bg-muted">
+                   <Image
+                      src={log.isMystery ? `https://picsum.photos/seed/mystery/600/400` : `https://picsum.photos/seed/${log.id}/600/400`}
+                      alt={log.commonName}
+                      fill
+                      className="object-cover"
+                      data-ai-hint={log.imagePrompt}
+                    />
+                </div>
+                 <CardTitle className="pt-4 text-3xl">{log.commonName}</CardTitle>
+                 <p className="text-lg text-muted-foreground italic">{log.scientificName}</p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-base">{log.description}</p>
+                {log.isMystery && log.audioUrl && (
+                  <div>
+                    <h3 className="font-semibold mb-2">Saved Recording</h3>
+                    <audio controls src={log.audioUrl} className="w-full">
+                      Your browser does not support the audio element.
+                    </audio>
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
+                    <Badge variant="secondary">Captured: {new Date(log.timestamp).toLocaleDateString()}</Badge>
+                     {log.isMystery && <Badge variant="destructive">Unidentified</Badge>}
+                     {log.latitude && log.longitude && (
+                       <Badge variant="outline">
+                         {`Location: ${log.latitude.toFixed(4)}, ${log.longitude.toFixed(4)}`}
+                       </Badge>
+                     )}
+                      {log.locationDescription && (
+                        <Badge variant="outline">
+                            {`Location: ${log.locationDescription}`}
+                        </Badge>
+                      )}
+                </div>
+              </CardContent>
+            </Card>
+        </div>
       </main>
       <SecondaryPageFooterV2 />
     </AppLayout>
