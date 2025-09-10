@@ -7,7 +7,10 @@ export default function RecordPage() {
   return (
     <AppLayout>
       <main className="flex-1 overflow-y-auto">
-        <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+        <div
+          data-component="RecordContainer"
+          className="flex flex-col items-center justify-center h-full p-4 text-center"
+        >
           <ReadyToRecord />
           <RecordButton />
         </div>
