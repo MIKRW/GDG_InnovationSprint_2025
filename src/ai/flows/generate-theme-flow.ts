@@ -23,7 +23,7 @@ const GenerateThemeOutputSchema = z.object({
   background: ThemeColorSchema.describe('The background color of the theme.'),
   foreground: ThemeColorSchema.describe('The primary text/content color, ensuring high contrast with the background.'),
   primary: ThemeColorSchema.describe('The main accent color for buttons and highlights, ensuring high contrast with the background.'),
-  ring: ThemeColorSchema.describe('A vibrant, attention-grabbing color for UI highlights like focus rings and selections. It must contrast well with the background.'),
+  ring: ThemeColorSchema.describe("A color for UI highlights like selections. It should be a shade of the 'primary' color, either slightly lighter or darker, to indicate selection without clashing with the theme."),
 });
 export type GenerateThemeOutput = z.infer<typeof GenerateThemeOutputSchema>;
 
@@ -77,8 +77,7 @@ const prompt = ai.definePrompt({
     
     - The 'foreground' color MUST have a high contrast ratio with the background color for accessibility and readability.
     - The 'primary' color also MUST have a high contrast ratio with the background.
-    - The 'ring' color must also contrast well with the background and be suitable for focus indicators.
-    - Adhere strictly to the requirements of any accessibility-related mood keyword.
+    - The 'ring' color must be a slightly lighter or darker shade of the 'primary' color. It will be used as a background highlight for selected items, so it needs to be different enough to be noticeable but still harmonious.
     
     Interpret the user's words creatively to generate a harmonious and visually appealing theme that meets all constraints.
   `,
@@ -99,5 +98,3 @@ const generateThemeFlow = ai.defineFlow(
     return output;
   }
 );
-
-

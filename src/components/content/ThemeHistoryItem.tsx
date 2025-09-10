@@ -58,22 +58,19 @@ export function ThemeHistoryItem({
     );
   }
 
-  const ringStyle = isSelected
+  const selectionStyle = isSelected
     ? {
-        '--tw-ring-color': styles.ring,
+        backgroundColor: styles.ring,
       }
     : {};
 
   return (
     <Card
       onClick={onClick}
-      className={cn(
-        'cursor-pointer transition-all hover:shadow-lg h-full',
-        isSelected && 'ring-4 ring-offset-4'
-      )}
-      style={ringStyle}
+      className={cn('cursor-pointer transition-all hover:shadow-lg h-full')}
+      style={selectionStyle}
     >
-      <CardContent className="p-4 space-y-4 relative h-full flex flex-col">
+      <CardContent className="p-4 space-y-4 relative h-full flex flex-col bg-card/80 rounded-lg">
         {isActive && <Badge className="absolute top-2 right-2">Active</Badge>}
         {showRotate && onRotateClick && (
           <Button

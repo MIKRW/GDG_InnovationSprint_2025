@@ -23,6 +23,7 @@ import { Info, Loader2, RefreshCw, Save } from 'lucide-react';
 import { ThemeHistoryItem } from './ThemeHistoryItem';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { cn } from '@/lib/utils';
 
 const formSchema = z.object({
   word1: z.string(),
@@ -39,7 +40,7 @@ const DEFAULTS: Theme = {
     background: { h: 39, s: 100, l: 97 },
     foreground: { h: 39, s: 50, l: 10 },
     primary: { h: 39, s: 50, l: 20 },
-    ring: { h: 222.2, s: 84, l: 4.9 },
+    ring: { h: 39, s: 50, l: 30 },
   },
   isActive: true,
 };
@@ -51,7 +52,7 @@ const EMPTY_THEME: Theme = {
     background: { h: 0, s: 0, l: 100 },
     foreground: { h: 0, s: 0, l: 0 },
     primary: { h: 0, s: 0, l: 50 },
-    ring: { h: 222.2, s: 84, l: 4.9 },
+    ring: { h: 0, s: 0, l: 60 },
   },
   isActive: false,
 };
@@ -232,7 +233,7 @@ export function ThemeGenerator() {
       };
 
       setGeneratedTheme(newTheme);
-      localStorage.setItem('generated-theme', JSON.stringify(newTheme));
+localStorage.setItem('generated-theme', JSON.stringify(newTheme));
       
       toast({
         title: 'Theme Generated!',
