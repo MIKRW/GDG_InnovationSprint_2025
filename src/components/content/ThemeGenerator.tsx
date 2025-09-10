@@ -207,7 +207,6 @@ export function ThemeGenerator() {
       title: 'Theme Saved!',
       description: `Generated theme saved to slot ${selectedSlot + 1}.`,
     });
-    form.reset({ word1: '', word2: '', word3: '' });
   };
 
 
