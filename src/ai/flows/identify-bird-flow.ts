@@ -66,8 +66,8 @@ const prompt = ai.definePrompt({
     - description: A brief, interesting fact about the bird.
     - imagePrompt: A simple but effective text-to-image prompt to generate a photo of this bird.
 
-    If the audio does not contain a discernible bird song, set "isBirdSong" to false and leave the other fields empty.
-    Do not invent a bird. If you are uncertain, it is better to indicate that no bird song was identified.
+    CRITICAL: If the audio does not contain a discernible bird song, or if you are not highly confident in your identification, you MUST set "isBirdSong" to false and leave the other fields empty.
+    Do not guess or invent a bird. It is better to indicate that no bird song was identified than to provide a potentially incorrect answer.
   `,
 });
 
