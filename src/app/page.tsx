@@ -4,7 +4,7 @@ import { GridContainer } from '@/components/layout/GridContainer';
 
 export default function Home() {
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1">
       <GridContainer>
         {/* Cell 1: Top-Left */}
         <div className="col-start-1 row-start-1"></div>
