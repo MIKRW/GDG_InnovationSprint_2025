@@ -2,7 +2,7 @@
 import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
 
-export function Byline({
+export function AppName({
   className,
   children,
 }: {
@@ -11,7 +11,7 @@ export function Byline({
 }) {
   return (
     <p
-      data-component="Byline"
+      data-component="AppName"
       className={cn('mt-6 text-2xl text-muted-foreground', className)}
     >
       {children}

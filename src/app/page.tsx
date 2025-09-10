@@ -1,6 +1,6 @@
 
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Byline } from '@/components/content/Byline';
+import { AppName } from '@/components/content/AppName';
 import { HomePageFooter } from '@/components/layout/HomePageFooter';
 import { Logo } from '@/components/content/Logo';
 import { PrimaryHeader } from '@/components/layout/PrimaryHeader';
@@ -12,7 +12,7 @@ export default function Home() {
         <div className="w-[31.2rem] h-[31.2rem]">
           <Logo />
         </div>
-        <Byline>the app name</Byline>
+        <AppName>the app name</AppName>
       </main>
       <HomePageFooter />
     </AppLayout>

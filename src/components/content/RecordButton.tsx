@@ -1,8 +1,8 @@
-import { ReactNode } from 'react';
+
 import { MicrophoneIcon } from './MicrophoneIcon';
 import { Button } from '@/components/ui/button';
 
-export function RecordButton({ children }: { children: ReactNode }) {
+export function RecordButton() {
   return (
     <Button
       variant="default"
@@ -11,7 +11,7 @@ export function RecordButton({ children }: { children: ReactNode }) {
       aria-label="Start Recording"
     >
       <div className="text-background text-center text-2xl">
-        {children}
+        <p className="text-xl">Press to Record</p>
       </div>
       <MicrophoneIcon />
     </Button>
