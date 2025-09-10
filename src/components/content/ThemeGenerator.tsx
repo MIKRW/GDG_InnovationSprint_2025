@@ -19,14 +19,15 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { generateTheme } from '@/ai/flows/generate-theme-flow';
 import type { Theme } from '@/lib/types';
-import { Loader2, RefreshCw, Save } from 'lucide-react';
+import { Info, Loader2, RefreshCw, Save } from 'lucide-react';
 import { ThemeHistoryItem } from './ThemeHistoryItem';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const formSchema = z.object({
-  word1: z.string().min(2, { message: 'Please enter a word.' }),
-  word2: z.string().min(2, { message: 'Please enter a word.' }),
-  word3: z.string().min(2, { message: 'Please enter a word.' }),
+  word1: z.string(),
+  word2: z.string(),
+  word3: z.string(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -60,6 +61,7 @@ const MAX_SAVED_THEMES = 6;
 export function ThemeGenerator() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showEmptyInputInfo, setShowEmptyInputInfo] = useState(false);
   const [generatedTheme, setGeneratedTheme] = useState<Theme>(EMPTY_THEME);
   const [savedThemes, setSavedThemes] = useState<Theme[]>([]);
   const [selectedSlot, setSelectedSlot] = useState(0);
@@ -74,6 +76,13 @@ export function ThemeGenerator() {
       word3: '',
     },
   });
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    form.setValue(e.target.name as keyof FormValues, e.target.value);
+    if (showEmptyInputInfo) {
+      setShowEmptyInputInfo(false);
+    }
+  }
 
   const updateCSSVariables = useCallback((colors: Theme['colors']) => {
     const root = document.documentElement;
@@ -194,6 +203,13 @@ export function ThemeGenerator() {
 
   async function onSubmit(values: FormValues) {
     setIsLoading(true);
+
+    if (!values.word1 && !values.word2 && !values.word3) {
+      setShowEmptyInputInfo(true);
+    } else {
+      setShowEmptyInputInfo(false);
+    }
+    
     const mood = MOODS[currentMoodIndex];
     try {
       const newColors = await generateTheme({ ...values, mood });
@@ -240,6 +256,7 @@ export function ThemeGenerator() {
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add('custom');
     setIsPreviewingGenerated(false);
+    setShowEmptyInputInfo(false);
 
     const activeMoodIndex = MOODS.indexOf(themeToActivate.words.mood);
     setCurrentMoodIndex(activeMoodIndex >= 0 ? activeMoodIndex : 0);
@@ -287,7 +304,15 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
     <>
       <div className="mt-8">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+             {showEmptyInputInfo && (
+              <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-800">
+                <Info className="h-4 w-4 !text-blue-800" />
+                <AlertDescription>
+                  To generate your own theme, enter some descriptive words below.
+                </AlertDescription>
+              </Alert>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
               <FormField
                 control={form.control}
@@ -295,7 +320,7 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input placeholder="type here" {...field} />
+                      <Input placeholder="type here" {...field} onChange={handleInputChange} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -307,7 +332,7 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input placeholder="type here" {...field} />
+                      <Input placeholder="type here" {...field} onChange={handleInputChange} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -319,7 +344,7 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input placeholder="type here" {...field} />
+                      <Input placeholder="type here" {...field} onChange={handleInputChange} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -394,5 +419,3 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
     </>
   );
 }
-
-    

@@ -27,9 +27,9 @@ const GenerateThemeOutputSchema = z.object({
 export type GenerateThemeOutput = z.infer<typeof GenerateThemeOutputSchema>;
 
 const GenerateThemeInputSchema = z.object({
-  word1: z.string().describe('A word to inspire a color.'),
-  word2: z.string().describe('A second word to inspire a color.'),
-  word3: z.string().describe('A third word to inspire a color.'),
+  word1: z.string().optional().describe('A word to inspire a color.'),
+  word2: z.string().optional().describe('A second word to inspire a color.'),
+  word3: z.string().optional().describe('A third word to inspire a color.'),
   mood: z.string().describe('A keyword that defines the desired aesthetic and accessibility constraints (e.g., "High Contrast", "Tritanopia-Friendly", "Vibrant", "Dark").'),
 });
 export type GenerateThemeInput = z.infer<typeof GenerateThemeInputSchema>;
@@ -49,10 +49,11 @@ const prompt = ai.definePrompt({
     You are an expert UI theme designer with a deep understanding of color theory, word association, and web accessibility standards (WCAG).
     Your task is to generate a creative, unique, and aesthetically pleasing HSL color palette based on user input.
 
-    The user has provided three inspirational words and a specific mood.
-    - Words: "{{word1}}", "{{word2}}", "{{word3}}"
+    The user has provided the following parameters:
     - Mood: "{{mood}}"
+    {{#if word1}}- Words: "{{word1}}", "{{word2}}", "{{word3}}"{{/if}}
 
+    {{#if word1}}
     Your job is to intelligently assign one word to the background, one to the foreground, and one to the primary accent color.
     Base your assignments on color theory. For example, a darker, less saturated color is usually best for a background, while a brighter, more saturated color makes a good accent.
 
@@ -60,8 +61,12 @@ const prompt = ai.definePrompt({
     To do this, you should research how established color brands (like Pantone or paint companies) name their colors.
     For example, if a user provides the word "eggshell", you should associate it with a natural, off-white color.
     If they say "lavender" or "forest green", learn from professional color systems to choose an appropriate shade.
+    {{else}}
+    The user has not provided any words. Your task is to invent a theme from scratch, based solely on the specified mood.
+    Be creative and generate an interesting, high-quality theme. Think like a professional designer choosing a palette for a new product.
+    {{/if}}
     
-    After selecting the initial colors, use the 'mood' as a strong guideline to modify and adjust the final HSL values.
+    After selecting the initial colors (or inventing them), use the 'mood' as a strong guideline to modify and adjust the final HSL values.
     The mood is the most important constraint. Pay special attention to accessibility-related moods.
     For "High Contrast", ensure a WCAG AA or AAA contrast ratio between background and foreground/primary colors.
     For "Tritanopia-Friendly", "Deuteranopia-Friendly", or "Protanopia-Friendly", select colors that are easily distinguishable for users with those types of color vision deficiencies. Avoid problematic color combinations (like red-green for Deuteranopia/Protanopia).
@@ -92,3 +97,4 @@ const generateThemeFlow = ai.defineFlow(
     return output;
   }
 );
+
