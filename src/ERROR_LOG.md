@@ -60,3 +60,5 @@ This document tracks recurring errors, their root causes, the solutions implemen
     2.  A blocking, synchronous `<script>` tag was embedded directly into the `<head>` of the main `src/app/layout.tsx` file.
     3.  This script executes immediately, before the browser renders the `<body>`. It reads the `theme` and `active-theme-json` from `localStorage` and injects the correct CSS class name and HSL color variables into the document's root element.
     4.  By setting the theme before the initial render, the flash of incorrect styles is completely eliminated, ensuring a seamless user experience. All related client-side `useEffect` logic was removed as it was now redundant.
+
+---
