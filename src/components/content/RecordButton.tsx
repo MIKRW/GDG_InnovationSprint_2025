@@ -7,10 +7,10 @@ export function RecordButton({ children }: { children: ReactNode }) {
     <Button
       variant="default"
       size="icon"
-      className="w-48 h-72 rounded-full bg-foreground hover:bg-foreground/90 flex flex-col-reverse justify-center items-center gap-4"
+      className="w-96 h-[36rem] rounded-full bg-foreground hover:bg-foreground/90 flex flex-col-reverse justify-center items-center gap-8"
       aria-label="Start Recording"
     >
-      <div className="text-background text-center">
+      <div className="text-background text-center text-2xl">
         {children}
       </div>
       <MicrophoneIcon />

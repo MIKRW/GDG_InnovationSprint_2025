@@ -1,5 +1,5 @@
 import { Mic } from 'lucide-react';
 
 export function MicrophoneIcon() {
-  return <Mic className="w-20 h-20 text-background" />;
+  return <Mic className="w-40 h-40 text-background" />;
 }
