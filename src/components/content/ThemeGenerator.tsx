@@ -140,7 +140,7 @@ export function ThemeGenerator() {
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FormField
               control={form.control}
               name="background"
@@ -150,7 +150,7 @@ export function ThemeGenerator() {
                   <FormControl>
                     <Input placeholder="e.g., sand, sky, forest" {...field} />
                   </FormControl>
-                  <FormDescription>A word to inspire the background color.</FormDescription>
+                  <FormDescription>The canvas of the app.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -164,7 +164,7 @@ export function ThemeGenerator() {
                   <FormControl>
                     <Input placeholder="e.g., stone, ink, snow" {...field} />
                   </FormControl>
-                  <FormDescription>A word to inspire the text and icon color.</FormDescription>
+                  <FormDescription>For text and icons.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -178,7 +178,7 @@ export function ThemeGenerator() {
                   <FormControl>
                     <Input placeholder="e.g., ocean, sunset, gold" {...field} />
                   </FormControl>
-                  <FormDescription>A word to inspire the main accent color for buttons.</FormDescription>
+                  <FormDescription>For buttons and accents.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
