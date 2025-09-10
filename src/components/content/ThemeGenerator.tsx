@@ -355,7 +355,7 @@ export function ThemeGenerator() {
                     theme={generatedTheme}
                     onClick={previewGeneratedTheme}
                     onRotateClick={rotateGeneratedTheme}
-                    showRotate={isPreviewingGenerated}
+                    showRotate={generatedTheme.id !== 'empty'}
                     isEmpty={generatedTheme.id === 'empty'}
                     emptyText="Generate a new theme to see it here."
                     isSelected={isPreviewingGenerated}
