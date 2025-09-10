@@ -83,6 +83,7 @@ export function ThemeGenerator() {
   const [savedThemes, setSavedThemes] = useState<Theme[]>([]);
   const [selectedSlot, setSelectedSlot] = useState(0);
   const [isPreviewingGenerated, setIsPreviewingGenerated] = useState(false);
+  const [isPreviewingManual, setIsPreviewingManual] = useState(false);
   const [currentMoodIndex, setCurrentMoodIndex] = useState(0);
   const [manualTheme, setManualTheme] = useState<Theme>(MANUAL_DEFAULT);
 
@@ -189,7 +190,7 @@ export function ThemeGenerator() {
   // Effect to apply the active theme from savedThemes on load
   useEffect(() => {
     const activeTheme = savedThemes.find(t => t.isActive);
-    if (activeTheme && !isPreviewingGenerated) {
+    if (activeTheme && !isPreviewingGenerated && !isPreviewingManual) {
       updateCSSVariables(activeTheme.colors);
       const currentTheme = localStorage.getItem('theme');
       if (currentTheme !== 'custom') {
@@ -197,7 +198,7 @@ export function ThemeGenerator() {
         document.documentElement.classList.add('custom');
       }
     }
-  }, [savedThemes, updateCSSVariables, isPreviewingGenerated]);
+  }, [savedThemes, updateCSSVariables, isPreviewingGenerated, isPreviewingManual]);
 
 
   const saveThemeToSlot = (themeToSave: Theme) => {
@@ -219,6 +220,7 @@ export function ThemeGenerator() {
           document.documentElement.classList.remove('light', 'dark');
           document.documentElement.classList.add('custom');
           setIsPreviewingGenerated(false);
+          setIsPreviewingManual(false);
         }
         return newTheme;
       }
@@ -296,6 +298,7 @@ export function ThemeGenerator() {
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add('custom');
     setIsPreviewingGenerated(false);
+    setIsPreviewingManual(false);
     setShowEmptyInputInfo(false);
 
     const activeMoodIndex = MOODS.indexOf(themeToActivate.words.mood);
@@ -311,10 +314,31 @@ export function ThemeGenerator() {
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add('custom');
     setIsPreviewingGenerated(true);
+    setIsPreviewingManual(false);
     // Unselect any saved slots
     const newSavedThemes = savedThemes.map(theme => ({ ...theme, isActive: false }));
     setSavedThemes(newSavedThemes);
   }
+
+  const previewManualTheme = () => {
+    if (manualTheme.id === 'manual-default' && manualTheme.colors.background.h === 210) return;
+    updateCSSVariables(manualTheme.colors);
+    localStorage.setItem('theme', 'custom');
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add('custom');
+    setIsPreviewingManual(true);
+    setIsPreviewingGenerated(false);
+    // Unselect any saved slots
+    const newSavedThemes = savedThemes.map(theme => ({ ...theme, isActive: false }));
+    setSavedThemes(newSavedThemes);
+  }
+
+  useEffect(() => {
+    if (isPreviewingManual) {
+        updateCSSVariables(manualTheme.colors);
+    }
+  }, [manualTheme, isPreviewingManual, updateCSSVariables]);
+
 
   const rotateGeneratedTheme = () => {
     if (generatedTheme.id === 'empty') return;
@@ -464,7 +488,7 @@ export function ThemeGenerator() {
                   theme={theme}
                   onClick={() => handleSlotClick(index)}
                   isActive={isActive}
-                  isSelected={!isPreviewingGenerated && selectedSlot === index}
+                  isSelected={!isPreviewingGenerated && !isPreviewingManual && selectedSlot === index}
                 />
               </div>
             );
@@ -478,8 +502,12 @@ export function ThemeGenerator() {
               onColorChange={handleManualColorChange}
               onSave={() => saveThemeToSlot(manualTheme)}
               selectedSlot={selectedSlot}
+              onPreview={previewManualTheme}
+              isPreviewing={isPreviewingManual}
           />
       </div>
     </>
   );
 }
+
+    

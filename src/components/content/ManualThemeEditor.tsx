@@ -14,6 +14,8 @@ interface ManualThemeEditorProps {
   selectedSlot: number;
   onColorChange: (colorName: keyof Theme['colors'], newColor: ThemeColor) => void;
   onSave: () => void;
+  onPreview: () => void;
+  isPreviewing: boolean;
 }
 
 const ColorEditor = ({
@@ -95,6 +97,8 @@ export function ManualThemeEditor({
   onColorChange,
   onSave,
   selectedSlot,
+  onPreview,
+  isPreviewing,
 }: ManualThemeEditorProps) {
   return (
     <div>
@@ -122,9 +126,10 @@ export function ManualThemeEditor({
             <div className="md:col-start-2 h-40">
                 <ThemeHistoryItem
                     theme={theme}
-                    onClick={() => {}}
+                    onClick={onPreview}
                     emptyText="Adjust sliders to see preview."
                     isEmpty={false}
+                    isSelected={isPreviewing}
                 />
             </div>
             <Button
@@ -139,3 +144,5 @@ export function ManualThemeEditor({
     </div>
   );
 }
+
+    
