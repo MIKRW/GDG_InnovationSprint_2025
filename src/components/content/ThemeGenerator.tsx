@@ -274,77 +274,77 @@ export function ThemeGenerator() {
 
   return (
     <>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start mt-8">
-        <div className="lg:col-span-2">
-          <h2 className="text-2xl font-bold text-center mb-4">Generate Theme</h2>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-                <FormField
-                  control={form.control}
-                  name="word1"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Input placeholder="Word 1" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="word2"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Input placeholder="Word 2" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="word3"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Input placeholder="Word 3" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="mood"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Input placeholder="mood" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" disabled={isLoading} className="h-10">
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    'Generate Theme'
-                  )}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </div>
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold text-center mb-4">Generate Theme</h2>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+              <FormField
+                control={form.control}
+                name="word1"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input placeholder="Word 1" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="word2"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input placeholder="Word 2" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="word3"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input placeholder="Word 3" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="mood"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input placeholder="mood" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" disabled={isLoading} className="h-10">
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  'Generate Theme'
+                )}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </div>
 
-        <div className='lg:col-span-1'>
-            <h2 className="text-2xl font-bold text-center mb-4">Generated Theme</h2>
+      <div className='mt-8'>
+          <h2 className="text-2xl font-bold text-center mb-4">Generated Theme</h2>
+          <div className="max-w-xs mx-auto">
             <ThemeHistoryItem
                 theme={generatedTheme}
                 onClick={previewGeneratedTheme}
@@ -354,7 +354,7 @@ export function ThemeGenerator() {
                 emptyText="Generate a new theme to see it here."
                 isSelected={isPreviewingGenerated}
             />
-        </div>
+          </div>
       </div>
       
       <div className="mt-12">
