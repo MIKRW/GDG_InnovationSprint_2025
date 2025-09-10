@@ -24,7 +24,7 @@ import { ThemeHistoryItem } from './ThemeHistoryItem';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { ManualThemeEditor } from './ManualThemeEditor';
-import { PageTitle } from './PageTitle';
+import { PageTitle } from '../content/PageTitle';
 
 const formSchema = z.object({
   word1: z.string(),
@@ -492,9 +492,9 @@ export function ThemeGenerator() {
         </Form>
       </div>
 
-      <div className="my-16">
-        <h2 className="text-6xl font-bold text-center mb-16">
-          favorite themes
+      <div className="my-12">
+        <h2 className="text-6xl font-bold text-center mb-8">
+          Favorite Themes
         </h2>
         <div className="grid grid-cols-6 gap-4">
           {savedThemes.map((theme, index) => {
