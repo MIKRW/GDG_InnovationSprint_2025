@@ -122,25 +122,25 @@ export function ManualThemeEditor({
             />
           </div>
         </div>
-        <div className="h-40">
+        <div className="h-40 relative">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="absolute top-1 right-1 h-7 w-7 z-10"
+            onClick={handleRotateClick}
+            aria-label="Rotate Colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </Button>
           <Card
             onClick={onPreview}
             className={cn(
-              'relative h-full cursor-pointer transition-all hover:shadow-lg',
+              'h-full cursor-pointer transition-all hover:shadow-lg',
               isPreviewing && 'ring-4 ring-ring'
             )}
             style={selectionStyle}
           >
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute top-1 right-1 h-7 w-7"
-              onClick={handleRotateClick}
-              aria-label="Rotate Colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </Button>
             <CardContent className="relative flex h-full flex-col space-y-4 rounded-lg bg-card/80 p-4">
               <div
                 className="mt-4 flex flex-grow cursor-pointer overflow-hidden rounded-md"
