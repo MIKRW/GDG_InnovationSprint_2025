@@ -11,12 +11,14 @@ import type { BirdLog } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { MicrophoneIcon } from './MicrophoneIcon';
 import { Loader2, MicOff, Square } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 
 type RecordingState =
   | 'idle'
   | 'denied'
   | 'recording'
-  | 'processing';
+  | 'processing'
+  | 'confirming';
 
 interface RecordButtonProps {
     onPermissionDenied?: () => void;
@@ -30,6 +32,7 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
     useState<RecordingState>('idle');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const [lastAudio, setLastAudio] = useState<string | null>(null);
 
 
   const handleStartRecording = async () => {
@@ -70,6 +73,35 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
     }
   };
 
+  const saveMysteryLog = (audioDataUri: string) => {
+    const newLog: BirdLog = {
+      id: uuidv4(),
+      timestamp: new Date().toISOString(),
+      commonName: 'Mystery Recording',
+      scientificName: 'Audio captured',
+      description: 'The AI could not identify a bird in this recording. You can listen to the recording here.',
+      imagePrompt: 'question mark',
+      audioUrl: audioDataUri,
+      isMystery: true,
+    };
+    addLog(newLog);
+    router.push(`/log/mystery`);
+  };
+
+  const handleSaveConfirmation = () => {
+    if (lastAudio) {
+      saveMysteryLog(lastAudio);
+    }
+    setRecordingState('idle');
+    setLastAudio(null);
+  };
+
+  const handleCancelSave = () => {
+    setRecordingState('idle');
+    setLastAudio(null);
+    onIdentificationFailed?.();
+  };
+
   const handleStop = async () => {
     setRecordingState('processing');
     const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
@@ -95,35 +127,18 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
                 audioUrl: base64Audio,
                 isMystery: false,
             };
+            addLog(newLog);
+            router.push(`/log/${newLog.id}`);
         } else {
-             newLog = {
-                id: uuidv4(),
-                timestamp: new Date().toISOString(),
-                commonName: 'Mystery Recording',
-                scientificName: 'Audio captured',
-                description: 'The AI could not identify a bird in this recording. You can listen to the recording here.',
-                imagePrompt: 'question mark',
-                audioUrl: base64Audio,
-                isMystery: true,
-            };
+             // AI failed, trigger confirmation
+             setLastAudio(base64Audio);
+             setRecordingState('confirming');
         }
-        addLog(newLog);
-        router.push(`/log/${newLog.id}`);
       } catch (error) {
         console.error('Error identifying bird sound:', error);
-        // Even if the API fails, save as a mystery recording
-        const newLog: BirdLog = {
-            id: uuidv4(),
-            timestamp: new Date().toISOString(),
-            commonName: 'Mystery Recording',
-            scientificName: 'Error during analysis',
-            description: 'An error occurred while trying to analyze this audio. You can listen to the original recording here.',
-            imagePrompt: 'question mark',
-            audioUrl: base64Audio,
-            isMystery: true,
-        };
-        addLog(newLog);
-        router.push(`/log/${newLog.id}`);
+        // API failed, trigger confirmation
+        setLastAudio(base64Audio);
+        setRecordingState('confirming');
       }
     };
   };
@@ -144,6 +159,7 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
           label: 'Press to Stop',
         };
       case 'processing':
+      case 'confirming':
         return {
           icon: <Loader2 className="w-40 h-40 text-background animate-spin" />,
           label: 'Analyzing...',
@@ -162,10 +178,11 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
   };
 
   const { icon, label } = getButtonContent();
-  const isDisabled = recordingState === 'processing';
+  const isDisabled = recordingState === 'processing' || recordingState === 'confirming';
 
 
   return (
+    <>
       <Button
         variant="default"
         size="icon"
@@ -179,5 +196,21 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
         </div>
         {icon}
       </Button>
+
+      <AlertDialog open={recordingState === 'confirming'}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>No bird identified</AlertDialogTitle>
+            <AlertDialogDescription>
+              The AI could not identify a bird song in this recording. Would you like to save it as a "Mystery Recording" to review later?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelSave}>Discard</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSaveConfirmation}>Save Recording</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

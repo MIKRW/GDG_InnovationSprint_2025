@@ -1,4 +1,5 @@
 
+
 // This file can be used to define shared types and interfaces.
 
 export type ThemeColor = {
