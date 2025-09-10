@@ -69,27 +69,23 @@
   .custom {
     --background: var(--custom-background-h) var(--custom-background-s) var(--custom-background-l);
     --foreground: var(--custom-foreground-h) var(--custom-foreground-s) var(--custom-foreground-l);
-    --primary: var(--custom-primary-h) var(--custom-primary-s) var(--custom-primary-l);
-
-    /* The following colors are derived from the main ones for consistency */
     --card: var(--custom-background-h) var(--custom-background-s) var(--custom-background-l);
     --card-foreground: var(--custom-foreground-h) var(--custom-foreground-s) var(--custom-foreground-l);
     --popover: var(--custom-background-h) var(--custom-background-s) var(--custom-background-l);
     --popover-foreground: var(--custom-foreground-h) var(--custom-foreground-s) var(--custom-foreground-l);
-    --primary-foreground: var(--custom-background-h) var(--custom-background-s) 90%;
-    --secondary: var(--custom-primary-h) var(--custom-primary-s) 90%;
-    --secondary-foreground: var(--custom-primary-h) var(--custom-primary-s) 20%;
-    --muted: var(--custom-primary-h) var(--custom-primary-s) 90%;
-    --muted-foreground: var(--custom-primary-h) var(--custom-primary-s) 40%;
-    --accent: var(--custom-primary-h) var(--custom-primary-s) 85%;
-    --accent-foreground: var(--custom-primary-h) var(--custom-primary-s) 15%;
-    --border: var(--custom-primary-h) var(--custom-primary-s) 80%;
-    --input: var(--custom-primary-h) var(--custom-primary-s) 80%;
-    --ring: var(--custom-primary-h) var(--custom-primary-s) 20%;
-
+    --primary: var(--custom-primary-h) var(--custom-primary-s) var(--custom-primary-l);
+    --primary-foreground: var(--custom-background-h) var(--custom-background-s) calc(var(--custom-background-l) + 15%);
+    --secondary: var(--custom-primary-h) var(--custom-primary-s) calc(var(--custom-primary-l) + 40%);
+    --secondary-foreground: var(--custom-primary-h) var(--custom-primary-s) calc(var(--custom-primary-l) - 40%);
+    --muted: var(--custom-primary-h) var(--custom-primary-s) calc(var(--custom-primary-l) + 35%);
+    --muted-foreground: var(--custom-foreground-h) var(--custom-foreground-s) calc(var(--custom-foreground-l) + 40%);
+    --accent: var(--custom-primary-h) var(--custom-primary-s) calc(var(--custom-primary-l) + 30%);
+    --accent-foreground: var(--custom-foreground-h) var(--custom-foreground-s) var(--custom-foreground-l);
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: var(--custom-background-h) var(--custom-background-s) var(--custom-background-l);
-    --radius: 0.5rem;
+    --destructive-foreground: 0 0% 100%;
+    --border: var(--custom-primary-h) var(--custom-primary-s) calc(var(--custom-primary-l) + 20%);
+    --input: var(--custom-primary-h) var(--custom-primary-s) calc(var(--custom-primary-l) + 25%);
+    --ring: var(--custom-primary-h) var(--custom-primary-s) var(--custom-primary-l);
   }
 }
 
