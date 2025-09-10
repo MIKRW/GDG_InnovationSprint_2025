@@ -6,17 +6,25 @@ export function GridContainer({
   children,
 }: {
   className?: string;
-  children: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <div
       data-component="GridContainer"
       className={cn(
-        'grid grid-cols-3 grid-rows-3 gap-4 p-4 bg-black',
+        'grid grid-cols-3 grid-rows-3 gap-4 p-4 bg-black h-96',
         className
       )}
     >
-      {children}
+      <div className="border border-dashed"></div>
+      <div className="border border-dashed"></div>
+      <div className="border border-dashed"></div>
+      <div className="border border-dashed"></div>
+      <div className="border border-dashed"></div>
+      <div className="border border-dashed"></div>
+      <div className="border border-dashed"></div>
+      <div className="border border-dashed"></div>
+      <div className="border border-dashed"></div>
     </div>
   );
 }
