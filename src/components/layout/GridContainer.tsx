@@ -25,7 +25,7 @@ export function GridContainer({
       <div className="flex flex-col items-center justify-center">
         {children || (
           <>
-            <div className="w-96 h-96">
+            <div className="w-[31.2rem] h-[31.2rem]">
               <Logo />
             </div>
             <Byline className="mt-6 text-2xl">Your Brand Tagline Here</Byline>
