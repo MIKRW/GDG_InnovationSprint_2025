@@ -513,7 +513,7 @@ localStorage.setItem('manual-theme', JSON.stringify(newTheme));
       </div>
 
       <div className="my-8">
-        <h2 className="text-6xl font-bold text-center mb-8 mt-24">
+        <h2 className="text-6xl font-bold text-center mb-16">
           Favorite Themes
         </h2>
         <div className="grid grid-cols-6 gap-4">
