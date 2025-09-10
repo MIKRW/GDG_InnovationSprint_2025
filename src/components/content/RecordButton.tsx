@@ -21,9 +21,11 @@ type RecordingState =
 
 interface RecordButtonProps {
     onPermissionDenied?: () => void;
+    onIdentificationFailed?: () => void;
+    onStartRecording?: () => void;
 }
 
-export function RecordButton({ onPermissionDenied }: RecordButtonProps) {
+export function RecordButton({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [recordingState, setRecordingState] =
@@ -33,6 +35,7 @@ export function RecordButton({ onPermissionDenied }: RecordButtonProps) {
 
 
   const handleStartRecording = async () => {
+    onStartRecording?.();
     if (recordingState === 'denied') {
         onPermissionDenied?.();
         return;
@@ -93,11 +96,7 @@ export function RecordButton({ onPermissionDenied }: RecordButtonProps) {
             addLog(newLog);
             router.push(`/log/${newLog.id}`);
         } else {
-            toast({
-                variant: 'destructive',
-                title: 'No Bird Song Identified',
-                description: 'The AI could not identify a bird song in the recording. Please try again.',
-            });
+            onIdentificationFailed?.();
             setRecordingState('idle');
         }
       } catch (error) {
