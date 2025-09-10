@@ -74,6 +74,7 @@ export function ThemeHistoryItem({
         {isActive && <Badge className="absolute top-2 right-2">Active</Badge>}
         {showRotate && onRotateClick && (
           <Button
+            type="button"
             variant="ghost"
             size="icon"
             className="absolute top-1 right-1 h-7 w-7"
