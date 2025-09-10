@@ -156,8 +156,7 @@ export function ManualThemeEditor({
               >
                 <div
                   className={cn(
-                    'h-full w-1/3',
-                    selectedColor === 'foreground' && `ring-2 ring-inset ring-[${styles.ring}]`
+                    'h-full w-1/3'
                   )}
                   style={{
                     backgroundColor: styles.foreground,
@@ -166,8 +165,7 @@ export function ManualThemeEditor({
                 ></div>
                 <div
                   className={cn(
-                    'h-full w-1/3',
-                     selectedColor === 'primary' && `ring-2 ring-inset ring-[${styles.ring}]`
+                    'h-full w-1/3'
                   )}
                   style={{
                     backgroundColor: styles.primary,
