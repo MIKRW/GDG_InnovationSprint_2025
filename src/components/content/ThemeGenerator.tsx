@@ -450,7 +450,7 @@ export function ThemeGenerator() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 items-stretch gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 items-stretch gap-4 mt-8">
               <Button
                 type="submit"
                 disabled={isLoading}
@@ -492,9 +492,9 @@ export function ThemeGenerator() {
         </Form>
       </div>
 
-      <div className="my-24 mt-32">
-        <h2 className="text-6xl font-bold text-center mb-24">
-          Favorite themes
+      <div className="my-16">
+        <h2 className="text-6xl font-bold text-center mb-16">
+          favorite themes
         </h2>
         <div className="grid grid-cols-6 gap-4">
           {savedThemes.map((theme, index) => {
