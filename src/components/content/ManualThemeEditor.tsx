@@ -5,11 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import type { Theme, ThemeColor } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { Button } from '../ui/button';
+import { Save } from 'lucide-react';
+import { ThemeHistoryItem } from './ThemeHistoryItem';
 
 interface ManualThemeEditorProps {
   theme: Theme;
+  selectedSlot: number;
   onColorChange: (colorName: keyof Theme['colors'], newColor: ThemeColor) => void;
+  onSave: () => void;
 }
 
 const ColorEditor = ({
@@ -89,6 +93,8 @@ const ColorEditor = ({
 export function ManualThemeEditor({
   theme,
   onColorChange,
+  onSave,
+  selectedSlot,
 }: ManualThemeEditorProps) {
   return (
     <div>
@@ -111,6 +117,24 @@ export function ManualThemeEditor({
                 color={theme.colors.primary}
                 onColorChange={(newColor) => onColorChange('primary', newColor)}
             />
+        </div>
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 items-stretch gap-4">
+            <div className="md:col-start-2 h-40">
+                <ThemeHistoryItem
+                    theme={theme}
+                    onClick={() => {}}
+                    emptyText="Adjust sliders to see preview."
+                    isEmpty={false}
+                />
+            </div>
+            <Button
+                type="button"
+                onClick={onSave}
+                className="w-full h-40 text-lg md:col-start-3"
+            >
+                <Save className="mr-2 h-4 w-4" />
+                Save Manual Theme to Slot
+            </Button>
         </div>
     </div>
   );
