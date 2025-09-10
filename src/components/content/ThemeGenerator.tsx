@@ -73,6 +73,7 @@ export function ThemeGenerator() {
 
   // Load saved themes from localStorage on initial mount
   useEffect(() => {
+    // Load saved themes
     const savedThemesJson = localStorage.getItem('custom-themes');
     let initialThemes: Theme[] = [];
     if (savedThemesJson) {
@@ -80,12 +81,10 @@ export function ThemeGenerator() {
         initialThemes = JSON.parse(savedThemesJson);
       } catch (e) {
         console.error('Failed to parse themes from localStorage', e);
-        // Fallback to empty array if parsing fails
         initialThemes = [];
       }
     }
     
-    // Ensure there are always MAX_SAVED_THEMES slots, and only one is active
     let hasActive = false;
     const filledThemes = Array.from({ length: MAX_SAVED_THEMES }).map((_, i) => {
         let theme = initialThemes[i];
@@ -96,22 +95,33 @@ export function ThemeGenerator() {
         
         if (theme.isActive) {
             if (hasActive) {
-                theme.isActive = false; // Only one theme can be active
+                theme.isActive = false;
             } else {
                 hasActive = true;
-                setSelectedSlot(i); // The active theme is also the selected one initially
+                setSelectedSlot(i);
             }
         }
         return theme;
     });
 
-    // If no theme was active, make the first one active
     if (!hasActive && filledThemes.length > 0) {
         filledThemes[0].isActive = true;
         setSelectedSlot(0);
     }
-
     setSavedThemes(filledThemes);
+
+    // Load last generated theme
+    const lastGeneratedJson = localStorage.getItem('generated-theme');
+    if (lastGeneratedJson) {
+      try {
+        const lastGenerated = JSON.parse(lastGeneratedJson);
+        if(lastGenerated.id !== 'empty') {
+            setGeneratedTheme(lastGenerated);
+        }
+      } catch (e) {
+        console.error('Failed to parse generated theme from localStorage', e);
+      }
+    }
   }, []);
 
   const updateCSSVariables = useCallback((colors: Theme['colors']) => {
@@ -132,7 +142,6 @@ export function ThemeGenerator() {
     const activeTheme = savedThemes.find(t => t.isActive);
     if (activeTheme) {
       updateCSSVariables(activeTheme.colors);
-      // Also ensure the custom theme is the active one in the app
       const currentTheme = localStorage.getItem('theme');
       if (currentTheme !== 'custom') {
         document.documentElement.classList.remove('light', 'dark');
@@ -154,7 +163,6 @@ export function ThemeGenerator() {
 
     const newSavedThemes = savedThemes.map((theme, index) => {
       if (index === selectedSlot) {
-        // If we save to the active slot, the new theme becomes active.
         const newTheme = { ...generatedTheme, id: uuidv4(), isActive: theme.isActive };
         if (newTheme.isActive) {
           updateCSSVariables(newTheme.colors);
@@ -174,8 +182,6 @@ export function ThemeGenerator() {
       title: 'Theme Saved!',
       description: `Generated theme saved to slot ${selectedSlot + 1}.`,
     });
-    setGeneratedTheme(EMPTY_THEME);
-    form.reset({ background: '', foreground: '', primary: ''});
   };
 
 
@@ -192,6 +198,7 @@ export function ThemeGenerator() {
       };
 
       setGeneratedTheme(newTheme);
+      localStorage.setItem('generated-theme', JSON.stringify(newTheme));
       
       toast({
         title: 'Theme Generated!',
@@ -210,7 +217,6 @@ export function ThemeGenerator() {
   }
 
   const handleSlotClick = (index: number) => {
-    setSelectedSlot(index);
     const themeToActivate = savedThemes[index];
     
     const newSavedThemes = savedThemes.map((theme, i) => ({
@@ -218,14 +224,14 @@ export function ThemeGenerator() {
       isActive: i === index,
     }));
     
+    setSelectedSlot(index);
     setSavedThemes(newSavedThemes);
     localStorage.setItem('custom-themes', JSON.stringify(newSavedThemes));
     localStorage.setItem('theme', 'custom');
     updateCSSVariables(themeToActivate.colors);
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add('custom');
-    // Don't reset the generated theme, but you can populate the form
-    // form.reset(themeToActivate.words);
+    form.reset(themeToActivate.words);
   }
 
   return (
@@ -305,15 +311,18 @@ export function ThemeGenerator() {
             <div className="lg:col-span-2">
                 <h2 className="text-2xl font-bold text-center mb-4">Saved Themes (Click to activate)</h2>
                 <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
-                    {savedThemes.map((theme, index) => (
+                    {savedThemes.map((theme, index) => {
+                      const isActive = theme.isActive;
+                      return (
                         <ThemeHistoryItem
                             key={theme.id + index}
                             theme={theme}
                             onClick={() => handleSlotClick(index)}
-                            isActive={selectedSlot === index}
+                            isActive={isActive}
                             isSelected={selectedSlot === index}
                         />
-                    ))}
+                      )
+                    })}
                 </div>
             </div>
         </div>
