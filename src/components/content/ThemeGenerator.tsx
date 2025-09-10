@@ -63,6 +63,7 @@ const MAX_SAVED_THEMES = 6;
 export function ThemeGenerator() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isApiOverloaded, setIsApiOverloaded] = useState(false);
   const [showEmptyInputInfo, setShowEmptyInputInfo] = useState(false);
   const [generatedTheme, setGeneratedTheme] = useState<Theme>(EMPTY_THEME);
   const [savedThemes, setSavedThemes] = useState<Theme[]>([]);
@@ -211,6 +212,7 @@ export function ThemeGenerator() {
 
   async function onSubmit(values: FormValues) {
     setIsLoading(true);
+    setIsApiOverloaded(false);
 
     if (!values.word1 && !values.word2 && !values.word3) {
       setShowEmptyInputInfo(true);
@@ -240,11 +242,7 @@ export function ThemeGenerator() {
       console.error(error);
       const errorMessage = (error as Error).message || '';
       if (errorMessage.includes('503') || errorMessage.toLowerCase().includes('overloaded')) {
-        toast({
-            variant: 'destructive',
-            title: 'AI Model Busy',
-            description: 'The theme generator is currently busy. Please try again in a moment.',
-        });
+        setIsApiOverloaded(true);
       } else {
         toast({
             variant: 'destructive',
@@ -368,7 +366,7 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
                   </FormItem>
                 )}
               />
-              <Button type="button" variant="outline" onClick={rotateMood}>
+              <Button type="button" onClick={rotateMood}>
                 <RefreshCw className="mr-2 h-4 w-4" />
                 {MOODS[currentMoodIndex]}
               </Button>
@@ -385,6 +383,8 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Generating...
                   </>
+                ) : isApiOverloaded ? (
+                  'AI Busy, Try Again'
                 ) : (
                   'Generate Theme'
                 )}
