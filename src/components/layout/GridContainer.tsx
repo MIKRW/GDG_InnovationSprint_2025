@@ -9,7 +9,10 @@ export function GridContainer({
   children: ReactNode;
 }) {
   return (
-    <div className={cn('grid grid-cols-3 grid-rows-3 gap-4 p-4 h-full', className)}>
+    <div
+      data-component="GridContainer"
+      className={cn('grid grid-cols-3 grid-rows-3 gap-4 p-4 h-full', className)}
+    >
       {children}
     </div>
   );

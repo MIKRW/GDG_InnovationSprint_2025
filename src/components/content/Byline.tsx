@@ -9,7 +9,7 @@ export function Byline({
   children: ReactNode;
 }) {
   return (
-    <p className={cn('mt-4 text-lg text-muted-foreground', className)}>
+    <p data-component="Byline" className={cn('mt-4 text-lg text-muted-foreground', className)}>
       {children}
     </p>
   );

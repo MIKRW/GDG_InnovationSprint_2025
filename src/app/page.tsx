@@ -19,7 +19,10 @@ export default function Home() {
 
       {/* Cell 5: Middle-Center */}
       <div className="col-start-2 row-start-2 flex items-center justify-center">
-        <div className="branding-container flex flex-col items-center justify-center text-center">
+        <div
+          data-component="branding-container"
+          className="branding-container flex flex-col items-center justify-center text-center"
+        >
           <Logo />
           <Byline>This is the main content area.</Byline>
         </div>
