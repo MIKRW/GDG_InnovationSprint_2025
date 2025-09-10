@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,29 +8,59 @@ import { Contrast } from 'lucide-react';
 const themes = ['light', 'dark', 'custom'];
 
 export function ContrastButton() {
-  // We only need to know the *next* theme to set in localStorage.
-  // The actual application of the theme is handled by ThemeProvider.
   const [currentTheme, setCurrentTheme] = useState('light');
 
   useEffect(() => {
-    // On mount, read the theme from localStorage to know our starting point.
     const savedTheme = localStorage.getItem('theme') || 'light';
     setCurrentTheme(savedTheme);
+
+    const handleStorageChange = () => {
+      const newTheme = localStorage.getItem('theme') || 'light';
+      setCurrentTheme(newTheme);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const toggleTheme = () => {
+    // Exit preview mode if active
+    const isPreviewing = sessionStorage.getItem('theme-preview-active') === 'true';
+    if (isPreviewing) {
+        sessionStorage.removeItem('theme-preview-active');
+        const lastActiveTheme = localStorage.getItem('active-theme-json');
+        if(lastActiveTheme) {
+            const root = document.documentElement;
+            const theme = JSON.parse(lastActiveTheme);
+            root.style.setProperty('--custom-background-h', `${theme.colors.background.h}`);
+            root.style.setProperty('--custom-background-s', `${theme.colors.background.s}%`);
+            root.style.setProperty('--custom-background-l', `${theme.colors.background.l}%`);
+            root.style.setProperty('--custom-foreground-h', `${theme.colors.foreground.h}`);
+            root.style.setProperty('--custom-foreground-s', `${theme.colors.foreground.s}%`);
+            root.style.setProperty('--custom-foreground-l', `${theme.colors.foreground.l}%`);
+            root.style.setProperty('--custom-primary-h', `${theme.colors.primary.h}`);
+            root.style.setProperty('--custom-primary-s', `${theme.colors.primary.s}%`);
+            root.style.setProperty('--custom-primary-l', `${theme.colors.primary.l}%`);
+            const ringColor = theme.colors.ring || theme.colors.primary;
+            root.style.setProperty('--custom-ring-h', `${ringColor.h}`);
+            root.style.setProperty('--custom-ring-s', `${ringColor.s}%`);
+            root.style.setProperty('--custom-ring-l', `${ringColor.l}%`);
+        }
+        window.dispatchEvent(new Event('preview-exit'));
+        return;
+    }
+
+
     const currentIndex = themes.indexOf(currentTheme);
     const nextTheme = themes[(currentIndex + 1) % themes.length];
     
-    // Set the new theme in localStorage
     localStorage.setItem('theme', nextTheme);
     
-    // Manually update the class on the root element to trigger an immediate visual change.
-    // The ThemeProvider will handle this on subsequent page loads.
     document.documentElement.classList.remove(...themes);
     document.documentElement.classList.add(nextTheme);
 
-    // Update our internal state
     setCurrentTheme(nextTheme);
   };
 

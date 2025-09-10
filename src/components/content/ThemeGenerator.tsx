@@ -123,6 +123,23 @@ export function ThemeGenerator() {
     root.style.setProperty('--custom-ring-l', `${ringColor.l}%`);
   }, []);
 
+  useEffect(() => {
+    const handlePreviewExit = () => {
+        setIsPreviewingGenerated(false);
+        setIsPreviewingManual(false);
+        // Find the active theme and re-apply it
+        const activeTheme = savedThemes.find(t => t.isActive);
+        if (activeTheme) {
+            updateCSSVariables(activeTheme.colors);
+        }
+    };
+    window.addEventListener('preview-exit', handlePreviewExit);
+    return () => {
+        window.removeEventListener('preview-exit', handlePreviewExit);
+    };
+  }, [savedThemes, updateCSSVariables]);
+
+
   // Load saved themes from localStorage on initial mount
   useEffect(() => {
     // Load saved themes
@@ -193,6 +210,7 @@ export function ThemeGenerator() {
     const activeTheme = savedThemes.find(t => t.isActive);
     if (activeTheme && !isPreviewingGenerated && !isPreviewingManual) {
       updateCSSVariables(activeTheme.colors);
+      localStorage.setItem('active-theme-json', JSON.stringify(activeTheme));
       const currentTheme = localStorage.getItem('theme');
       if (currentTheme !== 'custom') {
         document.documentElement.classList.remove('light', 'dark');
@@ -222,6 +240,7 @@ export function ThemeGenerator() {
           document.documentElement.classList.add('custom');
           setIsPreviewingGenerated(false);
           setIsPreviewingManual(false);
+          sessionStorage.removeItem('theme-preview-active');
         }
         return newTheme;
       }
@@ -300,6 +319,7 @@ export function ThemeGenerator() {
     document.documentElement.classList.add('custom');
     setIsPreviewingGenerated(false);
     setIsPreviewingManual(false);
+    sessionStorage.removeItem('theme-preview-active');
     setShowEmptyInputInfo(false);
 
     const activeMoodIndex = MOODS.indexOf(themeToActivate.words.mood);
@@ -308,30 +328,29 @@ export function ThemeGenerator() {
     form.reset(themeToActivate.words);
   }
 
-  const previewGeneratedTheme = () => {
-    if (generatedTheme.id === 'empty') return;
-    updateCSSVariables(generatedTheme.colors);
+  const startPreview = (theme: Theme) => {
+    updateCSSVariables(theme.colors);
     localStorage.setItem('theme', 'custom');
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add('custom');
+    sessionStorage.setItem('theme-preview-active', 'true');
+    // Unselect any saved slots
+    const newSavedThemes = savedThemes.map(t => ({ ...t, isActive: false }));
+    setSavedThemes(newSavedThemes);
+  }
+
+  const previewGeneratedTheme = () => {
+    if (generatedTheme.id === 'empty') return;
+    startPreview(generatedTheme);
     setIsPreviewingGenerated(true);
     setIsPreviewingManual(false);
-    // Unselect any saved slots
-    const newSavedThemes = savedThemes.map(theme => ({ ...theme, isActive: false }));
-    setSavedThemes(newSavedThemes);
   }
 
   const previewManualTheme = () => {
     if (manualTheme.id === 'manual-default' && manualTheme.colors.background.h === 210) return;
-    updateCSSVariables(manualTheme.colors);
-    localStorage.setItem('theme', 'custom');
-    document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add('custom');
+    startPreview(manualTheme);
     setIsPreviewingManual(true);
     setIsPreviewingGenerated(false);
-    // Unselect any saved slots
-    const newSavedThemes = savedThemes.map(theme => ({ ...theme, isActive: false }));
-    setSavedThemes(newSavedThemes);
   }
 
   useEffect(() => {
