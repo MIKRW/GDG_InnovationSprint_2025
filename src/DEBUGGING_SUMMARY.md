@@ -18,7 +18,7 @@ To make future debugging sessions faster, here is a checklist of common issues a
 
 In the Firebase Studio web environment, the development server is restarted through the built-in terminal:
 
-1.  **In the top bar of the editor, click on **"Switch to Code"**.
+1.  In the top bar of the editor, click on **"Switch to Code"**.
 2.  Click the **hamburger menu icon** (three horizontal lines) in the top-left corner of the code editor pane.
 3.  Select **"New terminal"** from the dropdown menu.
 4.  A terminal window will appear at the bottom of the screen. Click inside of it to give it focus.
