@@ -26,8 +26,7 @@ These are the reusable UI elements that make up the application's content.
 - **`ContrastButton.tsx`**: The button in the `Header` for toggling UI contrast.
 - **`Logo.tsx`**: Renders the circular application logo.
 - **`MicrophoneIcon.tsx`**: The microphone icon used inside the `RecordButton`.
-- **`ReadyToRecord.tsx`**: The "Ready to Record" heading and subheading text on the record page.
-- **`RecordButton.tsx`**: The large, circular primary action button for starting a recording.
+- **`RecordButton.tsx`**: The large, primary action button for starting a recording. It now contains the "Ready to Record" text and microphone icon.
 - **`SpeakerButton.tsx`**: The button in the `Header` for toggling sound.
 
 ## Page Components & Structure
@@ -41,7 +40,7 @@ Each page is a server component that composes the layout and content components.
 
 - **Record Page (`/src/app/record/page.tsx`)**: The page for initiating a recording.
   - **Layout**: `AppLayout`
-  - **Content**: A `RecordContainer` element that holds the `ReadyToRecord` and `RecordButton` components.
+  - **Content**: A `RecordContainer` element that holds the `RecordButton` component.
   - **Footer**: `SecondaryPageFooter`
 
 - **Log Page (`/src/app/log/page.tsx`)**: Displays the photo album.

@@ -1,5 +1,4 @@
 import { RecordButton } from '@/components/content/RecordButton';
-import { ReadyToRecord } from '@/components/content/ReadyToRecord';
 import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 import { AppLayout } from '@/components/layout/AppLayout';
 
@@ -11,8 +10,10 @@ export default function RecordPage() {
           data-component="RecordContainer"
           className="flex flex-col items-center justify-center h-full p-4 text-center"
         >
-          <ReadyToRecord />
-          <RecordButton />
+          <RecordButton>
+            <h1 className="text-3xl font-bold">Ready to Record</h1>
+            <p className="text-muted-foreground">Press the button to start</p>
+          </RecordButton>
         </div>
       </main>
       <SecondaryPageFooter />
