@@ -6,7 +6,6 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
-import { ThemeProvider } from '@/components/layout/ThemeProvider';
 
 // This is the root layout for the entire application.
 // It sets up the basic HTML structure, fonts, and global styles.
@@ -20,7 +19,7 @@ const themeScript = `
   (function() {
     try {
       const savedThemeClass = localStorage.getItem('theme') || 'light';
-      document.documentElement.classList.add(savedThemeClass);
+      document.documentElement.className = savedThemeClass;
 
       if (savedThemeClass === 'custom') {
         const activeThemeJson = localStorage.getItem('active-theme-json');
@@ -74,9 +73,7 @@ export default function RootLayout({
           inter.variable
         )}
       >
-        <ThemeProvider>
-            {children}
-        </ThemeProvider>
+        {children}
         <Toaster />
       </body>
     </html>
