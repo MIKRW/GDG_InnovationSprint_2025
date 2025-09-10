@@ -23,8 +23,10 @@ export function GridContainer({
       <div className="border border-dashed"></div>
       <div className="border border-dashed"></div>
       <div className="border border-dashed flex flex-col items-center justify-center">
-        <Logo />
-        <Byline>Your Brand Tagline Here</Byline>
+        <div className="w-36 h-36">
+          <Logo />
+        </div>
+        <Byline className="mt-6 text-2xl">Your Brand Tagline Here</Byline>
       </div>
       <div className="border border-dashed"></div>
       <div className="border border-dashed"></div>
