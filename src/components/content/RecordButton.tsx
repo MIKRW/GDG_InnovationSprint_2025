@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { identifyBirdBySound } from '@/ai/flows/identify-bird-flow';
 import { addLog } from '@/lib/local-storage';
-import type { BirdLog } from '@/lib/types';
+import type { BirdLog, LocationSettings } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { MicrophoneIcon } from './MicrophoneIcon';
 import { Loader2, MicOff, Square } from 'lucide-react';
@@ -25,6 +25,8 @@ interface RecordButtonProps {
     onIdentificationFailed?: () => void;
     onStartRecording?: () => void;
 }
+
+const LOCATION_SETTINGS_KEY = 'location-settings';
 
 export function RecordButton({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps) {
   const router = useRouter();
@@ -87,24 +89,16 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
       longitude: location?.longitude,
     };
     addLog(newLog);
+    setRecordingState('idle');
+    setLastAudio(null);
     router.push(`/log/mystery`);
   };
 
   const handleSaveConfirmation = () => {
     if (lastAudio) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-            const { latitude, longitude } = position.coords;
-            saveMysteryLog(lastAudio, { latitude, longitude });
-        },
-        () => {
-            // Geolocation failed or denied, save without it.
-            saveMysteryLog(lastAudio);
-        }
-      );
+      // Re-fetch location based on settings when user confirms save
+      getLocationForAIShot(location => saveMysteryLog(lastAudio, location));
     }
-    setRecordingState('idle');
-    setLastAudio(null);
   };
 
   const handleCancelSave = () => {
@@ -117,26 +111,45 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
     setRecordingState('processing');
     const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
 
-    // Convert blob to data URI
     const reader = new FileReader();
     reader.readAsDataURL(audioBlob);
     reader.onloadend = async () => {
         const base64Audio = reader.result as string;
-
-        // Get location and then call AI
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const { latitude, longitude } = position.coords;
-                await processAudio(base64Audio, { latitude, longitude });
-            },
-            async () => {
-                // Geolocation failed or denied, proceed without it
-                console.warn('Geolocation permission denied or failed. Proceeding without location data.');
-                await processAudio(base64Audio);
-            }
-        );
+        getLocationForAIShot(location => processAudio(base64Audio, location));
     };
   };
+
+  const getLocationForAIShot = (
+    callback: (location?: { latitude: number; longitude: number }) => void
+  ) => {
+    const savedSettingsJson = localStorage.getItem(LOCATION_SETTINGS_KEY);
+    let settings: LocationSettings = { mode: 'device', manual: { latitude: 0, longitude: 0 }, privacy: { isOutside: true } };
+    if (savedSettingsJson) {
+      try {
+        settings = JSON.parse(savedSettingsJson);
+      } catch {
+        // Fallback to default
+      }
+    }
+
+    if (settings.mode === 'device') {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          callback({ latitude, longitude });
+        },
+        () => {
+          console.warn('Geolocation failed or denied. Proceeding without it.');
+          callback(); // Proceed without location
+        }
+      );
+    } else if (settings.mode === 'manual') {
+      callback(settings.manual);
+    } else { // privacy mode
+      callback(); // No location data
+    }
+  };
+
 
   const processAudio = async (base64Audio: string, location?: { latitude: number, longitude: number }) => {
     try {

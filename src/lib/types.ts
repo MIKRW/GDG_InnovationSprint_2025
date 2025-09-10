@@ -38,3 +38,16 @@ export type BirdLog = {
 }
 
 export type SortOption = 'newest' | 'oldest' | 'a-z' | 'z-a';
+
+export type LocationSetting = 'device' | 'manual' | 'privacy';
+
+export type LocationSettings = {
+  mode: LocationSetting;
+  manual: {
+    latitude: number;
+    longitude: number;
+  };
+  privacy: {
+    isOutside: boolean;
+  };
+};
