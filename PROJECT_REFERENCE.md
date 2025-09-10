@@ -8,15 +8,19 @@ The application uses a consistent layout system defined in `src/components/layou
 
 ### Core Components
 
-- **`AppLayout.tsx`**: The main wrapper for all pages. It enforces the standard page structure, consisting of a header, a main content area, and a footer. It is applied in the root layout (`src/app/layout.tsx`).
+- **`AppLayout.tsx`**: The main wrapper applied to each page. It provides the consistent `Header` and a flexible container that holds the main content and the page-specific footer.
 
-- **`Header.tsx`**: The top navigation bar of the application. It displays the application title.
+- **`Header.tsx`**: The top bar of the application. It contains the contrast and speaker control buttons.
 
-- **`Footer.tsx`**: The bottom navigation bar. It contains the primary navigation links for moving between the main sections of the app.
+- **`HomePageFooter.tsx`**: The navigation footer used exclusively on the home page. It provides navigation to the `record`, `log`, and `settings` pages.
+
+- **`SecondaryPageFooter.tsx`**: The navigation footer used on all pages except the home page. It provides navigation to `home`, `log`, and `settings`.
 
 ### Page Structure
 
-All pages will inherit the same header and footer from `AppLayout`. The unique content for each page is rendered as the `children` within the `<main>` element of the `AppLayout`.
+Each page (`/src/app/[page]/page.tsx`) is wrapped in the `AppLayout` component. This ensures a consistent header and overall structure.
 
-- **Main Page (`/src/app/page.tsx`)**: This is the primary landing page.
-- **Secondary Pages (`/src/app/record/`, `/src/app/log/`, etc.)**: These pages share the same overall theme but will have their own distinct internal layouts for their specific content.
+The unique content for each page is rendered within a `<main>` element, and each page is responsible for supplying its own footer component (`HomePageFooter` or `SecondaryPageFooter`), allowing for context-specific navigation.
+
+- **Main Page (`/src/app/page.tsx`)**: The primary landing page. It uses the `HomePageFooter`.
+- **Secondary Pages (`/src/app/record/`, `/src/app/log/`, etc.)**: These pages use the `SecondaryPageFooter`.
