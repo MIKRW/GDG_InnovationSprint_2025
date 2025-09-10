@@ -6,13 +6,18 @@ This document outlines how the AI custom theme generator works and what factors 
 
 The theme generator is powered by an AI model that has been instructed to act as an expert UI theme designer with a deep understanding of color theory and word association. Its primary goal is to translate your creative input into a unique, aesthetically pleasing, and accessible color theme.
 
+The generator page is organized into four main rows:
+1.  **Input Row**: Contains three text fields for your inspirational words and a button to cycle through predefined moods.
+2.  **Action Row**: Features buttons to "Generate Theme" and "Save Theme", along with a preview of the most recently generated theme.
+3.  **Saved Theme Rows**: A grid displaying your six saved theme slots. Clicking a slot makes it the active theme.
+
 ## Color Generation Factors
 
 When you click the "Generate Theme" button, the AI takes the following parameters into account to create a theme:
 
 *   **Three Inspirational Words**: You provide three words that serve as the creative seeds for the theme's colors. The AI is instructed to intelligently assign these words to the background, foreground, and primary color roles based on design best practices.
 *   **Word Association**: The AI will consider the real-world colors associated with your input words (e.g., "eggshell" might become a natural, off-white color). To do this, it will research how established color brands (like Pantone or paint companies) name their colors. If you say "lavender" or "forest green," the AI can learn from professional color systems to choose an appropriate shade.
-*   **Mood**: This is a powerful, high-level instruction that guides the overall artistic direction. After selecting a base palette from the three words, the AI uses the selected mood to modify the hue, saturation, and lightness of the final colors. It acts as a final adjustment to achieve the desired feeling.
+*   **Predefined Moods**: Instead of a free-form text field, you cycle through a list of predefined moods. This provides a powerful, high-level instruction that guides the overall artistic direction and ensures more predictable, high-quality results. After selecting a base palette from the three words, the AI uses the selected mood to modify the hue, saturation, and lightness of the final colors. It acts as a final adjustment to achieve the desired feeling, with special attention paid to accessibility constraints.
 
 ## Mood Keyword Definitions
 
