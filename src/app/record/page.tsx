@@ -11,8 +11,7 @@ export default function RecordPage() {
           className="flex flex-col items-center justify-center h-full p-4 text-center"
         >
           <RecordButton>
-            <h1 className="text-3xl font-bold">Ready to Record</h1>
-            <p className="text-muted-foreground">Press the button to start</p>
+            <p className="text-xl">Press to Record</p>
           </RecordButton>
         </div>
       </main>
