@@ -230,11 +230,20 @@ export function ThemeGenerator() {
       });
     } catch (error) {
       console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Generation Failed',
-        description: 'Could not generate the theme. Please try again.',
-      });
+      const errorMessage = (error as Error).message || '';
+      if (errorMessage.includes('503') || errorMessage.toLowerCase().includes('overloaded')) {
+        toast({
+            variant: 'destructive',
+            title: 'AI Model Busy',
+            description: 'The theme generator is currently busy. Please try again in a moment.',
+        });
+      } else {
+        toast({
+            variant: 'destructive',
+            title: 'Generation Failed',
+            description: 'Could not generate the theme. Please try again.',
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -305,15 +314,15 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
       <div className="mt-8">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
              {showEmptyInputInfo && (
-              <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-800">
+              <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-800 md:col-span-4">
                 <Info className="h-4 w-4 !text-blue-800" />
                 <AlertDescription>
                   To generate your own theme, enter some descriptive words below.
                 </AlertDescription>
               </Alert>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
               <FormField
                 control={form.control}
                 name="word1"
