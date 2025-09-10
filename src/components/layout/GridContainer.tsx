@@ -12,7 +12,7 @@ export function GridContainer({
     <div
       data-component="GridContainer"
       className={cn(
-        'grid grid-cols-3 grid-rows-3 gap-4 p-4 bg-black h-96',
+        'grid grid-cols-3 grid-rows-3 gap-4 p-4 bg-black min-h-[calc(100vh-8rem)]',
         className
       )}
     >
