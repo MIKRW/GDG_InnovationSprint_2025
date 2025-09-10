@@ -4,14 +4,14 @@
  * @fileOverview An AI flow for identifying bird species from audio recordings.
  *
  * - identifyBirdBySound - A function that analyzes an audio recording to identify a bird.
- * - IdentifyBirdInputSchema - The input type for the identifyBirdBySound function.
- * - IdentifyBirdOutputSchema - The return type for the identifyBirdBySound function.
+ * - IdentifyBirdInput - The input type for the identifyBirdBySound function.
+ * - IdentifyBirdOutput - The return type for the identifyBirdBySound function.
  */
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 
-export const IdentifyBirdInputSchema = z.object({
+const IdentifyBirdInputSchema = z.object({
   audioDataUri: z
     .string()
     .describe(
@@ -20,7 +20,7 @@ export const IdentifyBirdInputSchema = z.object({
 });
 export type IdentifyBirdInput = z.infer<typeof IdentifyBirdInputSchema>;
 
-export const IdentifyBirdOutputSchema = z.object({
+const IdentifyBirdOutputSchema = z.object({
   isBirdSong: z.boolean().describe('Whether or not the audio is believed to contain a bird song.'),
   commonName: z.string().optional().describe("The common name of the identified bird (e.g., 'American Robin')."),
   scientificName: z.string().optional().describe("The scientific name of the identified bird (e.g., 'Turdus migratorius')."),
