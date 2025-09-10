@@ -34,7 +34,7 @@ const ColorEditor = ({
   return (
     <div className="bg-primary text-primary-foreground rounded-lg p-4 w-full h-40 flex flex-col justify-center space-y-4">
         <div className="flex items-center gap-4">
-          <Label className="w-12">Hue</Label>
+          <Label className="w-24 text-xl">Hue</Label>
           <Slider
             max={360}
             step={1}
@@ -44,7 +44,7 @@ const ColorEditor = ({
           />
         </div>
         <div className="flex items-center gap-4">
-          <Label className="w-12">Sat</Label>
+          <Label className="w-24 text-xl">Sat</Label>
           <Slider
             max={100}
             step={1}
@@ -54,7 +54,7 @@ const ColorEditor = ({
           />
         </div>
         <div className="flex items-center gap-4">
-          <Label className="w-12">Light</Label>
+          <Label className="w-24 text-xl">Light</Label>
           <Slider
             max={100}
             step={1}
