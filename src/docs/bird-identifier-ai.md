@@ -77,3 +77,4 @@ This phase is about showing the user what the AI found.
 2.  **New Results Page:** We will create a new page, for example `/log/[id]`. After the AI analysis is complete, the app will navigate the user to this page.
 
 3.  **Displaying Data:** The results page will take the analysis data from the AI (common name, scientific name, description) and display it in a clean, readable format. As a bonus, we could use a text-to-image model in a separate flow to generate an image of the identified bird to make the page more visually appealing, as we discussed in Recommendation 2.
+
