@@ -8,9 +8,13 @@ To make future debugging sessions faster, here is a checklist of common issues a
 
 3.  **Handle 503 Service Unavailable Errors:** An error like `[503 Service Unavailable] The model is overloaded` indicates that an external service (like the AI theme generator) is temporarily unavailable. This is not a bug in the application's code. The best practice is to catch this specific error and display a user-friendly message, such as "The service is currently busy, please try again in a moment."
 
-4.  **Check the Terminal for "Module Not Found" Errors:** After renaming or moving files, a `Module not found` error in the terminal is a common issue. This indicates a broken import path. Double-check that all `import` statements in the affected files point to the correct new file locations.
+4.  **Handle `localStorage` Data Structure Mismatches:** A runtime error like `Error: Cannot read properties of undefined (reading 'h')` can occur after you've updated a data structure (e.g., adding a new `ring` color to your theme object) but the user's `localStorage` still contains data in the old format.
+    *   **Cause:** The component code expects a new property (e.g., `theme.colors.ring`) that doesn't exist on the older objects retrieved from storage, leading to a crash when it tries to access sub-properties like `.h`.
+    *   **Solution:** Implement backward compatibility in your components. Before accessing a potentially missing property, check for its existence and provide a sensible fallback value. For example: `const ringColor = colors.ring || colors.primary;`. This ensures the application can gracefully handle older data formats without crashing.
 
-5.  **Fix "Unsupported metadata viewport" Errors:** An error like `Unsupported metadata viewport is configured in metadata export... Please move it to viewport export instead` means the `viewport` object is incorrectly placed inside the `metadata` object in a layout file. In recent Next.js versions, `viewport` must be a separate, top-level export.
+5.  **Check the Terminal for "Module Not Found" Errors:** After renaming or moving files, a `Module not found` error in the terminal is a common issue. This indicates a broken import path. Double-check that all `import` statements in the affected files point to the correct new file locations.
+
+6.  **Fix "Unsupported metadata viewport" Errors:** An error like `Unsupported metadata viewport is configured in metadata export... Please move it to viewport export instead` means the `viewport` object is incorrectly placed inside the `metadata` object in a layout file. In recent Next.js versions, `viewport` must be a separate, top-level export.
 
     *   **Incorrect:** `export const metadata = { title: '...', viewport: { ... } }`
     *   **Correct:**
@@ -19,25 +23,25 @@ To make future debugging sessions faster, here is a checklist of common issues a
         export const viewport = { ... };
         ```
 
-6.  **Fix "variable is not defined" Runtime Errors:** A runtime error like `Error: form is not defined` indicates that a variable was used before it was declared or initialized. In React components, this often happens when a hook that provides a value is accidentally removed or commented out.
+7.  **Fix "variable is not defined" Runtime Errors:** A runtime error like `Error: form is not defined` indicates that a variable was used before it was declared or initialized. In React components, this often happens when a hook that provides a value is accidentally removed or commented out.
 
     *   **Example Cause:** In a component using `react-hook-form`, the `<Form {...form}>` component was used, but the line `const form = useForm();` was missing.
     *   **Solution:** Ensure that all variables are initialized before they are accessed. For hooks, make sure they are called at the top level of the component.
 
-7.  **Check for Missing API Keys**: If you are using a feature that relies on an external service, such as the AI-powered theme generator, make sure you have provided the necessary API key. The application will look for a `GEMINI_API_KEY` in your `.env` file. Without it, any call to the AI will fail.
+8.  **Check for Missing API Keys**: If you are using a feature that relies on an external service, such as the AI-powered theme generator, make sure you have provided the necessary API key. The application will look for a `GEMINI_API_KEY` in your `.env` file. Without it, any call to the AI will fail.
 
-8.  **Avoid Hydration Mismatches from Client-Side State**: A common cause for hydration errors is when a component tries to use a value from a browser API (like `localStorage` or `window.matchMedia`) during its initial server render. The server doesn't have access to these, leading to a mismatch.
+9.  **Avoid Hydration Mismatches from Client-Side State**: A common cause for hydration errors is when a component tries to use a value from a browser API (like `localStorage` or `window.matchMedia`) during its initial server render. The server doesn't have access to these, leading to a mismatch.
 
     *   **Incorrect:** `useState(localStorage.getItem('theme') || 'light')`
     *   **Correct:** Initialize state with a default value (`useState('light')`) and then use a `useEffect` hook to load the value from `localStorage` on the client-side after the component has mounted.
 
-9.  **Isolate the Problem:** Try to reproduce the error on a minimal component or a new page. If the error disappears, it suggests a conflict with parent components or global styles.
+10. **Isolate the Problem:** Try to reproduce the error on a minimal component or a new page. If the error disappears, it suggests a conflict with parent components or global styles.
 
-10. **Use React DevTools:** Inspect the component in the browser using React DevTools. Check its props and state to ensure they are what you expect them to be at render time.
+11. **Use React DevTools:** Inspect the component in the browser using React DevTools. Check its props and state to ensure they are what you expect them to be at render time.
 
-11. **Hard Refresh the Browser:** Sometimes the browser's own cache can be the problem. Do a hard refresh (Ctrl+Shift+R or Cmd+Shift+R) to bypass the local cache.
+12. **Hard Refresh the Browser:** Sometimes the browser's own cache can be the problem. Do a hard refresh (Ctrl+Shift+R or Cmd+Shift+R) to bypass the local cache.
 
-12. **Review Prop and HTML Structure:** Double-check for invalid HTML nesting (e.g., a `<p>` inside another `<p>`) or incorrect prop types being passed to a component.
+13. **Review Prop and HTML Structure:** Double-check for invalid HTML nesting (e.g., a `<p>` inside another `<p>`) or incorrect prop types being passed to a component.
 
 ## How to Restart the Server in Firebase Studio
 
