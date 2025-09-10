@@ -24,7 +24,7 @@ The application uses a consistent layout system defined in `src/components/layou
 
 These are the reusable UI elements that make up the application's content.
 
-- **`Byline.tsx`**: A styled text component for displaying a tagline or subtitle, used on the home page.
+- **`AppName.tsx`**: A styled text component for displaying the application's name, used on the home page.
 - **`ContrastButton.tsx`**: The button in the `Header` for toggling UI contrast.
 - **`Logo.tsx`**: Renders the circular application logo.
 - **`MicrophoneIcon.tsx`**: The microphone icon used inside the `RecordButton`.
@@ -37,7 +37,7 @@ Each page is a server component that composes the layout and content components.
 
 - **Main Page (`/src/app/page.tsx`)**: The primary landing page.
   - **Layout**: `AppLayout` with `PrimaryHeader`.
-  - **Content**: `GridContainer` which contains `Logo` and `Byline`.
+  - **Content**: `GridContainer` which contains `Logo` and `AppName`.
   - **Footer**: `HomePageFooter`.
 
 - **Record Page (`/src/app/record/page.tsx`)**: The page for initiating a recording.

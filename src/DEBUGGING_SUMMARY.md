@@ -6,13 +6,15 @@ To make future debugging sessions faster, here is a checklist of common issues a
 
 2.  **Check Browser Console for Hydration Errors:** Always look for the `Hydration failed...` error. It's a critical clue that the server-rendered HTML and client-rendered HTML do not match. The error details often point to the exact component.
 
-3.  **Isolate the Problem:** Try to reproduce the error on a minimal component or a new page. If the error disappears, it suggests a conflict with parent components or global styles.
+3.  **Check the Terminal for "Module Not Found" Errors:** After renaming or moving files, a `Module not found` error in the terminal is a common issue. This indicates a broken import path. Double-check that all `import` statements in the affected files point to the correct new file locations.
 
-4.  **Use React DevTools:** Inspect the component in the browser using React DevTools. Check its props and state to ensure they are what you expect them to be at render time.
+4.  **Isolate the Problem:** Try to reproduce the error on a minimal component or a new page. If the error disappears, it suggests a conflict with parent components or global styles.
 
-5.  **Hard Refresh the Browser:** Sometimes the browser's own cache can be the problem. Do a hard refresh (Ctrl+Shift+R or Cmd+Shift+R) to bypass the local cache.
+5.  **Use React DevTools:** Inspect the component in the browser using React DevTools. Check its props and state to ensure they are what you expect them to be at render time.
 
-6.  **Review Prop and HTML Structure:** Double-check for invalid HTML nesting (e.g., a `<p>` inside another `<p>`) or incorrect prop types being passed to a component.
+6.  **Hard Refresh the Browser:** Sometimes the browser's own cache can be the problem. Do a hard refresh (Ctrl+Shift+R or Cmd+Shift+R) to bypass the local cache.
+
+7.  **Review Prop and HTML Structure:** Double-check for invalid HTML nesting (e.g., a `<p>` inside another `<p>`) or incorrect prop types being passed to a component.
 
 ## How to Restart the Server in Firebase Studio
 
