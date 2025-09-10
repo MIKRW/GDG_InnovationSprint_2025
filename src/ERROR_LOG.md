@@ -64,12 +64,12 @@ This document tracks recurring errors, their root causes, the solutions implemen
 
 ### Error Type: Next.js Promise-based 'params' in useEffect
 
-- **Occurrences**: 1
-- **Description**: A Next.js console warning appeared: `A param property was accessed directly with params.id. params is now a Promise and should be unwrapped...` when viewing a log detail page.
-- **Cause**: A recent update to Next.js changed the `params` object in client components to be a Promise-like object when accessed inside a `useEffect` hook. The code was attempting to read `params.id` directly within the `useEffect` hook on the log detail page (`[id]/page.tsx`), which is no longer the recommended pattern.
+- **Occurrences**: 2
+- **Description**: A Next.js console warning appeared: `A param property was accessed directly with params.id. params is now a Promise and should be unwrapped...` when viewing a log detail page. This error recurred as Next.js updated its handling of this feature.
+- **Cause**: In recent versions of Next.js, the `params` object in client components is treated as a Promise-like object to optimize data fetching. Accessing its properties (like `params.id`) directly within the component body or inside a `useEffect` hook is now deprecated and causes this warning. Early attempts to fix this by moving the access outside the hook were insufficient for newer versions.
 - **Solution**:
-    1. The `id` was destructured from the `params` object at the top level of the `LogDetailPage` component.
-    2. This `id` variable was then used as a dependency in the `useEffect` hook's dependency array and within the hook's logic. This ensures the `id` value is resolved before the effect runs, aligning with the new Next.js behavior and removing the warning.
+    1. The final and correct solution is to destructure the required parameter (`id`) directly from the `params` object in the component's function signature (e.g., `export default function LogDetailPage({ params: { id } })`).
+    2. This pattern is the modern, recommended way to access route parameters in client components. It ensures the value is correctly resolved before the component renders, aligning with the latest Next.js behavior and completely eliminating the warning.
 
 ---
 
