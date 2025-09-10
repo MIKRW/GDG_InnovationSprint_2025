@@ -23,10 +23,14 @@ export function GridContainer({
       <div></div>
       <div></div>
       <div className="flex flex-col items-center justify-center">
-        <div className="w-36 h-36">
-          <Logo />
-        </div>
-        <Byline className="mt-6 text-2xl">Your Brand Tagline Here</Byline>
+        {children || (
+          <>
+            <div className="w-36 h-36">
+              <Logo />
+            </div>
+            <Byline className="mt-6 text-2xl">Your Brand Tagline Here</Byline>
+          </>
+        )}
       </div>
       <div></div>
       <div></div>
