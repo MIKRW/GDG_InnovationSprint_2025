@@ -31,11 +31,14 @@ export function ThemeHistoryItem({
 }: ThemeHistoryItemProps) {
   const { colors } = theme;
 
+  // Fallback for older themes saved in localStorage without a `ring` color
+  const ringColor = colors.ring || colors.primary;
+
   const styles = {
     background: `hsl(${colors.background.h}, ${colors.background.s}%, ${colors.background.l}%)`,
     foreground: `hsl(${colors.foreground.h}, ${colors.foreground.s}%, ${colors.foreground.l}%)`,
     primary: `hsl(${colors.primary.h}, ${colors.primary.s}%, ${colors.primary.l}%)`,
-    ring: `hsl(${colors.ring.h}, ${colors.ring.s}%, ${colors.ring.l}%)`,
+    ring: `hsl(${ringColor.h}, ${ringColor.s}%, ${ringColor.l}%)`,
   };
 
   const handleRotateClick = (e: React.MouseEvent) => {
