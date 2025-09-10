@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/content/Logo';
-import { Byline } from '@/components/content/Byline';
+import { AppName } from '@/components/content/Byline';
 
 export function GridContainer({
   className,
@@ -28,7 +28,7 @@ export function GridContainer({
             <div className="w-[31.2rem] h-[31.2rem]">
               <Logo />
             </div>
-            <Byline className="mt-6 text-2xl">the app name</Byline>
+            <AppName className="mt-6 text-2xl">the app name</AppName>
           </>
         )}
       </div>
