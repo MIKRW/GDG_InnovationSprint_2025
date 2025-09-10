@@ -361,6 +361,22 @@ export function ThemeGenerator() {
     }
   };
 
+  const rotateManualTheme = () => {
+    const currentColors = manualTheme.colors;
+    const newColors = {
+        background: currentColors.foreground,
+        foreground: currentColors.primary,
+        primary: currentColors.background,
+        ring: currentColors.ring,
+    };
+    const newTheme = {...manualTheme, colors: newColors};
+    setManualTheme(newTheme);
+    localStorage.setItem('manual-theme', JSON.stringify(newTheme));
+    if(isPreviewingManual) {
+        updateCSSVariables(newColors);
+    }
+  };
+
   const rotateMood = () => {
     setCurrentMoodIndex((prevIndex) => (prevIndex + 1) % MOODS.length);
   };
@@ -500,8 +516,8 @@ export function ThemeGenerator() {
           <ManualThemeEditor 
               theme={manualTheme}
               onColorChange={handleManualColorChange}
+              onRotate={rotateManualTheme}
               onSave={() => saveThemeToSlot(manualTheme)}
-              selectedSlot={selectedSlot}
               onPreview={previewManualTheme}
               isPreviewing={isPreviewingManual}
           />

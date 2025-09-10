@@ -6,8 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import type { Theme, ThemeColor } from '@/lib/types';
 import { Button } from '../ui/button';
-import { Save } from 'lucide-react';
-import { ThemeHistoryItem } from './ThemeHistoryItem';
+import { RefreshCw, Save } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '../ui/card';
 
@@ -17,6 +16,7 @@ interface ManualThemeEditorProps {
     colorName: keyof Theme['colors'],
     newColor: ThemeColor
   ) => void;
+  onRotate: () => void;
   onSave: () => void;
   onPreview: () => void;
   isPreviewing: boolean;
@@ -41,7 +41,7 @@ const ColorEditor = ({
   return (
     <div
       className={cn(
-        'relative flex h-40 w-full flex-col justify-center gap-4 rounded-lg bg-primary p-4 text-primary-foreground'
+        'relative flex h-40 w-full flex-col justify-center gap-2 rounded-lg bg-primary p-4 text-primary-foreground'
       )}
     >
       <div className="flex items-center gap-4">
@@ -81,17 +81,22 @@ const ColorEditor = ({
 export function ManualThemeEditor({
   theme,
   onColorChange,
+  onRotate,
   onSave,
   onPreview,
   isPreviewing,
 }: ManualThemeEditorProps) {
-  const [selectedColor, setSelectedColor] = useState<EditableColor>('background');
+  const [selectedColor, setSelectedColor] =
+    useState<EditableColor>('background');
 
-  const handleColorSelect = (e: React.MouseEvent, colorName: EditableColor) => {
+  const handleColorSelect = (
+    e: React.MouseEvent,
+    colorName: EditableColor
+  ) => {
     e.stopPropagation();
     setSelectedColor(colorName);
     onPreview();
-  }
+  };
 
   const { colors } = theme;
   const ringColor = colors.ring || colors.primary;
@@ -109,6 +114,11 @@ export function ManualThemeEditor({
       }
     : {};
 
+  const handleRotateClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRotate();
+  };
+
   return (
     <div>
       <h2 className="mb-12 text-center text-4xl font-bold">
@@ -120,30 +130,68 @@ export function ManualThemeEditor({
           onColorChange={(newColor) => onColorChange(selectedColor, newColor)}
         />
         <div className="h-40">
-        <Card
-          onClick={onPreview}
-          className={cn('h-full cursor-pointer transition-all hover:shadow-lg', isPreviewing && 'ring-4 ring-ring')}
-          style={selectionStyle}
-        >
-          <CardContent className="relative flex h-full flex-col space-y-4 rounded-lg bg-card/80 p-4">
-            <div
-              className="flex-grow overflow-hidden rounded-md flex mt-4"
-              style={{ backgroundColor: styles.background, border: selectedColor === 'background' ? '2px solid black' : '2px solid transparent', padding: '2px' }}
-              onClick={(e) => handleColorSelect(e, 'background')}
+          <Card
+            onClick={onPreview}
+            className={cn(
+              'relative h-full cursor-pointer transition-all hover:shadow-lg',
+              isPreviewing && 'ring-4 ring-ring'
+            )}
+            style={selectionStyle}
+          >
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute top-1 right-1 h-7 w-7"
+              onClick={handleRotateClick}
+              aria-label="Rotate Colors"
             >
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+            <CardContent className="relative flex h-full flex-col space-y-4 rounded-lg bg-card/80 p-4">
               <div
-                className={cn("w-1/3 h-full", selectedColor === 'foreground' && 'ring-2 ring-inset ring-black')}
-                style={{ backgroundColor: styles.foreground,  border: selectedColor === 'foreground' ? '2px solid black' : '2px solid transparent' }}
-                onClick={(e) => handleColorSelect(e, 'foreground')}
-              ></div>
-              <div
-                className={cn("w-1/3 h-full", selectedColor === 'primary' && 'ring-2 ring-inset ring-black')}
-                style={{ backgroundColor: styles.primary,  border: selectedColor === 'primary' ? '2px solid black' : '2px solid transparent' }}
-                onClick={(e) => handleColorSelect(e, 'primary')}
-              ></div>
-            </div>
-          </CardContent>
-        </Card>
+                className="mt-4 flex flex-grow overflow-hidden rounded-md"
+                style={{
+                  backgroundColor: styles.background,
+                  border:
+                    selectedColor === 'background'
+                      ? '2px solid black'
+                      : '2px solid transparent',
+                  padding: '2px',
+                }}
+                onClick={(e) => handleColorSelect(e, 'background')}
+              >
+                <div
+                  className={cn(
+                    'h-full w-1/3',
+                    selectedColor === 'foreground' && 'ring-2 ring-inset ring-black'
+                  )}
+                  style={{
+                    backgroundColor: styles.foreground,
+                    border:
+                      selectedColor === 'foreground'
+                        ? '2px solid black'
+                        : '2px solid transparent',
+                  }}
+                  onClick={(e) => handleColorSelect(e, 'foreground')}
+                ></div>
+                <div
+                  className={cn(
+                    'h-full w-1/3',
+                    selectedColor === 'primary' && 'ring-2 ring-inset ring-black'
+                  )}
+                  style={{
+                    backgroundColor: styles.primary,
+                    border:
+                      selectedColor === 'primary'
+                        ? '2px solid black'
+                        : '2px solid transparent',
+                  }}
+                  onClick={(e) => handleColorSelect(e, 'primary')}
+                ></div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
         <Button type="button" onClick={onSave} className="h-40 w-full text-lg">
           <Save className="mr-2 h-4 w-4" />
