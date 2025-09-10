@@ -1,4 +1,5 @@
 import { RecordButton } from '@/components/content/RecordButton';
+import { ReadyToRecord } from '@/components/content/ReadyToRecord';
 import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 import { AppLayout } from '@/components/layout/AppLayout';
 
@@ -7,10 +8,7 @@ export default function RecordPage() {
     <AppLayout>
       <main className="flex-1 overflow-y-auto">
         <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold">Ready to Record</h1>
-            <p className="text-muted-foreground">Press the button to start</p>
-          </div>
+          <ReadyToRecord />
           <RecordButton />
         </div>
       </main>
