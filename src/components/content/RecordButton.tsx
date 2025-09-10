@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -11,8 +11,7 @@ import type { BirdLog } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { MicrophoneIcon } from './MicrophoneIcon';
-import { Loader2, Mic, MicOff, Square } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { Loader2, MicOff, Square } from 'lucide-react';
 
 type RecordingState =
   | 'idle'
@@ -30,7 +29,14 @@ export function RecordButton() {
 
 
   const handleStartRecording = async () => {
-    if (recordingState === 'denied') return;
+    if (recordingState === 'denied') {
+        toast({
+            variant: 'destructive',
+            title: 'Microphone Access Required',
+            description: 'Please enable microphone permissions in your browser settings and refresh the page.',
+        });
+        return;
+    }
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -51,6 +57,11 @@ export function RecordButton() {
     } catch (err) {
       console.error('Permission denied or no microphone found:', err);
       setRecordingState('denied');
+       toast({
+        variant: 'destructive',
+        title: 'Microphone Access Required',
+        description: 'This app needs access to your microphone. Please enable permissions in your browser settings.',
+      });
     }
   };
 
@@ -139,11 +150,10 @@ export function RecordButton() {
   };
 
   const { icon, label } = getButtonContent();
-  const isDisabled = recordingState === 'processing' || recordingState === 'denied';
+  const isDisabled = recordingState === 'processing';
 
 
   return (
-    <div className="flex flex-row items-center gap-8">
       <Button
         variant="default"
         size="icon"
@@ -157,15 +167,5 @@ export function RecordButton() {
         </div>
         {icon}
       </Button>
-      {recordingState === 'denied' && (
-          <Alert variant="destructive" className="max-w-md">
-            <MicOff className="h-4 w-4" />
-            <AlertTitle>Microphone Access Required</AlertTitle>
-            <AlertDescription>
-                This app needs access to your microphone to identify bird songs. Please enable microphone permissions in your browser settings and refresh the page.
-            </AlertDescription>
-          </Alert>
-      )}
-    </div>
   );
 }
