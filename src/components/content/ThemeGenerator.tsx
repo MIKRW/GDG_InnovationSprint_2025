@@ -106,7 +106,6 @@ export function ThemeGenerator() {
 
   const updateCSSVariables = useCallback((colors: Theme['colors']) => {
     const root = document.documentElement;
-    // Fallback for older themes saved in localStorage without a `ring` color
     const ringColor = colors.ring || colors.primary;
 
     root.style.setProperty('--custom-background-h', `${colors.background.h}`);
@@ -127,7 +126,6 @@ export function ThemeGenerator() {
     const handlePreviewExit = () => {
         setIsPreviewingGenerated(false);
         setIsPreviewingManual(false);
-        // Find the active theme and re-apply it
         const activeThemeJson = localStorage.getItem('active-theme-json');
         if (activeThemeJson) {
             try {
@@ -147,7 +145,6 @@ export function ThemeGenerator() {
 
   // Load saved themes from localStorage on initial mount
   useEffect(() => {
-    // Load saved themes
     const savedThemesJson = localStorage.getItem('custom-themes');
     let initialThemes: Theme[] = [];
     if (savedThemesJson) {
@@ -210,27 +207,6 @@ export function ThemeGenerator() {
   }, []);
 
   
-  // Effect to apply the active theme from savedThemes on load or change
-  useEffect(() => {
-    // Only run this logic if we are NOT in a preview state.
-    if (!isPreviewingGenerated && !isPreviewingManual) {
-      const activeTheme = savedThemes.find(t => t.isActive);
-      
-      if (activeTheme) {
-        updateCSSVariables(activeTheme.colors);
-        localStorage.setItem('active-theme-json', JSON.stringify(activeTheme));
-        
-        const currentThemeClass = localStorage.getItem('theme');
-        if (currentThemeClass !== 'custom') {
-          document.documentElement.classList.remove('light', 'dark');
-          document.documentElement.classList.add('custom');
-          localStorage.setItem('theme', 'custom');
-        }
-      }
-    }
-  }, [savedThemes, isPreviewingGenerated, isPreviewingManual, updateCSSVariables]);
-
-
   const saveThemeToSlot = (themeToSave: Theme) => {
     if (!themeToSave || themeToSave.id === 'empty') {
       toast({
@@ -243,8 +219,13 @@ export function ThemeGenerator() {
   
     const newSavedThemes = savedThemes.map((theme, index) => {
       if (index === selectedSlot) {
-        // Create a new theme object, preserving its active state
-        return { ...themeToSave, id: uuidv4(), isActive: theme.isActive };
+        const isActive = theme.isActive; // Preserve the active state of the slot being saved to.
+        const newTheme = { ...themeToSave, id: uuidv4(), isActive: isActive };
+        if (isActive) {
+          // If we are saving over the active slot, we MUST update the active-theme-json
+          localStorage.setItem('active-theme-json', JSON.stringify(newTheme));
+        }
+        return newTheme;
       }
       return theme;
     });
@@ -252,13 +233,11 @@ export function ThemeGenerator() {
     setSavedThemes(newSavedThemes);
     localStorage.setItem('custom-themes', JSON.stringify(newSavedThemes));
     
-    // If the saved theme is in the currently active slot, we must also update the active-theme-json
-    const savedThemeInActiveSlot = newSavedThemes[selectedSlot];
-    if (savedThemeInActiveSlot && savedThemeInActiveSlot.isActive) {
-      localStorage.setItem('active-theme-json', JSON.stringify(savedThemeInActiveSlot));
+    // If we just saved to the active slot, we need to apply the new theme
+    if (newSavedThemes[selectedSlot]?.isActive) {
+        updateCSSVariables(newSavedThemes[selectedSlot].colors);
     }
-
-    // Exit any preview mode and apply the newly saved (and active) theme
+    
     if (isPreviewingGenerated || isPreviewingManual) {
         setIsPreviewingGenerated(false);
         setIsPreviewingManual(false);
@@ -327,7 +306,14 @@ export function ThemeGenerator() {
     }));
   
     setSelectedSlot(index);
-    setSavedThemes(newSavedThemes); // This will trigger the useEffect to apply the theme
+    setSavedThemes(newSavedThemes);
+
+    // Apply the newly active theme and save it as the single source of truth
+    updateCSSVariables(themeToActivate.colors);
+    localStorage.setItem('active-theme-json', JSON.stringify(themeToActivate));
+    localStorage.setItem('theme', 'custom');
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add('custom');
   
     // Save the new state of all themes to localStorage
     localStorage.setItem('custom-themes', JSON.stringify(newSavedThemes));
@@ -350,7 +336,6 @@ export function ThemeGenerator() {
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add('custom');
     sessionStorage.setItem('theme-preview-active', 'true');
-    // Unselect any saved slots
     const newSavedThemes = savedThemes.map(t => ({ ...t, isActive: false }));
     setSavedThemes(newSavedThemes);
   }
@@ -407,7 +392,7 @@ export function ThemeGenerator() {
     };
     const newTheme = {...manualTheme, colors: newColors};
     setManualTheme(newTheme);
-    localStorage.setItem('manual-theme', JSON.stringify(newTheme));
+localStorage.setItem('manual-theme', JSON.stringify(newTheme));
     if(isPreviewingManual) {
         updateCSSVariables(newColors);
     }
@@ -527,8 +512,8 @@ export function ThemeGenerator() {
         </Form>
       </div>
 
-      <div className="my-12">
-        <h2 className="text-6xl font-bold text-center mb-16">
+      <div className="my-8">
+        <h2 className="text-6xl font-bold text-center mb-8 mt-24">
           Favorite Themes
         </h2>
         <div className="grid grid-cols-6 gap-4">
