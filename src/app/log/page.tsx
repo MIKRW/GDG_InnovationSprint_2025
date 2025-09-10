@@ -1,5 +1,5 @@
 import { LogPage } from '@/components/pages/LogPage';
-import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
+import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
 import { AppLayout } from '@/components/layout/AppLayout';
 
 export default function Log() {
@@ -8,7 +8,7 @@ export default function Log() {
       <main className="flex-1 overflow-y-auto">
         <LogPage />
       </main>
-      <SecondaryPageFooter />
+      <SecondaryPageFooterV2 />
     </AppLayout>
   );
 }
