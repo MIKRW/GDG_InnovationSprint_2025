@@ -275,10 +275,9 @@ export function ThemeGenerator() {
   return (
     <>
       <div className="mt-8">
-        <h2 className="text-2xl font-bold text-center mb-4">Generate Theme</h2>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
               <FormField
                 control={form.control}
                 name="word1"
@@ -327,34 +326,36 @@ export function ThemeGenerator() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" disabled={isLoading} className="h-10">
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  'Generate Theme'
-                )}
-              </Button>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 items-center gap-4">
+               <div className="md:col-span-2">
+                 <Button type="submit" disabled={isLoading} className="h-10 w-full md:w-auto">
+                    {isLoading ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                    </>
+                    ) : (
+                    'Generate Theme'
+                    )}
+                 </Button>
+               </div>
+               <div className="max-w-xs mx-auto md:mx-0">
+                 <ThemeHistoryItem
+                    theme={generatedTheme}
+                    onClick={previewGeneratedTheme}
+                    onRotateClick={rotateGeneratedTheme}
+                    showRotate={generatedTheme.id !== 'empty'}
+                    isEmpty={generatedTheme.id === 'empty'}
+                    emptyText="Generate a new theme to see it here."
+                    isSelected={isPreviewingGenerated}
+                />
+               </div>
+            </div>
+
           </form>
         </Form>
-      </div>
-
-      <div className='mt-8'>
-          <h2 className="text-2xl font-bold text-center mb-4">Generated Theme</h2>
-          <div className="max-w-xs mx-auto">
-            <ThemeHistoryItem
-                theme={generatedTheme}
-                onClick={previewGeneratedTheme}
-                onRotateClick={rotateGeneratedTheme}
-                showRotate={generatedTheme.id !== 'empty'}
-                isEmpty={generatedTheme.id === 'empty'}
-                emptyText="Generate a new theme to see it here."
-                isSelected={isPreviewingGenerated}
-            />
-          </div>
       </div>
       
       <div className="mt-12">
