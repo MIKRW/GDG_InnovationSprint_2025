@@ -105,15 +105,13 @@ export function ManualThemeEditor({
         <h2 className="text-4xl font-bold text-center mb-12">
             Manual Theme Editor
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 items-stretch gap-8">
             <ColorEditor
                 title="Background"
                 color={theme.colors.background}
                 onColorChange={(newColor) => onColorChange('background', newColor)}
             />
-        </div>
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 items-stretch gap-4">
-            <div className="md:col-start-2 h-40">
+            <div className="h-full">
                 <ThemeHistoryItem
                     theme={theme}
                     onClick={onPreview}
@@ -125,7 +123,7 @@ export function ManualThemeEditor({
             <Button
                 type="button"
                 onClick={onSave}
-                className="w-full h-40 text-lg md:col-start-3"
+                className="w-full h-full text-lg"
             >
                 <Save className="mr-2 h-4 w-4" />
                 Save Manual Theme to Slot
@@ -134,5 +132,3 @@ export function ManualThemeEditor({
     </div>
   );
 }
-
-    
