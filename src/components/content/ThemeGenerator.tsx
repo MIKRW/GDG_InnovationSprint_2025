@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { generateTheme } from '@/ai/flows/generate-theme-flow';
 import type { Theme } from '@/lib/types';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, RefreshCw, Save } from 'lucide-react';
 import { ThemeHistoryItem } from './ThemeHistoryItem';
 import { Separator } from '@/components/ui/separator';
 
@@ -187,6 +187,7 @@ export function ThemeGenerator() {
       title: 'Theme Saved!',
       description: `Generated theme saved to slot ${selectedSlot + 1}.`,
     });
+    form.reset({ word1: '', word2: '', word3: '', mood: '' });
   };
 
 
@@ -284,7 +285,7 @@ export function ThemeGenerator() {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input placeholder="Word 1" {...field} />
+                      <Input placeholder="type here" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -296,7 +297,7 @@ export function ThemeGenerator() {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input placeholder="Word 2" {...field} />
+                      <Input placeholder="type here" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -308,7 +309,7 @@ export function ThemeGenerator() {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input placeholder="Word 3" {...field} />
+                      <Input placeholder="type here" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -320,7 +321,7 @@ export function ThemeGenerator() {
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Input placeholder="mood" {...field} />
+                      <Input placeholder="type here" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -391,3 +392,5 @@ export function ThemeGenerator() {
     </>
   );
 }
+
+    
