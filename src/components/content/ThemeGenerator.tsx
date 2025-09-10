@@ -150,7 +150,6 @@ export function ThemeGenerator() {
                   <FormControl>
                     <Input placeholder="e.g., sand, sky, forest" {...field} />
                   </FormControl>
-                  <FormDescription>The canvas of the app.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -164,7 +163,6 @@ export function ThemeGenerator() {
                   <FormControl>
                     <Input placeholder="e.g., stone, ink, snow" {...field} />
                   </FormControl>
-                  <FormDescription>For text and icons.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -178,7 +176,6 @@ export function ThemeGenerator() {
                   <FormControl>
                     <Input placeholder="e.g., ocean, sunset, gold" {...field} />
                   </FormControl>
-                  <FormDescription>For buttons and accents.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
