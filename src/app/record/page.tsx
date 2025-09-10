@@ -1,5 +1,4 @@
-import { Mic } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { RecordButton } from '@/components/content/RecordButton';
 import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 import { AppLayout } from '@/components/layout/AppLayout';
 
@@ -12,14 +11,7 @@ export default function RecordPage() {
             <h1 className="text-3xl font-bold">Ready to Record</h1>
             <p className="text-muted-foreground">Press the button to start</p>
           </div>
-          <Button
-            variant="default"
-            size="icon"
-            className="w-40 h-40 rounded-full bg-primary hover:bg-primary/90"
-            aria-label="Start Recording"
-          >
-            <Mic className="w-20 h-20" />
-          </Button>
+          <RecordButton />
         </div>
       </main>
       <SecondaryPageFooter />
