@@ -52,8 +52,8 @@ const prompt = ai.definePrompt({
     The recording was made in or near: "{{locationDescription}}".
     Use this information as a strong hint to narrow down the possible bird species. To do this, compare the user's text with publicly available data from reliable sources like government sites, public databases, and well-known field guides to understand the bird's known geographic range and habitat. A bird not typically found in this location is less likely to be the correct identification.
     {{else if latitude}}
-    The recording was made at latitude: {{latitude}}, longitude: {{longitude}}.
-    Use this location information as a strong hint to narrow down the possible bird species. To do this, use the coordinates to determine the geographic region and compare that with publicly available data from reliable sources like government sites, public databases, and well-known field guides to understand the bird's known geographic range and habitat. A bird that is not typically found in this area is less likely to be the correct identification.
+    The recording was made at the absolute location of latitude: {{latitude}}, longitude: {{longitude}}.
+    Use this precise location as a primary factor to determine the possible bird species. Cross-reference these coordinates with publicly available data from reliable sources (like government sites, public databases, and well-known field guides) to determine the bird's known geographic range and habitat. A bird that is not found in this exact area is highly unlikely to be the correct identification.
     {{/if}}
 
     Your task is to return a JSON object with the following structure:
