@@ -329,33 +329,37 @@ export function ThemeGenerator() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 items-stretch gap-4">
-              <div className="md:col-span-2">
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full h-full text-lg"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    'Generate Theme'
-                  )}
-                </Button>
-              </div>
-              <div className="max-w-xs mx-auto md:mx-0">
-                <ThemeHistoryItem
-                  theme={generatedTheme}
-                  onClick={previewGeneratedTheme}
-                  onRotateClick={rotateGeneratedTheme}
-                  showRotate={generatedTheme.id !== 'empty'}
-                  isEmpty={generatedTheme.id === 'empty'}
-                  emptyText="Generate a new theme to see it here."
-                  isSelected={isPreviewingGenerated}
-                />
-              </div>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-full text-lg"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  'Generate Theme'
+                )}
+              </Button>
+              <ThemeHistoryItem
+                theme={generatedTheme}
+                onClick={previewGeneratedTheme}
+                onRotateClick={rotateGeneratedTheme}
+                showRotate={generatedTheme.id !== 'empty'}
+                isEmpty={generatedTheme.id === 'empty'}
+                emptyText="Generate a new theme to see it here."
+                isSelected={isPreviewingGenerated}
+              />
+              <Button
+                onClick={saveToSlot}
+                disabled={generatedTheme.id === 'empty'}
+                className="w-full h-full text-lg"
+              >
+                <Save className="mr-2 h-4 w-4" />
+                Save to Slot
+              </Button>
             </div>
           </form>
         </Form>
@@ -380,17 +384,6 @@ export function ThemeGenerator() {
             );
           })}
         </div>
-      </div>
-
-      <div className="mt-8 flex justify-center">
-        <Button
-          onClick={saveToSlot}
-          size="lg"
-          disabled={generatedTheme.id === 'empty'}
-        >
-          <Save className="mr-2 h-4 w-4" />
-          Save Generated Theme to Selected Slot
-        </Button>
       </div>
     </>
   );
