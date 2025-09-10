@@ -5,7 +5,7 @@ import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 
 export default function Log() {
   return (
-    <AppLayout header={<SecondaryHeader />}>
+    <AppLayout header={<SecondaryHeader title="Bird Book" />}>
       <main className="flex-1 overflow-y-auto">
         <LogPage />
       </main>
