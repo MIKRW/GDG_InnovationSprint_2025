@@ -15,7 +15,7 @@ const IdentifyBirdInputSchema = z.object({
   audioDataUri: z
     .string()
     .describe(
-      "A recording of a bird song, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A recording of a bird song, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
     latitude: z.number().optional().describe('The latitude of where the recording was made.'),
     longitude: z.number().optional().describe('The longitude of where the recording was made.'),
@@ -50,11 +50,10 @@ const prompt = ai.definePrompt({
 
     {{#if locationDescription}}
     The recording was made in or near: "{{locationDescription}}".
-    Use this information to narrow down the possible bird species. To do this, compare the user's text with publicly available data from reliable sources like government sites, public databases, and well-known field guides to understand the bird's known geographic range and habitat. For example, a bird not typically found in this location is less likely to be the correct identification.
+    Use this information as a strong hint to narrow down the possible bird species. To do this, compare the user's text with publicly available data from reliable sources like government sites, public databases, and well-known field guides to understand the bird's known geographic range and habitat. A bird not typically found in this location is less likely to be the correct identification.
     {{else if latitude}}
     The recording was made at latitude: {{latitude}}, longitude: {{longitude}}.
-    Use this location information as a strong hint. Consider the bird's known geographic range and habitat when making your identification.
-    A bird that is not typically found in this area is less likely to be the correct identification.
+    Use this location information as a strong hint to narrow down the possible bird species. To do this, use the coordinates to determine the geographic region and compare that with publicly available data from reliable sources like government sites, public databases, and well-known field guides to understand the bird's known geographic range and habitat. A bird that is not typically found in this area is less likely to be the correct identification.
     {{/if}}
 
     Your task is to return a JSON object with the following structure:
