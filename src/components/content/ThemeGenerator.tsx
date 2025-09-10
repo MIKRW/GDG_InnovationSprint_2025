@@ -417,7 +417,7 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
       <div className="mt-12">
         <Separator className="my-4" />
         <h2 className="text-2xl font-bold text-center mb-4">
-          Favourite theme
+          Favorite Themes
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {savedThemes.map((theme, index) => {
@@ -438,3 +438,5 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
     </>
   );
 }
+
+    
