@@ -5,12 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { debounce } from 'lodash';
-
-type ThemeColor = {
-  h: number;
-  s: number;
-  l: number;
-};
+import { ColorSwatchPicker } from './ColorSwatchPicker';
+import type { ThemeColor } from '@/lib/types';
 
 const DEFAULTS = {
   background: { h: 39, s: 100, l: 97 },
@@ -134,8 +130,8 @@ export function ThemeSettings() {
   return (
     <div className="space-y-6">
       <ThemeEditor title="Background Color" color={background} setColor={setBackground} />
-      <ThemeEditor title="Foreground Color" color={foreground} setColor={setForeground} />
-      <ThemeEditor title="Primary Color" color={primary} setColor={setPrimary} />
+      <ColorSwatchPicker title="Foreground Color" selectedColor={foreground} onColorChange={setForeground} />
+      <ColorSwatchPicker title="Primary Color" selectedColor={primary} onColorChange={setPrimary} />
     </div>
   );
 }

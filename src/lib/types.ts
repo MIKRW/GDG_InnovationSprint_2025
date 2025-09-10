@@ -1,8 +1,7 @@
 // This file can be used to define shared types and interfaces.
 
-// For example:
-// export interface User {
-//   id: string;
-//   name: string;
-//   email: string;
-// }
+export type ThemeColor = {
+  h: number;
+  s: number;
+  l: number;
+};
