@@ -23,7 +23,7 @@ const GenerateThemeOutputSchema = z.object({
   background: ThemeColorSchema.describe('The background color of the theme.'),
   foreground: ThemeColorSchema.describe('The primary text/content color, ensuring high contrast with the background.'),
   primary: ThemeColorSchema.describe('The main accent color for buttons and highlights, ensuring high contrast with the background.'),
-  ring: ThemeColorSchema.describe("A color for UI highlights like selections. It should be a shade of the 'primary' color, either slightly lighter or darker, to indicate selection without clashing with the theme."),
+  ring: ThemeColorSchema.describe("A color for UI highlights like selections. It should be a shade of the 'primary' color, with a lightness value that is at least 10-15% lighter or darker to ensure it is always visible as a selection state."),
 });
 export type GenerateThemeOutput = z.infer<typeof GenerateThemeOutputSchema>;
 
@@ -77,7 +77,7 @@ const prompt = ai.definePrompt({
     
     - The 'foreground' color MUST have a high contrast ratio with the background color for accessibility and readability.
     - The 'primary' color also MUST have a high contrast ratio with the background.
-    - The 'ring' color must be a slightly lighter or darker shade of the 'primary' color. It will be used as a background highlight for selected items, so it needs to be different enough to be noticeable but still harmonious.
+    - The 'ring' color must be a lighter or darker shade of the 'primary' color, with a lightness value that is at least 10-15% different. It will be used as a background highlight for selected items, so it needs to be different enough to be noticeable but still harmonious.
     - CRITICAL: You must also consider derived colors. The app uses CSS calculations to create secondary, muted, and accent colors from the three base colors you provide. You MUST generate base colors that result in good contrast for these derived colors as well. For example, the 'foreground' color must be clearly visible on the 'muted' background, which is a lighter shade of the 'primary' color. Always prioritize readability across the entire UI.
     
     Interpret the user's words creatively to generate a harmonious and visually appealing theme that meets all constraints.
