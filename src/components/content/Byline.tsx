@@ -1,7 +1,8 @@
+
 import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
 
-export function AppName({
+export function Byline({
   className,
   children,
 }: {
@@ -9,7 +10,10 @@ export function AppName({
   children: ReactNode;
 }) {
   return (
-    <p data-component="AppName" className={cn('mt-4 text-lg text-muted-foreground', className)}>
+    <p
+      data-component="Byline"
+      className={cn('mt-6 text-2xl text-muted-foreground', className)}
+    >
       {children}
     </p>
   );
