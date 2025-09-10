@@ -4,19 +4,6 @@ This document tracks recurring errors, their root causes, the solutions implemen
 
 ---
 
-### Error Type: 503 Service Unavailable (AI Model Overloaded)
-
-- **Occurrences**: 2
-- **Description**: The application fails to generate a theme, and a console error indicates `[503 Service Unavailable] The model is overloaded`.
-- **Cause**: This is not a bug in the application's code. It occurs when the external Google Generative AI service, which powers the theme generation, is temporarily experiencing high traffic and cannot process the request.
-- **Solution**:
-    1. A specific state variable (`isApiOverloaded`) was added to the `ThemeGenerator` component.
-    2. The theme generation logic in `onSubmit` now includes a `catch` block that checks for error messages containing "503" or "overloaded".
-    3. If this specific error is detected, `isApiOverloaded` is set to `true`.
-    4. The "Generate Theme" button's content conditionally renders "AI Busy, Try Again" when `isApiOverloaded` is true, providing clear, direct user feedback and preventing repeated clicks.
-
----
-
 ### Error Type: `localStorage` Data Structure Mismatch
 
 - **Occurrences**: 2
@@ -52,13 +39,33 @@ This document tracks recurring errors, their root causes, the solutions implemen
 
 ### Error Type: Flash of Incorrect Theme on Load
 
-- **Occurrences**: 1
-- **Description**: On a full page load or hot-reload, the application would briefly flash the default (light) theme's styles before showing the correct, user-selected custom theme.
-- **Cause**: The root cause was a timing issue inherent to client-side rendering. The logic to apply the custom theme's colors was located in a React `useEffect` hook. This hook only runs on the client-side *after* the initial HTML has been rendered by the browser. This created a race condition where the browser would momentarily display the default styles before the client-side script could execute and apply the correct custom theme from `localStorage`.
+- **Occurrences**: 2
+- **Description**: On a full page load or hot-reload, the application would briefly flash the default theme's styles before showing the correct, user-selected custom theme. This happened even after attempts to fix it with client-side components.
+- **Cause**: The root cause was a fundamental race condition in client-side rendering. Any theme-loading logic placed within a React `useEffect` hook (even in the root layout) can only run *after* the browser has already rendered the initial HTML from the server. This created a small window where the browser would display default styles before the client-side script could execute and apply the correct custom theme from `localStorage`.
 - **Solution**:
-    1.  The logic for applying the theme was moved out of the React component lifecycle entirely.
-    2.  A blocking, synchronous `<script>` tag was embedded directly into the `<head>` of the main `src/app/layout.tsx` file.
-    3.  This script executes immediately, before the browser renders the `<body>`. It reads the `theme` and `active-theme-json` from `localStorage` and injects the correct CSS class name and HSL color variables into the document's root element.
-    4.  By setting the theme before the initial render, the flash of incorrect styles is completely eliminated, ensuring a seamless user experience. All related client-side `useEffect` logic was removed as it was now redundant.
+    1.  The final, correct solution was to move the theme-loading logic entirely out of the React component lifecycle.
+    2.  A blocking, synchronous `<script>` tag was embedded directly into the `<head>` of the main `src/app/layout.tsx` file using `dangerouslySetInnerHTML`.
+    3.  This script executes immediately, before the browser renders the `<body>`. It reads the `theme` class name and the `active-theme-json` from `localStorage` and injects the correct CSS class and HSL color variables into the document's root element (`<html>`).
+    4.  By setting the theme before the initial render, the flash of incorrect styles is completely eliminated, ensuring a seamless user experience. All related client-side `useEffect` logic and wrapper components (`ThemeLoader`, `ThemeProvider`) were removed as they were now redundant.
+
+---
+
+### Error Type: Invalid 'use server' Export
+
+- **Occurrences**: 1
+- **Description**: A runtime error `Error: A "use server" file can only export async functions, found object` occurred when trying to use a Genkit flow.
+- **Cause**: The file `src/ai/flows/identify-bird-flow.ts` was marked with the `'use server';` directive, which turns it into a Next.js Server Action module. These modules have a strict limitation: they can only export `async` functions. The code was incorrectly exporting Zod schema objects alongside the main async function, which violates this rule.
+- **Solution**:
+    1. The `export` keyword was removed from the Zod schema definitions (`IdentifyBirdInputSchema` and `IdentifyBirdOutputSchema`) within the file.
+    2. The TypeScript `type` aliases derived from these schemas (`IdentifyBirdInput`, `IdentifyBirdOutput`) were kept as exports. This is safe because types are a compile-time-only construct and do not exist in the final JavaScript bundle, so they don't count as a runtime export.
+    3. This ensures that the only value exported from the module at runtime is the `identifyBirdBySound` async function, satisfying the Server Action requirements.
+
+---
+
+### Placeholder for Next Error
+- **Occurrences**: 0
+- **Description**: 
+- **Cause**: 
+- **Solution**: 
 
 ---
