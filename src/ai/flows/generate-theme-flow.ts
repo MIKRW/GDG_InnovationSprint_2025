@@ -12,13 +12,6 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import type { ThemeColor } from '@/lib/types';
 
-const GenerateThemeInputSchema = z.object({
-  background: z.string().describe('A word to inspire the background color (e.g., "sand", "sky", "forest").'),
-  foreground: z.string().describe('A word to inspire the foreground text color (e.g., "stone", "ink", "snow").'),
-  primary: z.string().describe('A word to inspire the primary accent color (e.g., "ocean", "sunset", "gold").'),
-});
-export type GenerateThemeInput = z.infer<typeof GenerateThemeInputSchema>;
-
 const ThemeColorSchema = z.object({
   h: z.number().describe('The hue value (0-360).'),
   s: z.number().describe('The saturation value (0-100).'),
@@ -31,6 +24,14 @@ const GenerateThemeOutputSchema = z.object({
   primary: ThemeColorSchema.describe('The main accent color for buttons and highlights, ensuring high contrast with the background.'),
 });
 export type GenerateThemeOutput = z.infer<typeof GenerateThemeOutputSchema>;
+
+const GenerateThemeInputSchema = z.object({
+  background: z.string().describe('A word to inspire the background color (e.g., "sand", "sky", "forest").'),
+  foreground: z.string().describe('A word to inspire the foreground text color (e.g., "stone", "ink", "snow").'),
+  primary: z.string().describe('A word to inspire the primary accent color (e.g., "ocean", "sunset", "gold").'),
+  history: z.array(GenerateThemeOutputSchema).optional().describe('A list of recently generated themes. The new theme should be different from these.'),
+});
+export type GenerateThemeInput = z.infer<typeof GenerateThemeInputSchema>;
 
 
 export async function generateTheme(
@@ -45,7 +46,7 @@ const prompt = ai.definePrompt({
   output: { schema: GenerateThemeOutputSchema },
   prompt: `
     You are an expert UI theme designer with a deep understanding of color theory and word association.
-    Your task is to generate a creative and aesthetically pleasing HSL color palette based on three words provided by the user.
+    Your task is to generate a creative, unique, and aesthetically pleasing HSL color palette based on three words provided by the user.
 
     You must return an object with three HSL color objects: 'background', 'foreground', and 'primary'.
 
@@ -53,7 +54,16 @@ const prompt = ai.definePrompt({
     - The 'foreground' color should be inspired by the word: "{{foreground}}". It MUST have a high contrast ratio with the background color for accessibility.
     - The 'primary' color should be inspired by the word: "{{primary}}". It also MUST have a high contrast ratio with the background.
     
-    Interpret the user's words creatively to generate a harmonious and visually appealing theme.
+    {{#if history}}
+    You have already generated the following themes. Generate a new theme that is noticeably different from these past themes, varying the hue, saturation, and lightness to create a fresh alternative.
+
+    History:
+    {{#each history}}
+    - Background: hsl({{this.background.h}}, {{this.background.s}}%, {{this.background.l}}%), Foreground: hsl({{this.foreground.h}}, {{this.foreground.s}}%, {{this.foreground.l}}%), Primary: hsl({{this.primary.h}}, {{this.primary.s}}%, {{this.primary.l}}%)
+    {{/each}}
+    {{/if}}
+    
+    Interpret the user's words creatively to generate a harmonious and visually appealing theme that has not been generated before.
   `,
 });
 

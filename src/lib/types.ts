@@ -5,3 +5,17 @@ export type ThemeColor = {
   s: number;
   l: number;
 };
+
+export type Theme = {
+  id: string;
+  words: {
+    background: string;
+    foreground: string;
+    primary: string;
+  };
+  colors: {
+    background: ThemeColor;
+    foreground: ThemeColor;
+    primary: ThemeColor;
+  };
+};
