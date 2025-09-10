@@ -30,12 +30,12 @@ export default function RecordPage() {
             />
 
             {/* The alerts are positioned absolutely relative to the container */}
-            <div className="absolute left-full ml-8 w-80">
+            <div className="absolute left-full ml-16 w-96">
               {showPermissionError && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Microphone Access Required</AlertTitle>
-                  <AlertDescription>
+                  <AlertTitle className="text-2xl">Microphone Access Required</AlertTitle>
+                  <AlertDescription className="text-base">
                     This app needs access to your microphone. Please enable permissions in your browser settings and refresh the page.
                   </AlertDescription>
                 </Alert>
@@ -43,8 +43,8 @@ export default function RecordPage() {
               {showIdentificationError && (
                 <Alert variant="destructive">
                   <Bird className="h-4 w-4" />
-                  <AlertTitle>No Bird Identified</AlertTitle>
-                  <AlertDescription>
+                  <AlertTitle className="text-2xl">No Bird Identified</AlertTitle>
+                  <AlertDescription className="text-base">
                     The AI could not identify a bird song in the recording. Please try again.
                   </AlertDescription>
                 </Alert>
