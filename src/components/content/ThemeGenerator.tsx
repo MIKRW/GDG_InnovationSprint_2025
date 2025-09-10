@@ -24,6 +24,7 @@ import { ThemeHistoryItem } from './ThemeHistoryItem';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { ManualThemeEditor } from './ManualThemeEditor';
+import { PageTitle } from './PageTitle';
 
 const formSchema = z.object({
   word1: z.string(),
@@ -513,6 +514,12 @@ export function ThemeGenerator() {
       </div>
       
       <div className="my-24">
+        <div className="text-center mb-12">
+            <PageTitle>Manual Theme Editor</PageTitle>
+            <p className="text-foreground mt-4 max-w-2xl mx-auto">
+                Fine-tune your theme with precision. Select a color swatch for background, foreground, or primary, then adjust the hue, saturation, and lightness sliders. Rotate colors, preview your changes, and save your perfect theme.
+            </p>
+        </div>
           <ManualThemeEditor 
               theme={manualTheme}
               onColorChange={handleManualColorChange}
@@ -525,5 +532,3 @@ export function ThemeGenerator() {
     </>
   );
 }
-
-    

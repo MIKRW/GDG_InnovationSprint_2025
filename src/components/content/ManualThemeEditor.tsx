@@ -67,9 +67,6 @@ export function ManualThemeEditor({
 
   return (
     <div>
-      <h2 className="mb-12 text-center text-4xl font-bold">
-        Manual Theme Editor
-      </h2>
       <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-3">
         <div
           className={cn(
@@ -122,16 +119,16 @@ export function ManualThemeEditor({
             />
           </div>
         </div>
-        <div className="h-40 relative">
+        <div className="relative h-40">
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="absolute top-1 right-1 h-7 w-7 z-10"
+            className="absolute right-1 top-1 z-10 h-7 w-7"
             onClick={handleRotateClick}
             aria-label="Rotate Colors"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="h-4 w-4" />
           </Button>
           <Card
             onClick={onPreview}
@@ -148,27 +145,35 @@ export function ManualThemeEditor({
                   backgroundColor: styles.background,
                   border:
                     selectedColor === 'background'
-                      ? `2px solid ${styles.ring}`
+                      ? '2px solid'
                       : '2px solid transparent',
                   padding: '2px',
+                  borderColor:
+                    selectedColor === 'background' ? styles.ring : 'transparent',
                 }}
                 onClick={(e) => handleColorSelect(e, 'background')}
               >
                 <div
                   className={cn(
-                    'h-full w-1/3'
+                    'h-full w-1/3',
+                    selectedColor === 'foreground' && 'ring-2 ring-ring'
                   )}
                   style={{
                     backgroundColor: styles.foreground,
+                    borderColor:
+                      selectedColor === 'foreground' ? styles.ring : 'transparent',
                   }}
                   onClick={(e) => handleColorSelect(e, 'foreground')}
                 ></div>
                 <div
                   className={cn(
-                    'h-full w-1/3'
+                    'h-full w-1/3',
+                     selectedColor === 'primary' && 'ring-2 ring-ring'
                   )}
                   style={{
                     backgroundColor: styles.primary,
+                     borderColor:
+                      selectedColor === 'primary' ? styles.ring : 'transparent',
                   }}
                   onClick={(e) => handleColorSelect(e, 'primary')}
                 ></div>
