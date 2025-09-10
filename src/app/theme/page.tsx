@@ -1,3 +1,4 @@
+
 import { ThemePage } from '@/components/pages/ThemePage';
 import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -11,7 +12,7 @@ export default function Theme() {
         <RowContainer>
           <div
             data-component="ThemeGeneratorContainer"
-            className="row-span-2 overflow-y-auto"
+            className="row-span-2"
           >
             <ThemePage />
           </div>
