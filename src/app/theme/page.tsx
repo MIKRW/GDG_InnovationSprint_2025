@@ -9,7 +9,10 @@ export default function Theme() {
     <AppLayout header={<SecondaryHeader title="Custom Theme" />}>
       <main className="flex-1 overflow-y-auto bg-muted">
         <RowContainer>
-          <div className="row-span-2 overflow-y-auto">
+          <div
+            data-component="ThemeGeneratorContainer"
+            className="row-span-2 overflow-y-auto"
+          >
             <ThemePage />
           </div>
           <div></div>
