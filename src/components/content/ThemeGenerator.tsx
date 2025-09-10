@@ -57,7 +57,7 @@ const MAX_SAVED_THEMES = 5;
 export function ThemeGenerator() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [previewTheme, setPreviewTheme] = useState<Theme>(EMPTY_THEME);
+  const [generatedTheme, setGeneratedTheme] = useState<Theme>(EMPTY_THEME);
   const [savedThemes, setSavedThemes] = useState<Theme[]>([]);
   const [selectedSlot, setSelectedSlot] = useState(0);
 
@@ -66,16 +66,38 @@ export function ThemeGenerator() {
     const savedThemesJson = localStorage.getItem('custom-themes');
     let initialThemes: Theme[] = [];
     if (savedThemesJson) {
-      initialThemes = JSON.parse(savedThemesJson);
+      try {
+        initialThemes = JSON.parse(savedThemesJson);
+      } catch (e) {
+        console.error('Failed to parse themes from localStorage', e);
+        // Fallback to empty array if parsing fails
+        initialThemes = [];
+      }
     }
     
-    // Ensure there are always MAX_SAVED_THEMES slots
+    // Ensure there are always MAX_SAVED_THEMES slots, and only one is active
+    let hasActive = false;
     const filledThemes = Array.from({ length: MAX_SAVED_THEMES }).map((_, i) => {
-        if (initialThemes[i]) return initialThemes[i];
-        const newTheme = { ...DEFAULTS, id: uuidv4(), isActive: i === 0 };
-        if (i > 0) newTheme.words = { background: 'new', foreground: 'theme', primary: 'slot' };
-        return newTheme;
+        let theme = initialThemes[i];
+        if (!theme) {
+            theme = { ...DEFAULTS, id: uuidv4(), isActive: false };
+            if (i > 0) theme.words = { background: 'new', foreground: 'theme', primary: 'slot' };
+        }
+        
+        if (theme.isActive) {
+            if (hasActive) {
+                theme.isActive = false; // Only one theme can be active
+            } else {
+                hasActive = true;
+            }
+        }
+        return theme;
     });
+
+    // If no theme was active, make the first one active
+    if (!hasActive && filledThemes.length > 0) {
+        filledThemes[0].isActive = true;
+    }
 
     setSavedThemes(filledThemes);
   }, []);
@@ -98,13 +120,6 @@ export function ThemeGenerator() {
     root.style.setProperty('--custom-primary-l', `${colors.primary.l}%`);
   }, []);
   
-  // This effect only updates the live preview (CSS variables) from the preview theme
-  useEffect(() => {
-    if (previewTheme.id !== 'empty') {
-      updateCSSVariables(previewTheme.colors);
-    }
-  }, [previewTheme, updateCSSVariables]);
-  
   // Effect to apply the active theme from savedThemes on load
   useEffect(() => {
     const activeTheme = savedThemes.find(t => t.isActive);
@@ -115,10 +130,10 @@ export function ThemeGenerator() {
 
 
   const saveToSlot = () => {
-    if (previewTheme.id === 'empty') {
+    if (generatedTheme.id === 'empty') {
       toast({
         variant: 'destructive',
-        title: 'No Preview',
+        title: 'No Generated Theme',
         description: 'Please generate a theme before trying to save.',
       });
       return;
@@ -126,13 +141,9 @@ export function ThemeGenerator() {
 
     const newSavedThemes = savedThemes.map((theme, index) => {
       if (index === selectedSlot) {
-        // The theme being saved into slot 0 becomes the active theme
-        const newTheme = { ...previewTheme, id: uuidv4(), isActive: index === 0 };
+        // If we save to the active slot, the new theme becomes active.
+        const newTheme = { ...generatedTheme, id: uuidv4(), isActive: theme.isActive };
         return newTheme;
-      }
-      // If we're saving to slot 0, all other themes must be inactive
-      if (selectedSlot === 0) {
-        return { ...theme, isActive: false };
       }
       return theme;
     });
@@ -140,17 +151,17 @@ export function ThemeGenerator() {
     setSavedThemes(newSavedThemes);
     localStorage.setItem('custom-themes', JSON.stringify(newSavedThemes));
     
-    // If we saved to the active slot, also update the global theme setting
-    if (selectedSlot === 0) {
-        localStorage.setItem('theme', 'custom');
+    const activeTheme = newSavedThemes.find(t => t.isActive);
+    if (activeTheme) {
+      updateCSSVariables(activeTheme.colors);
+      localStorage.setItem('theme', 'custom');
     }
 
     toast({
       title: 'Theme Saved!',
-      description: `Saved to slot ${selectedSlot + 1}.`,
+      description: `Generated theme saved to slot ${selectedSlot + 1}.`,
     });
-    setPreviewTheme(EMPTY_THEME);
-    form.reset({ background: '', foreground: '', primary: '' });
+    setGeneratedTheme(EMPTY_THEME);
   };
 
 
@@ -166,7 +177,7 @@ export function ThemeGenerator() {
         isActive: false,
       };
 
-      setPreviewTheme(newTheme);
+      setGeneratedTheme(newTheme);
       
       toast({
         title: 'Theme Generated!',
@@ -186,9 +197,18 @@ export function ThemeGenerator() {
 
   const handleSlotClick = (index: number) => {
     setSelectedSlot(index);
-    const themeToPreview = savedThemes[index];
-    setPreviewTheme(themeToPreview);
-    form.reset(themeToPreview.words);
+    const themeToActivate = savedThemes[index];
+    
+    const newSavedThemes = savedThemes.map((theme, i) => ({
+      ...theme,
+      isActive: i === index,
+    }));
+    
+    setSavedThemes(newSavedThemes);
+    localStorage.setItem('custom-themes', JSON.stringify(newSavedThemes));
+    localStorage.setItem('theme', 'custom');
+    updateCSSVariables(themeToActivate.colors);
+    form.reset(themeToActivate.words);
   }
 
   return (
@@ -247,9 +267,9 @@ export function ThemeGenerator() {
       </Form>
       
       <div className="mt-8 flex justify-center">
-        <Button onClick={saveToSlot} size="lg" disabled={previewTheme.id === 'empty'}>
+        <Button onClick={saveToSlot} size="lg" disabled={generatedTheme.id === 'empty'}>
           <Save className="mr-2 h-4 w-4" />
-          Save Theme to Selected Slot
+          Save Generated Theme to Selected Slot
         </Button>
       </div>
 
@@ -257,15 +277,16 @@ export function ThemeGenerator() {
         <Separator className="my-4" />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className='lg:col-span-1'>
-                <h2 className="text-2xl font-bold text-center mb-4">Preview</h2>
+                <h2 className="text-2xl font-bold text-center mb-4">Generated Theme</h2>
                 <ThemeHistoryItem
-                    theme={previewTheme.id === 'empty' ? EMPTY_THEME : previewTheme}
+                    theme={generatedTheme}
                     onClick={() => {}}
-                    isEmpty={previewTheme.id === 'empty'}
+                    isEmpty={generatedTheme.id === 'empty'}
+                    emptyText="Generate a new theme to see it here."
                 />
             </div>
             <div className="lg:col-span-2">
-                <h2 className="text-2xl font-bold text-center mb-4">Saved Themes (Slot 1 is Active)</h2>
+                <h2 className="text-2xl font-bold text-center mb-4">Saved Themes (Click to activate)</h2>
                 <div className="grid grid-cols-2 xl:grid-cols-3 gap-4">
                     {savedThemes.map((theme, index) => (
                         <ThemeHistoryItem

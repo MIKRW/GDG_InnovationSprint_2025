@@ -12,6 +12,7 @@ interface ThemeHistoryItemProps {
   isActive?: boolean;
   isSelected?: boolean;
   isEmpty?: boolean;
+  emptyText?: string;
 }
 
 export function ThemeHistoryItem({
@@ -20,6 +21,7 @@ export function ThemeHistoryItem({
   isActive = false,
   isSelected = false,
   isEmpty = false,
+  emptyText = "Generate a new theme or select a saved theme."
 }: ThemeHistoryItemProps) {
   const { colors, words } = theme;
 
@@ -34,8 +36,8 @@ export function ThemeHistoryItem({
        <Card className={cn('border-dashed')}>
         <CardContent className="p-4 space-y-2 h-48 flex flex-col justify-center items-center text-muted-foreground">
             <Ban className="w-10 h-10" />
-            <p className="text-sm font-medium">No Preview</p>
-            <p className="text-xs text-center">Generate a new theme or select a saved theme.</p>
+            <p className="text-sm font-medium">Empty</p>
+            <p className="text-xs text-center">{emptyText}</p>
         </CardContent>
        </Card>
     )
