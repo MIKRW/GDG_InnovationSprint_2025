@@ -33,4 +33,4 @@ This document tracks recurring errors, their root causes, the solutions implemen
 - **Occurrences**: 0
 - **Description**: [Description of what the user sees or what the console reports.]
 - **Cause**: [Explanation of what causes the error.]
-- **Solution**: [Description of the code changes implemented to fix it.]
+- **Solution**: [Description of the code changes implemented to fix it.]]
