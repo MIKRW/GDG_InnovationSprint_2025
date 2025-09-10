@@ -29,7 +29,7 @@ export function ThemeHistoryItem({
   emptyText = "Generate a new theme or select a saved theme.",
   showRotate = false
 }: ThemeHistoryItemProps) {
-  const { colors, words } = theme;
+  const { colors } = theme;
 
   const styles = {
     background: `hsl(${colors.background.h}, ${colors.background.s}%, ${colors.background.l}%)`,
@@ -63,7 +63,7 @@ export function ThemeHistoryItem({
         isSelected && 'ring-2 ring-blue-500 ring-offset-2'
       )}
     >
-      <CardContent className="p-4 space-y-2 relative">
+      <CardContent className="p-4 space-y-4 relative">
         {isActive && <Badge className="absolute top-2 right-2">Active</Badge>}
         {showRotate && onRotateClick && (
             <Button
@@ -76,15 +76,7 @@ export function ThemeHistoryItem({
                 <RefreshCw className="w-4 h-4" />
             </Button>
         )}
-        <div className="flex justify-between items-center text-xs text-muted-foreground pt-4">
-          <span>{words.word1},</span>
-          <span>{words.word2},</span>
-          <span>{words.word3}</span>
-        </div>
-        <div className="flex justify-center items-center text-xs text-muted-foreground">
-            <span>({words.mood})</span>
-        </div>
-        <div className="h-24 rounded-md flex overflow-hidden" style={{ backgroundColor: styles.background }}>
+        <div className="h-24 rounded-md flex overflow-hidden mt-4" style={{ backgroundColor: styles.background }}>
           <div className="w-1/3 h-full" style={{ backgroundColor: styles.foreground }}></div>
           <div className="w-1/3 h-full" style={{ backgroundColor: styles.primary }}></div>
         </div>
