@@ -515,7 +515,7 @@ export function ThemeGenerator() {
       
       <div className="my-24">
         <div className="text-center mb-12">
-            <PageTitle>Manual Theme Editor</PageTitle>
+            <PageTitle>Manual theme editor</PageTitle>
             <p className="text-foreground mt-4 max-w-2xl mx-auto">
                 Fine-tune your theme with precision. Select a color swatch for background, foreground, or primary, then adjust the hue, saturation, and lightness sliders. Rotate colors, preview your changes, and save your perfect theme.
             </p>
