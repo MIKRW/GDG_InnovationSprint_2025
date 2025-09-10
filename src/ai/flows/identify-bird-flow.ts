@@ -48,12 +48,15 @@ const prompt = ai.definePrompt({
 
     Audio data: {{media url=audioDataUri}}
 
+    When using location to assist with identification, you must cross-reference against publicly available data to understand the bird's known geographic range and habitat.
+    You must establish a hierarchy of data sources, prioritizing reliable, scientific, and field-specific resources (such as government databases, ornithological research papers, and well-known field guides) over general public information or crowd-sourced data.
+
     {{#if locationDescription}}
     The recording was made in or near: "{{locationDescription}}".
-    Use this information as a strong hint to narrow down the possible bird species. To do this, compare the user's text with publicly available data from reliable sources like government sites, public databases, and well-known field guides to understand the bird's known geographic range and habitat. A bird not typically found in this location is less likely to be the correct identification.
+    Use this information as a strong hint to narrow down the possible bird species. A bird not typically found in this location is less likely to be the correct identification.
     {{else if latitude}}
     The recording was made at the absolute location of latitude: {{latitude}}, longitude: {{longitude}}.
-    Use this precise location as a primary factor to determine the possible bird species. Cross-reference these coordinates with publicly available data from reliable sources (like government sites, public databases, and well-known field guides) to determine the bird's known geographic range and habitat. A bird that is not found in this exact area is highly unlikely to be the correct identification.
+    Use this precise location as a primary factor to determine the possible bird species. A bird that is not found in this exact area is highly unlikely to be the correct identification.
     {{/if}}
 
     Your task is to return a JSON object with the following structure:
