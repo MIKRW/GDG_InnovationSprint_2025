@@ -34,12 +34,9 @@ const ColorEditor = ({
 
   return (
     <Card className="h-full">
-      <CardContent className="space-y-6 flex flex-col justify-center h-full p-6">
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <Label>Hue</Label>
-            <span>{color.h}</span>
-          </div>
+      <CardContent className="space-y-4 flex flex-col justify-center h-full p-4">
+        <div className="flex items-center gap-4">
+          <Label className="w-12">Hue</Label>
           <Slider
             max={360}
             step={1}
@@ -47,11 +44,8 @@ const ColorEditor = ({
             onValueChange={(value) => handleSliderChange('h', value)}
           />
         </div>
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <Label>Saturation</Label>
-            <span>{color.s}%</span>
-          </div>
+        <div className="flex items-center gap-4">
+          <Label className="w-12">Sat</Label>
           <Slider
             max={100}
             step={1}
@@ -59,11 +53,8 @@ const ColorEditor = ({
             onValueChange={(value) => handleSliderChange('s', value)}
           />
         </div>
-        <div className="space-y-2">
-          <div className="flex justify-between">
-            <Label>Lightness</Label>
-            <span>{color.l}%</span>
-          </div>
+        <div className="flex items-center gap-4">
+          <Label className="w-12">Light</Label>
           <Slider
             max={100}
             step={1}
