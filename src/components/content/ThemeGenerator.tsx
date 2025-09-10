@@ -146,9 +146,8 @@ export function ThemeGenerator() {
               name="background"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Background Word</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., sand, sky" {...field} />
+                    <Input placeholder="background" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -159,9 +158,8 @@ export function ThemeGenerator() {
               name="foreground"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Foreground Word</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., stone, ink" {...field} />
+                    <Input placeholder="foreground" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -172,9 +170,8 @@ export function ThemeGenerator() {
               name="primary"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Primary Word</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., ocean, sunset" {...field} />
+                    <Input placeholder="primary" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
