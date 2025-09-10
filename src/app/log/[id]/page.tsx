@@ -17,11 +17,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function LogDetailPage({ params }: { params: { id: string } }) {
   const [log, setLog] = useState<BirdLog | null | undefined>(undefined);
+  const { id } = params;
 
   useEffect(() => {
-    const fetchedLog = getLogById(params.id);
+    const fetchedLog = getLogById(id);
     setLog(fetchedLog);
-  }, [params.id]);
+  }, [id]);
 
   if (log === undefined) {
     return (
