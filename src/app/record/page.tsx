@@ -8,7 +8,9 @@ export default function RecordPage() {
   return (
     <AppLayout header={<SecondaryHeader title="Microphone" />}>
       <main className="flex flex-1 items-center justify-center bg-muted p-4">
-        <RecordButton />
+        <div className="flex flex-col items-center justify-center text-center">
+            <RecordButton />
+        </div>
       </main>
       <SecondaryPageFooter />
     </AppLayout>

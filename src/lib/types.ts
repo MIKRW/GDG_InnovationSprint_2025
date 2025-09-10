@@ -1,3 +1,4 @@
+
 // This file can be used to define shared types and interfaces.
 
 export type ThemeColor = {
@@ -22,3 +23,12 @@ export type Theme = {
   };
   isActive: boolean;
 };
+
+export type BirdLog = {
+    id: string;
+    timestamp: string;
+    commonName: string;
+    scientificName: string;
+    description: string;
+    imagePrompt: string;
+}
