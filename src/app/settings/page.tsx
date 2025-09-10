@@ -1,5 +1,5 @@
 import { SettingsPage } from '@/components/pages/SettingsPage';
-import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
+import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
 import { AppLayout } from '@/components/layout/AppLayout';
 
 export default function Settings() {
@@ -8,7 +8,7 @@ export default function Settings() {
       <main className="flex-1 overflow-y-auto">
         <SettingsPage />
       </main>
-      <SecondaryPageFooter />
+      <SecondaryPageFooterV2 />
     </AppLayout>
   );
 }
