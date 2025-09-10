@@ -1,11 +1,11 @@
 import { SettingsPage } from '@/components/pages/SettingsPage';
-import { Footer } from '@/components/layout/Footer';
+import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 
 export default function Settings() {
   return (
     <>
       <SettingsPage />
-      <Footer />
+      <SecondaryPageFooter />
     </>
   );
 }

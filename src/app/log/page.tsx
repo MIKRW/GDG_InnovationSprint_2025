@@ -1,11 +1,11 @@
 import { LogPage } from '@/components/pages/LogPage';
-import { Footer } from '@/components/layout/Footer';
+import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 
 export default function Log() {
   return (
     <>
       <LogPage />
-      <Footer />
+      <SecondaryPageFooter />
     </>
   );
 }

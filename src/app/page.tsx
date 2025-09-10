@@ -1,11 +1,11 @@
 import { GridContainer } from '@/components/layout/GridContainer';
-import { Footer } from '@/components/layout/Footer';
+import { HomePageFooter } from '@/components/layout/HomePageFooter';
 
 export default function Home() {
   return (
     <>
       <GridContainer />
-      <Footer />
+      <HomePageFooter />
     </>
   );
 }
