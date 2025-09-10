@@ -50,9 +50,13 @@ This document tracks recurring errors, their root causes, the solutions implemen
 
 ---
 
-### Error Type: [Placeholder for Next Error]
+### Error Type: Flash of Incorrect Theme on Load
 
-- **Occurrences**: 0
-- **Description**: [Description of what the user sees or what the console reports.]
-- **Cause**: [Explanation of what causes the error.]
-- **Solution**: [Description of the code changes implemented to fix it.]
+- **Occurrences**: 1
+- **Description**: On a full page load or hot-reload, the application would briefly flash the default (light) theme's styles before showing the correct, user-selected custom theme.
+- **Cause**: The root cause was a timing issue inherent to client-side rendering. The logic to apply the custom theme's colors was located in a React `useEffect` hook. This hook only runs on the client-side *after* the initial HTML has been rendered by the browser. This created a race condition where the browser would momentarily display the default styles before the client-side script could execute and apply the correct custom theme from `localStorage`.
+- **Solution**:
+    1.  The logic for applying the theme was moved out of the React component lifecycle entirely.
+    2.  A blocking, synchronous `<script>` tag was embedded directly into the `<head>` of the main `src/app/layout.tsx` file.
+    3.  This script executes immediately, before the browser renders the `<body>`. It reads the `theme` and `active-theme-json` from `localStorage` and injects the correct CSS class name and HSL color variables into the document's root element.
+    4.  By setting the theme before the initial render, the flash of incorrect styles is completely eliminated, ensuring a seamless user experience. All related client-side `useEffect` logic was removed as it was now redundant.
