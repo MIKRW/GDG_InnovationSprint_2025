@@ -29,6 +29,16 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+
+    --custom-background-h: 39;
+    --custom-background-s: 100%;
+    --custom-background-l: 97%;
+    --custom-foreground-h: 39;
+    --custom-foreground-s: 50%;
+    --custom-foreground-l: 10%;
+    --custom-primary-h: 39;
+    --custom-primary-s: 50%;
+    --custom-primary-l: 20%;
   }
   .dark {
     --background: 222.2 84% 4.9%;
@@ -57,25 +67,28 @@
     --chart-5: 340 75% 55%;
   }
   .custom {
-    --background: 39 100% 97%;
-    --foreground: 39 50% 10%;
-    --card: 39 100% 97%;
-    --card-foreground: 39 50% 10%;
-    --popover: 39 100% 97%;
-    --popover-foreground: 39 50% 10%;
-    --primary: 39 50% 20%;
-    --primary-foreground: 39 100% 90%;
-    --secondary: 39 50% 90%;
-    --secondary-foreground: 39 50% 20%;
-    --muted: 39 50% 90%;
-    --muted-foreground: 39 50% 40%;
-    --accent: 39 50% 85%;
-    --accent-foreground: 39 50% 15%;
+    --background: var(--custom-background-h) var(--custom-background-s) var(--custom-background-l);
+    --foreground: var(--custom-foreground-h) var(--custom-foreground-s) var(--custom-foreground-l);
+    --primary: var(--custom-primary-h) var(--custom-primary-s) var(--custom-primary-l);
+
+    /* The following colors are derived from the main ones for consistency */
+    --card: var(--custom-background-h) var(--custom-background-s) var(--custom-background-l);
+    --card-foreground: var(--custom-foreground-h) var(--custom-foreground-s) var(--custom-foreground-l);
+    --popover: var(--custom-background-h) var(--custom-background-s) var(--custom-background-l);
+    --popover-foreground: var(--custom-foreground-h) var(--custom-foreground-s) var(--custom-foreground-l);
+    --primary-foreground: var(--custom-background-h) var(--custom-background-s) 90%;
+    --secondary: var(--custom-primary-h) var(--custom-primary-s) 90%;
+    --secondary-foreground: var(--custom-primary-h) var(--custom-primary-s) 20%;
+    --muted: var(--custom-primary-h) var(--custom-primary-s) 90%;
+    --muted-foreground: var(--custom-primary-h) var(--custom-primary-s) 40%;
+    --accent: var(--custom-primary-h) var(--custom-primary-s) 85%;
+    --accent-foreground: var(--custom-primary-h) var(--custom-primary-s) 15%;
+    --border: var(--custom-primary-h) var(--custom-primary-s) 80%;
+    --input: var(--custom-primary-h) var(--custom-primary-s) 80%;
+    --ring: var(--custom-primary-h) var(--custom-primary-s) 20%;
+
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 39 100% 97%;
-    --border: 39 50% 80%;
-    --input: 39 50% 80%;
-    --ring: 39 50% 20%;
+    --destructive-foreground: var(--custom-background-h) var(--custom-background-s) var(--custom-background-l);
     --radius: 0.5rem;
   }
 }
