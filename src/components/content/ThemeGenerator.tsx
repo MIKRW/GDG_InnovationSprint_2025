@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
@@ -89,6 +90,7 @@ export function ThemeGenerator() {
                 theme.isActive = false; // Only one theme can be active
             } else {
                 hasActive = true;
+                setSelectedSlot(i); // The active theme is also the selected one initially
             }
         }
         return theme;
@@ -97,15 +99,11 @@ export function ThemeGenerator() {
     // If no theme was active, make the first one active
     if (!hasActive && filledThemes.length > 0) {
         filledThemes[0].isActive = true;
+        setSelectedSlot(0);
     }
 
     setSavedThemes(filledThemes);
   }, []);
-
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: { background: '', foreground: '', primary: '' },
-  });
 
   const updateCSSVariables = useCallback((colors: Theme['colors']) => {
     const root = document.documentElement;
@@ -125,6 +123,12 @@ export function ThemeGenerator() {
     const activeTheme = savedThemes.find(t => t.isActive);
     if (activeTheme) {
       updateCSSVariables(activeTheme.colors);
+      // Also ensure the custom theme is the active one in the app
+      const currentTheme = localStorage.getItem('theme');
+      if (currentTheme !== 'custom') {
+        document.documentElement.classList.remove('light', 'dark');
+        document.documentElement.classList.add('custom');
+      }
     }
   }, [savedThemes, updateCSSVariables]);
 
@@ -143,6 +147,12 @@ export function ThemeGenerator() {
       if (index === selectedSlot) {
         // If we save to the active slot, the new theme becomes active.
         const newTheme = { ...generatedTheme, id: uuidv4(), isActive: theme.isActive };
+        if (newTheme.isActive) {
+          updateCSSVariables(newTheme.colors);
+          localStorage.setItem('theme', 'custom');
+          document.documentElement.classList.remove('light', 'dark');
+          document.documentElement.classList.add('custom');
+        }
         return newTheme;
       }
       return theme;
@@ -150,18 +160,13 @@ export function ThemeGenerator() {
 
     setSavedThemes(newSavedThemes);
     localStorage.setItem('custom-themes', JSON.stringify(newSavedThemes));
-    
-    const activeTheme = newSavedThemes.find(t => t.isActive);
-    if (activeTheme) {
-      updateCSSVariables(activeTheme.colors);
-      localStorage.setItem('theme', 'custom');
-    }
 
     toast({
       title: 'Theme Saved!',
       description: `Generated theme saved to slot ${selectedSlot + 1}.`,
     });
     setGeneratedTheme(EMPTY_THEME);
+    form.reset({ background: '', foreground: '', primary: ''});
   };
 
 
@@ -208,7 +213,10 @@ export function ThemeGenerator() {
     localStorage.setItem('custom-themes', JSON.stringify(newSavedThemes));
     localStorage.setItem('theme', 'custom');
     updateCSSVariables(themeToActivate.colors);
-    form.reset(themeToActivate.words);
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add('custom');
+    // Don't reset the generated theme, but you can populate the form
+    // form.reset(themeToActivate.words);
   }
 
   return (

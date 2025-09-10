@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -49,7 +50,7 @@ export function ThemeHistoryItem({
       className={cn(
         'cursor-pointer transition-all hover:shadow-lg',
         isActive && 'ring-2 ring-ring ring-offset-2',
-        isSelected && 'ring-2 ring-blue-500 ring-offset-2' // Example of a different highlight for selection if needed
+        isSelected && !isActive && 'ring-2 ring-blue-500 ring-offset-2'
       )}
     >
       <CardContent className="p-4 space-y-2 relative">
