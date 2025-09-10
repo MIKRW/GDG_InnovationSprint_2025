@@ -75,7 +75,7 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
     }
   };
 
-  const saveMysteryLog = (audioDataUri: string, location?: {latitude: number, longitude: number}) => {
+  const saveMysteryLog = (audioDataUri: string, locationData?: { latitude?: number; longitude?: number; locationDescription?: string; }) => {
     const newLog: BirdLog = {
       id: uuidv4(),
       timestamp: new Date().toISOString(),
@@ -85,8 +85,7 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
       imagePrompt: 'question mark',
       audioUrl: audioDataUri,
       isMystery: true,
-      latitude: location?.latitude,
-      longitude: location?.longitude,
+      ...locationData,
     };
     addLog(newLog);
     setRecordingState('idle');
@@ -97,7 +96,7 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
   const handleSaveConfirmation = () => {
     if (lastAudio) {
       // Re-fetch location based on settings when user confirms save
-      getLocationForAIShot(location => saveMysteryLog(lastAudio, location));
+      getLocationForAIShot(locationData => saveMysteryLog(lastAudio, locationData));
     }
   };
 
@@ -115,15 +114,15 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
     reader.readAsDataURL(audioBlob);
     reader.onloadend = async () => {
         const base64Audio = reader.result as string;
-        getLocationForAIShot(location => processAudio(base64Audio, location));
+        getLocationForAIShot(locationData => processAudio(base64Audio, locationData));
     };
   };
 
   const getLocationForAIShot = (
-    callback: (location?: { latitude: number; longitude: number }) => void
+    callback: (locationData?: { latitude?: number; longitude?: number, locationDescription?: string }) => void
   ) => {
     const savedSettingsJson = localStorage.getItem(LOCATION_SETTINGS_KEY);
-    let settings: LocationSettings = { mode: 'device', manual: { latitude: 0, longitude: 0 }, privacy: { isOutside: true } };
+    let settings: LocationSettings = { mode: 'device', manual: { latitude: 0, longitude: 0 }, description: '', privacy: { isOutside: true } };
     if (savedSettingsJson) {
       try {
         settings = JSON.parse(savedSettingsJson);
@@ -145,18 +144,20 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
       );
     } else if (settings.mode === 'manual') {
       callback(settings.manual);
-    } else { // privacy mode
+    } else if (settings.mode === 'description') {
+      callback({ locationDescription: settings.description });
+    }
+    else { // privacy mode
       callback(); // No location data
     }
   };
 
 
-  const processAudio = async (base64Audio: string, location?: { latitude: number, longitude: number }) => {
+  const processAudio = async (base64Audio: string, locationData?: { latitude?: number, longitude?: number, locationDescription?: string }) => {
     try {
       const result = await identifyBirdBySound({ 
           audioDataUri: base64Audio,
-          latitude: location?.latitude,
-          longitude: location?.longitude,
+          ...locationData
       });
       let newLog: BirdLog;
 
@@ -170,8 +171,7 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
               imagePrompt: result.imagePrompt,
               audioUrl: base64Audio,
               isMystery: false,
-              latitude: location?.latitude,
-              longitude: location?.longitude,
+              ...locationData,
           };
           addLog(newLog);
           router.push(`/log/${newLog.id}`);

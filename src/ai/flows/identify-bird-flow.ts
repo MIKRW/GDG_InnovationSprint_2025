@@ -19,6 +19,7 @@ const IdentifyBirdInputSchema = z.object({
     ),
     latitude: z.number().optional().describe('The latitude of where the recording was made.'),
     longitude: z.number().optional().describe('The longitude of where the recording was made.'),
+    locationDescription: z.string().optional().describe('A user-provided text description of the location (e.g., postcode, city, national park name).'),
 });
 export type IdentifyBirdInput = z.infer<typeof IdentifyBirdInputSchema>;
 
@@ -47,7 +48,10 @@ const prompt = ai.definePrompt({
 
     Audio data: {{media url=audioDataUri}}
 
-    {{#if latitude}}
+    {{#if locationDescription}}
+    The recording was made in or near: "{{locationDescription}}".
+    Use this information to narrow down the possible bird species. To do this, compare the user's text with publicly available data from reliable sources like government sites, public databases, and well-known field guides to understand the bird's known geographic range and habitat. For example, a bird not typically found in this location is less likely to be the correct identification.
+    {{else if latitude}}
     The recording was made at latitude: {{latitude}}, longitude: {{longitude}}.
     Use this location information as a strong hint. Consider the bird's known geographic range and habitat when making your identification.
     A bird that is not typically found in this area is less likely to be the correct identification.

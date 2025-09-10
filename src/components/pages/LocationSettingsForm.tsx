@@ -26,13 +26,15 @@ import { PageTitle } from '@/components/content/PageTitle';
 import type { LocationSettings } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { Textarea } from '../ui/textarea';
 
 const FormSchema = z.object({
-  mode: z.enum(['device', 'manual', 'privacy']),
+  mode: z.enum(['device', 'manual', 'description', 'privacy']),
   manual: z.object({
     latitude: z.coerce.number().min(-90).max(90),
     longitude: z.coerce.number().min(-180).max(180),
   }),
+  description: z.string().max(200),
   privacy: z.object({
     isOutside: z.boolean(),
   }),
@@ -49,6 +51,7 @@ export function LocationSettingsForm() {
     defaultValues: {
       mode: 'device',
       manual: { latitude: 0, longitude: 0 },
+      description: '',
       privacy: { isOutside: true },
     },
   });
@@ -99,7 +102,7 @@ export function LocationSettingsForm() {
             <RadioGroup
               onValueChange={field.onChange}
               value={field.value}
-              className="grid grid-cols-1 gap-4 md:grid-cols-3"
+              className="grid grid-cols-1 gap-4 md:grid-cols-2"
             >
               {/* Option 1: Device Location */}
               <Label htmlFor="device-mode" className="cursor-pointer h-full">
@@ -158,7 +161,35 @@ export function LocationSettingsForm() {
                 </Card>
               </Label>
 
-              {/* Option 3: Privacy Mode */}
+              {/* Option 3: Location Description */}
+              <Label htmlFor="description-mode" className="cursor-pointer h-full">
+                 <Card className={`h-full ${field.value === 'description' ? 'ring-2 ring-primary' : ''}`}>
+                    <CardHeader>
+                      <div className="flex items-center gap-4">
+                          <RadioGroupItem value="description" id="description-mode" />
+                          <CardTitle>Location Description</CardTitle>
+                      </div>
+                       <CardDescription className="pt-2">
+                        Describe the location (e.g., town, national park, postcode).
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Controller
+                          control={form.control}
+                          name="description"
+                          render={({ field: descField }) => (
+                              <Textarea
+                                {...descField}
+                                placeholder="e.g., 'Yosemite National Park, CA' or 'SW1A 0AA'"
+                                disabled={selectedMode !== 'description'}
+                              />
+                          )}
+                        />
+                    </CardContent>
+                 </Card>
+              </Label>
+
+              {/* Option 4: Privacy Mode */}
               <Label htmlFor="privacy-mode" className="cursor-pointer h-full">
                 <Card className={`h-full ${field.value === 'privacy' ? 'ring-2 ring-primary' : ''}`}>
                   <CardHeader>

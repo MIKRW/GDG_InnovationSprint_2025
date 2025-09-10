@@ -76,6 +76,11 @@ export default function LogDetailPage({ params }: { params: { id: string } }) {
                      {`Location: ${log.latitude.toFixed(4)}, ${log.longitude.toFixed(4)}`}
                    </Badge>
                  )}
+                  {log.locationDescription && (
+                    <Badge variant="outline">
+                        {`Location: ${log.locationDescription}`}
+                    </Badge>
+                  )}
             </div>
           </CardContent>
         </Card>
