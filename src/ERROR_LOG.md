@@ -28,9 +28,20 @@ This document tracks recurring errors, their root causes, the solutions implemen
 
 ---
 
+### Error Type: Nested Click Handlers & Faulty CSS Broke Component
+
+- **Occurrences**: 1
+- **Description**: The rotate button on the manual theme editor swatch was unclickable. Subsequent fix attempts caused the entire theme to break, resulting in an unstyled black-and-white UI.
+- **Cause**: The root cause was an event propagation issue. The rotate button's `onClick` event was being intercepted by `onClick` events on its parent elements (the swatch card and color squares). An attempt to fix this by restructuring the component's JSX introduced an invalid style property `border: 2px solid ${styles.ring}` directly on a component, which is not valid JSX styling. This crashed the component's rendering, which in turn prevented the theme's CSS variables from being applied, breaking the entire page's styling.
+- **Solution**:
+    1. The unclickable button was fixed by ensuring its `onClick` handler correctly called `event.stopPropagation()` to prevent the event from bubbling up to parent elements.
+    2. The critical rendering bug was fixed by removing the invalid inline style from the color swatch `divs` inside `ManualThemeEditor.tsx`. The selection state is now correctly indicated by a border on the parent swatch container, which was the intended design and avoids styling conflicts.
+
+---
+
 ### Error Type: [Placeholder for Next Error]
 
 - **Occurrences**: 0
 - **Description**: [Description of what the user sees or what the console reports.]
 - **Cause**: [Explanation of what causes the error.]
-- **Solution**: [Description of the code changes implemented to fix it.]]
+- **Solution**: [Description of the code changes implemented to fix it.]
