@@ -111,16 +111,6 @@ export function ManualThemeEditor({
                 color={theme.colors.background}
                 onColorChange={(newColor) => onColorChange('background', newColor)}
             />
-            <ColorEditor
-                title="Foreground"
-                color={theme.colors.foreground}
-                onColorChange={(newColor) => onColorChange('foreground', newColor)}
-            />
-            <ColorEditor
-                title="Primary"
-                color={theme.colors.primary}
-                onColorChange={(newColor) => onColorChange('primary', newColor)}
-            />
         </div>
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 items-stretch gap-4">
             <div className="md:col-start-2 h-40">
