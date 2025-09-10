@@ -56,6 +56,28 @@
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
   }
+  .custom {
+    --background: 39 100% 97%;
+    --foreground: 39 50% 10%;
+    --card: 39 100% 97%;
+    --card-foreground: 39 50% 10%;
+    --popover: 39 100% 97%;
+    --popover-foreground: 39 50% 10%;
+    --primary: 39 50% 20%;
+    --primary-foreground: 39 100% 90%;
+    --secondary: 39 50% 90%;
+    --secondary-foreground: 39 50% 20%;
+    --muted: 39 50% 90%;
+    --muted-foreground: 39 50% 40%;
+    --accent: 39 50% 85%;
+    --accent-foreground: 39 50% 15%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 39 100% 97%;
+    --border: 39 50% 80%;
+    --input: 39 50% 80%;
+    --ring: 39 50% 20%;
+    --radius: 0.5rem;
+  }
 }
 
 @layer base {

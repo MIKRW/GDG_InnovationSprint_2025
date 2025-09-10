@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Contrast } from 'lucide-react';
 
+const themes = ['light', 'dark', 'custom'];
+
 export function ContrastButton() {
   const [theme, setTheme] = useState('light');
 
@@ -15,17 +17,20 @@ export function ContrastButton() {
   }, []);
 
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
+    const root = document.documentElement;
+    root.classList.remove(...themes.filter(t => t !== 'light'));
+
+    if (theme !== 'light') {
+      root.classList.add(theme);
     }
+    
+    localStorage.setItem('theme', theme);
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === 'dark' ? 'light' : 'dark'));
+    const currentIndex = themes.indexOf(theme);
+    const nextIndex = (currentIndex + 1) % themes.length;
+    setTheme(themes[nextIndex]);
   };
 
   return (
