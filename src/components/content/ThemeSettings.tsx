@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -13,14 +14,6 @@ const DEFAULTS = {
   foreground: { h: 39, s: 50, l: 10 },
   primary: { h: 39, s: 50, l: 20 },
 };
-
-function getInitialColor(colorName: keyof typeof DEFAULTS): ThemeColor {
-  if (typeof window === 'undefined') {
-    return DEFAULTS[colorName];
-  }
-  const saved = localStorage.getItem(`custom-theme-${colorName}`);
-  return saved ? JSON.parse(saved) : DEFAULTS[colorName];
-}
 
 function ColorSlider({
   label,
@@ -88,9 +81,19 @@ function ThemeEditor({
 }
 
 export function ThemeSettings() {
-  const [background, setBackground] = useState<ThemeColor>(() => getInitialColor('background'));
-  const [foreground, setForeground] = useState<ThemeColor>(() => getInitialColor('foreground'));
-  const [primary, setPrimary] = useState<ThemeColor>(() => getInitialColor('primary'));
+  const [background, setBackground] = useState<ThemeColor>(DEFAULTS.background);
+  const [foreground, setForeground] = useState<ThemeColor>(DEFAULTS.foreground);
+  const [primary, setPrimary] = useState<ThemeColor>(DEFAULTS.primary);
+
+  useEffect(() => {
+    const savedBg = localStorage.getItem('custom-theme-background');
+    const savedFg = localStorage.getItem('custom-theme-foreground');
+    const savedPri = localStorage.getItem('custom-theme-primary');
+
+    if (savedBg) setBackground(JSON.parse(savedBg));
+    if (savedFg) setForeground(JSON.parse(savedFg));
+    if (savedPri) setPrimary(JSON.parse(savedPri));
+  }, []);
     
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const updateCSSVariables = useCallback(
