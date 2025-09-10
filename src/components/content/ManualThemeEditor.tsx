@@ -125,10 +125,57 @@ export function ManualThemeEditor({
         Manual Theme Editor
       </h2>
       <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-3">
-        <ColorEditor
-          color={theme.colors[selectedColor]}
-          onColorChange={(newColor) => onColorChange(selectedColor, newColor)}
-        />
+        <div
+          className={cn(
+            'relative flex h-40 w-full flex-col justify-center gap-2 rounded-lg bg-primary p-4 text-primary-foreground'
+          )}
+        >
+          <div className="flex items-center gap-4">
+            <Label className="w-24 text-2xl">Hue</Label>
+            <Slider
+              max={360}
+              step={1}
+              value={[theme.colors[selectedColor].h]}
+              onValueChange={(value) =>
+                onColorChange(selectedColor, {
+                  ...theme.colors[selectedColor],
+                  h: value[0],
+                })
+              }
+              className="[&>span]:bg-primary-foreground/20 [&>span>div]:bg-primary-foreground [&>span>span]:border-primary-foreground [&>span>span]:bg-primary"
+            />
+          </div>
+          <div className="flex items-center gap-4">
+            <Label className="w-24 text-2xl">Sat</Label>
+            <Slider
+              max={100}
+              step={1}
+              value={[theme.colors[selectedColor].s]}
+              onValueChange={(value) =>
+                onColorChange(selectedColor, {
+                  ...theme.colors[selectedColor],
+                  s: value[0],
+                })
+              }
+              className="[&>span]:bg-primary-foreground/20 [&>span>div]:bg-primary-foreground [&>span>span]:border-primary-foreground [&>span>span]:bg-primary"
+            />
+          </div>
+          <div className="flex items-center gap-4">
+            <Label className="w-24 text-2xl">Light</Label>
+            <Slider
+              max={100}
+              step={1}
+              value={[theme.colors[selectedColor].l]}
+              onValueChange={(value) =>
+                onColorChange(selectedColor, {
+                  ...theme.colors[selectedColor],
+                  l: value[0],
+                })
+              }
+              className="[&>span]:bg-primary-foreground/20 [&>span>div]:bg-primary-foreground [&>span>span]:border-primary-foreground [&>span>span]:bg-primary"
+            />
+          </div>
+        </div>
         <div className="h-40">
           <Card
             onClick={onPreview}
@@ -150,12 +197,12 @@ export function ManualThemeEditor({
             </Button>
             <CardContent className="relative flex h-full flex-col space-y-4 rounded-lg bg-card/80 p-4">
               <div
-                className="mt-4 flex flex-grow overflow-hidden rounded-md"
+                className="mt-4 flex flex-grow cursor-pointer overflow-hidden rounded-md"
                 style={{
                   backgroundColor: styles.background,
                   border:
                     selectedColor === 'background'
-                      ? '2px solid black'
+                      ? `2px solid ${styles.ring}`
                       : '2px solid transparent',
                   padding: '2px',
                 }}
@@ -164,28 +211,20 @@ export function ManualThemeEditor({
                 <div
                   className={cn(
                     'h-full w-1/3',
-                    selectedColor === 'foreground' && 'ring-2 ring-inset ring-black'
+                    selectedColor === 'foreground' && `ring-2 ring-inset ring-[${styles.ring}]`
                   )}
                   style={{
                     backgroundColor: styles.foreground,
-                    border:
-                      selectedColor === 'foreground'
-                        ? '2px solid black'
-                        : '2px solid transparent',
                   }}
                   onClick={(e) => handleColorSelect(e, 'foreground')}
                 ></div>
                 <div
                   className={cn(
                     'h-full w-1/3',
-                    selectedColor === 'primary' && 'ring-2 ring-inset ring-black'
+                     selectedColor === 'primary' && `ring-2 ring-inset ring-[${styles.ring}]`
                   )}
                   style={{
                     backgroundColor: styles.primary,
-                    border:
-                      selectedColor === 'primary'
-                        ? '2px solid black'
-                        : '2px solid transparent',
                   }}
                   onClick={(e) => handleColorSelect(e, 'primary')}
                 ></div>
