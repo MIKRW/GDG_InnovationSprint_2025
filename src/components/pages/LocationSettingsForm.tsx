@@ -25,8 +25,9 @@ import { useToast } from '@/hooks/use-toast';
 import { PageTitle } from '@/components/content/PageTitle';
 import type { LocationSettings } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Info } from 'lucide-react';
 import { Textarea } from '../ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 
 const FormSchema = z.object({
   mode: z.enum(['device', 'manual', 'description', 'privacy']),
@@ -88,7 +89,38 @@ export function LocationSettingsForm() {
 
   return (
     <div className="container mx-auto">
-      <PageTitle>Location Services</PageTitle>
+        <div className="flex items-center gap-4">
+            <PageTitle>Location Services</PageTitle>
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" aria-label="Learn more about location settings">
+                        <Info className="h-6 w-6" />
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>How the AI Uses Location Data</DialogTitle>
+                        <DialogDescription>
+                            Providing location data is optional but can significantly improve the accuracy of bird identification. Here’s how the AI is instructed to use each type of data:
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 text-sm text-muted-foreground">
+                        <div>
+                            <h3 className="font-semibold text-foreground">Device & Manual Location (Coordinates)</h3>
+                            <p>If you provide GPS coordinates, the AI treats this as an absolute location. It cross-references this precise point with scientific databases and ornithological field guides to determine the expected bird species for that specific habitat and geographic range.</p>
+                        </div>
+                         <div>
+                            <h3 className="font-semibold text-foreground">Location Description (Text)</h3>
+                            <p>If you describe a location (e.g., "Yosemite National Park"), the AI uses this text as a strong hint. It identifies the geographical area and then researches which birds are commonly found there, prioritizing reliable sources like government databases and academic research over general public information.</p>
+                        </div>
+                         <div>
+                            <h3 className="font-semibold text-foreground">Privacy Mode</h3>
+                            <p>In this mode, no location data is sent to the AI. Identification is based solely on the audio recording itself, which may be less accurate as it lacks geographical context.</p>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        </div>
       <p className="mb-6 max-w-2xl text-muted-foreground">
         Choose how this app uses your location. Providing accurate location data
         can significantly improve bird identification.
@@ -139,7 +171,7 @@ export function LocationSettingsForm() {
                       <CardTitle>Manual Location</CardTitle>
                     </div>
                      <CardDescription className="pt-2">
-                      Manually enter coordinates. Useful for logging past recordings.
+                      Manually enter coordinates. Make sure they are accurate as the AI will use this as an absolute location.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2">
