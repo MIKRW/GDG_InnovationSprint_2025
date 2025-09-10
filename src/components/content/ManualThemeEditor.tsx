@@ -24,60 +24,6 @@ interface ManualThemeEditorProps {
 
 type EditableColor = 'background' | 'foreground' | 'primary';
 
-const ColorEditor = ({
-  color,
-  onColorChange,
-}: {
-  color: ThemeColor;
-  onColorChange: (newColor: ThemeColor) => void;
-}) => {
-  const handleSliderChange = (
-    property: keyof ThemeColor,
-    value: number[]
-  ) => {
-    onColorChange({ ...color, [property]: value[0] });
-  };
-
-  return (
-    <div
-      className={cn(
-        'relative flex h-40 w-full flex-col justify-center gap-2 rounded-lg bg-primary p-4 text-primary-foreground'
-      )}
-    >
-      <div className="flex items-center gap-4">
-        <Label className="w-24 text-2xl">Hue</Label>
-        <Slider
-          max={360}
-          step={1}
-          value={[color.h]}
-          onValueChange={(value) => handleSliderChange('h', value)}
-          className="[&>span]:bg-primary-foreground/20 [&>span>div]:bg-primary-foreground [&>span>span]:border-primary-foreground [&>span>span]:bg-primary"
-        />
-      </div>
-      <div className="flex items-center gap-4">
-        <Label className="w-24 text-2xl">Sat</Label>
-        <Slider
-          max={100}
-          step={1}
-          value={[color.s]}
-          onValueChange={(value) => handleSliderChange('s', value)}
-          className="[&>span]:bg-primary-foreground/20 [&>span>div]:bg-primary-foreground [&>span>span]:border-primary-foreground [&>span>span]:bg-primary"
-        />
-      </div>
-      <div className="flex items-center gap-4">
-        <Label className="w-24 text-2xl">Light</Label>
-        <Slider
-          max={100}
-          step={1}
-          value={[color.l]}
-          onValueChange={(value) => handleSliderChange('l', value)}
-          className="[&>span]:bg-primary-foreground/20 [&>span>div]:bg-primary-foreground [&>span>span]:border-primary-foreground [&>span>span]:bg-primary"
-        />
-      </div>
-    </div>
-  );
-};
-
 export function ManualThemeEditor({
   theme,
   onColorChange,
