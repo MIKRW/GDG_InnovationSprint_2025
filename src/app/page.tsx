@@ -1,9 +1,10 @@
 import { Byline } from '@/components/content/Byline';
 import { Logo } from '@/components/content/Logo';
+import { GridContainer } from '@/components/layout/GridContainer';
 
 export default function Home() {
   return (
-    <div className="grid grid-cols-3 grid-rows-3 gap-4 p-4 h-full">
+    <GridContainer>
       {/* Cell 1: Top-Left */}
       <div className="col-start-1 row-start-1"></div>
 
@@ -35,6 +36,6 @@ export default function Home() {
 
       {/* Cell 9: Bottom-Right */}
       <div className="col-start-3 row-start-3"></div>
-    </div>
+    </GridContainer>
   );
 }

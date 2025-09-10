@@ -14,9 +14,11 @@ The application uses a consistent layout system defined in `src/components/layou
 
 - **`Footer.tsx`**: The bottom navigation bar. It contains the primary navigation links for moving between the main sections of the app.
 
+- **`GridContainer.tsx`**: A reusable 3x3 grid layout that fills the available space. It's used on the main page to structure its content.
+
 ### Page Structure
 
-All pages inherit the same header and footer from `AppLayout`. The unique content for each page is rendered within its own component, which is then displayed by a corresponding `page.tsx` file in the `src/app` directory.
+All pages will inherit the same header and footer from `AppLayout`. The unique content for each page is rendered within its own component, which is then displayed by a corresponding `page.tsx` file in the `src/app` directory.
 
 - **Main Page (`/src/app/page.tsx`)**: This is the primary landing page. Its content is defined directly within this file.
 
