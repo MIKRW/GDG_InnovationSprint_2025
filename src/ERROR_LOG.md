@@ -39,6 +39,17 @@ This document tracks recurring errors, their root causes, the solutions implemen
 
 ---
 
+### Error Type: Stale Active Theme in `localStorage`
+
+- **Occurrences**: 1
+- **Description**: When exiting a theme preview via the `ContrastButton`, the app would revert to a previously saved theme, not the one that was most recently active.
+- **Cause**: The application state and the `localStorage` state were out of sync. When a user selected a theme from a save slot, the app's internal state would update to make it "active", but this change was not immediately being written to the `active-theme-json` key in `localStorage`. The `ContrastButton`'s logic relied on this key to restore the correct theme after a preview. Because the key held stale data, an old theme was loaded.
+- **Solution**:
+    1. The `handleSlotClick` and `saveThemeToSlot` functions in `ThemeGenerator.tsx` were updated to immediately write the new active theme to the `active-theme-json` key in `localStorage` whenever a theme is selected or saved into an active slot.
+    2. This ensures that `localStorage` always has a fresh, accurate record of the true active theme, which the `ContrastButton` can then reliably read from to restore the correct state.
+
+---
+
 ### Error Type: [Placeholder for Next Error]
 
 - **Occurrences**: 0
