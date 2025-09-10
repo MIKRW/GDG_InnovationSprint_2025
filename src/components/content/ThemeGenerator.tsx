@@ -140,7 +140,7 @@ export function ThemeGenerator() {
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <FormField
               control={form.control}
               name="background"
@@ -148,7 +148,7 @@ export function ThemeGenerator() {
                 <FormItem>
                   <FormLabel>Background Word</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., sand, sky, forest" {...field} />
+                    <Input placeholder="e.g., sand, sky" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -161,7 +161,7 @@ export function ThemeGenerator() {
                 <FormItem>
                   <FormLabel>Foreground Word</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., stone, ink, snow" {...field} />
+                    <Input placeholder="e.g., stone, ink" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -174,23 +174,23 @@ export function ThemeGenerator() {
                 <FormItem>
                   <FormLabel>Primary Word</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., ocean, sunset, gold" {...field} />
+                    <Input placeholder="e.g., ocean, sunset" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                'Generate Theme'
+              )}
+            </Button>
           </div>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              'Generate Theme'
-            )}
-          </Button>
         </form>
       </Form>
 
