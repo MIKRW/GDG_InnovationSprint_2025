@@ -40,30 +40,21 @@ const DEFAULTS: Theme = {
   },
 };
 
-const MAX_HISTORY_LENGTH = 5;
-
 export function ThemeGenerator() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTheme, setActiveTheme] = useState<Theme>(DEFAULTS);
-  const [savedThemeId, setSavedThemeId] = useState<string | null>(null);
-  const [history, setHistory] = useState<Theme[]>([]);
+  const [savedTheme, setSavedTheme] = useState<Theme>(DEFAULTS);
 
-  // Load saved theme and history from localStorage on initial mount
+  // Load saved theme from localStorage on initial mount
   useEffect(() => {
     const savedThemeJson = localStorage.getItem('custom-theme');
-    const savedHistoryJson = localStorage.getItem('custom-theme-history');
-    
     let initialTheme = DEFAULTS;
     if (savedThemeJson) {
       initialTheme = JSON.parse(savedThemeJson);
-      setSavedThemeId(initialTheme.id);
     }
-    setActiveTheme(initialTheme);
-    
-    if (savedHistoryJson) {
-      setHistory(JSON.parse(savedHistoryJson));
-    }
+    setSavedTheme(initialTheme);
+    setActiveTheme(initialTheme); // Start with the saved theme as the active preview
   }, []);
 
   const form = useForm<FormValues>({
@@ -74,6 +65,12 @@ export function ThemeGenerator() {
       primary: '',
     },
   });
+  
+  // Set form values when active theme changes
+  useEffect(() => {
+    form.reset(activeTheme.words);
+  }, [activeTheme, form]);
+
 
   const updateCSSVariables = useCallback((colors: Theme['colors']) => {
     const root = document.documentElement;
@@ -94,38 +91,21 @@ export function ThemeGenerator() {
   useEffect(() => {
     updateCSSVariables(activeTheme.colors);
   }, [activeTheme, updateCSSVariables]);
-  
-  // This effect only syncs history to localStorage when it changes
-  useEffect(() => {
-    if (history.length > 0) {
-      localStorage.setItem('custom-theme-history', JSON.stringify(history));
-    }
-  }, [history]);
 
-  const saveTheme = () => {
+  const saveActiveTheme = () => {
     localStorage.setItem('custom-theme', JSON.stringify(activeTheme));
     localStorage.setItem('theme', 'custom');
-    setSavedThemeId(activeTheme.id);
+    setSavedTheme(activeTheme);
     toast({
       title: 'Theme Saved!',
       description: 'Your custom theme is now active across the app.',
     });
   };
 
-  const selectHistoryTheme = (theme: Theme) => {
-    setActiveTheme(theme);
-    form.reset(theme.words);
-    toast({
-      title: 'Theme Previewing',
-      description: 'Click "Save Theme" to make it active.',
-    });
-  };
-
   async function onSubmit(values: FormValues) {
     setIsLoading(true);
     try {
-      const historyColors = history.map((h) => h.colors);
-      const newColors = await generateTheme({ ...values, history: historyColors });
+      const newColors = await generateTheme({ ...values });
       
       const newTheme: Theme = {
         id: uuidv4(),
@@ -134,7 +114,6 @@ export function ThemeGenerator() {
       };
 
       setActiveTheme(newTheme);
-      setHistory((prev) => [newTheme, ...prev].slice(0, MAX_HISTORY_LENGTH));
       
       toast({
         title: 'Theme Generated!',
@@ -208,29 +187,29 @@ export function ThemeGenerator() {
       </Form>
       
       <div className="mt-8 flex justify-center">
-        <Button onClick={saveTheme} size="lg">
+        <Button onClick={saveActiveTheme} size="lg">
           <Save className="mr-2 h-4 w-4" />
           Save Theme
         </Button>
       </div>
 
       <div className="mt-12">
-        <h2 className="text-2xl font-bold">History</h2>
         <Separator className="my-4" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {history.length > 0 ? (
-            history.map((theme) => (
-              <ThemeHistoryItem
-                key={theme.id}
-                theme={theme}
-                isActive={activeTheme.id === theme.id}
-                isSaved={savedThemeId === theme.id}
-                onClick={() => selectHistoryTheme(theme)}
-              />
-            ))
-          ) : (
-            <p className="text-muted-foreground col-span-full">No themes generated yet. Try creating one!</p>
-          )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+            <div>
+                <h2 className="text-2xl font-bold text-center mb-4">Preview</h2>
+                <ThemeHistoryItem
+                    theme={activeTheme}
+                    onClick={() => {}}
+                />
+            </div>
+            <div>
+                <h2 className="text-2xl font-bold text-center mb-4">Saved</h2>
+                <ThemeHistoryItem
+                    theme={savedTheme}
+                    onClick={() => setActiveTheme(savedTheme)}
+                />
+            </div>
         </div>
       </div>
     </>

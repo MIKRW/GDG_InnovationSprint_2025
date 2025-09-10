@@ -3,16 +3,13 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { Theme } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
 
 interface ThemeHistoryItemProps {
   theme: Theme;
-  isActive: boolean;
-  isSaved: boolean;
   onClick: () => void;
 }
 
-export function ThemeHistoryItem({ theme, isActive, isSaved, onClick }: ThemeHistoryItemProps) {
+export function ThemeHistoryItem({ theme, onClick }: ThemeHistoryItemProps) {
   const { colors, words } = theme;
 
   const styles = {
@@ -24,17 +21,9 @@ export function ThemeHistoryItem({ theme, isActive, isSaved, onClick }: ThemeHis
   return (
     <Card
       onClick={onClick}
-      className={cn(
-        'cursor-pointer transition-all hover:scale-105 hover:shadow-lg relative',
-        isActive && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
-      )}
+      className={cn('cursor-pointer transition-all hover:scale-105 hover:shadow-lg')}
     >
       <CardContent className="p-4 space-y-2">
-        {isSaved && (
-          <Badge variant="secondary" className="absolute top-2 right-2">
-            Saved
-          </Badge>
-        )}
         <div className="flex justify-between items-center text-xs text-muted-foreground pt-4">
           <span>{words.background},</span>
           <span>{words.foreground},</span>
