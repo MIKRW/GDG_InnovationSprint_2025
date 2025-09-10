@@ -417,11 +417,11 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
         <h2 className="text-3xl font-bold text-center mb-8">
           Favorite Themes
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-6 gap-4">
           {savedThemes.map((theme, index) => {
             const isActive = theme.isActive;
             return (
-              <div key={theme.id + index} className="h-40">
+              <div key={theme.id + index} className="h-28">
                 <ThemeHistoryItem
                   theme={theme}
                   onClick={() => handleSlotClick(index)}
