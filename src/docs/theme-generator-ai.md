@@ -4,12 +4,10 @@ This document outlines how the AI custom theme generator works and what factors 
 
 ## Overview
 
-The theme generator is powered by an AI model that has been instructed to act as an expert UI theme designer with a deep understanding of color theory and word association. Its primary goal is to translate your creative input into a unique, aesthetically pleasing, and accessible color theme.
-
-The generator page is organized into four main rows:
+The theme generator page is organized into three main areas:
 1.  **Input Row**: Contains three text fields for your inspirational words and a button to cycle through predefined moods.
-2.  **Action Row**: Features buttons to "Generate Theme" and "Save Theme", along with a preview of the most recently generated theme.
-3.  **Saved Theme Rows**: A grid displaying your six saved theme slots. Clicking a slot makes it the active theme.
+2.  **Action Row**: A three-part section featuring the "Generate Theme" button, a preview of the most recently generated theme, and the "Save Theme" button.
+3.  **Saved Theme Grid**: A grid displaying your six saved theme slots. Clicking a slot makes it the active theme.
 
 ## Color Generation Factors
 
@@ -26,9 +24,9 @@ The AI has been given specific instructions for the following predefined moods. 
 *   **Vibrant**: Creates a theme with bright, highly saturated colors.
 *   **Calm**: Generates a palette with more muted, desaturated, and soothing colors.
 *   **High Contrast**: Prioritizes accessibility by ensuring a very high contrast ratio (WCAG AAA) between background, foreground, and primary colors.
-*   **Tritanopia-Friendly**: Creates a color scheme that is optimized for users with tritanopia (blue-yellow color blindness). It avoids blues and yellows that are hard to distinguish.
-*   **Deuteranopia-Friendly**: Generates a palette suitable for users with deuteranopia (red-green color blindness), avoiding problematic red/green combinations.
-*   **Protanopia-Friendly**: Generates a palette suitable for users with protanopia (red-green color blindness), avoiding problematic red/green combinations.
+*   **Tritanopia-Friendly**: Creates a color scheme that is optimized for users with blue-yellow color blindness. It avoids blues and yellows that are hard to distinguish.
+*   **Deuteranopia-Friendly**: Generates a palette suitable for users with a common type of red-green color blindness, avoiding problematic red/green combinations.
+*   **Protanopia-Friendly**: Generates a palette suitable for users with another common type of red-green color blindness, also avoiding problematic red/green combinations.
 *   **Minimalist**: Produces a simple, clean theme, often using monochromatic or analogous colors with plenty of white space.
 *   **80s Retro**: Creates a nostalgic theme with the bold, neon, and often contrasting colors popular in the 1980s.
 *   **Dark**: A classic dark mode theme with a dark background and light text/accents.
