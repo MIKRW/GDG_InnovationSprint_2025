@@ -16,7 +16,7 @@ export function SecondaryPageFooter() {
 
   return (
     <footer className="border-t">
-      <nav className="flex justify-around py-4 px-4">
+      <nav className="flex justify-around py-8 px-4">
         {navItems.map(({ href, label, icon: Icon }) => (
           <Button
             key={href}
