@@ -40,7 +40,7 @@ const ColorEditor = ({
             step={1}
             value={[color.h]}
             onValueChange={(value) => handleSliderChange('h', value)}
-            className="[&>span]:bg-primary/50 [&>span>div]:bg-primary-foreground [&>span>span]:border-primary-foreground [&>span>span]:bg-primary"
+            className="[&>span]:bg-primary-foreground/20 [&>span>div]:bg-primary-foreground [&>span>span]:border-primary-foreground [&>span>span]:bg-primary"
           />
         </div>
         <div className="flex items-center gap-4">
@@ -50,7 +50,7 @@ const ColorEditor = ({
             step={1}
             value={[color.s]}
             onValueChange={(value) => handleSliderChange('s', value)}
-            className="[&>span]:bg-primary/50 [&>span>div]:bg-primary-foreground [&>span>span]:border-primary-foreground [&>span>span]:bg-primary"
+            className="[&>span]:bg-primary-foreground/20 [&>span>div]:bg-primary-foreground [&>span>span]:border-primary-foreground [&>span>span]:bg-primary"
           />
         </div>
         <div className="flex items-center gap-4">
@@ -60,7 +60,7 @@ const ColorEditor = ({
             step={1}
             value={[color.l]}
             onValueChange={(value) => handleSliderChange('l', value)}
-            className="[&>span]:bg-primary/50 [&>span>div]:bg-primary-foreground [&>span>span]:border-primary-foreground [&>span>span]:bg-primary"
+            className="[&>span]:bg-primary-foreground/20 [&>span>div]:bg-primary-foreground [&>span>span]:border-primary-foreground [&>span>span]:bg-primary"
           />
         </div>
     </div>
