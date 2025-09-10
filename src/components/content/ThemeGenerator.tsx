@@ -10,10 +10,8 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -65,12 +63,12 @@ export function ThemeGenerator() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: activeTheme.words,
+    defaultValues: {
+      background: '',
+      foreground: '',
+      primary: '',
+    },
   });
-
-  useEffect(() => {
-    form.reset(activeTheme.words);
-  }, [activeTheme.words, form]);
 
   const updateCSSVariables = useCallback((colors: Theme['colors']) => {
     const root = document.documentElement;
@@ -99,6 +97,7 @@ export function ThemeGenerator() {
 
   const selectHistoryTheme = (theme: Theme) => {
     setActiveTheme(theme);
+    form.reset(theme.words);
     toast({
       title: 'Theme Switched!',
       description: 'Loaded a theme from your history.',
