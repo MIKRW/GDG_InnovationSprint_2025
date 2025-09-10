@@ -28,7 +28,7 @@ export function GridContainer({
             <div className="w-[31.2rem] h-[31.2rem]">
               <Logo />
             </div>
-            <Byline className="mt-6 text-2xl">Your Brand Tagline Here</Byline>
+            <Byline className="mt-6 text-2xl">the app name</Byline>
           </>
         )}
       </div>
