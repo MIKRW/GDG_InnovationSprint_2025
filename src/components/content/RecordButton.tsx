@@ -19,7 +19,11 @@ type RecordingState =
   | 'recording'
   | 'processing';
 
-export function RecordButton() {
+interface RecordButtonProps {
+    onPermissionDenied?: () => void;
+}
+
+export function RecordButton({ onPermissionDenied }: RecordButtonProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [recordingState, setRecordingState] =
@@ -30,11 +34,7 @@ export function RecordButton() {
 
   const handleStartRecording = async () => {
     if (recordingState === 'denied') {
-        toast({
-            variant: 'destructive',
-            title: 'Microphone Access Required',
-            description: 'Please enable microphone permissions in your browser settings and refresh the page.',
-        });
+        onPermissionDenied?.();
         return;
     }
 
@@ -57,11 +57,7 @@ export function RecordButton() {
     } catch (err) {
       console.error('Permission denied or no microphone found:', err);
       setRecordingState('denied');
-       toast({
-        variant: 'destructive',
-        title: 'Microphone Access Required',
-        description: 'This app needs access to your microphone. Please enable permissions in your browser settings.',
-      });
+      onPermissionDenied?.();
     }
   };
 
