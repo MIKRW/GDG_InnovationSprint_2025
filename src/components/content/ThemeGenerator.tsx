@@ -494,7 +494,7 @@ export function ThemeGenerator() {
 
       <div className="my-24 mt-32">
         <h2 className="text-6xl font-bold text-center mb-24">
-          Favorite Themes
+          Favorite themes
         </h2>
         <div className="grid grid-cols-6 gap-4">
           {savedThemes.map((theme, index) => {
