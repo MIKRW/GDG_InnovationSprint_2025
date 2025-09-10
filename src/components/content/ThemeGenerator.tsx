@@ -21,7 +21,6 @@ import { generateTheme } from '@/ai/flows/generate-theme-flow';
 import type { Theme } from '@/lib/types';
 import { Info, Loader2, RefreshCw, Save } from 'lucide-react';
 import { ThemeHistoryItem } from './ThemeHistoryItem';
-import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 
@@ -414,9 +413,8 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
         </Form>
       </div>
 
-      <div className="mt-12">
-        <Separator className="my-4" />
-        <h2 className="text-2xl font-bold text-center mb-4">
+      <div className="mt-16">
+        <h2 className="text-3xl font-bold text-center mb-8">
           Favorite Themes
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -438,5 +436,3 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
     </>
   );
 }
-
-    
