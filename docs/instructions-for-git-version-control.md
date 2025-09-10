@@ -32,6 +32,11 @@ This process will create your online repository and upload your current code.
 2.  **Add Your Existing Project:**
     *   In the main menu, go to `File > Add Local Repository...`.
     *   A dialog box will appear. Click the `Choose...` button and navigate to the root folder of this project on your computer.
+
+    > **What is the "Root Folder"?**
+    >
+    > The "root folder" is the main, top-level folder that contains your entire project. It's the folder that holds everything, including the `src` folder, the `docs` folder, and all the configuration files like `package.json` and `next.config.ts`. It's crucial to select this main folder so Git can track every part of your project.
+
     *   The app will recognize that the project isn't a Git repository yet. It will show a message like "This directory does not appear to be a Git repository. Would you like to create a repository here instead?". **Click the blue `create a repository` link.**
     *   A "Create a New Repository" window will appear. The name and local path should already be filled out. You can add a short description if you like. Make sure `.gitignore` is set to `Node`.
     *   Click the **`Create Repository`** button.
