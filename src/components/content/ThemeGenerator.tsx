@@ -252,6 +252,26 @@ export function ThemeGenerator() {
     setSavedThemes(newSavedThemes);
   }
 
+  const rotateGeneratedTheme = () => {
+    if (generatedTheme.id === 'empty') return;
+
+    const currentColors = generatedTheme.colors;
+    const newColors = {
+        background: currentColors.foreground,
+        foreground: currentColors.primary,
+        primary: currentColors.background
+    };
+
+    const newTheme = {...generatedTheme, colors: newColors};
+
+    setGeneratedTheme(newTheme);
+    localStorage.setItem('generated-theme', JSON.stringify(newTheme));
+
+    if (isPreviewingGenerated) {
+        updateCSSVariables(newColors);
+    }
+  };
+
   return (
     <>
       <Form {...form}>
@@ -334,6 +354,8 @@ export function ThemeGenerator() {
                 <ThemeHistoryItem
                     theme={generatedTheme}
                     onClick={previewGeneratedTheme}
+                    onRotateClick={rotateGeneratedTheme}
+                    showRotate={isPreviewingGenerated}
                     isEmpty={generatedTheme.id === 'empty'}
                     emptyText="Generate a new theme to see it here."
                     isSelected={isPreviewingGenerated}

@@ -5,24 +5,29 @@ import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { Theme } from '@/lib/types';
 import { Badge } from '../ui/badge';
-import { Ban } from 'lucide-react';
+import { Ban, RefreshCw } from 'lucide-react';
+import { Button } from '../ui/button';
 
 interface ThemeHistoryItemProps {
   theme: Theme;
   onClick: () => void;
+  onRotateClick?: () => void;
   isActive?: boolean;
   isSelected?: boolean;
   isEmpty?: boolean;
   emptyText?: string;
+  showRotate?: boolean;
 }
 
 export function ThemeHistoryItem({
   theme,
   onClick,
+  onRotateClick,
   isActive = false,
   isSelected = false,
   isEmpty = false,
-  emptyText = "Generate a new theme or select a saved theme."
+  emptyText = "Generate a new theme or select a saved theme.",
+  showRotate = false
 }: ThemeHistoryItemProps) {
   const { colors, words } = theme;
 
@@ -31,6 +36,11 @@ export function ThemeHistoryItem({
     foreground: `hsl(${colors.foreground.h}, ${colors.foreground.s}%, ${colors.foreground.l}%)`,
     primary: `hsl(${colors.primary.h}, ${colors.primary.s}%, ${colors.primary.l}%)`,
   };
+
+  const handleRotateClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRotateClick?.();
+  }
 
   if (isEmpty) {
     return (
@@ -55,10 +65,21 @@ export function ThemeHistoryItem({
     >
       <CardContent className="p-4 space-y-2 relative">
         {isActive && <Badge className="absolute top-2 right-2">Active</Badge>}
+        {showRotate && onRotateClick && (
+            <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-1 right-1 h-7 w-7"
+                onClick={handleRotateClick}
+                aria-label="Rotate Colors"
+            >
+                <RefreshCw className="w-4 h-4" />
+            </Button>
+        )}
         <div className="flex justify-between items-center text-xs text-muted-foreground pt-4">
-          <span>{words.background},</span>
-          <span>{words.foreground},</span>
-          <span>{words.primary}</span>
+          <span>{words.word1},</span>
+          <span>{words.word2},</span>
+          <span>{words.word3}</span>
         </div>
         <div className="flex justify-center items-center text-xs text-muted-foreground">
             <span>({words.mood})</span>
