@@ -60,6 +60,9 @@ export function ThemeHistoryItem({
           <span>{words.foreground},</span>
           <span>{words.primary}</span>
         </div>
+        <div className="flex justify-center items-center text-xs text-muted-foreground">
+            <span>({words.mood})</span>
+        </div>
         <div className="h-24 rounded-md flex overflow-hidden" style={{ backgroundColor: styles.background }}>
           <div className="w-1/3 h-full" style={{ backgroundColor: styles.foreground }}></div>
           <div className="w-1/3 h-full" style={{ backgroundColor: styles.primary }}></div>

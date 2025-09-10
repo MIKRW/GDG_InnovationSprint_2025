@@ -12,6 +12,7 @@ export type Theme = {
     background: string;
     foreground: string;
     primary: string;
+    mood: string;
   };
   colors: {
     background: ThemeColor;

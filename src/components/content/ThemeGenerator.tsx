@@ -27,13 +27,14 @@ const formSchema = z.object({
   background: z.string().min(2, { message: 'Please enter a word.' }),
   foreground: z.string().min(2, { message: 'Please enter a word.' }),
   primary: z.string().min(2, { message: 'Please enter a word.' }),
+  mood: z.string().min(2, { message: 'Please enter a word.' }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 const DEFAULTS: Theme = {
   id: 'default',
-  words: { background: 'sand', foreground: 'stone', primary: 'ocean' },
+  words: { background: 'sand', foreground: 'stone', primary: 'ocean', mood: 'warm' },
   colors: {
     background: { h: 39, s: 100, l: 97 },
     foreground: { h: 39, s: 50, l: 10 },
@@ -44,7 +45,7 @@ const DEFAULTS: Theme = {
 
 const EMPTY_THEME: Theme = {
   id: 'empty',
-  words: { background: '', foreground: '', primary: '' },
+  words: { background: '', foreground: '', primary: '', mood: '' },
   colors: {
     background: { h: 0, s: 0, l: 100 },
     foreground: { h: 0, s: 0, l: 0 },
@@ -68,6 +69,7 @@ export function ThemeGenerator() {
       background: '',
       foreground: '',
       primary: '',
+      mood: '',
     },
   });
 
@@ -90,7 +92,7 @@ export function ThemeGenerator() {
         let theme = initialThemes[i];
         if (!theme) {
             theme = { ...DEFAULTS, id: uuidv4(), isActive: false };
-            if (i > 0) theme.words = { background: 'new', foreground: 'theme', primary: 'slot' };
+            if (i > 0) theme.words = { background: 'new', foreground: 'theme', primary: 'slot', mood: 'default' };
         }
         
         if (theme.isActive) {
@@ -238,7 +240,7 @@ export function ThemeGenerator() {
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
             <FormField
               control={form.control}
               name="background"
@@ -270,6 +272,18 @@ export function ThemeGenerator() {
                 <FormItem>
                   <FormControl>
                     <Input placeholder="primary" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="mood"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input placeholder="mood" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

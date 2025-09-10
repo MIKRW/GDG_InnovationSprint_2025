@@ -29,6 +29,7 @@ const GenerateThemeInputSchema = z.object({
   background: z.string().describe('A word to inspire the background color (e.g., "sand", "sky", "forest").'),
   foreground: z.string().describe('A word to inspire the foreground text color (e.g., "stone", "ink", "snow").'),
   primary: z.string().describe('A word to inspire the primary accent color (e.g., "ocean", "sunset", "gold").'),
+  mood: z.string().describe('A word to describe the overall mood of the theme (e.g., "dark", "light", "calm", "80s").'),
 });
 export type GenerateThemeInput = z.infer<typeof GenerateThemeInputSchema>;
 
@@ -45,13 +46,18 @@ const prompt = ai.definePrompt({
   output: { schema: GenerateThemeOutputSchema },
   prompt: `
     You are an expert UI theme designer with a deep understanding of color theory and word association.
-    Your task is to generate a creative, unique, and aesthetically pleasing HSL color palette based on three words provided by the user.
+    Your task is to generate a creative, unique, and aesthetically pleasing HSL color palette.
 
-    You must return an object with three HSL color objects: 'background', 'foreground', and 'primary'.
-
+    The user has provided four words as inspiration.
     - The 'background' color should be inspired by the word: "{{background}}".
-    - The 'foreground' color should be inspired by the word: "{{foreground}}". It MUST have a high contrast ratio with the background color for accessibility.
-    - The 'primary' color should be inspired by the word: "{{primary}}". It also MUST have a high contrast ratio with the background.
+    - The 'foreground' color should be inspired by the word: "{{foreground}}".
+    - The 'primary' color should be inspired by the word: "{{primary}}".
+    - The overall mood for the theme should be: "{{mood}}". Use this as a strong guide for the style, saturation, and lightness of the colors.
+    
+    You must return an object with three HSL color objects: 'background', 'foreground', and 'primary'.
+    
+    - The 'foreground' color MUST have a high contrast ratio with the background color for accessibility.
+    - The 'primary' color also MUST have a high contrast ratio with the background.
     
     Interpret the user's words creatively to generate a harmonious and visually appealing theme that has not been generated before.
   `,
