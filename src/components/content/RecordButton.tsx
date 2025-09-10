@@ -8,7 +8,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { identifyBirdBySound } from '@/ai/flows/identify-bird-flow';
 import { addLog } from '@/lib/local-storage';
 import type { BirdLog } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { MicrophoneIcon } from './MicrophoneIcon';
 import { Loader2, MicOff, Square } from 'lucide-react';
@@ -27,7 +26,6 @@ interface RecordButtonProps {
 
 export function RecordButton({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps) {
   const router = useRouter();
-  const { toast } = useToast();
   const [recordingState, setRecordingState] =
     useState<RecordingState>('idle');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -84,29 +82,48 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
       
       try {
         const result = await identifyBirdBySound({ audioDataUri: base64Audio });
+        let newLog: BirdLog;
+
         if (result && result.isBirdSong && result.commonName && result.scientificName && result.description && result.imagePrompt) {
-            const newLog: BirdLog = {
+            newLog = {
                 id: uuidv4(),
                 timestamp: new Date().toISOString(),
                 commonName: result.commonName,
                 scientificName: result.scientificName,
                 description: result.description,
-                imagePrompt: result.imagePrompt
+                imagePrompt: result.imagePrompt,
+                audioUrl: base64Audio,
+                isMystery: false,
             };
-            addLog(newLog);
-            router.push(`/log/${newLog.id}`);
         } else {
-            onIdentificationFailed?.();
-            setRecordingState('idle');
+             newLog = {
+                id: uuidv4(),
+                timestamp: new Date().toISOString(),
+                commonName: 'Mystery Recording',
+                scientificName: 'Audio captured',
+                description: 'The AI could not identify a bird in this recording. You can listen to the recording here.',
+                imagePrompt: 'question mark',
+                audioUrl: base64Audio,
+                isMystery: true,
+            };
         }
+        addLog(newLog);
+        router.push(`/log/${newLog.id}`);
       } catch (error) {
         console.error('Error identifying bird sound:', error);
-        toast({
-            variant: 'destructive',
-            title: 'Analysis Failed',
-            description: 'Something went wrong during the analysis. Please check your connection and try again.',
-        });
-        setRecordingState('idle');
+        // Even if the API fails, save as a mystery recording
+        const newLog: BirdLog = {
+            id: uuidv4(),
+            timestamp: new Date().toISOString(),
+            commonName: 'Mystery Recording',
+            scientificName: 'Error during analysis',
+            description: 'An error occurred while trying to analyze this audio. You can listen to the original recording here.',
+            imagePrompt: 'question mark',
+            audioUrl: base64Audio,
+            isMystery: true,
+        };
+        addLog(newLog);
+        router.push(`/log/${newLog.id}`);
       }
     };
   };

@@ -31,4 +31,6 @@ export type BirdLog = {
     scientificName: string;
     description: string;
     imagePrompt: string;
+    audioUrl?: string;
+    isMystery: boolean;
 }
