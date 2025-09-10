@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { generateTheme } from '@/ai/flows/generate-theme-flow';
 import type { Theme } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
 import { ThemeHistoryItem } from './ThemeHistoryItem';
 import { Separator } from '@/components/ui/separator';
 
@@ -46,17 +46,23 @@ export function ThemeGenerator() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [activeTheme, setActiveTheme] = useState<Theme>(DEFAULTS);
+  const [savedThemeId, setSavedThemeId] = useState<string | null>(null);
   const [history, setHistory] = useState<Theme[]>([]);
 
+  // Load saved theme and history from localStorage on initial mount
   useEffect(() => {
-    const savedTheme = localStorage.getItem('custom-theme');
-    const savedHistory = localStorage.getItem('custom-theme-history');
-
-    if (savedTheme) {
-      setActiveTheme(JSON.parse(savedTheme));
+    const savedThemeJson = localStorage.getItem('custom-theme');
+    const savedHistoryJson = localStorage.getItem('custom-theme-history');
+    
+    let initialTheme = DEFAULTS;
+    if (savedThemeJson) {
+      initialTheme = JSON.parse(savedThemeJson);
+      setSavedThemeId(initialTheme.id);
     }
-    if (savedHistory) {
-      setHistory(JSON.parse(savedHistory));
+    setActiveTheme(initialTheme);
+    
+    if (savedHistoryJson) {
+      setHistory(JSON.parse(savedHistoryJson));
     }
   }, []);
 
@@ -83,25 +89,35 @@ export function ThemeGenerator() {
     root.style.setProperty('--custom-primary-s', `${colors.primary.s}%`);
     root.style.setProperty('--custom-primary-l', `${colors.primary.l}%`);
   }, []);
-
-  const saveToLocalStorage = useCallback((theme: Theme, themeHistory: Theme[]) => {
-    localStorage.setItem('custom-theme', JSON.stringify(theme));
-    localStorage.setItem('custom-theme-history', JSON.stringify(themeHistory));
-    // Also update the master theme setting so it persists on navigation
-    localStorage.setItem('theme', 'custom');
-  }, []);
-
+  
+  // This effect only updates the live preview (CSS variables)
   useEffect(() => {
     updateCSSVariables(activeTheme.colors);
-    saveToLocalStorage(activeTheme, history);
-  }, [activeTheme, history, updateCSSVariables, saveToLocalStorage]);
+  }, [activeTheme, updateCSSVariables]);
+  
+  // This effect only syncs history to localStorage when it changes
+  useEffect(() => {
+    if (history.length > 0) {
+      localStorage.setItem('custom-theme-history', JSON.stringify(history));
+    }
+  }, [history]);
+
+  const saveTheme = () => {
+    localStorage.setItem('custom-theme', JSON.stringify(activeTheme));
+    localStorage.setItem('theme', 'custom');
+    setSavedThemeId(activeTheme.id);
+    toast({
+      title: 'Theme Saved!',
+      description: 'Your custom theme is now active across the app.',
+    });
+  };
 
   const selectHistoryTheme = (theme: Theme) => {
     setActiveTheme(theme);
     form.reset(theme.words);
     toast({
-      title: 'Theme Switched!',
-      description: 'Loaded a theme from your history.',
+      title: 'Theme Previewing',
+      description: 'Click "Save Theme" to make it active.',
     });
   };
 
@@ -122,7 +138,7 @@ export function ThemeGenerator() {
       
       toast({
         title: 'Theme Generated!',
-        description: 'Your new custom theme has been applied.',
+        description: 'Click "Save Theme" to make it active.',
       });
     } catch (error) {
       console.error(error);
@@ -177,7 +193,7 @@ export function ThemeGenerator() {
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading} className="h-10">
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -190,19 +206,31 @@ export function ThemeGenerator() {
           </div>
         </form>
       </Form>
+      
+      <div className="mt-8 flex justify-center">
+        <Button onClick={saveTheme} size="lg">
+          <Save className="mr-2 h-4 w-4" />
+          Save Theme
+        </Button>
+      </div>
 
       <div className="mt-12">
         <h2 className="text-2xl font-bold">History</h2>
         <Separator className="my-4" />
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {history.map((theme) => (
-            <ThemeHistoryItem
-              key={theme.id}
-              theme={theme}
-              isActive={activeTheme.id === theme.id}
-              onClick={() => selectHistoryTheme(theme)}
-            />
-          ))}
+          {history.length > 0 ? (
+            history.map((theme) => (
+              <ThemeHistoryItem
+                key={theme.id}
+                theme={theme}
+                isActive={activeTheme.id === theme.id}
+                isSaved={savedThemeId === theme.id}
+                onClick={() => selectHistoryTheme(theme)}
+              />
+            ))
+          ) : (
+            <p className="text-muted-foreground col-span-full">No themes generated yet. Try creating one!</p>
+          )}
         </div>
       </div>
     </>
