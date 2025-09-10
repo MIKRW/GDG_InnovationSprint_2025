@@ -26,8 +26,8 @@ export function ThemeHistoryItem({
   isActive = false,
   isSelected = false,
   isEmpty = false,
-  emptyText = "Generate a new theme or select a saved theme.",
-  showRotate = false
+  emptyText = 'Generate a new theme or select a saved theme.',
+  showRotate = false,
 }: ThemeHistoryItemProps) {
   const { colors } = theme;
 
@@ -40,45 +40,60 @@ export function ThemeHistoryItem({
   const handleRotateClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onRotateClick?.();
-  }
+  };
 
   if (isEmpty) {
     return (
-       <Card className={cn('border-dashed h-full')}>
+      <Card className={cn('border-dashed h-full')}>
         <CardContent className="p-4 space-y-2 h-full flex flex-col justify-center items-center text-muted-foreground">
-            <Ban className="w-10 h-10" />
-            <p className="text-sm font-medium">Empty</p>
-            <p className="text-xs text-center">{emptyText}</p>
+          <Ban className="w-10 h-10" />
+          <p className="text-sm font-medium">Empty</p>
+          <p className="text-xs text-center">{emptyText}</p>
         </CardContent>
-       </Card>
-    )
+      </Card>
+    );
   }
+
+  const ringStyle = isSelected
+    ? {
+        '--tw-ring-color': `hsl(${colors.primary.h}, ${colors.primary.s}%, ${colors.primary.l}%)`,
+      }
+    : {};
 
   return (
     <Card
       onClick={onClick}
       className={cn(
         'cursor-pointer transition-all hover:shadow-lg h-full',
-        isActive && 'ring-2 ring-ring ring-offset-2',
-        isSelected && 'ring-2 ring-blue-500 ring-offset-2'
+        isSelected && 'ring-4 ring-offset-4'
       )}
+      style={ringStyle}
     >
       <CardContent className="p-4 space-y-4 relative h-full flex flex-col">
         {isActive && <Badge className="absolute top-2 right-2">Active</Badge>}
         {showRotate && onRotateClick && (
-            <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-1 right-1 h-7 w-7"
-                onClick={handleRotateClick}
-                aria-label="Rotate Colors"
-            >
-                <RefreshCw className="w-4 h-4" />
-            </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-1 right-1 h-7 w-7"
+            onClick={handleRotateClick}
+            aria-label="Rotate Colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </Button>
         )}
-        <div className="flex-grow rounded-md flex overflow-hidden mt-4" style={{ backgroundColor: styles.background }}>
-          <div className="w-1/3 h-full" style={{ backgroundColor: styles.foreground }}></div>
-          <div className="w-1/3 h-full" style={{ backgroundColor: styles.primary }}></div>
+        <div
+          className="flex-grow rounded-md flex overflow-hidden mt-4"
+          style={{ backgroundColor: styles.background }}
+        >
+          <div
+            className="w-1/3 h-full"
+            style={{ backgroundColor: styles.foreground }}
+          ></div>
+          <div
+            className="w-1/3 h-full"
+            style={{ backgroundColor: styles.primary }}
+          ></div>
         </div>
       </CardContent>
     </Card>
