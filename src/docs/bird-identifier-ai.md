@@ -7,7 +7,7 @@ This document outlines how the AI bird song identifier works and what factors it
 The core of the application is the ability to record a sound and have an AI analyze it to identify the species of bird making the sound. The user journey is as follows:
 
 1.  **Recording**: The user navigates to the "Record" page and uses the large record button to capture audio from their microphone.
-2.  **Analysis**: Once the recording is complete, the audio data is sent to a secure, cloud-based AI model for analysis.
+2.  **Analysis**: Once the recording is complete, the audio data, along with any selected location information, is sent to a secure, cloud-based AI model for analysis.
 3.  **Results**: The AI returns information about the identified bird, which is then displayed to the user.
 4.  **Logging**: The results of each successful identification are saved as an entry in the user's "Bird Book" (the log page).
 
@@ -17,8 +17,20 @@ When the user submits an audio recording, the AI takes the following steps to id
 
 *   **Audio Input**: The audio is sent to the AI model as a data file. The prompt instructs the AI to treat this data as an audio recording of a bird song.
 *   **Expert Persona**: The AI is prompted to act as an expert ornithologist. This ensures it draws upon a deep knowledge base of bird species and their vocalizations.
-*   **Structured Output**: The AI is required to return a structured JSON object containing the bird's common name, its scientific name, and a brief, interesting fact about it. This ensures the data is predictable and easy to display in the app.
-*   **Error Handling**: The prompt also instructs the AI on how to handle cases where the audio does not contain a discernible bird song or if the species cannot be identified. In such cases, it will return a clear message to the user.
+*   **Structured Output**: The AI is required to return a structured JSON object containing the bird's common name, its scientific name, a brief, interesting fact, and a prompt for generating an image. This ensures the data is predictable and easy to display in the app.
+*   **Error Handling**: The prompt also instructs the AI on how to handle cases where the audio does not contain a discernible bird song. In such cases, it will return a clear message to the user.
+
+## Location-Enhanced Analysis
+
+To significantly improve identification accuracy, the AI can use location data to narrow down potential bird species based on their known geographic ranges and habitats. The user can choose from several modes in the Location Settings:
+
+*   **Device & Manual Location (Coordinates)**: If the user provides precise GPS coordinates (either from their device or entered manually), the AI is instructed to treat this as an **absolute location**. It cross-references this point with scientific databases (e.g., government data, ornithological research) to filter for birds found in that specific habitat. A bird not native to the area is considered highly unlikely to be the correct identification.
+
+*   **Location Description (Text)**: If the user provides a text description (e.g., "Yosemite National Park," "SW1A 0AA"), the AI is instructed to use this as a **strong hint**. It interprets the text to identify a geographical region and then consults reliable sources to determine which birds are commonly found there.
+
+*   **Data Source Hierarchy**: For all location-based analysis, the AI is explicitly instructed to establish a hierarchy of data sources. It must prioritize reliable, scientific resources (like government databases, research papers, and expert field guides) over more general or crowd-sourced information.
+
+*   **Privacy Mode**: If this mode is selected, no location data is sent to the AI. Identification is based solely on the audio recording itself, which may be less accurate due to the lack of geographical context.
 
 ## Online vs. Offline Functionality
 
@@ -26,7 +38,7 @@ A crucial aspect of the bird identifier is the distinction between analyzing new
 
 *   **Online Requirement for Analysis**: The AI model that analyzes the audio is a powerful cloud-based service. Each time a user submits a recording, the app sends the audio data to this service over the internet. Consequently, **an active internet connection is required to identify new bird songs.**
 
-*   **Offline Access to Logged Results**: Any identification result that is saved to the "Bird Book" will be stored using Firebase. This means you will be able to view all your previously identified birds at any time, **even without an internet connection,** once they have been loaded onto your device.
+*   **Offline Access to Logged Results**: Any identification result that is saved to the "Bird Book" will be stored locally in the browser. This means you will be able to view all your previously identified birds at any time, **even without an internet connection,** once they have been loaded onto your device.
 
 ## Detailed Recommendation Version 1
 
@@ -77,4 +89,3 @@ This phase is about showing the user what the AI found.
 2.  **New Results Page:** We will create a new page, for example `/log/[id]`. After the AI analysis is complete, the app will navigate the user to this page.
 
 3.  **Displaying Data:** The results page will take the analysis data from the AI (common name, scientific name, description) and display it in a clean, readable format. As a bonus, we could use a text-to-image model in a separate flow to generate an image of the identified bird to make the page more visually appealing, as we discussed in Recommendation 2.
-
