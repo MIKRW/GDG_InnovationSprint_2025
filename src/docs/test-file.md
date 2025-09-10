@@ -1,0 +1,1 @@
+This file is for testing purposes to confirm that the active theme state persists correctly when the application reloads. It can be deleted later.
