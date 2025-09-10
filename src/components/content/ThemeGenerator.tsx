@@ -62,6 +62,15 @@ export function ThemeGenerator() {
   const [savedThemes, setSavedThemes] = useState<Theme[]>([]);
   const [selectedSlot, setSelectedSlot] = useState(0);
 
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      background: '',
+      foreground: '',
+      primary: '',
+    },
+  });
+
   // Load saved themes from localStorage on initial mount
   useEffect(() => {
     const savedThemesJson = localStorage.getItem('custom-themes');
@@ -301,7 +310,7 @@ export function ThemeGenerator() {
                             key={theme.id + index}
                             theme={theme}
                             onClick={() => handleSlotClick(index)}
-                            isActive={theme.isActive}
+                            isActive={selectedSlot === index}
                             isSelected={selectedSlot === index}
                         />
                     ))}
