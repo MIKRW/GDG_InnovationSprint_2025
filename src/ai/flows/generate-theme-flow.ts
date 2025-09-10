@@ -1,9 +1,9 @@
 'use server';
 
 /**
- * @fileOverview An AI flow for generating a custom theme palette.
+ * @fileOverview An AI flow for generating a custom theme palette from three words.
  *
- * - generateTheme - A function that creates a color theme from a text prompt.
+ * - generateTheme - A function that creates a color theme from words.
  * - GenerateThemeInput - The input type for the generateTheme function.
  * - GenerateThemeOutput - The return type for the generateTheme function.
  */
@@ -12,7 +12,11 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import type { ThemeColor } from '@/lib/types';
 
-const GenerateThemeInputSchema = z.string().describe('A text description of the desired theme (e.g., "a warm desert sunset" or "a cool, futuristic neon vibe").');
+const GenerateThemeInputSchema = z.object({
+  background: z.string().describe('A word to inspire the background color (e.g., "sand", "sky", "forest").'),
+  foreground: z.string().describe('A word to inspire the foreground text color (e.g., "stone", "ink", "snow").'),
+  primary: z.string().describe('A word to inspire the primary accent color (e.g., "ocean", "sunset", "gold").'),
+});
 export type GenerateThemeInput = z.infer<typeof GenerateThemeInputSchema>;
 
 const ThemeColorSchema = z.object({
@@ -30,9 +34,9 @@ export type GenerateThemeOutput = z.infer<typeof GenerateThemeOutputSchema>;
 
 
 export async function generateTheme(
-  description: GenerateThemeInput
+  words: GenerateThemeInput
 ): Promise<GenerateThemeOutput> {
-  return await generateThemeFlow(description);
+  return await generateThemeFlow(words);
 }
 
 const prompt = ai.definePrompt({
@@ -40,19 +44,16 @@ const prompt = ai.definePrompt({
   input: { schema: GenerateThemeInputSchema },
   output: { schema: GenerateThemeOutputSchema },
   prompt: `
-    You are an expert UI theme designer. Your task is to generate a creative and aesthetically pleasing color palette
-    based on the user's text description.
+    You are an expert UI theme designer with a deep understanding of color theory and word association.
+    Your task is to generate a creative and aesthetically pleasing HSL color palette based on three words provided by the user.
 
     You must return an object with three HSL color objects: 'background', 'foreground', and 'primary'.
 
-    - The 'background' color is the main canvas of the app.
-    - The 'foreground' color is for text and icons, and it MUST have a high contrast ratio with the background color for accessibility.
-    - The 'primary' color is for interactive elements like buttons. It also MUST have a high contrast ratio with the background.
+    - The 'background' color should be inspired by the word: "{{background}}".
+    - The 'foreground' color should be inspired by the word: "{{foreground}}". It MUST have a high contrast ratio with the background color for accessibility.
+    - The 'primary' color should be inspired by the word: "{{primary}}". It also MUST have a high contrast ratio with the background.
     
-    Interpret the user's description creatively to generate a harmonious and visually appealing theme. 
-    Do not be afraid to use bold colors and strong contrasts if the prompt suggests it.
-
-    User's theme description: "{{{prompt}}}"
+    Interpret the user's words creatively to generate a harmonious and visually appealing theme.
   `,
 });
 
@@ -63,8 +64,8 @@ const generateThemeFlow = ai.defineFlow(
     inputSchema: GenerateThemeInputSchema,
     outputSchema: GenerateThemeOutputSchema,
   },
-  async (promptText) => {
-    const { output } = await prompt(promptText);
+  async (input) => {
+    const { output } = await prompt(input);
     if (!output) {
       throw new Error('Failed to generate theme from the model.');
     }

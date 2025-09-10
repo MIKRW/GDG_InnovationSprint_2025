@@ -15,7 +15,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { generateTheme } from '@/ai/flows/generate-theme-flow';
@@ -23,9 +23,9 @@ import type { ThemeColor } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
-  prompt: z.string().min(10, {
-    message: 'Please enter a description of at least 10 characters.',
-  }),
+  background: z.string().min(2, { message: 'Please enter a word.' }),
+  foreground: z.string().min(2, { message: 'Please enter a word.' }),
+  primary: z.string().min(2, { message: 'Please enter a word.' }),
 });
 
 const DEFAULTS = {
@@ -58,7 +58,9 @@ export function ThemeGenerator() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      prompt: 'A serene underwater scene with coral reefs',
+      background: 'sand',
+      foreground: 'stone',
+      primary: 'ocean',
     },
   });
 
@@ -99,7 +101,7 @@ export function ThemeGenerator() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      const newTheme = await generateTheme(values.prompt);
+      const newTheme = await generateTheme(values);
       setColors(newTheme);
       toast({
         title: 'Theme Generated!',
@@ -120,26 +122,56 @@ export function ThemeGenerator() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <div className="space-y-4">
         <FormField
           control={form.control}
-          name="prompt"
+          name="background"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Theme Description</FormLabel>
+              <FormLabel>Background Word</FormLabel>
               <FormControl>
-                <Textarea
-                  placeholder="e.g., a tranquil beach at sunset with soft pinks and oranges"
-                  className="resize-none"
-                  {...field}
-                />
+                <Input placeholder="e.g., sand, sky, forest" {...field} />
               </FormControl>
               <FormDescription>
-                Describe the look and feel you want for your custom theme.
+                A word to inspire the background color.
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
+        <FormField
+          control={form.control}
+          name="foreground"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Foreground Word</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., stone, ink, snow" {...field} />
+              </FormControl>
+               <FormDescription>
+                A word to inspire the text and icon color.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="primary"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Primary Word</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., ocean, sunset, gold" {...field} />
+              </FormControl>
+               <FormDescription>
+                A word to inspire the main accent color for buttons.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        </div>
         <Button type="submit" disabled={isLoading}>
           {isLoading ? (
             <>
