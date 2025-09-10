@@ -41,7 +41,7 @@ Each page is a server component that composes the layout and content components.
 
 - **Record Page (`/src/app/record/page.tsx`)**: The page for initiating a recording.
   - **Layout**: `AppLayout`
-  - **Content**: `ReadyToRecord` and `RecordButton`.
+  - **Content**: A `RecordContainer` element that holds the `ReadyToRecord` and `RecordButton` components.
   - **Footer**: `SecondaryPageFooter`
 
 - **Log Page (`/src/app/log/page.tsx`)**: Displays the photo album.
