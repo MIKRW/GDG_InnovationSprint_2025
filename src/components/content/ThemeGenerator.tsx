@@ -39,7 +39,7 @@ const DEFAULTS: Theme = {
     background: { h: 39, s: 100, l: 97 },
     foreground: { h: 39, s: 50, l: 10 },
     primary: { h: 39, s: 50, l: 20 },
-    ring: { h: 39, s: 50, l: 30 },
+    ring: { h: 222.2, s: 84, l: 4.9 },
   },
   isActive: true,
 };
@@ -51,7 +51,7 @@ const EMPTY_THEME: Theme = {
     background: { h: 0, s: 0, l: 100 },
     foreground: { h: 0, s: 0, l: 0 },
     primary: { h: 0, s: 0, l: 50 },
-    ring: { h: 0, s: 0, l: 60 },
+    ring: { h: 222.2, s: 84, l: 4.9 },
   },
   isActive: false,
 };
@@ -88,6 +88,9 @@ export function ThemeGenerator() {
 
   const updateCSSVariables = useCallback((colors: Theme['colors']) => {
     const root = document.documentElement;
+    // Fallback for older themes saved in localStorage without a `ring` color
+    const ringColor = colors.ring || colors.primary;
+
     root.style.setProperty('--custom-background-h', `${colors.background.h}`);
     root.style.setProperty('--custom-background-s', `${colors.background.s}%`);
     root.style.setProperty('--custom-background-l', `${colors.background.l}%`);
@@ -97,9 +100,9 @@ export function ThemeGenerator() {
     root.style.setProperty('--custom-primary-h', `${colors.primary.h}`);
     root.style.setProperty('--custom-primary-s', `${colors.primary.s}%`);
     root.style.setProperty('--custom-primary-l', `${colors.primary.l}%`);
-    root.style.setProperty('--custom-ring-h', `${colors.ring.h}`);
-    root.style.setProperty('--custom-ring-s', `${colors.ring.s}%`);
-    root.style.setProperty('--custom-ring-l', `${colors.ring.l}%`);
+    root.style.setProperty('--custom-ring-h', `${ringColor.h}`);
+    root.style.setProperty('--custom-ring-s', `${ringColor.s}%`);
+    root.style.setProperty('--custom-ring-l', `${ringColor.l}%`);
   }, []);
 
   // Load saved themes from localStorage on initial mount
