@@ -30,6 +30,7 @@ These are the reusable UI elements that make up the application's content.
 - **`MicrophoneIcon.tsx`**: The microphone icon used inside the `RecordButton`.
 - **`RecordButton.tsx`**: The large, primary action button for starting a recording. It now contains the "Press to Record" text and microphone icon.
 - **`SpeakerButton.tsx`**: The button in the `Header` for toggling sound.
+- **`ThemeGenerator.tsx`**: An AI-powered component that allows users to generate a custom theme by providing a text description.
 
 ## Page Components & Structure
 
@@ -54,3 +55,14 @@ Each page is a server component that composes the layout and content components.
   - **Layout**: `AppLayout` with `PrimaryHeader`.
   - **Content**: `SettingsPage` component.
   - **Footer**: `SecondaryPageFooterV2`.
+
+- **Theme Page (`/src/app/theme/page.tsx`)**: The page for customizing the application's theme.
+  - **Layout**: `AppLayout` with `SecondaryHeader`.
+  - **Content**: `ThemePage` component which uses the `ThemeGenerator`.
+  - **Footer**: `SecondaryPageFooterV2`.
+
+## Theme System & Color Model
+
+The application's theme is controlled by CSS variables defined in `src/app/globals.css`. It supports a `light` mode, a `dark` mode, and a user-configurable `custom` mode.
+
+The color system is based on the **HSL (Hue, Saturation, Lightness)** model. All color variables in `globals.css` (e.g., `--background`, `--primary`, `--foreground`) are defined using HSL values. This allows for programmatic and predictable manipulation of the theme's colors, as seen in the custom theme generator.
