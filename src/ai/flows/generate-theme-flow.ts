@@ -78,6 +78,7 @@ const prompt = ai.definePrompt({
     - The 'foreground' color MUST have a high contrast ratio with the background color for accessibility and readability.
     - The 'primary' color also MUST have a high contrast ratio with the background.
     - The 'ring' color must be a slightly lighter or darker shade of the 'primary' color. It will be used as a background highlight for selected items, so it needs to be different enough to be noticeable but still harmonious.
+    - CRITICAL: You must also consider derived colors. The app uses CSS calculations to create secondary, muted, and accent colors from the three base colors you provide. You MUST generate base colors that result in good contrast for these derived colors as well. For example, the 'foreground' color must be clearly visible on the 'muted' background, which is a lighter shade of the 'primary' color. Always prioritize readability across the entire UI.
     
     Interpret the user's words creatively to generate a harmonious and visually appealing theme that meets all constraints.
   `,
