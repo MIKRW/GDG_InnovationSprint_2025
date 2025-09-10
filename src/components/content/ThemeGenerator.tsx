@@ -27,7 +27,6 @@ const formSchema = z.object({
   word1: z.string().min(2, { message: 'Please enter a word.' }),
   word2: z.string().min(2, { message: 'Please enter a word.' }),
   word3: z.string().min(2, { message: 'Please enter a word.' }),
-  mood: z.string().min(2, { message: 'Please enter a word.' }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -54,6 +53,8 @@ const EMPTY_THEME: Theme = {
   isActive: false,
 };
 
+const MOODS = ['Vibrant', 'Calm', 'High Contrast', 'Tritanopia-Friendly', 'Deuteranopia-Friendly', 'Protanopia-Friendly', 'Minimalist', '80s Retro', 'Dark'];
+
 const MAX_SAVED_THEMES = 6;
 
 export function ThemeGenerator() {
@@ -63,6 +64,7 @@ export function ThemeGenerator() {
   const [savedThemes, setSavedThemes] = useState<Theme[]>([]);
   const [selectedSlot, setSelectedSlot] = useState(0);
   const [isPreviewingGenerated, setIsPreviewingGenerated] = useState(false);
+  const [currentMoodIndex, setCurrentMoodIndex] = useState(0);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -70,7 +72,6 @@ export function ThemeGenerator() {
       word1: '',
       word2: '',
       word3: '',
-      mood: '',
     },
   });
 
@@ -187,18 +188,19 @@ export function ThemeGenerator() {
       title: 'Theme Saved!',
       description: `Generated theme saved to slot ${selectedSlot + 1}.`,
     });
-    form.reset({ word1: '', word2: '', word3: '', mood: '' });
+    form.reset({ word1: '', word2: '', word3: '' });
   };
 
 
   async function onSubmit(values: FormValues) {
     setIsLoading(true);
+    const mood = MOODS[currentMoodIndex];
     try {
-      const newColors = await generateTheme({ ...values });
+      const newColors = await generateTheme({ ...values, mood });
       
       const newTheme: Theme = {
         id: uuidv4(),
-        words: values,
+        words: { ...values, mood },
         colors: newColors,
         isActive: false,
       };
@@ -238,6 +240,10 @@ export function ThemeGenerator() {
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add('custom');
     setIsPreviewingGenerated(false);
+
+    const activeMoodIndex = MOODS.indexOf(themeToActivate.words.mood);
+    setCurrentMoodIndex(activeMoodIndex >= 0 ? activeMoodIndex : 0);
+
     form.reset(themeToActivate.words);
   }
 
@@ -266,11 +272,15 @@ export function ThemeGenerator() {
     const newTheme = {...generatedTheme, colors: newColors};
 
     setGeneratedTheme(newTheme);
-    localStorage.setItem('generated-theme', JSON.stringify(newTheme));
+localStorage.setItem('generated-theme', JSON.stringify(newTheme));
 
     if (isPreviewingGenerated) {
         updateCSSVariables(newColors);
     }
+  };
+
+  const rotateMood = () => {
+    setCurrentMoodIndex((prevIndex) => (prevIndex + 1) % MOODS.length);
   };
 
   return (
@@ -315,18 +325,10 @@ export function ThemeGenerator() {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="mood"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input placeholder="type here" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <Button type="button" variant="outline" onClick={rotateMood} className="h-10">
+                <RefreshCw className="mr-2 h-4 w-4" />
+                {MOODS[currentMoodIndex]}
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 items-stretch gap-4">
@@ -392,5 +394,3 @@ export function ThemeGenerator() {
     </>
   );
 }
-
-    

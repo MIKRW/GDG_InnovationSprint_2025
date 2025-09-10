@@ -30,7 +30,7 @@ const GenerateThemeInputSchema = z.object({
   word1: z.string().describe('A word to inspire a color.'),
   word2: z.string().describe('A second word to inspire a color.'),
   word3: z.string().describe('A third word to inspire a color.'),
-  mood: z.string().describe('A word to describe the overall mood of the theme (e.g., "dark", "light", "calm", "80s").'),
+  mood: z.string().describe('A keyword that defines the desired aesthetic and accessibility constraints (e.g., "High Contrast", "Tritanopia-Friendly", "Vibrant", "Dark").'),
 });
 export type GenerateThemeInput = z.infer<typeof GenerateThemeInputSchema>;
 
@@ -46,10 +46,10 @@ const prompt = ai.definePrompt({
   input: { schema: GenerateThemeInputSchema },
   output: { schema: GenerateThemeOutputSchema },
   prompt: `
-    You are an expert UI theme designer with a deep understanding of color theory, word association, and accessibility standards.
+    You are an expert UI theme designer with a deep understanding of color theory, word association, and web accessibility standards (WCAG).
     Your task is to generate a creative, unique, and aesthetically pleasing HSL color palette based on user input.
 
-    The user has provided three inspirational words and a mood.
+    The user has provided three inspirational words and a specific mood.
     - Words: "{{word1}}", "{{word2}}", "{{word3}}"
     - Mood: "{{mood}}"
 
@@ -62,14 +62,18 @@ const prompt = ai.definePrompt({
     If they say "lavender" or "forest green", learn from professional color systems to choose an appropriate shade.
     
     After selecting the initial colors, use the 'mood' as a strong guideline to modify and adjust the final HSL values.
-    For example, a 'dark' mood should result in lower lightness values for the background. A 'vibrant' mood should increase saturation. 'High Contrast' should maximize the lightness difference between background and foreground.
+    The mood is the most important constraint. Pay special attention to accessibility-related moods.
+    For "High Contrast", ensure a WCAG AA or AAA contrast ratio between background and foreground/primary colors.
+    For "Tritanopia-Friendly", "Deuteranopia-Friendly", or "Protanopia-Friendly", select colors that are easily distinguishable for users with those types of color vision deficiencies. Avoid problematic color combinations (like red-green for Deuteranopia/Protanopia).
+    For other moods like 'dark', 'vibrant', or '80s Retro', adjust the palette accordingly (e.g., lower lightness for 'dark', higher saturation for 'vibrant').
 
     You must return an object with three HSL color objects: 'background', 'foreground', and 'primary'.
     
     - The 'foreground' color MUST have a high contrast ratio with the background color for accessibility and readability.
     - The 'primary' color also MUST have a high contrast ratio with the background.
+    - Adhere strictly to the requirements of any accessibility-related mood keyword.
     
-    Interpret the user's words creatively to generate a harmonious and visually appealing theme.
+    Interpret the user's words creatively to generate a harmonious and visually appealing theme that meets all constraints.
   `,
 });
 
