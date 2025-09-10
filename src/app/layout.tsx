@@ -3,7 +3,6 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
-import { AppLayout } from '@/components/layout/AppLayout';
 
 export const metadata: Metadata = {
   title: 'Firebase Studio App',
@@ -31,7 +30,7 @@ export default function RootLayout({
           inter.variable
         )}
       >
-        <AppLayout>{children}</AppLayout>
+        {children}
         <Toaster />
       </body>
     </html>
