@@ -332,7 +332,7 @@ export function ThemeGenerator() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-full text-lg"
+                className="w-full h-40 text-lg"
               >
                 {isLoading ? (
                   <>
@@ -343,19 +343,21 @@ export function ThemeGenerator() {
                   'Generate Theme'
                 )}
               </Button>
-              <ThemeHistoryItem
-                theme={generatedTheme}
-                onClick={previewGeneratedTheme}
-                onRotateClick={rotateGeneratedTheme}
-                showRotate={generatedTheme.id !== 'empty'}
-                isEmpty={generatedTheme.id === 'empty'}
-                emptyText="Generate a new theme to see it here."
-                isSelected={isPreviewingGenerated}
-              />
+              <div className="h-40">
+                <ThemeHistoryItem
+                  theme={generatedTheme}
+                  onClick={previewGeneratedTheme}
+                  onRotateClick={rotateGeneratedTheme}
+                  showRotate={generatedTheme.id !== 'empty'}
+                  isEmpty={generatedTheme.id === 'empty'}
+                  emptyText="Generate a new theme to see it here."
+                  isSelected={isPreviewingGenerated}
+                />
+              </div>
               <Button
                 onClick={saveToSlot}
                 disabled={generatedTheme.id === 'empty'}
-                className="w-full h-full text-lg"
+                className="w-full h-40 text-lg"
               >
                 <Save className="mr-2 h-4 w-4" />
                 Save to Slot
