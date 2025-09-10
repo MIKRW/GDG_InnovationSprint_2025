@@ -128,16 +128,21 @@ export function ThemeGenerator() {
         setIsPreviewingGenerated(false);
         setIsPreviewingManual(false);
         // Find the active theme and re-apply it
-        const activeTheme = savedThemes.find(t => t.isActive);
-        if (activeTheme) {
-            updateCSSVariables(activeTheme.colors);
+        const activeThemeJson = localStorage.getItem('active-theme-json');
+        if (activeThemeJson) {
+            try {
+              const activeTheme = JSON.parse(activeThemeJson);
+              updateCSSVariables(activeTheme.colors);
+            } catch(e) {
+              console.error("Failed to parse active theme from localStorage", e);
+            }
         }
     };
     window.addEventListener('preview-exit', handlePreviewExit);
     return () => {
         window.removeEventListener('preview-exit', handlePreviewExit);
     };
-  }, [savedThemes, updateCSSVariables]);
+  }, [updateCSSVariables]);
 
 
   // Load saved themes from localStorage on initial mount
@@ -215,6 +220,7 @@ export function ThemeGenerator() {
       if (currentTheme !== 'custom') {
         document.documentElement.classList.remove('light', 'dark');
         document.documentElement.classList.add('custom');
+        localStorage.setItem('theme', 'custom');
       }
     }
   }, [savedThemes, updateCSSVariables, isPreviewingGenerated, isPreviewingManual]);
@@ -232,12 +238,23 @@ export function ThemeGenerator() {
   
     const newSavedThemes = savedThemes.map((theme, index) => {
       if (index === selectedSlot) {
+        // Create the new theme, ensuring it inherits the active state of the slot it's replacing.
         const newTheme = { ...themeToSave, id: uuidv4(), isActive: theme.isActive };
+        
+        // If this slot is the active one, immediately apply its styles and save it.
         if (newTheme.isActive) {
           updateCSSVariables(newTheme.colors);
-          localStorage.setItem('theme', 'custom');
-          document.documentElement.classList.remove('light', 'dark');
-          document.documentElement.classList.add('custom');
+          localStorage.setItem('active-theme-json', JSON.stringify(newTheme));
+          
+          // Ensure the app is in 'custom' theme mode.
+          const currentThemeClass = localStorage.getItem('theme');
+          if (currentThemeClass !== 'custom') {
+            localStorage.setItem('theme', 'custom');
+            document.documentElement.classList.remove('light', 'dark');
+            document.documentElement.classList.add('custom');
+          }
+
+          // Exit any active preview.
           setIsPreviewingGenerated(false);
           setIsPreviewingManual(false);
           sessionStorage.removeItem('theme-preview-active');
@@ -304,6 +321,7 @@ export function ThemeGenerator() {
 
   const handleSlotClick = (index: number) => {
     const themeToActivate = savedThemes[index];
+    if (!themeToActivate) return;
     
     const newSavedThemes = savedThemes.map((theme, i) => ({
       ...theme,
@@ -312,19 +330,25 @@ export function ThemeGenerator() {
     
     setSelectedSlot(index);
     setSavedThemes(newSavedThemes);
+    
+    // Save the entire list of themes and also the specific active one.
     localStorage.setItem('custom-themes', JSON.stringify(newSavedThemes));
+    localStorage.setItem('active-theme-json', JSON.stringify(themeToActivate));
     localStorage.setItem('theme', 'custom');
+    
     updateCSSVariables(themeToActivate.colors);
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add('custom');
+    
+    // Exit any preview state.
     setIsPreviewingGenerated(false);
     setIsPreviewingManual(false);
     sessionStorage.removeItem('theme-preview-active');
     setShowEmptyInputInfo(false);
 
+    // Update form to reflect the selected theme.
     const activeMoodIndex = MOODS.indexOf(themeToActivate.words.mood);
     setCurrentMoodIndex(activeMoodIndex >= 0 ? activeMoodIndex : 0);
-
     form.reset(themeToActivate.words);
   }
 
