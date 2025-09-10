@@ -401,6 +401,7 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
                 />
               </div>
               <Button
+                type="button"
                 onClick={saveToSlot}
                 disabled={generatedTheme.id === 'empty'}
                 className="w-full h-40 text-lg"
