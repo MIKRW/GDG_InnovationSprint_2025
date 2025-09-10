@@ -35,6 +35,7 @@ export function ThemeHistoryItem({
     background: `hsl(${colors.background.h}, ${colors.background.s}%, ${colors.background.l}%)`,
     foreground: `hsl(${colors.foreground.h}, ${colors.foreground.s}%, ${colors.foreground.l}%)`,
     primary: `hsl(${colors.primary.h}, ${colors.primary.s}%, ${colors.primary.l}%)`,
+    ring: `hsl(${colors.ring.h}, ${colors.ring.s}%, ${colors.ring.l}%)`,
   };
 
   const handleRotateClick = (e: React.MouseEvent) => {
@@ -56,7 +57,7 @@ export function ThemeHistoryItem({
 
   const ringStyle = isSelected
     ? {
-        '--tw-ring-color': `hsl(${colors.primary.h}, ${colors.primary.s}%, ${colors.primary.l}%)`,
+        '--tw-ring-color': styles.ring,
       }
     : {};
 

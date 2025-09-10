@@ -23,6 +23,7 @@ const GenerateThemeOutputSchema = z.object({
   background: ThemeColorSchema.describe('The background color of the theme.'),
   foreground: ThemeColorSchema.describe('The primary text/content color, ensuring high contrast with the background.'),
   primary: ThemeColorSchema.describe('The main accent color for buttons and highlights, ensuring high contrast with the background.'),
+  ring: ThemeColorSchema.describe('A vibrant, attention-grabbing color for UI highlights like focus rings and selections. It must contrast well with the background.'),
 });
 export type GenerateThemeOutput = z.infer<typeof GenerateThemeOutputSchema>;
 
@@ -72,10 +73,11 @@ const prompt = ai.definePrompt({
     For "Tritanopia-Friendly", "Deuteranopia-Friendly", or "Protanopia-Friendly", select colors that are easily distinguishable for users with those types of color vision deficiencies. Avoid problematic color combinations (like red-green for Deuteranopia/Protanopia).
     For other moods like 'dark', 'vibrant', or '80s Retro', adjust the palette accordingly (e.g., lower lightness for 'dark', higher saturation for 'vibrant').
 
-    You must return an object with three HSL color objects: 'background', 'foreground', and 'primary'.
+    You must return an object with four HSL color objects: 'background', 'foreground', 'primary', and 'ring'.
     
     - The 'foreground' color MUST have a high contrast ratio with the background color for accessibility and readability.
     - The 'primary' color also MUST have a high contrast ratio with the background.
+    - The 'ring' color must also contrast well with the background and be suitable for focus indicators.
     - Adhere strictly to the requirements of any accessibility-related mood keyword.
     
     Interpret the user's words creatively to generate a harmonious and visually appealing theme that meets all constraints.
@@ -97,4 +99,5 @@ const generateThemeFlow = ai.defineFlow(
     return output;
   }
 );
+
 

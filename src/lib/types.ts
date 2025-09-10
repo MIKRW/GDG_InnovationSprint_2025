@@ -18,6 +18,7 @@ export type Theme = {
     background: ThemeColor;
     foreground: ThemeColor;
     primary: ThemeColor;
+    ring: ThemeColor;
   };
   isActive: boolean;
 };

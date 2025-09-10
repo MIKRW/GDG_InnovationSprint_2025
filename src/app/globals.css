@@ -39,6 +39,9 @@
     --custom-primary-h: 39;
     --custom-primary-s: 50%;
     --custom-primary-l: 20%;
+    --custom-ring-h: 222.2;
+    --custom-ring-s: 84%;
+    --custom-ring-l: 4.9%;
   }
   .dark {
     --background: 222.2 84% 4.9%;
@@ -85,7 +88,7 @@
     --destructive-foreground: 0 0% 100%;
     --border: var(--custom-primary-h) var(--custom-primary-s) calc(var(--custom-primary-l) + 20%);
     --input: var(--custom-primary-h) var(--custom-primary-s) calc(var(--custom-primary-l) + 25%);
-    --ring: var(--custom-primary-h) var(--custom-primary-s) var(--custom-primary-l);
+    --ring: var(--custom-ring-h) var(--custom-ring-s) var(--custom-ring-l);
   }
 }
 

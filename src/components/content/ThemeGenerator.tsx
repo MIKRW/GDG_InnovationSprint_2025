@@ -39,6 +39,7 @@ const DEFAULTS: Theme = {
     background: { h: 39, s: 100, l: 97 },
     foreground: { h: 39, s: 50, l: 10 },
     primary: { h: 39, s: 50, l: 20 },
+    ring: { h: 39, s: 50, l: 30 },
   },
   isActive: true,
 };
@@ -50,6 +51,7 @@ const EMPTY_THEME: Theme = {
     background: { h: 0, s: 0, l: 100 },
     foreground: { h: 0, s: 0, l: 0 },
     primary: { h: 0, s: 0, l: 50 },
+    ring: { h: 0, s: 0, l: 60 },
   },
   isActive: false,
 };
@@ -95,6 +97,9 @@ export function ThemeGenerator() {
     root.style.setProperty('--custom-primary-h', `${colors.primary.h}`);
     root.style.setProperty('--custom-primary-s', `${colors.primary.s}%`);
     root.style.setProperty('--custom-primary-l', `${colors.primary.l}%`);
+    root.style.setProperty('--custom-ring-h', `${colors.ring.h}`);
+    root.style.setProperty('--custom-ring-s', `${colors.ring.s}%`);
+    root.style.setProperty('--custom-ring-l', `${colors.ring.l}%`);
   }, []);
 
   // Load saved themes from localStorage on initial mount
@@ -292,7 +297,8 @@ export function ThemeGenerator() {
     const newColors = {
         background: currentColors.foreground,
         foreground: currentColors.primary,
-        primary: currentColors.background
+        primary: currentColors.background,
+        ring: currentColors.ring,
     };
 
     const newTheme = {...generatedTheme, colors: newColors};
