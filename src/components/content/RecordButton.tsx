@@ -16,7 +16,6 @@ import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 type RecordingState =
   | 'idle'
-  | 'requesting'
   | 'denied'
   | 'recording'
   | 'processing';
@@ -31,7 +30,8 @@ export function RecordButton() {
 
 
   const handleStartRecording = async () => {
-    setRecordingState('requesting');
+    if (recordingState === 'denied') return;
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorderRef.current = new MediaRecorder(stream);
@@ -119,40 +119,38 @@ export function RecordButton() {
         return {
           icon: <Square className="w-40 h-40 text-background" />,
           label: 'Press to Stop',
-          disabled: false,
         };
       case 'processing':
         return {
           icon: <Loader2 className="w-40 h-40 text-background animate-spin" />,
           label: 'Analyzing...',
-          disabled: true,
         };
       case 'denied':
          return {
           icon: <MicOff className="w-40 h-40 text-background" />,
           label: 'Microphone Access Denied',
-          disabled: true,
         };
-      default: // idle, requesting
+      default: // idle
         return {
           icon: <MicrophoneIcon />,
           label: 'Press to Record',
-          disabled: recordingState === 'requesting',
         };
     }
   };
 
-  const { icon, label, disabled } = getButtonContent();
+  const { icon, label } = getButtonContent();
+  const isDisabled = recordingState === 'processing' || recordingState === 'denied';
+
 
   return (
-    <>
+    <div className="flex flex-row items-center gap-8">
       <Button
         variant="default"
         size="icon"
         className="w-96 h-[36rem] rounded-full bg-foreground hover:bg-foreground/90 flex flex-col-reverse justify-center items-center gap-8 transition-all duration-300 ease-in-out"
         aria-label="Record Audio"
         onClick={handleClick}
-        disabled={disabled}
+        disabled={isDisabled}
       >
         <div className="text-background text-center text-2xl">
           <p className="text-xl">{label}</p>
@@ -160,7 +158,7 @@ export function RecordButton() {
         {icon}
       </Button>
       {recordingState === 'denied' && (
-          <Alert variant="destructive" className="mt-8 max-w-md">
+          <Alert variant="destructive" className="max-w-md">
             <MicOff className="h-4 w-4" />
             <AlertTitle>Microphone Access Required</AlertTitle>
             <AlertDescription>
@@ -168,6 +166,6 @@ export function RecordButton() {
             </AlertDescription>
           </Alert>
       )}
-    </>
+    </div>
   );
 }
