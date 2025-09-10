@@ -174,7 +174,7 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
               ...locationData,
           };
           addLog(newLog);
-          router.push(`/log/${newLog.id}`);
+          router.push(`/log`);
       } else {
            // AI failed, trigger confirmation
            setLastAudio(base64Audio);
