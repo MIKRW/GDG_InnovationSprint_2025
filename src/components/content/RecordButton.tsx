@@ -29,21 +29,6 @@ export function RecordButton() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  useEffect(() => {
-    // Check for permissions on component mount
-    if (typeof window !== 'undefined') {
-      navigator.mediaDevices.getDisplayMedia({video: false, audio: true}).then(stream => {
-        const hasMic = stream.getAudioTracks().length > 0;
-        if (!hasMic) {
-            // This is a proxy for mic permissions, as getUserMedia can hang if permission is neither granted nor denied.
-            // If the user has no mic attached, this will also trigger.
-            setRecordingState('denied');
-        }
-        // stop all tracks
-        stream.getTracks().forEach(track => track.stop());
-      }).catch(() => setRecordingState('denied'));
-    }
-  }, []);
 
   const handleStartRecording = async () => {
     setRecordingState('requesting');
