@@ -27,9 +27,9 @@ const GenerateThemeOutputSchema = z.object({
 export type GenerateThemeOutput = z.infer<typeof GenerateThemeOutputSchema>;
 
 const GenerateThemeInputSchema = z.object({
-  background: z.string().describe('A word to inspire the background color (e.g., "sand", "sky", "forest").'),
-  foreground: z.string().describe('A word to inspire the foreground text color (e.g., "stone", "ink", "snow").'),
-  primary: z.string().describe('A word to inspire the primary accent color (e.g., "ocean", "sunset", "gold").'),
+  word1: z.string().describe('A word to inspire a color.'),
+  word2: z.string().describe('A second word to inspire a color.'),
+  word3: z.string().describe('A third word to inspire a color.'),
   mood: z.string().describe('A word to describe the overall mood of the theme (e.g., "dark", "light", "calm", "80s").'),
 });
 export type GenerateThemeInput = z.infer<typeof GenerateThemeInputSchema>;
@@ -46,24 +46,26 @@ const prompt = ai.definePrompt({
   input: { schema: GenerateThemeInputSchema },
   output: { schema: GenerateThemeOutputSchema },
   prompt: `
-    You are an expert UI theme designer with a deep understanding of color theory and word association.
+    You are an expert UI theme designer with a deep understanding of color theory, word association, and accessibility standards.
     Your task is to generate a creative, unique, and aesthetically pleasing HSL color palette based on user input.
 
+    The user has provided three inspirational words and a mood.
+    - Words: "{{word1}}", "{{word2}}", "{{word3}}"
+    - Mood: "{{mood}}"
+
+    Your job is to intelligently assign one word to the background, one to the foreground, and one to the primary accent color.
+    Base your assignments on color theory. For example, a darker, less saturated color is usually best for a background, while a brighter, more saturated color makes a good accent.
+
     When choosing colors, base your selections on the real-world colors associated with the input words.
-    To do this, you can research how established color brands (like Pantone or paint companies) name their colors.
+    To do this, you should research how established color brands (like Pantone or paint companies) name their colors.
     For example, if a user provides the word "eggshell", you should associate it with a natural, off-white color.
     If they say "lavender" or "forest green", learn from professional color systems to choose an appropriate shade.
 
-    The user has provided four words as inspiration.
-    - The 'background' color should be inspired by the word: "{{background}}".
-    - The 'foreground' color should be inspired by the word: "{{foreground}}".
-    - The 'primary' color should be inspired by the word: "{{primary}}".
-    - The overall mood for the theme should be: "{{mood}}". Use this as a strong guide for the style, saturation, and lightness of the colors.
-    
     You must return an object with three HSL color objects: 'background', 'foreground', and 'primary'.
     
-    - The 'foreground' color MUST have a high contrast ratio with the background color for accessibility.
+    - The 'foreground' color MUST have a high contrast ratio with the background color for accessibility and readability.
     - The 'primary' color also MUST have a high contrast ratio with the background.
+    - Use the 'mood' as a strong guide for the overall style, saturation, and lightness of the colors.
     
     Interpret the user's words creatively to generate a harmonious and visually appealing theme that has not been generated before.
   `,

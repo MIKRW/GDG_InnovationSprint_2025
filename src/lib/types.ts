@@ -9,9 +9,9 @@ export type ThemeColor = {
 export type Theme = {
   id: string;
   words: {
-    background: string;
-    foreground: string;
-    primary: string;
+    word1: string;
+    word2: string;
+    word3: string;
     mood: string;
   };
   colors: {

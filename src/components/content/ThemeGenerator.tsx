@@ -24,9 +24,9 @@ import { ThemeHistoryItem } from './ThemeHistoryItem';
 import { Separator } from '@/components/ui/separator';
 
 const formSchema = z.object({
-  background: z.string().min(2, { message: 'Please enter a word.' }),
-  foreground: z.string().min(2, { message: 'Please enter a word.' }),
-  primary: z.string().min(2, { message: 'Please enter a word.' }),
+  word1: z.string().min(2, { message: 'Please enter a word.' }),
+  word2: z.string().min(2, { message: 'Please enter a word.' }),
+  word3: z.string().min(2, { message: 'Please enter a word.' }),
   mood: z.string().min(2, { message: 'Please enter a word.' }),
 });
 
@@ -34,7 +34,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 const DEFAULTS: Theme = {
   id: 'default',
-  words: { background: 'sand', foreground: 'stone', primary: 'ocean', mood: 'warm' },
+  words: { word1: 'sand', word2: 'stone', word3: 'ocean', mood: 'warm' },
   colors: {
     background: { h: 39, s: 100, l: 97 },
     foreground: { h: 39, s: 50, l: 10 },
@@ -45,7 +45,7 @@ const DEFAULTS: Theme = {
 
 const EMPTY_THEME: Theme = {
   id: 'empty',
-  words: { background: '', foreground: '', primary: '', mood: '' },
+  words: { word1: '', word2: '', word3: '', mood: '' },
   colors: {
     background: { h: 0, s: 0, l: 100 },
     foreground: { h: 0, s: 0, l: 0 },
@@ -67,9 +67,9 @@ export function ThemeGenerator() {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      background: '',
-      foreground: '',
-      primary: '',
+      word1: '',
+      word2: '',
+      word3: '',
       mood: '',
     },
   });
@@ -106,7 +106,7 @@ export function ThemeGenerator() {
         let theme = initialThemes[i];
         if (!theme) {
             theme = { ...DEFAULTS, id: uuidv4(), isActive: false };
-            if (i > 0) theme.words = { background: 'new', foreground: 'theme', primary: 'slot', mood: 'default' };
+            if (i > 0) theme.words = { word1: 'new', word2: 'theme', word3: 'slot', mood: 'default' };
         }
         
         if (theme.isActive) {
@@ -259,11 +259,11 @@ export function ThemeGenerator() {
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
             <FormField
               control={form.control}
-              name="background"
+              name="word1"
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input placeholder="background" {...field} />
+                    <Input placeholder="Word 1" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -271,11 +271,11 @@ export function ThemeGenerator() {
             />
             <FormField
               control={form.control}
-              name="foreground"
+              name="word2"
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input placeholder="foreground" {...field} />
+                    <Input placeholder="Word 2" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -283,11 +283,11 @@ export function ThemeGenerator() {
             />
             <FormField
               control={form.control}
-              name="primary"
+              name="word3"
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input placeholder="primary" {...field} />
+                    <Input placeholder="Word 3" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
