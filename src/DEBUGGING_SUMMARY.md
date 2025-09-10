@@ -35,13 +35,17 @@ To make future debugging sessions faster, here is a checklist of common issues a
     *   **Incorrect:** `useState(localStorage.getItem('theme') || 'light')`
     *   **Correct:** Initialize state with a default value (`useState('light')`) and then use a `useEffect` hook to load the value from `localStorage` on the client-side after the component has mounted.
 
-10. **Isolate the Problem:** Try to reproduce the error on a minimal component or a new page. If the error disappears, it suggests a conflict with parent components or global styles.
+10. **Placeholder for Next Error Type**: This is a placeholder for the next unique error we resolve.
+    *   **Cause**: [Description of what causes the error.]
+    *   **Solution**: [Description of the code changes implemented to fix it.]
 
-11. **Use React DevTools:** Inspect the component in the browser using React DevTools. Check its props and state to ensure they are what you expect them to be at render time.
+11. **Isolate the Problem:** Try to reproduce the error on a minimal component or a new page. If the error disappears, it suggests a conflict with parent components or global styles.
 
-12. **Hard Refresh the Browser:** Sometimes the browser's own cache can be the problem. Do a hard refresh (Ctrl+Shift+R or Cmd+Shift+R) to bypass the local cache.
+12. **Use React DevTools:** Inspect the component in the browser using React DevTools. Check its props and state to ensure they are what you expect them to be at render time.
 
-13. **Review Prop and HTML Structure:** Double-check for invalid HTML nesting (e.g., a `<p>` inside another `<p>`) or incorrect prop types being passed to a component.
+13. **Hard Refresh the Browser:** Sometimes the browser's own cache can be the problem. Do a hard refresh (Ctrl+Shift+R or Cmd+Shift+R) to bypass the local cache.
+
+14. **Review Prop and HTML Structure:** Double-check for invalid HTML nesting (e.g., a `<p>` inside another `<p>`) or incorrect prop types being passed to a component.
 
 ## How to Restart the Server in Firebase Studio
 
