@@ -14,7 +14,7 @@ export function GridContainer({
     <div
       data-component="GridContainer"
       className={cn(
-        'grid grid-cols-[1fr_1.6fr_1fr] grid-rows-[0.4fr_1.6fr_0.4fr] gap-4 p-4 bg-muted h-full',
+        'grid flex-1 grid-cols-[1fr_1.6fr_1fr] grid-rows-[0.4fr_1.6fr_0.4fr] gap-4 bg-muted p-4',
         className
       )}
     >

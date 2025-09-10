@@ -7,7 +7,7 @@ import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 export default function RecordPage() {
   return (
     <AppLayout header={<SecondaryHeader title="Microphone" />}>
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex flex-1 overflow-y-auto">
         <GridContainer>
           <div
             data-component="RecordContainer"

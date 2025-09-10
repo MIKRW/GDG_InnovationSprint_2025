@@ -6,7 +6,7 @@ import { PrimaryHeader } from '@/components/layout/PrimaryHeader';
 export default function Home() {
   return (
     <AppLayout header={<PrimaryHeader />}>
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex flex-1 overflow-y-auto">
         <GridContainer />
       </main>
       <HomePageFooter />
