@@ -413,8 +413,8 @@ localStorage.setItem('generated-theme', JSON.stringify(newTheme));
         </Form>
       </div>
 
-      <div className="mt-16">
-        <h2 className="text-3xl font-bold text-center mb-8">
+      <div className="my-24">
+        <h2 className="text-5xl font-bold text-center mb-12">
           Favorite Themes
         </h2>
         <div className="grid grid-cols-6 gap-4">
