@@ -3,7 +3,7 @@ import { Logo } from '@/components/content/Logo';
 
 export default function Home() {
   return (
-    <div className="grid grid-cols-3 grid-rows-3 h-full gap-4 p-4">
+    <div className="grid grid-cols-3 grid-rows-3 gap-4 p-4 h-full">
       {/* Cell 1: Top-Left */}
       <div className="col-start-1 row-start-1"></div>
 
