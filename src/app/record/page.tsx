@@ -48,12 +48,10 @@ export default function RecordPage() {
                     }}
                   >
                     <div className="bg-background rounded-sm">
-                      <CardHeader>
-                      </CardHeader>
-                      <CardContent>
+                      <CardContent className="p-0">
                         <input
                             type="file"
-                            ref={fileInput-Ref}
+                            ref={fileInputRef}
                             onChange={onFileChange}
                             className="hidden"
                             accept="audio/*"
