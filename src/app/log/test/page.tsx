@@ -12,11 +12,6 @@ import { db } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// As per our data model: birds/{birdId}/testAudio/{audioId}/testRuns
-// For this initial implementation, we'll use a placeholder birdId and testAudioId
-const BIRD_ID = "australian-magpie";
-const TEST_AUDIO_ID = "magpie-warble-1";
-
 interface TestRun {
     id: string;
     timestamp: string;
@@ -37,7 +32,8 @@ export default function TestLogPage() {
   useEffect(() => {
     if (!isDevMode) return;
 
-    const testRunCollectionRef = collection(db, 'birds', BIRD_ID, 'testAudio', TEST_AUDIO_ID, 'testRuns');
+    // Query the flat 'all_test_runs' collection
+    const testRunCollectionRef = collection(db, 'all_test_runs');
     const q = query(testRunCollectionRef, orderBy('timestamp', 'desc'));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -114,5 +110,3 @@ export default function TestLogPage() {
     </AppLayout>
   );
 }
-
-    

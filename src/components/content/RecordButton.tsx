@@ -102,21 +102,21 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
   };
 
-  const saveToFirestore = async (log: Omit<BirdLog, 'id' | 'userId'>, audioDataUri: string) => {
+  const saveToFirestore = async (log: Omit<BirdLog, 'id' | 'userId'>, audioDataUri: string, aiResult: any, wasSuccessful: boolean) => {
     if (!user) {
       console.error("Cannot save log: user not authenticated.");
       return;
     }
-
+  
     const runId = uuidv4();
     const logId = uuidv4();
     const audioPath = `users/${user.uid}/recordings/${runId}.webm`;
     const audioStorageRef = storageRef(storage, audioPath);
-
+  
     try {
       const uploadResult = await uploadString(audioStorageRef, audioDataUri, 'data_url');
       const audioUrl = await getDownloadURL(uploadResult.ref);
-
+  
       const fullLog: BirdLog = {
         ...log,
         id: logId,
@@ -131,15 +131,17 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       const analysisData = {
           timestamp: new Date().toISOString(),
           userId: user.uid,
+          sessionId: currentSessionId.current,
           inputAudioUrl: audioPath,
           locationData: {
               latitude: log.latitude,
               longitude: log.longitude,
               locationDescription: log.locationDescription,
           },
-          aiResult: fullLog, // Store the final log data
-          wasSuccessful: !log.isMystery,
+          aiResult: aiResult,
+          wasSuccessful: wasSuccessful,
           wasSavedByUser: true,
+          analysisMethod: 'audio-gemini-2.5-flash-v1'
       };
       await addDoc(collection(db, 'all_analysis_runs'), analysisData);
       
@@ -151,7 +153,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   };
 
 
-  const saveMysteryLog = async (audioDataUri: string, locationData?: { latitude?: number; longitude?: number; locationDescription?: string; }) => {
+  const saveMysteryLog = async (audioDataUri: string, aiResult: any, locationData?: { latitude?: number; longitude?: number; locationDescription?: string; }) => {
     if (!user) return;
     const newLogData = {
       sessionId: currentSessionId.current!,
@@ -164,7 +166,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       ...locationData,
     };
     
-    await saveToFirestore(newLogData, audioDataUri);
+    await saveToFirestore(newLogData, audioDataUri, aiResult, false);
     setRecordingState('idle');
     setLastAudio(null);
     router.push(`/log`);
@@ -172,13 +174,36 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 
   const handleSaveConfirmation = () => {
     if (lastAudio) {
-      // Re-fetch location based on settings when user confirms save
-      getLocationForAIShot(locationData => saveMysteryLog(lastAudio, locationData));
+        const [audioData, aiResult] = JSON.parse(lastAudio);
+        // Re-fetch location based on settings when user confirms save
+        getLocationForAIShot(locationData => saveMysteryLog(audioData, aiResult, locationData));
     }
   };
 
-  const handleCancelSave = () => {
-    // Here we could log to all_analysis_runs with wasSavedByUser: false
+  const handleCancelSave = async () => {
+    if (lastAudio) {
+        if (!user) return;
+        const [audioData, aiResult] = JSON.parse(lastAudio);
+        const runId = uuidv4();
+        const audioPath = `users/${user.uid}/recordings/${runId}.webm`;
+
+        const analysisData = {
+            timestamp: new Date().toISOString(),
+            userId: user.uid,
+            sessionId: currentSessionId.current,
+            inputAudioUrl: audioPath, // Path even if upload fails or is skipped
+            locationData: {}, // No location saved if discarded
+            aiResult: aiResult,
+            wasSuccessful: false,
+            wasSavedByUser: false, // This is the key flag
+            analysisMethod: 'audio-gemini-2.5-flash-v1'
+        };
+        try {
+            await addDoc(collection(db, 'all_analysis_runs'), analysisData);
+        } catch (error) {
+            console.error("Error saving discarded log to analysis collection:", error);
+        }
+    }
     setRecordingState('idle');
     setLastAudio(null);
     onIdentificationFailed?.();
@@ -252,15 +277,10 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         aiResult: result,
         timestamp: new Date().toISOString(),
         promptVersion: PROMPT_VERSION,
+        birdId: "australian-magpie", // Placeholder
+        testAudioId: "magpie-warble-1", // Placeholder
     };
-
-    // As per our data model: birds/{birdId}/testAudio/{audioId}/testRuns/{runId}
-    // For this initial implementation, we'll use a placeholder birdId and testAudioId
-    const birdId = "australian-magpie";
-    const testAudioId = "magpie-warble-1";
-
-    const testRunCollectionRef = collection(db, 'birds', birdId, 'testAudio', testAudioId, 'testRuns');
-    await addDoc(testRunCollectionRef, testRunData);
+    await addDoc(collection(db, 'all_test_runs'), testRunData);
   }
 
 
@@ -298,17 +318,18 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
               isMystery: false,
               ...locationData,
           };
-          await saveToFirestore(newLogData, base64Audio);
+          await saveToFirestore(newLogData, base64Audio, result, true);
           router.push(`/log`);
       } else {
            // AI failed, trigger confirmation
-           setLastAudio(base64Audio);
+           // We now store the audio data AND the raw AI result
+           setLastAudio(JSON.stringify([base64Audio, result]));
            setRecordingState('confirming');
       }
     } catch (error) {
       console.error('Error identifying bird sound:', error);
-      // API failed, trigger confirmation
-      setLastAudio(base64Audio);
+      // API failed, trigger confirmation, store the error as the result
+      setLastAudio(JSON.stringify([base64Audio, { error: (error as Error).message }]));
       setRecordingState('confirming');
     }
   }
