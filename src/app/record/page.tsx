@@ -40,7 +40,7 @@ export default function RecordPage() {
       <main className="flex-1 flex items-center justify-center p-4 bg-muted relative">
         <div className="relative flex items-center justify-center gap-8">
             {isDevMode && (
-              <div className="absolute left-full ml-16 w-96 space-y-4">
+              <div className="absolute right-full mr-16 w-96 space-y-4">
                   <Card className="border-destructive border-4 border-dashed">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -72,7 +72,7 @@ export default function RecordPage() {
               onStartRecording={handleStartRecording}
             />
 
-            <div className="absolute right-full mr-16 w-96 space-y-4">
+            <div className="absolute left-full ml-16 w-96 space-y-4">
               {showPermissionError && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
