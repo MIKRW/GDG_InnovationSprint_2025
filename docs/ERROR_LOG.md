@@ -6,7 +6,7 @@ This document tracks recurring errors, their root causes, the solutions implemen
 
 ### Error Type: Firebase `auth/configuration-not-found`
 
-- **Occurrences**: 3
+- **Occurrences**: 4
 - **Description**: A `FirebaseError: Firebase: Error (auth/configuration-not-found)` occurs during anonymous sign-in. This indicates Firebase services are used before the configuration is loaded, particularly in a Next.js server-side rendering context.
 - **Cause**: The initial Firebase setup was not robust enough for the Next.js environment. Even with `dotenv`, parts of the Firebase SDK can be evaluated on the server during the build process without the explicit configuration, leading to an initialization race condition.
 - **Solution**:
@@ -113,6 +113,7 @@ This document tracks recurring errors, their root causes, the solutions implemen
 - **Solution**: 
 
 ---
+
 
 
 
