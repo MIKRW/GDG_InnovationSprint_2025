@@ -2,7 +2,5 @@
 import { config } from 'dotenv';
 config();
 
-// Import your flows here.
-import '@/ai/flows/generate-theme-flow';
-import '@/ai/flows/identify-bird-flow';
-
+// This file is used for local Genkit development and should remain empty
+// for Next.js builds to prevent module resolution errors.
