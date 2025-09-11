@@ -36,6 +36,20 @@ export default function RecordPage() {
     <AppLayout header={<SecondaryHeader title="Microphone" />}>
       <main className="flex-1 flex items-center justify-center p-4 bg-muted relative">
         <div className="relative flex items-center justify-center gap-8">
+            <div className="absolute right-full mr-16 w-96 space-y-4">
+                 <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={onFileChange}
+                    className="hidden"
+                    accept="audio/*"
+                />
+                 <Button onClick={handleUploadClick} variant="outline" className="w-full h-24 text-lg">
+                    <Upload className="mr-2 h-6 w-6" />
+                    Upload Audio File
+                </Button>
+            </div>
+
             <RecordButton 
               ref={recordButtonRef}
               onPermissionDenied={() => setShowPermissionError(true)} 
@@ -62,17 +76,6 @@ export default function RecordPage() {
                   </AlertDescription>
                 </Alert>
               )}
-                 <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={onFileChange}
-                    className="hidden"
-                    accept="audio/*"
-                />
-                 <Button onClick={handleUploadClick} variant="outline" className="w-full h-24 text-lg">
-                    <Upload className="mr-2 h-6 w-6" />
-                    Upload Audio File
-                </Button>
             </div>
         </div>
       </main>
