@@ -5,9 +5,11 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { SearchableHeader } from '@/components/layout/SearchableHeader';
 import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
 import type { SortOption } from '@/lib/types';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { useState, useMemo } from 'react';
 
+// This is a client component that wraps the Log pages and provides
+// the search and sort state to them.
 export default function LogLayout({
   children,
 }: {
@@ -17,12 +19,22 @@ export default function LogLayout({
   const [sortOption, setSortOption] = useState<SortOption>('newest');
   const pathname = usePathname();
 
-  let title = 'Bird Book';
-  if (pathname.startsWith('/log/mystery')) {
-    title = 'Mystery Recordings';
-  } else if (pathname.startsWith('/log/test')) {
-    title = 'Test Results';
-  }
+  const title = useMemo(() => {
+    if (pathname.startsWith('/log/mystery')) {
+      return 'Mystery Recordings';
+    }
+    if (pathname.startsWith('/log/test')) {
+        return 'Test Results'
+    }
+    return 'Bird Book';
+  }, [pathname]);
+
+  const childrenWithProps = React.Children.map(children, (child) => {
+    if (React.isValidElement(child)) {
+      return React.cloneElement(child, { searchQuery, sortOption } as any);
+    }
+    return child;
+  });
 
   return (
     <AppLayout
@@ -35,21 +47,7 @@ export default function LogLayout({
       }
     >
       <main className="flex-1 overflow-y-auto bg-muted">
-        {/* Pass state to children that need it */}
-        {children &&
-          (children as any).type.name === 'LogPage' &&
-          (
-            <div className="h-full">
-              {(children as React.ReactElement<any, string | React.JSXElementConstructor<any>>).props.children}
-            </div>
-          )}
-        {children &&
-          (children as any).type.name !== 'LogPage' &&
-          (
-            <div className="h-full">
-              {children}
-            </div>
-          )}
+         {childrenWithProps}
       </main>
       <SecondaryPageFooterV2 />
     </AppLayout>
