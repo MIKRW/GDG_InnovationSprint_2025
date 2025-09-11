@@ -6,13 +6,15 @@ This document outlines the complete data architecture for the ChirpID applicatio
 
 ## Part 1: The Developer/Test Data Model
 
-This model is designed for our internal, controlled testing. It is structured around the bird species itself, allowing us to easily manage and run tests for specific birds.
+This model is designed for our internal, controlled testing. It is structured around the bird species itself, allowing us to easily manage and run tests for specific birds. To enable efficient searching and filtering by scientific classification, each bird document will include its taxonomic family and order.
 
 *   **Top-Level Collection:** `birds`
     *   Each document represents a bird species. The Document ID will be a unique slug (e.g., `australian-magpie`).
     *   **Document:** `birds/australian-magpie`
         *   `commonName`: "Australian Magpie"
         *   `scientificName`: "Gymnorhina tibicen"
+        *   `family`: "Artamidae" // e.g., Woodswallows, butcherbirds, etc.
+        *   `order`: "Passeriformes" // e.g., Perching birds
         *   **Subcollection:** `testAudio`
             *   Each document represents a master test recording for that species.
             *   **Document:** `testAudio/magpie-warble-1`
