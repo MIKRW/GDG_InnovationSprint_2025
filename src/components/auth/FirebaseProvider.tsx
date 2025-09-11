@@ -25,13 +25,15 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Subscribe to authentication state changes
+    // onAuthStateChanged returns an unsubscribe function
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
+        // If we already have a user, set it and stop loading
         setUser(currentUser);
         setLoading(false);
       } else {
         // If no user is signed in, sign them in anonymously.
+        // This is where the error was happening.
         try {
           const userCredential = await signInAnonymously(auth);
           setUser(userCredential.user);
@@ -43,7 +45,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Unsubscribe on cleanup
+    // Unsubscribe from the listener when the component unmounts
     return () => unsubscribe();
   }, []);
 
