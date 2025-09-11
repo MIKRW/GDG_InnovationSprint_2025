@@ -38,7 +38,7 @@ export default function RecordPage() {
   return (
     <AppLayout header={<SecondaryHeader title="Microphone" />}>
       <main className="flex-1 flex items-center justify-center p-4 bg-muted relative">
-        <div className="relative flex items-center justify-center gap-8">
+        <div className="relative flex items-center justify-center gap-32">
             {isDevMode && (
               <div className="w-96 space-y-4">
                   <Card
