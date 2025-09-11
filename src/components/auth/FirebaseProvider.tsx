@@ -27,7 +27,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   // This effect hook ONLY listens for auth state changes.
-  // It no longer tries to sign the user in.
+  // It handles re-hydrating the session if the user is already logged in.
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -38,12 +38,12 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  // This is the function that components will call to trigger sign-in.
+  // This is the function that components will call to trigger sign-in on-demand.
   const ensureUser = useCallback(async () => {
-    if (user) return user; // Already signed in
+    if (user) return user; // Already signed in, return immediately.
 
-    // This is where the error was happening.
-    // By calling it on-demand, we ensure Firebase is ready.
+    // If no user, attempt anonymous sign-in. This will only be called
+    // on the client, upon user interaction.
     try {
       setLoading(true);
       const userCredential = await signInAnonymously(auth);
@@ -51,7 +51,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
       return userCredential.user;
     } catch (error) {
       console.error("Anonymous sign-in failed:", error);
-      // We can log this to our new error logging system in the future.
+      // In the future, this can be logged to a formal error reporting service.
       return null;
     } finally {
         setLoading(false);

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Mic, Book, Settings } from 'lucide-react';
 import { useAuth } from '@/components/auth/use-auth';
 import type { MouseEvent } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 const navItems = [
   { href: '/record', label: 'Record', icon: Mic },
@@ -16,16 +17,26 @@ const navItems = [
 export function HomePageFooter() {
   const pathname = usePathname();
   const router = useRouter();
-  const { ensureUser } = useAuth();
+  const { ensureUser, loading } = useAuth();
+  const { toast } = useToast();
 
   const handleNavigation = async (e: MouseEvent<HTMLButtonElement>, href: string) => {
     e.preventDefault();
+    
+    // First, ensure the user is signed in. This will trigger the anonymous
+    // sign-in flow if they are not already authenticated.
     const user = await ensureUser();
+    
     if (user) {
+      // If sign-in is successful, proceed with navigation.
       router.push(href);
     } else {
-      // Handle the case where sign-in fails, perhaps show a toast
-      console.error("Could not navigate, user not signed in.");
+      // If sign-in fails, inform the user.
+      toast({
+        variant: 'destructive',
+        title: 'Authentication Failed',
+        description: 'Could not sign you in. Please check your connection and try again.',
+      });
     }
   };
 
@@ -39,6 +50,7 @@ export function HomePageFooter() {
             size="sm"
             onClick={(e) => handleNavigation(e, href)}
             className="flex flex-col items-center h-auto"
+            disabled={loading}
           >
             <Icon className="h-5 w-5" />
             <span className="text-xs mt-1">{label}</span>
