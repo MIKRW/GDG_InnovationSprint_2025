@@ -49,15 +49,11 @@ export default function RecordPage() {
                   >
                     <div className="bg-background rounded-sm">
                       <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <FlaskConical className="h-5 w-5 text-destructive" />
-                          Developer Tools
-                        </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <input
                             type="file"
-                            ref={fileInputRef}
+                            ref={fileInput-Ref}
                             onChange={onFileChange}
                             className="hidden"
                             accept="audio/*"
