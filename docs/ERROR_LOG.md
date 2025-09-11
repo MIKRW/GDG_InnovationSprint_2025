@@ -40,7 +40,7 @@ This document tracks recurring errors, their root causes, the solutions implemen
 ### Error Type: Flash of Incorrect Theme on Load
 
 - **Occurrences**: 2
-- **Description**: On a full page load or hot-reload, the application would briefly flash the default theme's styles before showing the correct, user-selected custom theme. This happened even after attempts to fix it with client-side components.
+- **Description**: On a full page load or a hot-reload, the application would briefly flash the default theme's styles before showing the correct, user-selected custom theme. This happened even after attempts to fix it with client-side components.
 - **Cause**: The root cause was a fundamental race condition in client-side rendering. Any theme-loading logic placed within a React `useEffect` hook (even in the root layout) can only run *after* the browser has already rendered the initial HTML from the server. This created a small window where the browser would display default styles before the client-side script could execute and apply the correct custom theme from `localStorage`.
 - **Solution**:
     1.  The final, correct solution was to move the theme-loading logic entirely out of the React component lifecycle.
@@ -70,6 +70,17 @@ This document tracks recurring errors, their root causes, the solutions implemen
 - **Solution**:
     1. The final and correct solution is to destructure the required parameter (`id`) directly from the `params` object in the component's function signature (e.g., `export default function LogDetailPage({ params: { id } })`).
     2. This pattern is the modern, recommended way to access route parameters in client components. It ensures the value is correctly resolved before the component renders, aligning with the latest Next.js behavior and completely eliminating the warning.
+
+---
+
+### Error Type: JSX Parsing Error due to Unclosed Component
+
+- **Occurrences**: 1
+- **Description**: A build error `Parsing ecmascript source code failed... Unexpected token` occurred when modifying the `record/page.tsx` file.
+- **Cause**: This error was caused by a simple syntax mistake in the JSX. An `<Alert>` component was left unclosed (e.g., `<Alert>...<AlertDescription>...</Alert>`), which is invalid syntax. The Next.js build process cannot parse an incomplete component tree, leading to a build failure.
+- **Solution**:
+    1. The fix was to identify the unclosed component and correctly close it (e.g., `<Alert>...<AlertDescription>...</AlertDescription></Alert>`).
+    2. This ensures the JSX tree is valid and can be correctly parsed by the compiler, resolving the build error. This highlights the importance of careful JSX syntax checking.
 
 ---
 
