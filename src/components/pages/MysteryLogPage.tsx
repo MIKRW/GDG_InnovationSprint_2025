@@ -4,9 +4,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 
 import type { BirdLog, SortOption } from '@/lib/types';
-import { getLogs } from '@/lib/local-storage';
+import { useAuth } from '@/components/auth/use-auth';
+import { db } from '@/lib/firebase';
 
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { PageTitle } from '../content/PageTitle';
@@ -17,16 +19,35 @@ interface MysteryLogPageProps {
 }
 
 export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps) {
+  const { user } = useAuth();
   const [allLogs, setAllLogs] = useState<BirdLog[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setAllLogs(getLogs());
-  }, []);
+    if (!user) return;
+
+    setLoading(true);
+    const q = query(
+        collection(db, `users/${user.uid}/identifications`),
+        where('isMystery', '==', true),
+        orderBy('timestamp', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const logs: BirdLog[] = [];
+        querySnapshot.forEach((doc) => {
+            logs.push(doc.data() as BirdLog);
+        });
+        setAllLogs(logs);
+        setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
 
   const filteredAndSortedLogs = useMemo(() => {
-      const mysteryLogs = allLogs.filter(log => log.isMystery);
-      
-      const filtered = mysteryLogs.filter(log => 
+      const filtered = allLogs.filter(log => 
           new Date(log.timestamp).toLocaleDateString().includes(searchQuery)
       );
 
@@ -45,12 +66,19 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
 
   }, [allLogs, searchQuery, sortOption]);
 
-  if (allLogs.filter(log => log.isMystery).length === 0) {
+  if (loading) {
     return (
         <div className="container mx-auto px-4 py-8 text-center">
-             <PageTitle>Mystery Recordings</PageTitle>
-             <p className="mt-4 text-muted-foreground">You don't have any mystery recordings yet.</p>
-             <p className="mt-2 text-muted-foreground">Recordings that the AI can't identify can be saved here.</p>
+             <PageTitle>Loading Mystery Recordings...</PageTitle>
+        </div>
+    )
+  }
+
+  if (allLogs.length === 0) {
+    return (
+        <div className="container mx-auto px-4 py-8 text-center">
+             <PageTitle>No Mystery Recordings Yet</PageTitle>
+             <p className="mt-4 text-muted-foreground">Recordings that the AI can't identify can be saved here.</p>
         </div>
     )
   }
@@ -59,12 +87,12 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {filteredAndSortedLogs.map((log) => (
-          <Link href={`/log/${log.id}`} key={log.id}>
-            <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl">
+          <Link href={`/log/${log.id}`} key={log.id} legacyBehavior>
+            <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer">
               <CardContent className="p-0 flex-grow flex items-center justify-center bg-muted">
                 <div className="aspect-square relative w-full flex items-center justify-center">
                    <Image
-                    src={`https://picsum.photos/seed/mystery/400/400`}
+                    src={`https://picsum.photos/seed/mystery-${log.id}/400/400`}
                     alt={log.commonName}
                     fill
                     className="object-cover"

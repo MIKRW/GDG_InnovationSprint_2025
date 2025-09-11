@@ -27,6 +27,8 @@ export type Theme = {
 
 export type BirdLog = {
     id: string;
+    sessionId: string; // All logs from one recording event share this ID
+    userId: string;
     timestamp: string;
     commonName: string;
     scientificName: string;

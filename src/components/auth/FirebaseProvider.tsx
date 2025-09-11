@@ -1,20 +1,20 @@
 
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import type { ReactNode } from 'react';
 
 // Define the shape of the authentication context
-interface AuthContextType {
+export interface AuthContextType {
   user: User | null;
   loading: boolean;
 }
 
 // Create the context with a default value
-const AuthContext = createContext<AuthContextType>({
+export const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
 });
@@ -26,9 +26,21 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Subscribe to authentication state changes
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setUser(user);
+        setLoading(false);
+      } else {
+        // If no user is signed in, sign them in anonymously.
+        try {
+          const userCredential = await signInAnonymously(auth);
+          setUser(userCredential.user);
+        } catch (error) {
+          console.error("Anonymous sign-in failed:", error);
+        } finally {
+            setLoading(false);
+        }
+      }
     });
 
     // Unsubscribe on cleanup
@@ -41,8 +53,3 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
-// Create a custom hook to use the auth context
-export const useAuth = () => {
-  return useContext(AuthContext);
-};

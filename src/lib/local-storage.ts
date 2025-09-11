@@ -1,9 +1,14 @@
 
+// This file is no longer the primary source of truth for logs.
+// It is being kept temporarily for reference but will be removed.
+// The app now reads and writes logs directly to Firestore.
+
 import type { BirdLog } from './types';
 
 const LOG_STORAGE_KEY = 'bird-identification-logs';
 
 /**
+ * @deprecated Logs are now stored in Firestore. This function reads from a legacy localStorage cache.
  * Retrieves all bird logs from localStorage.
  * @returns An array of BirdLog objects.
  */
@@ -23,6 +28,7 @@ export function getLogs(): BirdLog[] {
 }
 
 /**
+ * @deprecated Logs are now stored in Firestore. This function writes to a legacy localStorage cache.
  * Adds a new bird log to localStorage.
  * @param log - The BirdLog object to add.
  */
@@ -34,6 +40,7 @@ export function addLog(log: BirdLog): void {
 }
 
 /**
+ * @deprecated Logs are now stored in Firestore. This function reads from a legacy localStorage cache.
  * Retrieves a single bird log by its ID from localStorage.
  * @param id - The ID of the log to retrieve.
  * @returns The BirdLog object if found, otherwise null.

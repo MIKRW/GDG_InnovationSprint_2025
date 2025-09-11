@@ -2,11 +2,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { notFound } from 'next/navigation';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
 
 import type { BirdLog } from '@/lib/types';
-import { getLogById } from '@/lib/local-storage';
+import { useAuth } from '@/components/auth/use-auth';
+import { db } from '@/lib/firebase';
 
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
@@ -15,15 +17,36 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export default function LogDetailPage({ params: { id } }: { params: { id: string } }) {
+export default function LogDetailPage() {
+  const { user } = useAuth();
+  const params = useParams();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const [log, setLog] = useState<BirdLog | null | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchedLog = getLogById(id);
-    setLog(fetchedLog);
-  }, [id]);
+    if (!user || !id) return;
 
-  if (log === undefined) {
+    setLoading(true);
+    const docRef = doc(db, `users/${user.uid}/identifications`, id);
+
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setLog(docSnap.data() as BirdLog);
+      } else {
+        setLog(null); // Not found
+      }
+      setLoading(false);
+    }, (error) => {
+        console.error("Error fetching log:", error);
+        setLog(null);
+        setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user, id]);
+
+  if (loading || log === undefined) {
     return (
       <AppLayout header={<SecondaryHeader title="Loading..." />}>
         <main className="flex-1 p-4">
@@ -49,7 +72,7 @@ export default function LogDetailPage({ params: { id } }: { params: { id: string
               <CardHeader>
                 <div className="aspect-square relative w-full rounded-md overflow-hidden bg-muted">
                    <Image
-                      src={log.isMystery ? `https://picsum.photos/seed/mystery/600/400` : `https://picsum.photos/seed/${log.id}/600/400`}
+                      src={log.isMystery ? `https://picsum.photos/seed/mystery-${log.id}/600/400` : `https://picsum.photos/seed/${log.id}/600/400`}
                       alt={log.commonName}
                       fill
                       className="object-cover"
@@ -61,7 +84,7 @@ export default function LogDetailPage({ params: { id } }: { params: { id: string
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-base">{log.description}</p>
-                {log.isMystery && log.audioUrl && (
+                {log.audioUrl && (
                   <div>
                     <h3 className="font-semibold mb-2">Saved Recording</h3>
                     <audio controls src={log.audioUrl} className="w-full">
