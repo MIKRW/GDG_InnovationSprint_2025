@@ -4,6 +4,17 @@ This document tracks recurring errors, their root causes, the solutions implemen
 
 ---
 
+### Error Type: Firebase `auth/configuration-not-found`
+
+- **Occurrences**: 2
+- **Description**: A `FirebaseError: Firebase: Error (auth/configuration-not-found)` occurs during anonymous sign-in. This indicates Firebase services are used before the configuration is loaded, particularly in a Next.js server-side rendering context.
+- **Cause**: The initial Firebase setup was not robust enough for the Next.js environment. Even with `dotenv`, parts of the Firebase SDK can be evaluated on the server during the build process without the explicit configuration, leading to an initialization race condition.
+- **Solution**:
+    1. The Firebase initialization logic in `src/lib/firebase.ts` was refactored to use the standard `getApps().length ? getApp() : initializeApp(config)` pattern.
+    2. This ensures that Firebase is initialized only once, creating a singleton instance that is safely shared across the entire application, whether on the client or server. This is the idiomatic way to handle Firebase in a Next.js project and prevents the race condition.
+
+---
+
 ### Error Type: `localStorage` Data Structure Mismatch
 
 - **Occurrences**: 2
@@ -57,7 +68,7 @@ This document tracks recurring errors, their root causes, the solutions implemen
 - **Cause**: The file `src/ai/flows/identify-bird-flow.ts` was marked with the `'use server';` directive, which turns it into a Next.js Server Action module. These modules have a strict limitation: they can only export `async` functions. The code was incorrectly exporting Zod schema objects alongside the main async function, which violates this rule.
 - **Solution**:
     1. The `export` keyword was removed from the Zod schema definitions (`IdentifyBirdInputSchema` and `IdentifyBirdOutputSchema`) within the file.
-    2. The TypeScript `type` aliases derived from these schemas (`IdentifyBirdInput`, `IdentifyBirdOutput`) were kept as exports. This is safe because types are a compile-time-only construct and do not exist in the final JavaScript bundle, so they don't count as a runtime export.
+    2. The TypeScript `type` aliases derived from these schemas (`IdentifyBirdInput`, `IdentifyBirdOutput`) were kept as exports. This is the safe and correct pattern because types are a compile-time-only construct and do not exist in the final JavaScript bundle, so they don't count as a runtime export.
     3. This ensures that the only value exported from the module at runtime is the `identifyBirdBySound` async function, satisfying the Server Action requirements.
 
 ---
@@ -102,3 +113,4 @@ This document tracks recurring errors, their root causes, the solutions implemen
 - **Solution**: 
 
 ---
+
