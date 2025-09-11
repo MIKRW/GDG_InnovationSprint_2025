@@ -4,7 +4,7 @@
 import { createContext, useEffect, useState, useCallback } from 'react';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { app, getAuth } from '@/lib/firebase';
 import type { ReactNode } from 'react';
 
 // Define the shape of the authentication context
@@ -29,6 +29,8 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
   // This effect hook ONLY listens for auth state changes.
   // It handles re-hydrating the session if the user is already logged in.
   useEffect(() => {
+    // getAuth() is called inside useEffect to ensure it's client-side only
+    const auth = getAuth(app);
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
@@ -40,10 +42,10 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
 
   // This is the function that components will call to trigger sign-in on-demand.
   const ensureUser = useCallback(async () => {
-    if (user) return user; // Already signed in, return immediately.
+    if (user) return user;
 
-    // If no user, attempt anonymous sign-in. This will only be called
-    // on the client, upon user interaction.
+    // getAuth() is called here to ensure it's client-side only, on-demand
+    const auth = getAuth(app);
     try {
       setLoading(true);
       const userCredential = await signInAnonymously(auth);
@@ -51,7 +53,6 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
       return userCredential.user;
     } catch (error) {
       console.error("Anonymous sign-in failed:", error);
-      // In the future, this can be logged to a formal error reporting service.
       return null;
     } finally {
         setLoading(false);

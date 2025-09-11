@@ -31,12 +31,8 @@ export function HomePageFooter() {
       // If sign-in is successful, proceed with navigation.
       router.push(href);
     } else {
-      // If sign-in fails, inform the user.
-      toast({
-        variant: 'destructive',
-        title: 'Authentication Failed',
-        description: 'Could not sign you in. Please check your connection and try again.',
-      });
+      // If sign-in fails, we no longer show a toast, as the console will have the error.
+      console.error("Navigation prevented: user could not be authenticated.");
     }
   };
 

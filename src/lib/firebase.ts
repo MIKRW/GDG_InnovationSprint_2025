@@ -9,8 +9,9 @@ import { firebaseConfig } from './firebase-config';
 // This ensures that Firebase is initialized only once.
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-export { app, auth, db, storage };
+// We export the app and the getAuth function itself, but not the auth instance.
+// This allows us to create the auth instance only on the client-side when needed.
+export { app, getAuth, db, storage };
