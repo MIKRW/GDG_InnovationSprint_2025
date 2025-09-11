@@ -38,6 +38,7 @@ This professional, two-tiered model perfectly separates our need for analytical 
             *   `userId`: The user's unique ID.
             *   `inputAudioUrl`: The path to the user's recording in Firebase Storage.
             *   `locationData`: Any location info provided.
+            *   `analysisMethod`: A string identifying the AI model and technique used (e.g., 'audio-gemini-2.5-flash').
             *   `aiResult`: The complete, raw output from the AI.
             *   `wasSuccessful`: A boolean indicating if the AI identified a bird.
             *   `wasSavedByUser`: A boolean flag, set to `true` only if the user chooses to save the result to their log.
