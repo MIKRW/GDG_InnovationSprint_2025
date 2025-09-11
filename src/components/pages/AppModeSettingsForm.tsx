@@ -23,6 +23,7 @@ import { PageTitle } from '@/components/content/PageTitle';
 import type { AppMode } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Info } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const FormSchema = z.object({
   mode: z.enum(['newbie', 'twitcher']),
@@ -45,6 +46,10 @@ export function AppModeSettingsForm() {
     if (savedSettings) {
       try {
         const parsedSettings = JSON.parse(savedSettings);
+        // Ensure that a disabled mode isn't loaded from old settings
+        if (parsedSettings.mode === 'twitcher') {
+            parsedSettings.mode = 'newbie';
+        }
         form.reset(parsedSettings);
       } catch (error) {
         console.error('Failed to parse app mode settings:', error);
@@ -88,7 +93,7 @@ export function AppModeSettingsForm() {
                 className="grid grid-cols-1 gap-4 md:grid-cols-2"
                 >
                 <Label htmlFor="newbie-mode" className="cursor-pointer h-full">
-                    <Card className={`h-full ${field.value === 'newbie' ? 'ring-2 ring-primary' : ''}`}>
+                    <Card className={cn('h-full', field.value === 'newbie' && 'ring-2 ring-primary')}>
                     <CardHeader>
                         <div className="flex items-center gap-4">
                         <RadioGroupItem value="newbie" id="newbie-mode" />
@@ -101,11 +106,11 @@ export function AppModeSettingsForm() {
                     </Card>
                 </Label>
 
-                <Label htmlFor="twitcher-mode" className="cursor-pointer h-full">
-                    <Card className={`h-full ${field.value === 'twitcher' ? 'ring-2 ring-primary' : ''}`}>
-                    <CardHeader>
+                <Label htmlFor="twitcher-mode" className="h-full cursor-not-allowed">
+                    <Card className="h-full bg-muted/50">
+                    <CardHeader className="opacity-50">
                         <div className="flex items-center gap-4">
-                        <RadioGroupItem value="twitcher" id="twitcher-mode" />
+                        <RadioGroupItem value="twitcher" id="twitcher-mode" disabled />
                         <CardTitle>Twitcher Mode</CardTitle>
                         </div>
                         <CardDescription className="pt-2">
