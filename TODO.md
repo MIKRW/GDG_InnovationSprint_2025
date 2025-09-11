@@ -14,6 +14,12 @@ This is a list of tasks and ideas for improving the application.
 
 ---
 
+## Authentication System
+
+- **Re-implement Anonymous Authentication**: Carefully re-introduce the anonymous authentication flow. The goal is to create a stable, client-side-only authentication system that avoids race conditions with Next.js server-side rendering. This will be the foundation for all user-specific features.
+
+---
+
 ## Future Implementation Plan
 
 - **Implement Firestore Error Logging**: Build the necessary services and UI to create, view, and manage error logs based on the architecture defined in `docs/ERROR_LOG.md`.
