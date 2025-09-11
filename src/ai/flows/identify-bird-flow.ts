@@ -44,6 +44,8 @@ Your task is to return a JSON object with the following structure:
 - isBirdSong: A boolean indicating if you are confident a bird song is present in the audio.
 - commonName: The common name of the bird.
 - scientificName: The scientific (Latin) name of the bird.
+- family: The taxonomic family of the bird (e.g., 'Psittacidae' for parrots).
+- order: The taxonomic order of the bird (e.g., 'Passeriformes' for perching birds).
 - description: A brief, interesting fact about the bird.
 - imagePrompt: A simple but effective text-to-image prompt to generate a photo of this bird.
 
@@ -67,6 +69,8 @@ const IdentifyBirdOutputSchema = z.object({
   isBirdSong: z.boolean().describe('Whether or not the audio is believed to contain a bird song.'),
   commonName: z.string().optional().describe("The common name of the identified bird (e.g., 'American Robin')."),
   scientificName: z.string().optional().describe("The scientific name of the identified bird (e.g., 'Turdus migratorius')."),
+  family: z.string().optional().describe("The taxonomic family of the bird (e.g., 'Psittacidae' for parrots)."),
+  order: z.string().optional().describe("The taxonomic order of the bird (e.g., 'Passeriformes' for perching birds)."),
   description: z.string().optional().describe('A brief, interesting fact or description about the bird.'),
   imagePrompt: z.string().optional().describe('A simple, descriptive prompt for a text-to-image model to generate a picture of the bird (e.g., "photo of an American Robin on a branch").'),
 });

@@ -48,5 +48,5 @@ This professional, two-tiered model perfectly separates our need for analytical 
         *   **Document (ID: `USER_UID_FROM_AUTH`):**
             *   **Subcollection:** `identifications`
                 *   **Document (ID: `UNIQUE_LOG_ID`):**
-                    *   **For Successful IDs:** Contains the formatted data (`commonName`, `scientificName`, `description`, etc.) and a reference to the audio file.
+                    *   **For Successful IDs:** Contains the formatted data (`commonName`, `scientificName`, `family`, `order`, `description`, etc.) and a reference to the audio file.
                     *   **For Mystery Recordings:** Contains `isMystery: true`, a conventional name like "Mystery Recording - [Date]", and a reference to the audio file.

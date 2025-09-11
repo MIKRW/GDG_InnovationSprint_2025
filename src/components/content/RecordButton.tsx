@@ -201,6 +201,8 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
               timestamp: new Date().toISOString(),
               commonName: result.commonName,
               scientificName: result.scientificName,
+              family: result.family,
+              order: result.order,
               description: result.description,
               imagePrompt: result.imagePrompt,
               audioUrl: base64Audio,

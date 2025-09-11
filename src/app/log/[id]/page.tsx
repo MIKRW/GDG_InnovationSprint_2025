@@ -72,6 +72,16 @@ export default function LogDetailPage({ params: { id } }: { params: { id: string
                 <div className="flex flex-wrap gap-2">
                     <Badge variant="secondary">Captured: {new Date(log.timestamp).toLocaleDateString()}</Badge>
                      {log.isMystery && <Badge variant="destructive">Unidentified</Badge>}
+                      {log.order && (
+                        <Badge variant="outline">
+                            Order: {log.order}
+                        </Badge>
+                      )}
+                      {log.family && (
+                        <Badge variant="outline">
+                            Family: {log.family}
+                        </Badge>
+                      )}
                      {log.latitude && log.longitude && (
                        <Badge variant="outline">
                          {`Location: ${log.latitude.toFixed(4)}, ${log.longitude.toFixed(4)}`}

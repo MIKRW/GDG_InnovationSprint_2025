@@ -30,6 +30,8 @@ export type BirdLog = {
     timestamp: string;
     commonName: string;
     scientificName: string;
+    family?: string;
+    order?: string;
     description: string;
     imagePrompt: string;
     audioUrl?: string;
