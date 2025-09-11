@@ -12,6 +12,10 @@ import {
   SelectValue,
 } from '../ui/select';
 import type { SortOption } from '@/lib/types';
+import Link from 'next/link';
+import { Button } from '../ui/button';
+import { Home } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 interface SearchableHeaderProps {
   title: string;
@@ -24,33 +28,44 @@ export function SearchableHeader({
   onSearchChange,
   onSortChange,
 }: SearchableHeaderProps) {
+  const pathname = usePathname();
+  const isTestLog = pathname.startsWith('/log/test');
+
   return (
     <header className="border-b flex items-center justify-between px-4 py-6 gap-4">
       <div className="flex items-center gap-2">
-        <SpeakerButton />
+        <Button variant="ghost" size="icon" asChild>
+            <Link href="/">
+                <Home className="h-5 w-5" />
+            </Link>
+        </Button>
         <h1 className="text-lg font-bold hidden md:block">{title}</h1>
       </div>
       <div className="flex-1 flex items-center justify-center gap-2 max-w-lg">
-        <Input
-          type="search"
-          placeholder="Search logs..."
-          className="bg-muted"
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
-        <Select
-          defaultValue="newest"
-          onValueChange={(value) => onSortChange(value as SortOption)}
-        >
-          <SelectTrigger className="w-[180px] bg-muted">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="newest">Sort by Newest</SelectItem>
-            <SelectItem value="oldest">Sort by Oldest</SelectItem>
-            <SelectItem value="a-z">Sort by A-Z</SelectItem>
-            <SelectItem value="z-a">Sort by Z-A</SelectItem>
-          </SelectContent>
-        </Select>
+        {!isTestLog && (
+            <>
+                <Input
+                type="search"
+                placeholder="Search logs..."
+                className="bg-muted"
+                onChange={(e) => onSearchChange(e.target.value)}
+                />
+                <Select
+                defaultValue="newest"
+                onValueChange={(value) => onSortChange(value as SortOption)}
+                >
+                <SelectTrigger className="w-[180px] bg-muted">
+                    <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="newest">Sort by Newest</SelectItem>
+                    <SelectItem value="oldest">Sort by Oldest</SelectItem>
+                    <SelectItem value="a-z">Sort by A-Z</SelectItem>
+                    <SelectItem value="z-a">Sort by Z-A</SelectItem>
+                </SelectContent>
+                </Select>
+            </>
+        )}
       </div>
       <div className="flex items-center gap-2">
         <ContrastButton />

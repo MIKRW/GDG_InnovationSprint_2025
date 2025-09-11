@@ -10,7 +10,7 @@ import { getLogs } from '@/lib/local-storage';
 
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { PageTitle } from '../content/PageTitle';
-import { HelpCircle } from 'lucide-react';
+import { FlaskConical, HelpCircle } from 'lucide-react';
 
 interface LogPageProps {
     searchQuery: string;
@@ -19,6 +19,7 @@ interface LogPageProps {
 
 export function LogPage({ searchQuery, sortOption }: LogPageProps) {
   const [allLogs, setAllLogs] = useState<BirdLog[]>([]);
+  const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
   useEffect(() => {
     setAllLogs(getLogs());
@@ -53,7 +54,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
   }, [allLogs, searchQuery, sortOption]);
 
 
-  if (allLogs.length === 0) {
+  if (allLogs.length === 0 && !isDevMode) {
     return (
         <div className="container mx-auto px-4 py-8 text-center">
              <PageTitle>Your Bird Book</PageTitle>
@@ -66,6 +67,25 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {isDevMode && (
+           <Link href="/log/test">
+            <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg">
+                <div className="bg-background h-full flex flex-col rounded-sm">
+                    <CardContent className="p-0 flex-grow flex items-center justify-center">
+                        <div className="aspect-square relative w-full flex items-center justify-center">
+                            <FlaskConical className="w-24 h-24 text-secondary-foreground" />
+                        </div>
+                    </CardContent>
+                    <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
+                        <div className="text-left">
+                        <p className="font-bold text-sm truncate">Test Results</p>
+                        <p className="text-xs text-muted-foreground truncate italic">Developer test logs</p>
+                        </div>
+                    </CardFooter>
+                </div>
+            </Card>
+          </Link>
+        )}
         {filteredAndSortedLogs.hasMystery && (
            <Link href="/log/mystery">
             <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-secondary">
