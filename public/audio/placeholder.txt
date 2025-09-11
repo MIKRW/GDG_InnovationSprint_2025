@@ -1,3 +1,0 @@
-This folder is for storing master audio test files.
-
-You can place your master test file (e.g., test-bird-song.wav) in this directory. It will then be accessible at the URL /audio/test-bird-song.wav.
