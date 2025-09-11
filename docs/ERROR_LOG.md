@@ -84,6 +84,17 @@ This document tracks recurring errors, their root causes, the solutions implemen
 
 ---
 
+### Error Type: Invalid Variable Name in JSX `ref`
+
+- **Occurrences**: 1
+- **Description**: A runtime error `Error: fileInput is not defined` occurred on the record page, preventing it from rendering correctly.
+- **Cause**: This was caused by a typo in the `ref` attribute of the file `<input>` element in `src/app/record/page.tsx`. The code was written as `ref={fileInput-Ref}`. The JavaScript runtime interpreted the hyphen as a subtraction operator and tried to subtract a variable named `Ref` from a variable named `fileInput`, neither of which existed.
+- **Solution**: 
+    1. The typo was corrected to `ref={fileInputRef}`, which correctly assigns the already-defined `useRef` object to the input element.
+    2. This resolved the `ReferenceError` and allowed the component to render as expected.
+
+---
+
 ### Placeholder for Next Error
 - **Occurrences**: 0
 - **Description**: 
