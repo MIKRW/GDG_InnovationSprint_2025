@@ -6,6 +6,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
+import { FirebaseProvider } from '@/components/auth/FirebaseProvider';
 
 // This is the root layout for the entire application.
 // It sets up the basic HTML structure, fonts, and global styles.
@@ -73,7 +74,9 @@ export default function RootLayout({
           inter.variable
         )}
       >
-        {children}
+        <FirebaseProvider>
+            {children}
+        </FirebaseProvider>
         <Toaster />
       </body>
     </html>
