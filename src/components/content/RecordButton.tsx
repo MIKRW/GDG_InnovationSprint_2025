@@ -31,6 +31,7 @@ interface RecordButtonProps {
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
+const PROMPT_VERSION = "1.0"; // A static version for now
 
 
 const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps, ref) => {
@@ -54,7 +55,8 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       reader.onloadend = () => {
         const base64Audio = reader.result as string;
         setRecordingState('processing');
-        getLocationForAIShot(locationData => processAudio(base64Audio, locationData));
+        // For dev uploads, we pass a special flag to processAudio
+        processAudio(base64Audio, undefined, true);
       };
     }
   }));
@@ -245,9 +247,25 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
   };
 
+  const saveTestRunToFirestore = async (result: any) => {
+    const testRunData = {
+        aiResult: result,
+        timestamp: new Date().toISOString(),
+        promptVersion: PROMPT_VERSION,
+    };
 
-  const processAudio = async (base64Audio: string, locationData?: { latitude?: number, longitude?: number, locationDescription?: string }) => {
-    if (!user) {
+    // As per our data model: birds/{birdId}/testAudio/{audioId}/testRuns/{runId}
+    // For this initial implementation, we'll use a placeholder birdId and testAudioId
+    const birdId = "australian-magpie";
+    const testAudioId = "magpie-warble-1";
+
+    const testRunCollectionRef = collection(db, 'birds', birdId, 'testAudio', testAudioId, 'testRuns');
+    await addDoc(testRunCollectionRef, testRunData);
+  }
+
+
+  const processAudio = async (base64Audio: string, locationData?: { latitude?: number, longitude?: number, locationDescription?: string }, isTestRun = false) => {
+    if (!user && !isTestRun) {
       setRecordingState('idle');
       return;
     }
@@ -259,6 +277,13 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           mode: appSettings.mode,
           ...locationData
       });
+
+      if (isTestRun) {
+        await saveTestRunToFirestore(result);
+        setRecordingState('idle');
+        router.push('/log/test'); // Navigate to test log page after test run
+        return;
+      }
 
       if (result && result.isBirdSong && result.commonName && result.scientificName && result.description && result.imagePrompt) {
           const newLogData = {
