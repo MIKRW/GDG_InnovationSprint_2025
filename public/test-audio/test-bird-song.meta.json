@@ -1,13 +1,9 @@
 {
-  "filename": "test-bird-song.wav",
-  "source_url": "https://www.website.com/audio-file-page",
-  "description": "A clear recording of a specific bird species.",
-  "recorder": "John Doe",
-  "recorded_date": "2023-10-27",
-  "recorded_location": "Central Park, New York, USA",
-  "license": {
-    "name": "Creative Commons Attribution 4.0",
-    "url": "https://creativecommons.org/licenses/by/4.0/"
-  },
-  "notes": "Good for testing basic identification."
+  "title": "Magpie",
+  "author": "kangaroovindaloo",
+  "sourceUrl": "https://freesound.org/s/584903/",
+  "license": "Creative Commons 0",
+  "description": "The sound of a magpie in Fryers Forest.",
+  "location": "Fryers Forest",
+  "equipment": "Sennheiser MKH 416, Sennheiser MKH 30, Zoom F4 (mid-side configuration)"
 }
