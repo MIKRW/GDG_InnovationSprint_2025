@@ -1,0 +1,3 @@
+This folder is for storing master WAV audio files for testing the AI bird song identification.
+
+You can add any number of .wav files here. They will be accessible from the root of the web server (e.g., /test-audio/your-file.wav).
