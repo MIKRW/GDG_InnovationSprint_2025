@@ -40,27 +40,34 @@ export default function RecordPage() {
       <main className="flex-1 flex items-center justify-center p-4 bg-muted relative">
         <div className="relative flex items-center justify-center gap-8">
             {isDevMode && (
-              <div className="absolute right-full mr-16 w-96 space-y-4">
-                  <Card className="border-destructive border-4 border-dashed">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <FlaskConical className="h-5 w-5 text-destructive" />
-                        Developer Tools
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <input
-                          type="file"
-                          ref={fileInputRef}
-                          onChange={onFileChange}
-                          className="hidden"
-                          accept="audio/*"
-                      />
-                      <Button onClick={handleUploadClick} variant="outline" className="w-full h-24 text-lg">
-                          <Upload className="mr-2 h-6 w-6" />
-                          Upload Test Audio
-                      </Button>
-                    </CardContent>
+              <div className="w-96 space-y-4">
+                  <Card
+                    style={{
+                      background: 'repeating-linear-gradient(45deg, hsl(var(--destructive)), hsl(var(--destructive)) 10px, hsl(var(--background)) 10px, hsl(var(--background)) 20px)',
+                      padding: '8px'
+                    }}
+                  >
+                    <div className="bg-background rounded-sm">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <FlaskConical className="h-5 w-5 text-destructive" />
+                          Developer Tools
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={onFileChange}
+                            className="hidden"
+                            accept="audio/*"
+                        />
+                        <Button onClick={handleUploadClick} variant="outline" className="w-full h-24 text-lg">
+                            <Upload className="mr-2 h-6 w-6" />
+                            Upload Test Audio
+                        </Button>
+                      </CardContent>
+                    </div>
                   </Card>
               </div>
             )}
