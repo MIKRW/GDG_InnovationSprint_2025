@@ -38,9 +38,9 @@ export default function RecordPage() {
   return (
     <AppLayout header={<SecondaryHeader title="Microphone" />}>
       <main className="flex-1 flex items-center justify-center p-4 bg-muted relative">
-        <div className="relative flex items-center justify-center gap-32">
+        <div className="relative flex items-center justify-center">
             {isDevMode && (
-              <div className="w-96 space-y-4">
+              <div className="absolute right-full mr-16 w-96 space-y-4">
                   <Card
                     style={{
                       background: 'repeating-linear-gradient(45deg, hsl(var(--destructive)), hsl(var(--destructive)) 10px, hsl(var(--background)) 10px, hsl(var(--background)) 20px)',
