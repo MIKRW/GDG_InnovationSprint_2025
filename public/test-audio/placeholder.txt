@@ -1,1 +1,0 @@
-This folder is for storing master .wav test audio files. You can safely delete this placeholder file after adding your own audio files.
