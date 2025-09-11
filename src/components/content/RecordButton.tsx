@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -30,13 +30,25 @@ const LOCATION_SETTINGS_KEY = 'location-settings';
 const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
 
 
-export function RecordButton({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps) {
+const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps, ref) => {
   const router = useRouter();
   const [recordingState, setRecordingState] =
     useState<RecordingState>('idle');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const [lastAudio, setLastAudio] = useState<string | null>(null);
+
+  useImperativeHandle(ref, () => ({
+    handleFileSelect(file: File) {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onloadend = () => {
+        const base64Audio = reader.result as string;
+        setRecordingState('processing');
+        getLocationForAIShot(locationData => processAudio(base64Audio, locationData));
+      };
+    }
+  }));
 
 
   const handleStartRecording = async () => {
@@ -281,4 +293,7 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
       </AlertDialog>
     </>
   );
-}
+});
+RecordButton.displayName = "RecordButton";
+
+export { RecordButton };

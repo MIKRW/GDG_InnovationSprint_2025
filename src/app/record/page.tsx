@@ -1,36 +1,49 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { RecordButton } from '@/components/content/RecordButton';
 import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Bird } from 'lucide-react';
+import { AlertTriangle, Bird, Upload } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function RecordPage() {
   const [showPermissionError, setShowPermissionError] = useState(false);
   const [showIdentificationError, setShowIdentificationError] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const recordButtonRef = useRef<{ handleFileSelect: (file: File) => void }>(null);
 
   const handleStartRecording = () => {
     setShowPermissionError(false);
     setShowIdentificationError(false);
   }
 
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const onFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && recordButtonRef.current) {
+        recordButtonRef.current.handleFileSelect(file);
+    }
+  };
+
   return (
     <AppLayout header={<SecondaryHeader title="Microphone" />}>
       <main className="flex-1 flex items-center justify-center p-4 bg-muted relative">
-        <div className="relative flex items-center justify-center">
-            {/* The RecordButton is the centered element */}
+        <div className="relative flex items-center justify-center gap-8">
             <RecordButton 
+              ref={recordButtonRef}
               onPermissionDenied={() => setShowPermissionError(true)} 
               onIdentificationFailed={() => setShowIdentificationError(true)}
               onStartRecording={handleStartRecording}
             />
 
-            {/* The alerts are positioned absolutely relative to the container */}
-            <div className="absolute left-full ml-16 w-96">
+            <div className="absolute left-full ml-16 w-96 space-y-4">
               {showPermissionError && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
@@ -49,6 +62,17 @@ export default function RecordPage() {
                   </AlertDescription>
                 </Alert>
               )}
+                 <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={onFileChange}
+                    className="hidden"
+                    accept="audio/*"
+                />
+                 <Button onClick={handleUploadClick} variant="outline" className="w-full h-24 text-lg">
+                    <Upload className="mr-2 h-6 w-6" />
+                    Upload Audio File
+                </Button>
             </div>
         </div>
       </main>
