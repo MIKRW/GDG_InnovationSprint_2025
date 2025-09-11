@@ -7,8 +7,9 @@ import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Bird, Upload } from 'lucide-react';
+import { AlertTriangle, Bird, FlaskConical, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function RecordPage() {
   const [showPermissionError, setShowPermissionError] = useState(false);
@@ -40,17 +41,27 @@ export default function RecordPage() {
         <div className="relative flex items-center justify-center gap-8">
             {isDevMode && (
               <div className="absolute right-full mr-16 w-96 space-y-4">
-                   <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={onFileChange}
-                      className="hidden"
-                      accept="audio/*"
-                  />
-                   <Button onClick={handleUploadClick} variant="outline" className="w-full h-24 text-lg">
-                      <Upload className="mr-2 h-6 w-6" />
-                      Upload Audio File
-                  </Button>
+                  <Card className="border-destructive">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <FlaskConical className="h-5 w-5 text-destructive" />
+                        Developer Tools
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={onFileChange}
+                          className="hidden"
+                          accept="audio/*"
+                      />
+                      <Button onClick={handleUploadClick} variant="outline" className="w-full h-24 text-lg">
+                          <Upload className="mr-2 h-6 w-6" />
+                          Upload Test Audio
+                      </Button>
+                    </CardContent>
+                  </Card>
               </div>
             )}
 
