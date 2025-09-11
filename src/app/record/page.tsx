@@ -31,24 +31,28 @@ export default function RecordPage() {
         recordButtonRef.current.handleFileSelect(file);
     }
   };
+  
+  const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
   return (
     <AppLayout header={<SecondaryHeader title="Microphone" />}>
       <main className="flex-1 flex items-center justify-center p-4 bg-muted relative">
         <div className="relative flex items-center justify-center gap-8">
-            <div className="absolute right-full mr-16 w-96 space-y-4">
-                 <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={onFileChange}
-                    className="hidden"
-                    accept="audio/*"
-                />
-                 <Button onClick={handleUploadClick} variant="outline" className="w-full h-24 text-lg">
-                    <Upload className="mr-2 h-6 w-6" />
-                    Upload Audio File
-                </Button>
-            </div>
+            {isDevMode && (
+              <div className="absolute right-full mr-16 w-96 space-y-4">
+                   <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={onFileChange}
+                      className="hidden"
+                      accept="audio/*"
+                  />
+                   <Button onClick={handleUploadClick} variant="outline" className="w-full h-24 text-lg">
+                      <Upload className="mr-2 h-6 w-6" />
+                      Upload Audio File
+                  </Button>
+              </div>
+            )}
 
             <RecordButton 
               ref={recordButtonRef}
@@ -67,12 +71,12 @@ export default function RecordPage() {
                   </AlertDescription>
                 </Alert>
               )}
-              {showIdentificationError && (
+               {showIdentificationError && (
                 <Alert variant="destructive">
                   <Bird className="h-4 w-4" />
-                  <AlertTitle className="text-2xl">No Bird Identified</AlertTitle>
+                  <AlertTitle className="text-2xl">Identification Failed</AlertTitle>
                   <AlertDescription className="text-base">
-                    The AI could not identify a bird song in the recording. Please try again.
+                    The AI could not identify a bird in the recording. You can save it to the "Mystery Recordings" log to review later.
                   </AlertDescription>
                 </Alert>
               )}
