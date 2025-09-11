@@ -15,3 +15,22 @@ This document outlines the established conventions for this project to ensure co
 - **Outcome:** A simple, powerful, and unambiguous way to identify and manage developer-only features throughout the codebase.
 
 ---
+## Error Logging Conventions
+
+- **Goal:** Define what constitutes a "loggable error" and establish the process for how errors are recorded in the Firestore database.
+
+### Definition of a Loggable Error
+
+A "loggable error" is any unexpected event that negatively impacts the application's stability, functionality, or user experience. This includes:
+
+1.  **Critical Runtime Errors:** Any error that crashes a component, page, or server process (e.g., `auth/configuration-not-found`).
+2.  **Failed AI/API Operations:** Any instance where a call to a Genkit flow or other external API fails due to a network error, timeout, or invalid response from the service.
+3.  **Data Integrity Failures:** Any failed attempt to read from or write to Firestore or Firebase Storage that is not handled gracefully.
+4.  **Significant UX-Breaking Bugs:** Issues that do not crash the app but prevent a key user journey from being completed (e.g., a "Save" button that fails silently).
+
+### Logging Process
+
+The logging process is a combination of manual and planned-for-automatic actions:
+
+1.  **Developer-Driven Logging (Manual):** When a developer (including an AI partner) identifies and fixes a bug that meets the criteria above, it is **part of the task** to also create or update the corresponding document in the `error_definitions` collection in Firestore. This ensures our knowledge base of solved errors grows with the application.
+2.  **Automated Instance Logging (To Be Implemented):** The long-term goal is to implement a global error handler within the Next.js application. This handler will automatically catch any unhandled exceptions, create a new document in the `error_instances` collection, and link it to an existing or new error definition. This provides a safety net for unanticipated errors.
