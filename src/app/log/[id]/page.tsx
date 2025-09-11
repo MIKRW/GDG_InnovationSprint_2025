@@ -7,7 +7,6 @@ import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
 
 import type { BirdLog } from '@/lib/types';
-import { useAuth } from '@/components/auth/use-auth';
 import { db } from '@/lib/firebase';
 
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -18,33 +17,22 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function LogDetailPage() {
-  const { user } = useAuth();
   const params = useParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const [log, setLog] = useState<BirdLog | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
+  // This component will not work correctly without authentication.
+  // For now, it will show a loading state indefinitely.
+  // We will restore its functionality when we re-implement auth.
+  
   useEffect(() => {
-    if (!user || !id) return;
-
     setLoading(true);
-    const docRef = doc(db, `users/${user.uid}/identifications`, id);
+    // We cannot fetch the log without a user ID.
+    // The component will remain in a loading state.
+    console.warn("Log detail page cannot fetch data: Authentication is disabled.");
+  }, [id]);
 
-    const unsubscribe = onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setLog(docSnap.data() as BirdLog);
-      } else {
-        setLog(null); // Not found
-      }
-      setLoading(false);
-    }, (error) => {
-        console.error("Error fetching log:", error);
-        setLog(null);
-        setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [user, id]);
 
   if (loading || log === undefined) {
     return (

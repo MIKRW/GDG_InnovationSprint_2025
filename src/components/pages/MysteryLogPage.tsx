@@ -4,11 +4,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 
 import type { BirdLog, SortOption } from '@/lib/types';
-import { useAuth } from '@/components/auth/use-auth';
-import { db } from '@/lib/firebase';
 
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { PageTitle } from '../content/PageTitle';
@@ -19,31 +16,16 @@ interface MysteryLogPageProps {
 }
 
 export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps) {
-  const { user } = useAuth();
   const [allLogs, setAllLogs] = useState<BirdLog[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // This component will not work correctly without authentication.
+  // For now, it will show a loading state indefinitely.
+  // We will restore its functionality when we re-implement auth.
   useEffect(() => {
-    if (!user) return;
-
     setLoading(true);
-    const q = query(
-        collection(db, `users/${user.uid}/identifications`),
-        where('isMystery', '==', true),
-        orderBy('timestamp', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const logs: BirdLog[] = [];
-        querySnapshot.forEach((doc) => {
-            logs.push(doc.data() as BirdLog);
-        });
-        setAllLogs(logs);
-        setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [user]);
+    console.warn("Mystery log page cannot fetch data: Authentication is disabled.");
+  }, []);
 
 
   const filteredAndSortedLogs = useMemo(() => {
@@ -70,6 +52,7 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
     return (
         <div className="container mx-auto px-4 py-8 text-center">
              <PageTitle>Loading Mystery Recordings...</PageTitle>
+             <p className="mt-4 text-muted-foreground">Logbook functionality is temporarily disabled.</p>
         </div>
     )
   }
