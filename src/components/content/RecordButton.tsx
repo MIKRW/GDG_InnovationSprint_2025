@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { identifyBirdBySound } from '@/ai/flows/identify-bird-flow';
 import { addLog } from '@/lib/local-storage';
-import type { BirdLog, LocationSettings } from '@/lib/types';
+import type { BirdLog, LocationSettings, AppSettings, AppMode } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { MicrophoneIcon } from './MicrophoneIcon';
 import { Loader2, MicOff, Square } from 'lucide-react';
@@ -27,6 +27,8 @@ interface RecordButtonProps {
 }
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
+const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
+
 
 export function RecordButton({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps) {
   const router = useRouter();
@@ -118,6 +120,23 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
     };
   };
 
+  const getAppSettings = (): AppSettings => {
+    const savedSettingsJson = localStorage.getItem(APP_MODE_SETTINGS_KEY);
+    const defaultSettings: AppSettings = { mode: 'newbie' };
+    if (savedSettingsJson) {
+        try {
+            const parsed = JSON.parse(savedSettingsJson);
+            // Ensure mode is a valid AppMode
+            if (parsed.mode === 'newbie' || parsed.mode === 'twitcher') {
+                return { mode: parsed.mode };
+            }
+        } catch {
+             return defaultSettings;
+        }
+    }
+    return defaultSettings;
+  }
+
   const getLocationForAIShot = (
     callback: (locationData?: { latitude?: number; longitude?: number, locationDescription?: string }) => void
   ) => {
@@ -154,9 +173,12 @@ export function RecordButton({ onPermissionDenied, onIdentificationFailed, onSta
 
 
   const processAudio = async (base64Audio: string, locationData?: { latitude?: number, longitude?: number, locationDescription?: string }) => {
+    const appSettings = getAppSettings();
+    
     try {
       const result = await identifyBirdBySound({ 
           audioDataUri: base64Audio,
+          mode: appSettings.mode,
           ...locationData
       });
       let newLog: BirdLog;

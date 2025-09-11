@@ -10,11 +10,23 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import type { AppMode } from '@/lib/types';
 
 // The prompt text is now inlined to prevent build errors.
 const promptText = `You are an expert ornithologist with the ability to identify bird species by their songs.
-Analyze the following audio data to identify the bird species.
+Your persona and task will be adjusted based on the user's selected application mode.
 
+{{#if (eq mode 'twitcher')}}
+# Twitcher Mode Instructions
+You are assisting a researcher or serious hobbyist. Your analysis must be as precise as possible.
+Prioritize scientific accuracy and detail. Use the provided high-fidelity audio.
+{{else}}
+# Newbie Mode Instructions
+You are assisting a curious beginner. Your tone should be encouraging and accessible.
+Focus on providing a clear identification and an interesting, memorable fact.
+{{/if}}
+
+Analyze the following audio data to identify the bird species.
 Audio data: {{media url=audioDataUri}}
 
 When using location to assist with identification, you must cross-reference against publicly available data to understand the bird's known geographic range and habitat.
@@ -47,6 +59,7 @@ const IdentifyBirdInputSchema = z.object({
     latitude: z.number().optional().describe('The latitude of where the recording was made.'),
     longitude: z.number().optional().describe('The longitude of where the recording was made.'),
     locationDescription: z.string().optional().describe('A user-provided text description of the location (e.g., postcode, city, national park name).'),
+    mode: z.enum(['newbie', 'twitcher']).describe('The application mode selected by the user, which may determine the expected audio quality and analysis depth.'),
 });
 export type IdentifyBirdInput = z.infer<typeof IdentifyBirdInputSchema>;
 
