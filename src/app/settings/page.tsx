@@ -1,3 +1,4 @@
+
 import { SettingsPage } from '@/components/pages/SettingsPage';
 import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
 import { AppLayout } from '@/components/layout/AppLayout';

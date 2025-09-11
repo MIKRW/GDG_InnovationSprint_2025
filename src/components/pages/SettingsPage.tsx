@@ -17,6 +17,9 @@ export function SettingsPage() {
         <Button asChild variant="outline">
           <Link href="/settings/location">Location Settings</Link>
         </Button>
+         <Button asChild variant="outline">
+          <Link href="/settings/mode">App Mode</Link>
+        </Button>
       </div>
     </div>
   );

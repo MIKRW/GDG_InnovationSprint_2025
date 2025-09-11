@@ -53,3 +53,9 @@ export type LocationSettings = {
     isOutside: boolean;
   };
 };
+
+export type AppMode = 'newbie' | 'twitcher';
+
+export type AppSettings = {
+  mode: AppMode;
+};
