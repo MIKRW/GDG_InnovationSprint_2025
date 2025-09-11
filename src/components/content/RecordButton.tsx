@@ -31,7 +31,7 @@ interface RecordButtonProps {
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
-const PROMPT_VERSION = "1.0"; // A static version for now
+const PROMPT_VERSION = "1.1"; // Updated for weather tool
 
 
 const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps, ref) => {
@@ -43,6 +43,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   const audioChunksRef = useRef<Blob[]>([]);
   const [lastAudio, setLastAudio] = useState<string | null>(null);
   const currentSessionId = useRef<string | null>(null);
+  const currentTimestamp = useRef<string | null>(null);
 
 
   useImperativeHandle(ref, () => ({
@@ -50,6 +51,9 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       if (currentSessionId.current === null) {
         currentSessionId.current = uuidv4();
       }
+      // Set the timestamp when the file is selected
+      currentTimestamp.current = new Date().toISOString();
+
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onloadend = () => {
@@ -70,6 +74,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
 
     currentSessionId.current = uuidv4();
+    currentTimestamp.current = new Date().toISOString();
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -129,7 +134,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       
       // Save to internal analysis collection
       const analysisData = {
-          timestamp: new Date().toISOString(),
+          timestamp: log.timestamp,
           userId: user.uid,
           sessionId: currentSessionId.current,
           inputAudioUrl: audioPath,
@@ -141,7 +146,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           aiResult: aiResult,
           wasSuccessful: wasSuccessful,
           wasSavedByUser: true,
-          analysisMethod: 'audio-gemini-2.5-flash-v1'
+          analysisMethod: 'audio-gemini-2.5-flash-v1.1'
       };
       await addDoc(collection(db, 'all_analysis_runs'), analysisData);
       
@@ -157,7 +162,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     if (!user) return;
     const newLogData = {
       sessionId: currentSessionId.current!,
-      timestamp: new Date().toISOString(),
+      timestamp: currentTimestamp.current!,
       commonName: 'Mystery Recording',
       scientificName: 'Audio captured',
       description: 'The AI could not identify a bird in this recording. You can listen to the recording here.',
@@ -188,7 +193,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         const audioPath = `users/${user.uid}/recordings/${runId}.webm`;
 
         const analysisData = {
-            timestamp: new Date().toISOString(),
+            timestamp: currentTimestamp.current!,
             userId: user.uid,
             sessionId: currentSessionId.current,
             inputAudioUrl: audioPath, // Path even if upload fails or is skipped
@@ -196,7 +201,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
             aiResult: aiResult,
             wasSuccessful: false,
             wasSavedByUser: false, // This is the key flag
-            analysisMethod: 'audio-gemini-2.5-flash-v1'
+            analysisMethod: 'audio-gemini-2.5-flash-v1.1'
         };
         try {
             await addDoc(collection(db, 'all_analysis_runs'), analysisData);
@@ -275,7 +280,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   const saveTestRunToFirestore = async (result: any) => {
     const testRunData = {
         aiResult: result,
-        timestamp: new Date().toISOString(),
+        timestamp: currentTimestamp.current!,
         promptVersion: PROMPT_VERSION,
         birdId: "australian-magpie", // Placeholder
         testAudioId: "magpie-warble-1", // Placeholder
@@ -285,7 +290,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 
 
   const processAudio = async (base64Audio: string, locationData?: { latitude?: number, longitude?: number, locationDescription?: string }, isTestRun = false) => {
-    if (!user && !isTestRun) {
+    if ((!user && !isTestRun) || !currentTimestamp.current) {
       setRecordingState('idle');
       return;
     }
@@ -294,6 +299,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     try {
       const result = await identifyBirdBySound({ 
           audioDataUri: base64Audio,
+          timestamp: currentTimestamp.current,
           mode: appSettings.mode,
           ...locationData
       });
@@ -308,7 +314,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       if (result && result.isBirdSong && result.commonName && result.scientificName && result.description && result.imagePrompt) {
           const newLogData = {
               sessionId: currentSessionId.current!,
-              timestamp: new Date().toISOString(),
+              timestamp: currentTimestamp.current!,
               commonName: result.commonName,
               scientificName: result.scientificName,
               family: result.family,
@@ -316,6 +322,8 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
               description: result.description,
               imagePrompt: result.imagePrompt,
               isMystery: false,
+              season: result.season,
+              weather: result.weather,
               ...locationData,
           };
           await saveToFirestore(newLogData, base64Audio, result, true);

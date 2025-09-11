@@ -29,7 +29,7 @@ export type BirdLog = {
     id: string;
     sessionId: string; // All logs from one recording event share this ID
     userId: string;
-    timestamp: string;
+    timestamp: string; // ISO 8601 string in UTC
     commonName: string;
     scientificName: string;
     family?: string;
@@ -41,6 +41,8 @@ export type BirdLog = {
     latitude?: number;
     longitude?: number;
     locationDescription?: string;
+    weather?: string; // e.g., 'Clear, 15°C, light breeze'
+    season?: string; // e.g., 'Summer'
 }
 
 export type SortOption = 'newest' | 'oldest' | 'a-z' | 'z-a';

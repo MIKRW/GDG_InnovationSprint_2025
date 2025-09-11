@@ -93,7 +93,7 @@ export default function LogDetailPage() {
                   </div>
                 )}
                 <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary">Captured: {new Date(log.timestamp).toLocaleDateString()}</Badge>
+                    <Badge variant="secondary">Captured: {new Date(log.timestamp).toLocaleString()}</Badge>
                      {log.isMystery && <Badge variant="destructive">Unidentified</Badge>}
                       {log.order && (
                         <Badge variant="outline">
@@ -113,6 +113,16 @@ export default function LogDetailPage() {
                       {log.locationDescription && (
                         <Badge variant="outline">
                             {`Location: ${log.locationDescription}`}
+                        </Badge>
+                      )}
+                      {log.weather && (
+                        <Badge variant="outline">
+                          {log.weather}
+                        </Badge>
+                      )}
+                      {log.season && (
+                        <Badge variant="outline">
+                          {log.season}
                         </Badge>
                       )}
                 </div>
