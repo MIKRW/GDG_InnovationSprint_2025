@@ -1,9 +1,11 @@
+
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Mic, Book, Settings } from 'lucide-react';
+import { useAuth } from '@/components/auth/use-auth';
+import type { MouseEvent } from 'react';
 
 const navItems = [
   { href: '/record', label: 'Record', icon: Mic },
@@ -13,6 +15,19 @@ const navItems = [
 
 export function HomePageFooter() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { ensureUser } = useAuth();
+
+  const handleNavigation = async (e: MouseEvent<HTMLButtonElement>, href: string) => {
+    e.preventDefault();
+    const user = await ensureUser();
+    if (user) {
+      router.push(href);
+    } else {
+      // Handle the case where sign-in fails, perhaps show a toast
+      console.error("Could not navigate, user not signed in.");
+    }
+  };
 
   return (
     <footer className="border-t">
@@ -22,12 +37,11 @@ export function HomePageFooter() {
             key={href}
             variant={pathname === href ? 'secondary' : 'ghost'}
             size="sm"
-            asChild
+            onClick={(e) => handleNavigation(e, href)}
+            className="flex flex-col items-center h-auto"
           >
-            <Link href={href} className="flex flex-col items-center h-auto">
-              <Icon className="h-5 w-5" />
-              <span className="text-xs mt-1">{label}</span>
-            </Link>
+            <Icon className="h-5 w-5" />
+            <span className="text-xs mt-1">{label}</span>
           </Button>
         ))}
       </nav>
