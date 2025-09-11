@@ -10,6 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
+import promptText from '@/ai/prompts/bird-identification-prompt.txt';
 
 const IdentifyBirdInputSchema = z.object({
   audioDataUri: z
@@ -42,33 +43,7 @@ const prompt = ai.definePrompt({
   name: 'identifyBirdPrompt',
   input: { schema: IdentifyBirdInputSchema },
   output: { schema: IdentifyBirdOutputSchema },
-  prompt: `
-    You are an expert ornithologist with the ability to identify bird species by their songs.
-    Analyze the following audio data to identify the bird species.
-
-    Audio data: {{media url=audioDataUri}}
-
-    When using location to assist with identification, you must cross-reference against publicly available data to understand the bird's known geographic range and habitat.
-    You must establish a hierarchy of data sources, prioritizing reliable, scientific, and field-specific resources (such as government databases, ornithological research papers, and well-known field guides) over general public information or crowd-sourced data.
-
-    {{#if locationDescription}}
-    The recording was made in or near: "{{locationDescription}}".
-    Use this information as a strong hint to narrow down the possible bird species. A bird not typically found in this location is less likely to be the correct identification.
-    {{else if latitude}}
-    The recording was made at the absolute location of latitude: {{latitude}}, longitude: {{longitude}}.
-    Use this precise location as a primary factor to determine the possible bird species. A bird that is not found in this exact area is highly unlikely to be the correct identification.
-    {{/if}}
-
-    Your task is to return a JSON object with the following structure:
-    - isBirdSong: A boolean indicating if you are confident a bird song is present in the audio.
-    - commonName: The common name of the bird.
-    - scientificName: The scientific (Latin) name of the bird.
-    - description: A brief, interesting fact about the bird.
-    - imagePrompt: A simple but effective text-to-image prompt to generate a photo of this bird.
-
-    CRITICAL: If the audio does not contain a discernible bird song, or if you are not highly confident in your identification, you MUST set "isBirdSong" to false and leave the other fields empty.
-    Do not guess or invent a bird. It is better to indicate that no bird song was identified than to provide a potentially incorrect answer.
-  `,
+  prompt: promptText,
 });
 
 const identifyBirdFlow = ai.defineFlow(
