@@ -26,9 +26,9 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Subscribe to authentication state changes
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
         setLoading(false);
       } else {
         // If no user is signed in, sign them in anonymously.
