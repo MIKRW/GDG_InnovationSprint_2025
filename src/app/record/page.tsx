@@ -9,7 +9,7 @@ import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, Bird, FlaskConical, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function RecordPage() {
   const [showPermissionError, setShowPermissionError] = useState(false);
@@ -41,12 +41,7 @@ export default function RecordPage() {
         <div className="relative flex items-center justify-center">
             {isDevMode && (
               <div className="absolute right-full mr-16 w-96 space-y-4">
-                  <Card
-                    style={{
-                      background: 'repeating-linear-gradient(45deg, hsl(var(--destructive)), hsl(var(--destructive)) 10px, hsl(var(--background)) 10px, hsl(var(--background)) 20px)',
-                      padding: '8px'
-                    }}
-                  >
+                  <Card className="bg-hazard-stripes p-2 rounded-lg">
                     <div className="bg-background rounded-sm">
                       <CardContent className="p-0">
                         <input

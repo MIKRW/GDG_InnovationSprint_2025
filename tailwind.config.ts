@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -76,6 +77,9 @@ export default {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+      },
+      backgroundImage: {
+        'hazard-stripes': 'repeating-linear-gradient(45deg, hsl(var(--destructive)), hsl(var(--destructive)) 10px, hsl(var(--background)) 10px, hsl(var(--background)) 20px)',
       },
       keyframes: {
         'accordion-down': {
