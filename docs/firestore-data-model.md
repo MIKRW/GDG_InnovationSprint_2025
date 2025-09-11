@@ -50,3 +50,33 @@ This professional, two-tiered model perfectly separates our need for analytical 
                 *   **Document (ID: `UNIQUE_LOG_ID`):**
                     *   **For Successful IDs:** Contains the formatted data (`commonName`, `scientificName`, `family`, `order`, `description`, etc.) and a reference to the audio file.
                     *   **For Mystery Recordings:** Contains `isMystery: true`, a conventional name like "Mystery Recording - [Date]", and a reference to the audio file.
+
+---
+
+## Part 3: Architectural Review & Long-Term Data Strategy
+
+This section outlines key architectural decisions and long-term strategies to ensure the application is scalable, cost-effective, and provides a robust user experience.
+
+### Data Value vs. Cost: The "Data Quality Score"
+
+To manage storage costs effectively as data volume grows, a `dataQualityScore` field will be added to each document in the `all_analysis_runs` collection. This allows for intelligent data retention policies.
+
+*   **Calculation:** The score will be calculated programmatically upon data creation, based on factors like:
+    *   **AI Confidence Score:** The confidence level returned by the AI model.
+    *   **User Confirmation:** Whether the user saved the identification to their personal log (a strong positive signal).
+    *   **Audio Fidelity:** Higher scores for recordings made in "Twitcher Mode" with higher quality settings.
+    *   **Location Precision:** Higher scores for precise GPS coordinates versus general descriptions.
+    *   **Audio Clarity:** (Future enhancement) Analyze for low background noise.
+*   **Benefit:** This scoring system enables automated, cost-management policies, such as deleting low-quality, un-saved recordings after a set period, while preserving high-quality data indefinitely for future AI model fine-tuning.
+
+### Cloud Storage vs. Local Storage: User Experience & Data Persistence
+
+To ensure a seamless, multi-device user experience and prevent data loss, the user's "Bird Book" will be architected as a cloud-first system.
+
+*   **Single Source of Truth:** The `users/{userId}/identifications` collection in Firestore is the user's permanent, authoritative record of their saved identifications.
+*   **Local Cache:** The browser's `localStorage` will be used as a temporary cache for fast, offline access.
+*   **Syncing Logic:**
+    1.  On app startup, the user's "Bird Book" is fetched from Firestore and hydrated into the local cache.
+    2.  When offline, the app reads from this local cache.
+    3.  When a user saves a new identification, the app writes it to both Firestore and the local cache.
+*   **Benefit:** This model guarantees that a user's collection is never lost. It is always backed up to the cloud and can be accessed or restored from any device, providing the professional and reliable user experience we aim for.
