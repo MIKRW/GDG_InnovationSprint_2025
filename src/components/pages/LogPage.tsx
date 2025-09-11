@@ -181,3 +181,5 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
     </div>
   );
 }
+
+    
