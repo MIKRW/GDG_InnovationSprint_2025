@@ -6,7 +6,6 @@ import type { User } from 'firebase/auth';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import type { ReactNode } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
 
 // Define the shape of the authentication context
 export interface AuthContextType {
@@ -52,7 +51,7 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
       return userCredential.user;
     } catch (error) {
       console.error("Anonymous sign-in failed:", error);
-      // We are logging the error that we previously documented.
+      // We can log this to our new error logging system in the future.
       return null;
     } finally {
         setLoading(false);
