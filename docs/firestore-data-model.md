@@ -66,7 +66,32 @@ This professional, two-tiered model perfectly separates our need for analytical 
 
 ---
 
-## Part 3: Architectural Review & Long-Term Data Strategy
+## Part 3: Long-Term Data Strategy
+
+This section outlines key architectural decisions and long-term strategies for user account management and data retention.
+
+### User Account Upgrading: Linking Anonymous to Permanent Accounts
+
+To prevent a user's data history from being split between an anonymous account and a permanent registered account, we will implement the **anonymous user upgrade** flow provided by Firebase Authentication.
+
+*   **Process:**
+    1.  A new user starts the app and is signed in anonymously, receiving a unique anonymous UID.
+    2.  They use the app, generating data (e.g., `all_analysis_runs`, `users/{anon_uid}/identifications`) associated with their anonymous UID.
+    3.  When they choose to register a permanent account (e.g., with email/password), we will use the Firebase SDK to link these new credentials to their *existing* anonymous account.
+*   **Benefit:** The user's UID remains the same. All their previous data is automatically and seamlessly carried over to their new, permanent account. This creates a smooth user experience and maintains data integrity.
+
+### Data Retention & Cleanup: Managing Anonymous User Data
+
+To manage storage costs and keep our database clean, we will implement a data retention policy for inactive or low-value anonymous user accounts. This will be achieved using scheduled Firebase Cloud Functions that run periodically.
+
+*   **Policy for Deletion:**
+    *   **Phase 1 (Short-term):** Delete anonymous user accounts and their associated data (in `users/{anon_uid}` and Firebase Storage) if the account is older than **2 weeks** AND has generated **zero** saved identifications. This removes accounts from users who visit once and never engage.
+    *   **Phase 2 (Mid-term):** Delete anonymous user accounts if the account is older than **1 month** AND has generated **fewer than 5** saved identifications. This removes accounts from very low-engagement users.
+    *   **Phase 3 (Long-term):** (Future Implementation) For long-term data archival, we can implement more sophisticated rules based on the `dataQualityScore` in the `all_analysis_runs` collection. For example, delete anonymous user data older than **1 year** if the average data quality score is below a certain threshold and they have not been active.
+*   **Benefit:** This automated cleanup process prevents the accumulation of unused data, reducing database and storage costs while preserving valuable, high-quality data for potential future use (like AI model training).
+---
+
+## Part 4: Architectural Review & Long-Term Data Strategy
 
 This section outlines key architectural decisions and long-term strategies to ensure the application is scalable, cost-effective, and provides a robust user experience.
 
