@@ -14,6 +14,12 @@ This is a list of tasks and ideas for improving the application.
 
 ---
 
+## Robustness & UX
+
+- **Implement Retry Logic**: For user-facing network operations (like audio uploads), implement a retry mechanism to handle temporary network failures or slow connections, improving the app's resilience.
+
+---
+
 ## Authentication System
 
 - **Re-implement Anonymous Authentication**: Carefully re-introduce the anonymous authentication flow. The goal is to create a stable, client-side-only authentication system that avoids race conditions with Next.js server-side rendering. This will be the foundation for all user-specific features.
