@@ -20,6 +20,12 @@ This is a list of tasks and ideas for improving the application.
 
 ---
 
+## Future Tools & Extensions
+
+- **Browser Extension for Metadata Scraping**: Develop a browser extension that can automatically scrape metadata (author, license, location, etc.) from a source URL (like Xeno-canto or Macaulay Library) when a developer is uploading a new master audio file.
+
+---
+
 ## Future Implementation Plan
 
 - **Implement Firestore Error Logging**: Build the necessary services and UI to create, view, and manage error logs based on the architecture defined in `docs/ERROR_LOG.md`.
