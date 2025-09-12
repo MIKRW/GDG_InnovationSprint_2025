@@ -26,6 +26,9 @@ export default function LogLayout({
     if (pathname.startsWith('/log/test')) {
         return 'Test Results'
     }
+    if (pathname.startsWith('/log/errors')) {
+        return 'Error Logs'
+    }
     return 'Bird Book';
   }, [pathname]);
 

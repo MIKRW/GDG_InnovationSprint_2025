@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -12,7 +13,7 @@ import { db } from '@/lib/firebase';
 
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { PageTitle } from '../content/PageTitle';
-import { FlaskConical, HelpCircle } from 'lucide-react';
+import { FlaskConical, HelpCircle, ShieldAlert } from 'lucide-react';
 
 interface LogPageProps {
     searchQuery: string;
@@ -87,23 +88,42 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
     <div className="container mx-auto px-4 py-8 space-y-8">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {isDevMode && (
-           <Link href="/log/test" legacyBehavior>
-            <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
-                <div className="bg-background h-full flex flex-col rounded-sm">
-                    <CardContent className="p-0 flex-grow flex items-center justify-center">
-                        <div className="aspect-square relative w-full flex items-center justify-center">
-                            <FlaskConical className="w-24 h-24 text-secondary-foreground" />
-                        </div>
-                    </CardContent>
-                    <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
-                        <div className="text-left">
-                        <p className="font-bold text-sm truncate">Test Results</p>
-                        <p className="text-xs text-muted-foreground truncate italic">Developer test logs</p>
-                        </div>
-                    </CardFooter>
-                </div>
-            </Card>
-          </Link>
+          <>
+            <Link href="/log/test" legacyBehavior>
+              <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
+                  <div className="bg-background h-full flex flex-col rounded-sm">
+                      <CardContent className="p-0 flex-grow flex items-center justify-center">
+                          <div className="aspect-square relative w-full flex items-center justify-center">
+                              <FlaskConical className="w-24 h-24 text-secondary-foreground" />
+                          </div>
+                      </CardContent>
+                      <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
+                          <div className="text-left">
+                          <p className="font-bold text-sm truncate">Test Results</p>
+                          <p className="text-xs text-muted-foreground truncate italic">Developer test logs</p>
+                          </div>
+                      </CardFooter>
+                  </div>
+              </Card>
+            </Link>
+            <Link href="/log/errors" legacyBehavior>
+              <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
+                  <div className="bg-background h-full flex flex-col rounded-sm">
+                      <CardContent className="p-0 flex-grow flex items-center justify-center">
+                          <div className="aspect-square relative w-full flex items-center justify-center">
+                              <ShieldAlert className="w-24 h-24 text-secondary-foreground" />
+                          </div>
+                      </CardContent>
+                      <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
+                          <div className="text-left">
+                          <p className="font-bold text-sm truncate">Error Logs</p>
+                          <p className="text-xs text-muted-foreground truncate italic">Application error instances</p>
+                          </div>
+                      </CardFooter>
+                  </div>
+              </Card>
+            </Link>
+          </>
         )}
         {groupedAndSortedLogs.hasMystery && (
            <Link href="/log/mystery" legacyBehavior>
