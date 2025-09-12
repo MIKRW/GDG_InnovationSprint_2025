@@ -24,6 +24,7 @@ export default function RecordPage() {
   const [isTestAudioDialogOpen, setIsTestAudioDialogOpen] = useState(false);
   const [testAudioLibrary, setTestAudioLibrary] = useState<TestAudioMetadata[]>([]);
   const [isLibraryLoading, setIsLibraryLoading] = useState(false);
+  const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
   useEffect(() => {
     if (isTestAudioDialogOpen && isDevMode) {
@@ -62,8 +63,7 @@ export default function RecordPage() {
 
       fetchTestAudioLibrary();
     }
-  }, [isTestAudioDialogOpen]);
-
+  }, [isTestAudioDialogOpen, isDevMode]);
 
   const handleSelectTestAudio = async (audio: TestAudioMetadata) => {
     try {
@@ -85,8 +85,6 @@ export default function RecordPage() {
         console.error("Error loading test audio from Firebase Storage:", error);
     }
   };
-  
-  const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
   return (
     <AppLayout header={<SecondaryHeader title="Microphone" />}>
