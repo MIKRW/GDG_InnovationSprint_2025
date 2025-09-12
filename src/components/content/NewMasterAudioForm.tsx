@@ -22,7 +22,7 @@ const formSchema = z.object({
     family: z.string().min(2, "Family is required."),
     order: z.string().min(2, "Order is required."),
     description: z.string().min(10, "Please provide a brief description of the recording."),
-    audioFile: z.instanceof(FileList).refine(files => files?.length === 1, "Audio file is required."),
+    audioFile: z.any(),
 });
 
 interface NewMasterAudioFormProps {
@@ -48,8 +48,13 @@ export function NewMasterAudioForm({ onUploadSuccess }: NewMasterAudioFormProps)
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);
-        const file = values.audioFile[0];
+        const file = values.audioFile?.[0];
         if (!file) {
+            toast({
+                variant: 'destructive',
+                title: 'Validation Error',
+                description: 'Audio file is required.',
+            });
             setIsLoading(false);
             return;
         };
