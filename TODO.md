@@ -23,6 +23,7 @@ This is a list of tasks and ideas for improving the application.
 ## Future Tools & Extensions
 
 - **Browser Extension for Metadata Scraping**: Develop a browser extension that can automatically scrape metadata (author, license, location, etc.) from a source URL (like Xeno-canto or Macaulay Library) when a developer is uploading a new master audio file.
+- **Embedded Metadata Extraction**: Implement a feature to automatically parse and import embedded metadata (e.g., ID3 tags) from master audio files upon upload.
 
 ---
 
