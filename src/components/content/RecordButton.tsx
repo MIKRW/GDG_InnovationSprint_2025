@@ -9,7 +9,7 @@ import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storag
 
 import { identifyBirdBySound } from '@/ai/flows/identify-bird-flow';
 import { db, storage } from '@/lib/firebase';
-import type { BirdLog, LocationSettings, AppSettings } from '@/lib/types';
+import type { BirdLog, LocationSettings, AppSettings, AppMode } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { MicrophoneIcon } from './MicrophoneIcon';
 import { Loader2, MicOff, Square } from 'lucide-react';
@@ -201,15 +201,23 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   };
 
   const saveTestRunToFirestore = async (result: any) => {
-    const testRunData = {
-        aiResult: result,
-        timestamp: currentTimestamp.current!,
-        promptVersion: PROMPT_VERSION,
-        birdId: "australian-magpie", // Placeholder
-        testAudioId: "magpie-warble-1", // Placeholder
-    };
-    // This part does not require auth, so we can keep it
-    await addDoc(collection(db, 'all_test_runs'), testRunData);
+    try {
+      const testRunData = {
+          aiResult: result,
+          timestamp: currentTimestamp.current!,
+          promptVersion: PROMPT_VERSION,
+          birdId: "australian-magpie", // Placeholder
+          testAudioId: "magpie-warble-1", // Placeholder
+      };
+      await addDoc(collection(db, 'all_test_runs'), testRunData);
+    } catch (error) {
+       console.error('Error saving test run to Firestore:', error);
+       logErrorToFirestore(error as Error, 'firestore-write-failure', {
+         collection: 'all_test_runs',
+         operation: 'addDoc',
+       });
+       // Optionally, inform the user that saving the test run failed
+    }
   }
 
 

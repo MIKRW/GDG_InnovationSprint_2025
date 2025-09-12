@@ -227,7 +227,8 @@ export function ThemeGenerator() {
     );
 
     setSavedThemes(newSavedThemes);
-
+    
+    // Save to local storage first for immediate offline access
     try {
         localStorage.setItem(`theme-slot-${selectedSlot}`, JSON.stringify(themeToSaveToSlot));
         
@@ -243,8 +244,29 @@ export function ThemeGenerator() {
     } catch (error) {
         console.error("Error saving theme to LocalStorage: ", error);
         toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not save theme to LocalStorage.' });
+        // Don't proceed to Firestore if local save fails
+        return;
     }
   
+    // Then, attempt to save to Firestore (without authentication for now)
+    try {
+      console.warn("Auth system disabled. Saving theme to a shared document.");
+      const themeDocRef = doc(db, 'user_themes', `shared_slot_${selectedSlot}`);
+      await setDoc(themeDocRef, themeToSaveToSlot);
+    } catch (error) {
+       console.error("Error saving theme to Firestore: ", error);
+       logErrorToFirestore(error as Error, 'firestore-write-failure', {
+         collection: 'user_themes',
+         operation: 'setDoc',
+         documentId: `shared_slot_${selectedSlot}`
+       });
+       toast({
+         variant: 'destructive',
+         title: 'Cloud Sync Failed',
+         description: 'Theme was saved on this device, but failed to sync to the cloud. This has been logged.',
+       });
+    }
+
     if (isPreviewingGenerated || isPreviewingManual) {
         setIsPreviewingGenerated(false);
         setIsPreviewingManual(false);
