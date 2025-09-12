@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { ManualThemeEditor } from './ManualThemeEditor';
 import { PageTitle } from '../content/PageTitle';
 import { db } from '@/lib/firebase';
+import { logErrorToFirestore } from '@/lib/error-logging';
 
 const formSchema = z.object({
   word1: z.string(),
@@ -263,12 +264,14 @@ export function ThemeGenerator() {
     }
     
     const mood = MOODS[currentMoodIndex];
+    const inputForAI = { ...values, mood };
+
     try {
-      const newColors = await generateTheme({ ...values, mood });
+      const newColors = await generateTheme(inputForAI);
       
       const newTheme: Theme = {
         id: uuidv4(),
-        words: { ...values, mood },
+        words: inputForAI,
         colors: newColors,
         isActive: false,
       };
@@ -282,6 +285,11 @@ export function ThemeGenerator() {
       });
     } catch (error) {
       console.error(error);
+      logErrorToFirestore(error as Error, 'theme-generation-failure', {
+        words: { word1: values.word1, word2: values.word2, word3: values.word3 },
+        mood: mood,
+      });
+
       const errorMessage = (error as Error).message || '';
       if (errorMessage.includes('503') || errorMessage.toLowerCase().includes('overloaded')) {
         setIsApiOverloaded(true);
@@ -289,7 +297,7 @@ export function ThemeGenerator() {
         toast({
             variant: 'destructive',
             title: 'Generation Failed',
-            description: 'Could not generate the theme. Please try again.',
+            description: 'Could not generate the theme. This error has been logged.',
         });
       }
     } finally {
