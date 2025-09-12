@@ -43,7 +43,6 @@ export default function RecordPage() {
                         fileName: audio.storagePath.split('/').pop() || 'Unknown Filename',
                         storagePath: audio.storagePath,
                         description: audio.description,
-                        // Add other fields from your type if they exist in Firestore
                         sourceUrl: audio.sourceUrl || '',
                         author: audio.author || '',
                         license: audio.license || '',
@@ -56,7 +55,6 @@ export default function RecordPage() {
           setTestAudioLibrary(library);
         } catch (error) {
           console.error("Error fetching test audio library from Firestore:", error);
-          // Optionally, show a toast or error message to the user
         }
         setIsLibraryLoading(false);
       };
@@ -156,7 +154,7 @@ export default function RecordPage() {
                   <AlertTitle className="text-2xl">Microphone Access Required</AlertTitle>
                   <AlertDescription className="text-base">
                     This app needs access to your microphone. Please enable permissions in your browser settings and refresh the page.
-                  </AlerTDescription>
+                  </AlertDescription>
                 </Alert>
               )}
                {showIdentificationError && (
