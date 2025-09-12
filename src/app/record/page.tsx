@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { getDownloadURL, ref as storageRef } from 'firebase/storage';
+import { getBlob, ref as storageRef } from 'firebase/storage';
 import { collection, getDocs } from 'firebase/firestore';
 import { RecordButton } from '@/components/content/RecordButton';
 import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
@@ -74,13 +74,9 @@ export default function RecordPage() {
   const handleSelectTestAudio = async (audio: TestAudioMetadata) => {
     try {
         const fileRef = storageRef(storage, audio.storagePath);
-        const downloadUrl = await getDownloadURL(fileRef);
-        const response = await fetch(downloadUrl);
-
-        if (!response.ok) {
-            throw new Error(`Failed to fetch test audio: ${response.statusText}`);
-        }
-        const blob = await response.blob();
+        // Use getBlob to download the file directly, avoiding CORS issues.
+        const blob = await getBlob(fileRef);
+        
         const file = new File([blob], audio.fileName, { type: blob.type || 'audio/wav' });
 
         if (recordButtonRef.current) {
