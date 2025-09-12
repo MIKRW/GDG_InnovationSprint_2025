@@ -67,3 +67,21 @@ export type AppMode = 'newbie' | 'twitcher';
 export type AppSettings = {
   mode: AppMode;
 };
+
+/**
+ * Defines the structure for a single test audio file's metadata.
+ * This data is fetched from the 'birds' collection in Firestore.
+ */
+export interface TestAudioMetadata {
+  id: string;
+  fileName: string;
+  storagePath: string; // The path to the file in Firebase Storage
+  description: string;
+  sourceUrl: string;
+  author: string;
+  license: string;
+  hardware: string;
+  location: string;
+}
+
+    

@@ -1,50 +1,88 @@
 
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { getDownloadURL, ref as storageRef } from 'firebase/storage';
+import { collection, getDocs } from 'firebase/firestore';
 import { RecordButton } from '@/components/content/RecordButton';
 import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Bird, Music, Upload } from 'lucide-react';
+import { AlertTriangle, Bird, Music, Upload, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { testAudioLibrary } from '@/lib/test-audio-library';
+import { db, storage } from '@/lib/firebase';
+import type { TestAudioMetadata } from '@/lib/types';
+
 
 export default function RecordPage() {
   const [showPermissionError, setShowPermissionError] = useState(false);
   const [showIdentificationError, setShowIdentificationError] = useState(false);
   const recordButtonRef = useRef<{ handleFileSelect: (file: File) => void }>(null);
   const [isTestAudioDialogOpen, setIsTestAudioDialogOpen] = useState(false);
+  const [testAudioLibrary, setTestAudioLibrary] = useState<TestAudioMetadata[]>([]);
+  const [isLibraryLoading, setIsLibraryLoading] = useState(false);
 
-  const handleStartRecording = () => {
-    setShowPermissionError(false);
-    setShowIdentificationError(false);
-  }
+  useEffect(() => {
+    if (isTestAudioDialogOpen && isDevMode) {
+      const fetchTestAudioLibrary = async () => {
+        setIsLibraryLoading(true);
+        try {
+          const birdsCollectionRef = collection(db, 'birds');
+          const querySnapshot = await getDocs(birdsCollectionRef);
+          const library: TestAudioMetadata[] = [];
+          querySnapshot.forEach((doc) => {
+            const birdData = doc.data();
+            if (birdData.masterAudioFiles && Array.isArray(birdData.masterAudioFiles)) {
+                birdData.masterAudioFiles.forEach((audio: any) => {
+                    library.push({
+                        id: audio.audioId,
+                        fileName: audio.storagePath.split('/').pop() || 'Unknown Filename',
+                        storagePath: audio.storagePath,
+                        description: audio.description,
+                        // Add other fields from your type if they exist in Firestore
+                        sourceUrl: audio.sourceUrl || '',
+                        author: audio.author || '',
+                        license: audio.license || '',
+                        hardware: audio.hardware || '',
+                        location: audio.location || '',
+                    });
+                });
+            }
+          });
+          setTestAudioLibrary(library);
+        } catch (error) {
+          console.error("Error fetching test audio library from Firestore:", error);
+          // Optionally, show a toast or error message to the user
+        }
+        setIsLibraryLoading(false);
+      };
 
-  const onFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && recordButtonRef.current) {
-        recordButtonRef.current.handleFileSelect(file);
+      fetchTestAudioLibrary();
     }
-  };
+  }, [isTestAudioDialogOpen]);
 
-  const handleSelectTestAudio = async (fileName: string) => {
+
+  const handleSelectTestAudio = async (audio: TestAudioMetadata) => {
     try {
-        const response = await fetch(`/test-audio/${fileName}`);
+        const fileRef = storageRef(storage, audio.storagePath);
+        const downloadUrl = await getDownloadURL(fileRef);
+        const response = await fetch(downloadUrl);
+
         if (!response.ok) {
             throw new Error(`Failed to fetch test audio: ${response.statusText}`);
         }
         const blob = await response.blob();
-        const file = new File([blob], fileName, { type: 'audio/wav' });
+        const file = new File([blob], audio.fileName, { type: blob.type || 'audio/wav' });
+
         if (recordButtonRef.current) {
             recordButtonRef.current.handleFileSelect(file);
         }
         setIsTestAudioDialogOpen(false);
     } catch (error) {
-        console.error("Error loading test audio:", error);
+        console.error("Error loading test audio from Firebase Storage:", error);
     }
   };
   
@@ -69,24 +107,32 @@ export default function RecordPage() {
                             <DialogHeader>
                                 <DialogTitle>Select Master Audio File</DialogTitle>
                                 <DialogDescription>
-                                    Choose a master audio file from the library to run through the AI identifier.
+                                    Choose a master audio file from the library to run through the AI identifier. This list is fetched from your Firestore database.
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-2 py-4">
-                                {testAudioLibrary.map((audio) => (
-                                    <Button 
-                                        key={audio.id} 
-                                        variant="ghost" 
-                                        className="w-full justify-start h-auto text-left"
-                                        onClick={() => handleSelectTestAudio(audio.fileName)}
-                                    >
-                                       <Music className="mr-4 h-6 w-6 shrink-0" />
-                                       <div>
-                                            <p className="font-semibold">{audio.fileName}</p>
-                                            <p className="text-xs text-muted-foreground">{audio.description}</p>
-                                       </div>
-                                    </Button>
-                                ))}
+                                {isLibraryLoading ? (
+                                    <div className="flex items-center justify-center p-8">
+                                        <Loader2 className="h-8 w-8 animate-spin" />
+                                    </div>
+                                ) : testAudioLibrary.length === 0 ? (
+                                    <p className="text-center text-muted-foreground p-4">No master audio files found in the 'birds' collection in Firestore.</p>
+                                ) : (
+                                    testAudioLibrary.map((audio) => (
+                                        <Button 
+                                            key={audio.id} 
+                                            variant="ghost" 
+                                            className="w-full justify-start h-auto text-left"
+                                            onClick={() => handleSelectTestAudio(audio)}
+                                        >
+                                        <Music className="mr-4 h-6 w-6 shrink-0" />
+                                        <div>
+                                                <p className="font-semibold">{audio.fileName}</p>
+                                                <p className="text-xs text-muted-foreground">{audio.description}</p>
+                                        </div>
+                                        </Button>
+                                    ))
+                                )}
                             </div>
                         </DialogContent>
                       </Dialog>
@@ -99,7 +145,10 @@ export default function RecordPage() {
               ref={recordButtonRef}
               onPermissionDenied={() => setShowPermissionError(true)} 
               onIdentificationFailed={() => setShowIdentificationError(true)}
-              onStartRecording={handleStartRecording}
+              onStartRecording={() => {
+                setShowPermissionError(false);
+                setShowIdentificationError(false);
+              }}
             />
 
             <div className="absolute left-full ml-16 w-96 space-y-4">
@@ -109,7 +158,7 @@ export default function RecordPage() {
                   <AlertTitle className="text-2xl">Microphone Access Required</AlertTitle>
                   <AlertDescription className="text-base">
                     This app needs access to your microphone. Please enable permissions in your browser settings and refresh the page.
-                  </AlertDescription>
+                  </AlerTDescription>
                 </Alert>
               )}
                {showIdentificationError && (
