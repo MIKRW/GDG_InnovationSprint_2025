@@ -70,7 +70,7 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {filteredAndSortedLogs.map((log) => (
-          <Link href={`/log/${log.id}`} key={log.id} legacyBehavior>
+          <Link href={`/log/${log.id}`} key={log.id}>
             <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer">
               <CardContent className="p-0 flex-grow flex items-center justify-center bg-muted">
                 <div className="aspect-square relative w-full flex items-center justify-center">
