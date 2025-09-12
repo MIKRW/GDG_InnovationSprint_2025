@@ -82,6 +82,7 @@ export interface TestAudioMetadata {
   license: string;
   hardware: string;
   location: string;
+  // These are added client-side for context when running tests
+  birdId: string; 
+  testAudioId: string;
 }
-
-    

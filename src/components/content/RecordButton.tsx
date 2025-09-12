@@ -46,11 +46,10 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 
 
   useImperativeHandle(ref, () => ({
-    handleFileSelect(file: File) {
+    handleFileSelect(file: File, testContext?: { birdId: string, testAudioId: string }) {
       if (currentSessionId.current === null) {
         currentSessionId.current = uuidv4();
       }
-      // Set the timestamp when the file is selected
       currentTimestamp.current = new Date().toISOString();
 
       const reader = new FileReader();
@@ -58,8 +57,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       reader.onloadend = () => {
         const base64Audio = reader.result as string;
         setRecordingState('processing');
-        // For dev uploads, we pass a special flag to processAudio
-        processAudio(base64Audio, undefined, true);
+        processAudio(base64Audio, undefined, testContext);
       };
     }
   }));
@@ -200,14 +198,14 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
   };
 
-  const saveTestRunToFirestore = async (result: any) => {
+  const saveTestRunToFirestore = async (result: any, testContext: { birdId: string, testAudioId: string }) => {
     try {
       const testRunData = {
           aiResult: result,
           timestamp: currentTimestamp.current!,
           promptVersion: PROMPT_VERSION,
-          birdId: "australian-magpie", // Placeholder
-          testAudioId: "magpie-warble-1", // Placeholder
+          birdId: testContext.birdId,
+          testAudioId: testContext.testAudioId,
       };
       await addDoc(collection(db, 'all_test_runs'), testRunData);
     } catch (error) {
@@ -221,7 +219,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   }
 
 
-  const processAudio = async (base64Audio: string, locationData?: { latitude?: number, longitude?: number, locationDescription?: string }, isTestRun = false) => {
+  const processAudio = async (base64Audio: string, locationData?: { latitude?: number, longitude?: number, locationDescription?: string }, testContext?: { birdId: string, testAudioId: string }) => {
     if (!currentTimestamp.current) {
       setRecordingState('idle');
       return;
@@ -236,8 +234,8 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           ...locationData
       });
 
-      if (isTestRun) {
-        await saveTestRunToFirestore(result);
+      if (testContext) {
+        await saveTestRunToFirestore(result, testContext);
         setRecordingState('idle');
         router.push('/log/test'); // Navigate to test log page after test run
         return;
