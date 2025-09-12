@@ -17,10 +17,19 @@ interface UploadMasterAudioInput {
     audioFile: string; // data URI
     audioFileName: string;
     description: string;
+    sourceUrl?: string;
+    author?: string;
+    license?: string;
+    hardware?: string;
+    location?: string;
 }
 
 export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<TestAudioMetadata> {
-    const { birdId, commonName, scientificName, family, order, audioFile, audioFileName, description } = data;
+    const { 
+        birdId, commonName, scientificName, family, order, 
+        audioFile, audioFileName, description,
+        sourceUrl = '', author = '', license = '', hardware = '', location = ''
+    } = data;
 
     // 1. Upload audio file to Firebase Storage
     const audioId = uuidv4();
@@ -32,7 +41,7 @@ export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<T
     const blob = await fetchResponse.blob();
     
     await uploadBytes(fileRef, blob);
-    const downloadUrl = await getDownloadURL(fileRef); // Though we use storagePath, good to confirm upload
+    await getDownloadURL(fileRef);
 
     // 2. Create or update the bird document in Firestore
     const birdDocRef = doc(db, 'birds', birdId);
@@ -42,12 +51,11 @@ export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<T
         audioId: audioId,
         storagePath: filePath,
         description: description,
-        // Add other metadata fields as needed in the future
-        sourceUrl: '',
-        author: 'App Upload',
-        license: 'Private',
-        hardware: 'Unknown',
-        location: 'Unknown',
+        sourceUrl: sourceUrl,
+        author: author,
+        license: license,
+        hardware: hardware,
+        location: location,
     };
 
     if (birdDocSnap.exists()) {
@@ -72,11 +80,11 @@ export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<T
         fileName: audioFileName,
         storagePath: filePath,
         description: description,
-        sourceUrl: '',
-        author: 'App Upload',
-        license: 'Private',
-        hardware: 'Unknown',
-        location: 'Unknown',
+        sourceUrl: sourceUrl,
+        author: author,
+        license: license,
+        hardware: hardware,
+        location: location,
         birdId: birdId,
         testAudioId: audioId
     };

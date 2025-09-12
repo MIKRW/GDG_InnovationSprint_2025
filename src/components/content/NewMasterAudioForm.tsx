@@ -4,7 +4,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import type { TestAudioMetadata } from '@/lib/types';
 import { kebabCase } from 'lodash';
+import { ScrollArea } from '../ui/scroll-area';
 
 
 const formSchema = z.object({
@@ -23,6 +24,11 @@ const formSchema = z.object({
     order: z.string().min(2, "Order is required."),
     description: z.string().min(10, "Please provide a brief description of the recording."),
     audioFile: z.any(),
+    sourceUrl: z.string().url().optional().or(z.literal('')),
+    author: z.string().optional(),
+    license: z.string().optional(),
+    hardware: z.string().optional(),
+    location: z.string().optional(),
 });
 
 interface NewMasterAudioFormProps {
@@ -41,6 +47,11 @@ export function NewMasterAudioForm({ onUploadSuccess }: NewMasterAudioFormProps)
             family: '',
             order: '',
             description: '',
+            sourceUrl: '',
+            author: '',
+            license: '',
+            hardware: '',
+            location: '',
         }
     });
 
@@ -76,6 +87,11 @@ export function NewMasterAudioForm({ onUploadSuccess }: NewMasterAudioFormProps)
                     audioFile: base64Audio,
                     audioFileName: file.name,
                     description: values.description,
+                    sourceUrl: values.sourceUrl,
+                    author: values.author,
+                    license: values.license,
+                    hardware: values.hardware,
+                    location: values.location,
                 });
 
                 toast({
@@ -109,88 +125,163 @@ export function NewMasterAudioForm({ onUploadSuccess }: NewMasterAudioFormProps)
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                 <FormField
-                    control={form.control}
-                    name="audioFile"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Master Audio File (.wav, .mp3)</FormLabel>
-                            <FormControl>
-                                <Input type="file" accept="audio/wav, audio/mpeg" {...fileRef} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="commonName"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Common Name</FormLabel>
-                            <FormControl>
-                                <Input placeholder="e.g., Australian Magpie" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                 <FormField
-                    control={form.control}
-                    name="scientificName"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Scientific Name</FormLabel>
-                            <FormControl>
-                                <Input placeholder="e.g., Gymnorhina tibicen" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                 <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                        control={form.control}
-                        name="family"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Family</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="e.g., Artamidae" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="order"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Order</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="e.g., Passeriformes" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-                 <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Recording Description</FormLabel>
-                            <FormControl>
-                                <Textarea placeholder="Describe the recording context, e.g., 'Clear warbling call in a forest setting.'" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <Button type="submit" className="w-full" disabled={isLoading}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+                <ScrollArea className="h-[28rem] pr-6">
+                    <div className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="audioFile"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Master Audio File (.wav, .mp3)</FormLabel>
+                                    <FormControl>
+                                        <Input type="file" accept="audio/wav, audio/mpeg" {...fileRef} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="commonName"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Common Name</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g., Australian Magpie" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="scientificName"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Scientific Name</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g., Gymnorhina tibicen" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="family"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Family</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g., Artamidae" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="order"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Order</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g., Passeriformes" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+                        <FormField
+                            control={form.control}
+                            name="description"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Recording Description</FormLabel>
+                                    <FormControl>
+                                        <Textarea placeholder="Describe the recording context, e.g., 'Clear warbling call in a forest setting.'" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <h3 className="text-lg font-semibold pt-4 border-b pb-2">Optional Metadata</h3>
+                        
+                        <FormField
+                            control={form.control}
+                            name="sourceUrl"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Source URL</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="https://example.com/audio-source" {...field} />
+                                    </FormControl>
+                                    <FormDescription>
+                                        The web page where the original audio was found.
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="author"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Author / Recordist</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="John Doe" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="license"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>License</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g., CC BY-SA 4.0" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="hardware"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Recording Hardware</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g., Zoom H5, Sennheiser ME66" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="location"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Recording Location</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g., Fryers Forest, VIC, Australia" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
+                </ScrollArea>
+                <Button type="submit" className="w-full mt-6" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Upload and Add to Library
                 </Button>
