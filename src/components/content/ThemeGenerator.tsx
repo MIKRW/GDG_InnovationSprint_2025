@@ -129,45 +129,51 @@ export function ThemeGenerator() {
     // Load themes from LocalStorage
     useEffect(() => {
         setIsFirestoreLoading(true);
-        const themesFromStorage: Record<string, Theme> = {};
-        for(let i = 0; i < MAX_SAVED_THEMES; i++) {
+        const themesFromStorage: (Theme | null)[] = Array.from({ length: MAX_SAVED_THEMES }).map((_, i) => {
             const themeJson = localStorage.getItem(`theme-slot-${i}`);
             if (themeJson) {
                 try {
-                    themesFromStorage[i.toString()] = JSON.parse(themeJson);
+                    return JSON.parse(themeJson);
                 } catch (e) {
                     console.error(`Failed to parse theme from slot ${i}`, e);
+                    return null;
                 }
             }
-        }
-
-        let hasActive = false;
-        const filledThemes = Array.from({ length: MAX_SAVED_THEMES }).map((_, i) => {
-          let theme = themesFromStorage[i.toString()];
-          if (!theme) {
-            theme = { ...DEFAULTS, id: uuidv4(), isActive: i === 0 };
-            if (i > 0) theme.words = { word1: 'new', word2: 'theme', word3: 'slot', mood: 'default' };
-          }
-          if (theme.isActive) {
-            if (hasActive) theme.isActive = false;
-            else {
-              hasActive = true;
-              setSelectedSlot(i);
-              localStorage.setItem('active-theme-json', JSON.stringify(theme));
-              updateCSSVariables(theme.colors);
-            }
-          }
-          return theme;
+            return null;
         });
 
-        if (!hasActive && filledThemes.length > 0) {
-          filledThemes[0].isActive = true;
-          setSelectedSlot(0);
-          localStorage.setItem('active-theme-json', JSON.stringify(filledThemes[0]));
-          updateCSSVariables(filledThemes[0].colors);
+        let activeTheme: Theme | null = null;
+        let activeIndex = -1;
+
+        themesFromStorage.forEach((theme, index) => {
+            if (theme?.isActive) {
+                activeTheme = theme;
+                activeIndex = index;
+            }
+        });
+
+        if (!activeTheme) {
+            activeIndex = 0;
+            activeTheme = themesFromStorage[0] || { ...DEFAULTS, id: uuidv4(), isActive: true };
         }
 
-        setSavedThemes(filledThemes);
+        const finalThemes = themesFromStorage.map((theme, i) => {
+            if (theme) {
+                return { ...theme, isActive: i === activeIndex };
+            }
+            // Fill empty slots
+            return {
+                 ...DEFAULTS, 
+                 id: uuidv4(), 
+                 isActive: i === activeIndex,
+                 words: i === 0 ? DEFAULTS.words : { word1: 'new', word2: 'theme', word3: 'slot', mood: 'default' }
+            };
+        });
+
+        setSelectedSlot(activeIndex);
+        setSavedThemes(finalThemes);
+        localStorage.setItem('active-theme-json', JSON.stringify(activeTheme));
+        updateCSSVariables(activeTheme.colors);
         setIsFirestoreLoading(false);
     
         const lastGeneratedJson = localStorage.getItem('generated-theme');
@@ -590,3 +596,5 @@ localStorage.setItem('manual-theme', JSON.stringify(newTheme));
     </>
   );
 }
+
+    
