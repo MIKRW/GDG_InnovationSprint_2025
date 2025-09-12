@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { MicrophoneIcon } from './MicrophoneIcon';
 import { Loader2, MicOff, Square } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
+import { logErrorToFirestore } from '@/lib/error-logging';
 
 type RecordingState =
   | 'idle'
@@ -247,6 +248,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
               isMystery: false,
               season: result.season,
               weather: result.weather,
+              mode: appSettings.mode,
               ...locationData,
           };
           await saveToFirestore(newLogData, base64Audio, result, true);
@@ -259,6 +261,13 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       }
     } catch (error) {
       console.error('Error identifying bird sound:', error);
+      // Log the error to Firestore
+      logErrorToFirestore(error as Error, 'ai-identification-failure', {
+        sessionId: currentSessionId.current,
+        timestamp: currentTimestamp.current,
+        locationData: locationData,
+        appMode: appSettings.mode
+      });
       // API failed, trigger confirmation, store the error as the result
       setLastAudio(JSON.stringify([base64Audio, { error: (error as Error).message }]));
       setRecordingState('confirming');

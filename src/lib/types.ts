@@ -43,6 +43,7 @@ export type BirdLog = {
     locationDescription?: string;
     weather?: string; // e.g., 'Clear, 15°C, light breeze'
     season?: string; // e.g., 'Summer'
+    mode: AppMode; // To differentiate between 'newbie' and 'twitcher' data
 }
 
 export type SortOption = 'newest' | 'oldest' | 'a-z' | 'z-a';
