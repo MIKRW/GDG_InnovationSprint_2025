@@ -19,7 +19,8 @@ import { ScrollArea } from '../ui/scroll-area';
 
 const formSchema = z.object({
     commonName: z.string().min(2, "Common name is required."),
-    scientificName: z.string().min(2, "Scientific name is required."),
+    genus: z.string().min(2, "Genus is required."),
+    species: z.string().min(2, "Species is required."),
     family: z.string().min(2, "Family is required."),
     order: z.string().min(2, "Order is required."),
     description: z.string().min(10, "Please provide a brief description of the recording."),
@@ -43,7 +44,8 @@ export function NewMasterAudioForm({ onUploadSuccess }: NewMasterAudioFormProps)
         resolver: zodResolver(formSchema),
         defaultValues: {
             commonName: '',
-            scientificName: '',
+            genus: '',
+            species: '',
             family: '',
             order: '',
             description: '',
@@ -77,11 +79,14 @@ export function NewMasterAudioForm({ onUploadSuccess }: NewMasterAudioFormProps)
             
             try {
                 const birdId = kebabCase(values.commonName);
+                const scientificName = `${values.genus} ${values.species}`;
 
                 const newMetadata = await uploadMasterAudio({
                     birdId: birdId,
                     commonName: values.commonName,
-                    scientificName: values.scientificName,
+                    genus: values.genus,
+                    species: values.species,
+                    scientificName: scientificName,
                     family: values.family,
                     order: values.order,
                     audioFile: base64Audio,
@@ -154,19 +159,34 @@ export function NewMasterAudioForm({ onUploadSuccess }: NewMasterAudioFormProps)
                                 </FormItem>
                             )}
                         />
-                        <FormField
-                            control={form.control}
-                            name="scientificName"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Scientific Name</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="e.g., Gymnorhina tibicen" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="genus"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Genus</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g., Gymnorhina" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="species"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Species</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g., tibicen" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
                         <div className="grid grid-cols-2 gap-4">
                             <FormField
                                 control={form.control}

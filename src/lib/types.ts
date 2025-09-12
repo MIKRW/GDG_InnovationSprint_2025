@@ -85,4 +85,9 @@ export interface TestAudioMetadata {
   // These are added client-side for context when running tests
   birdId: string; 
   testAudioId: string;
+  genus: string;
+  species: string;
+  scientificName: string;
+  family: string;
+  order: string;
 }

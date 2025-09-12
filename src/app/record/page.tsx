@@ -21,7 +21,7 @@ import { NewMasterAudioForm } from '@/components/content/NewMasterAudioForm';
 export default function RecordPage() {
   const [showPermissionError, setShowPermissionError] = useState(false);
   const [showIdentificationError, setShowIdentificationError] = useState(false);
-  const recordButtonRef = useRef<{ handleFileSelect: (file: File) => void }>(null);
+  const recordButtonRef = useRef<{ handleFileSelect: (file: File, testContext?: { birdId: string, testAudioId: string }) => void }>(null);
   const [isTestAudioDialogOpen, setIsTestAudioDialogOpen] = useState(false);
   const [testAudioLibrary, setTestAudioLibrary] = useState<TestAudioMetadata[]>([]);
   const [isLibraryLoading, setIsLibraryLoading] = useState(false);
@@ -49,6 +49,11 @@ export default function RecordPage() {
               location: audio.location || '',
               birdId: doc.id,
               testAudioId: audio.audioId,
+              genus: birdData.genus,
+              species: birdData.species,
+              scientificName: birdData.scientificName,
+              family: birdData.family,
+              order: birdData.order,
             });
           });
         }

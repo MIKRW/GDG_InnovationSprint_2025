@@ -12,6 +12,8 @@ interface UploadMasterAudioInput {
     birdId: string; // e.g., 'australian-magpie'
     commonName: string;
     scientificName: string;
+    genus: string;
+    species: string;
     family: string;
     order: string;
     audioFile: string; // data URI
@@ -26,7 +28,7 @@ interface UploadMasterAudioInput {
 
 export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<TestAudioMetadata> {
     const { 
-        birdId, commonName, scientificName, family, order, 
+        birdId, commonName, scientificName, genus, species, family, order, 
         audioFile, audioFileName, description,
         sourceUrl = '', author = '', license = '', hardware = '', location = ''
     } = data;
@@ -68,6 +70,8 @@ export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<T
         await setDoc(birdDocRef, {
             commonName: commonName,
             scientificName: scientificName,
+            genus: genus,
+            species: species,
             family: family,
             order: order,
             masterAudioFiles: [newMasterAudioFile]
@@ -86,6 +90,11 @@ export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<T
         hardware: hardware,
         location: location,
         birdId: birdId,
-        testAudioId: audioId
+        testAudioId: audioId,
+        genus: genus,
+        species: species,
+        scientificName: scientificName,
+        family: family,
+        order: order
     };
 }
