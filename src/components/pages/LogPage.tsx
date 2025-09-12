@@ -14,6 +14,7 @@ import { db } from '@/lib/firebase';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { PageTitle } from '../content/PageTitle';
 import { FlaskConical, HelpCircle, ShieldAlert } from 'lucide-react';
+import { SecondaryPageFooterV2 } from '../layout/SecondaryPageFooterV2';
 
 interface LogPageProps {
     searchQuery: string;
