@@ -5,8 +5,8 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { SearchableHeader } from '@/components/layout/SearchableHeader';
 import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
 import type { SortOption } from '@/lib/types';
-import { usePathname, useSearchParams } from 'next/navigation';
-import { useState, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
+import React, { useState, useMemo } from 'react';
 
 // This is a client component that wraps the Log pages and provides
 // the search and sort state to them.
