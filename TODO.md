@@ -14,6 +14,12 @@ This is a list of tasks and ideas for improving the application.
 
 ---
 
+## Backend & Cloud Functions
+
+- **Review Deletion Logic**: Check the parameters being passed to the `onUserLogDisowned` Cloud Function and update the logic as needed to ensure file deletions are handled correctly and securely.
+
+---
+
 ## Robustness & UX
 
 - **Implement Retry Logic**: For user-facing network operations (like audio uploads), implement a retry mechanism to handle temporary network failures or slow connections, improving the app's resilience.
