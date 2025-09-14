@@ -361,56 +361,55 @@ export async function publishNewPromptVersion(data: PublishNewPromptVersionInput
 }
 
 
-interface PublishNewAppAIVersionInput {
-    composedSystems: Record<string, string>;
-    versionType: 'major' | 'minor' | 'patch';
-}
-
 /**
  * Takes the currently active version of EACH AI system and bundles them
  * into a single, new, versioned "App AI". This becomes the new live version
  * for the entire application.
  */
-export async function publishNewAppAIVersion(data: PublishNewAppAIVersionInput) {
-    const { composedSystems, versionType } = data;
+export async function publishNewAppAIVersion() {
     const batch = writeBatch(db);
 
+    // 1. Get the latest published version for each AI system.
+    const systemsQuery = query(collection(db, 'prompt_systems'));
+    const systemsSnapshot = await getDocs(systemsQuery);
+    if (systemsSnapshot.empty) {
+        throw new Error("No AI systems have been defined yet. Cannot publish a new App AI version.");
+    }
+    
+    const composedSystems: Record<string, string> = {};
+    for (const systemDoc of systemsSnapshot.docs) {
+        const system = systemDoc.data() as PromptSystem;
+        const latestVersionQuery = query(collection(db, 'prompt_versions'), where('systemId', '==', system.id), orderBy('timestamp', 'desc'));
+        const latestVersionSnap = await getDocs(latestVersionQuery);
+        if(!latestVersionSnap.empty) {
+            composedSystems[system.id] = latestVersionSnap.docs[0].id;
+        }
+    }
+    
     if (Object.keys(composedSystems).length === 0) {
-        throw new Error("No AI systems were selected to publish.");
+        throw new Error("No AI systems have published versions. Cannot publish a new App AI version.");
     }
 
     // 2. Determine the new App AI Version number
     const configDocRef = doc(db, 'app_ai_config', 'main');
-    const configDocSnap = await getDoc(configDocRef);
     
     const versionsQuery = query(collection(db, 'app_ai_versions'));
     const versionsSnapshot = await getDocs(versionsQuery);
     const existingVersions = versionsSnapshot.docs.map(d => d.data().version as string);
 
     const latestVersionString = existingVersions.sort((a, b) => {
-            const aParts = a.substring(1).split('.').map(Number);
-            const bParts = b.substring(1).split('.').map(Number);
-            for(let i=0; i<3; i++) {
-                if (aParts[i] !== bParts[i]) return bParts[i] - aParts[i];
-            }
-            return 0;
+        const aParts = a.substring(1).split('.').map(Number);
+        const bParts = b.substring(1).split('.').map(Number);
+        for(let i=0; i<3; i++) {
+            if (aParts[i] !== bParts[i]) return bParts[i] - aParts[i];
+        }
+        return 0;
     })[0] || 'v0.0.0';
 
     const [major, minor, patch] = latestVersionString.replace('v', '').split('.').map(Number);
-    let newMajor = major, newMinor = minor, newPatch = patch;
-
-    if (versionType === 'major') {
-        newMajor++;
-        newMinor = 0;
-        newPatch = 0;
-    } else if (versionType === 'minor') {
-        newMinor++;
-        newPatch = 0;
-    } else { // 'patch'
-        newPatch++;
-    }
-    
-    const newAppVersionString = `v${newMajor}.${newMinor}.${newPatch}`;
+    // For now, publishing the App AI is always a minor bump. Can be expanded.
+    const newMinor = minor + 1;
+    const newAppVersionString = `v${major}.${newMinor}.${patch}`;
 
     // 3. Create the new app_ai_versions document
     const newAppVersionRef = doc(db, 'app_ai_versions', newAppVersionString);
@@ -582,3 +581,5 @@ CRITICAL: You must also consider derived colors. The app uses CSS calculations t
         throw new Error("Failed during prompt migration. Check server logs.");
     }
 }
+
+    
