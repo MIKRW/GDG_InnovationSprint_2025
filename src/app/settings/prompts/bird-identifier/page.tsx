@@ -28,7 +28,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const SYSTEM_IDS = {
   newbie: 'bird-identifier-ai-newbie',
@@ -41,7 +40,6 @@ export default function BirdIdentifierPromptEditorPage() {
   const [promptContents, setPromptContents] = useState<Record<string, PromptContent[]>>({});
   const [selectedVersions, setSelectedVersions] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isNewCategoryDialogOpen, setIsNewCategoryDialogOpen] = useState(false);
@@ -49,11 +47,25 @@ export default function BirdIdentifierPromptEditorPage() {
   const [newPromptText, setNewPromptText] = useState('');
   const [enabledCategories, setEnabledCategories] = useState<Record<string, boolean>>({});
   const [versionType, setVersionType] = useState<'minor' | 'major'>('minor');
+  const [savedDraft, setSavedDraft] = useState<string | null>(null);
 
   const { toast } = useToast();
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
   const systemId = useMemo(() => SYSTEM_IDS[selectedMode], [selectedMode]);
+  const draftKey = useMemo(() => `prompt-draft-${systemId}-${selectedCategory}`, [systemId, selectedCategory]);
+
+  useEffect(() => {
+    if (selectedCategory) {
+      const draft = localStorage.getItem(draftKey);
+      setSavedDraft(draft);
+      if (draft) {
+        setNewPromptText(draft);
+      } else {
+        setNewPromptText('');
+      }
+    }
+  }, [selectedCategory, draftKey]);
 
   const fetchPromptData = useCallback(async () => {
     if (!isDevMode) {
@@ -145,39 +157,16 @@ export default function BirdIdentifierPromptEditorPage() {
   const currentContent = useMemo(() => currentCategoryHistory.find(c => c.id === currentSelectedVersionId), [currentCategoryHistory, currentSelectedVersionId]);
 
   useEffect(() => {
-    setNewPromptText('');
-  }, [selectedCategory, selectedMode]);
+    const draft = localStorage.getItem(draftKey);
+    setSavedDraft(draft);
+    setNewPromptText(draft || '');
+  }, [selectedCategory, selectedMode, draftKey]);
 
-  const handleSaveContent = async () => {
+  const handleSaveDraft = async () => {
     if (!selectedCategory) return;
-    const hasUnsavedChanges = newPromptText.trim() !== '';
-    if (!hasUnsavedChanges) {
-      toast({ variant: 'destructive', title: 'Cannot Save', description: 'Prompt content cannot be empty.' });
-      return;
-    }
-    setIsSaving(true);
-    try {
-      const newContent = await savePromptContent({
-        systemId,
-        categoryId: selectedCategory,
-        promptText: newPromptText,
-        previousVersionId: currentSelectedVersionId,
-      });
-      // Refresh all data to get the new version
-      await fetchPromptData();
-
-      // Set the newly created version as the selected one
-      setSelectedVersions(prev => ({ ...prev, [selectedCategory]: newContent.id }));
-      setEnabledCategories(prev => ({...prev, [selectedCategory]: true }));
-      setNewPromptText('');
-
-      toast({ title: 'Prompt Saved', description: `${selectedCategory} was updated to version ${newContent.version}. You can now publish.` });
-    } catch (error) {
-      console.error('Failed to save prompt content:', error);
-      toast({ variant: 'destructive', title: 'Save Failed' });
-    } finally {
-      setIsSaving(false);
-    }
+    localStorage.setItem(draftKey, newPromptText);
+    setSavedDraft(newPromptText);
+    toast({ title: 'Draft Saved', description: 'Your changes have been saved locally.' });
   };
 
   const handleAddNewCategory = () => {
@@ -199,14 +188,28 @@ export default function BirdIdentifierPromptEditorPage() {
   const handlePublish = async () => {
     setIsPublishing(true);
     try {
+        // 1. Save the current text as a new permanent version
+        const newContent = await savePromptContent({
+            systemId,
+            categoryId: selectedCategory,
+            promptText: newPromptText,
+            previousVersionId: currentSelectedVersionId,
+        });
+
+        // 2. Prepare the list of prompts to publish, using the new version for the current category
         const promptsToPublish = Object.entries(selectedVersions)
-            .filter(([categoryId]) => enabledCategories[categoryId])
-            .reduce((acc, [categoryId, versionId]) => {
+            .filter(([catId]) => enabledCategories[catId])
+            .reduce((acc, [catId, versionId]) => {
                 if (versionId) {
-                    acc[categoryId] = versionId;
+                    acc[catId] = catId === selectedCategory ? newContent.id : versionId;
                 }
                 return acc;
             }, {} as Record<string, string>);
+        
+        // Ensure the current category is included if it was enabled
+        if (enabledCategories[selectedCategory] && !promptsToPublish[selectedCategory]) {
+            promptsToPublish[selectedCategory] = newContent.id;
+        }
 
         if (Object.keys(promptsToPublish).length === 0) {
             toast({ variant: 'destructive', title: 'Cannot Publish', description: 'At least one enabled category must have a selected version.'});
@@ -214,14 +217,21 @@ export default function BirdIdentifierPromptEditorPage() {
             return;
         }
 
-      const newVersion = await publishNewPromptVersion({
-        systemId: systemId,
-        composedPrompts: promptsToPublish,
-        previousVersion: activeVersions[selectedMode]?.version,
-        versionType: versionType,
-      });
-      setActiveVersions(prev => ({ ...prev, [selectedMode]: newVersion }));
-      toast({ title: 'Published!', description: `Successfully published version ${newVersion.version}.` });
+        // 3. Publish the new AI system version
+        const newVersion = await publishNewPromptVersion({
+            systemId: systemId,
+            composedPrompts: promptsToPublish,
+            previousVersion: activeVersions[selectedMode]?.version,
+            versionType: versionType,
+        });
+
+        // 4. Cleanup and refresh
+        localStorage.removeItem(draftKey);
+        setSavedDraft(null);
+        await fetchPromptData();
+        setActiveVersions(prev => ({ ...prev, [selectedMode]: newVersion }));
+        toast({ title: 'Published!', description: `Successfully published version ${newVersion.version}.` });
+
     } catch (error) {
       console.error('Failed to publish new version:', error);
       toast({ variant: 'destructive', title: 'Publish Failed' });
@@ -243,7 +253,9 @@ export default function BirdIdentifierPromptEditorPage() {
     return <p className="p-4">This page is only available in developer mode.</p>;
   }
 
-  const hasUnsavedChanges = newPromptText.trim() !== '';
+  const hasUnsavedChanges = newPromptText !== savedDraft;
+  const canSave = newPromptText.trim() !== '' && hasUnsavedChanges;
+  const canPublish = !hasUnsavedChanges && newPromptText.trim() !== '';
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -385,27 +397,14 @@ export default function BirdIdentifierPromptEditorPage() {
                             <SelectItem value="major">Major-Ver</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Button onClick={handleSaveContent} disabled={isSaving || !hasUnsavedChanges}>
-                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    <Button onClick={handleSaveDraft} disabled={!canSave}>
+                        <Save className="mr-2 h-4 w-4" />
                         Save
                     </Button>
-                     <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div tabIndex={0}> {/* Wrapper for Tooltip with disabled button */}
-                            <Button onClick={handlePublish} disabled={isPublishing || hasUnsavedChanges}>
-                                {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                                Publish
-                            </Button>
-                          </div>
-                        </TooltipTrigger>
-                        {hasUnsavedChanges && (
-                          <TooltipContent>
-                            <p>You must save your new prompt text before publishing.</p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Button onClick={handlePublish} disabled={!canPublish || isPublishing}>
+                        {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Publish
+                    </Button>
                    </div>
               </CardFooter>
             </Card>
