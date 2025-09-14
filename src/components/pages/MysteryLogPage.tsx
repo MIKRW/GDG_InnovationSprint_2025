@@ -47,8 +47,7 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
     const q = query(
         logsCollectionRef, 
         where('isMystery', '==', true),
-        where('isDisowned', '==', false),
-        orderBy('timestamp', 'desc')
+        where('isDisowned', '==', false)
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {

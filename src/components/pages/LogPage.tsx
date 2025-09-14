@@ -45,7 +45,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
     // User is authenticated, fetch their data
     setLoading(true);
     const logsCollectionRef = collection(db, 'users', user.uid, 'identifications');
-    const q = query(logsCollectionRef, where('isDisowned', '==', false), orderBy('timestamp', 'desc'));
+    const q = query(logsCollectionRef, where('isDisowned', '==', false));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const logs: BirdLog[] = [];
