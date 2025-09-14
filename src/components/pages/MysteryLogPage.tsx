@@ -39,16 +39,18 @@ export function MysteryLogPage() {
     setLoading(true);
     const logsCollectionRef = collection(db, 'users', user.uid, 'identifications');
     
-    const q: Query = query(logsCollectionRef, where('isMystery', '==', true), where('status', '==', 'active'));
+    const q: Query = query(
+        logsCollectionRef, 
+        where('isMystery', '==', true), 
+        where('status', '==', 'active'),
+        orderBy('timestamp', 'desc')
+    );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const logs: BirdLog[] = [];
         querySnapshot.forEach((doc) => {
             logs.push({ id: doc.id, ...doc.data() as BirdLog });
         });
-        
-        // Sort on the client to avoid composite index requirement
-        logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         
         setAllLogs(logs);
         setLoading(false);
