@@ -47,6 +47,7 @@ interface StagedContent extends PromptContent {
 const sortSemanticVersions = (a: string | number, b: string | number) => {
     const aStr = String(a);
     const bStr = String(b);
+    // Handle non-semantic versions by treating them as v0
     const aParts = aStr.startsWith('v') ? aStr.substring(1).split('.').map(Number) : [0,0,0];
     const bParts = bStr.startsWith('v') ? bStr.substring(1).split('.').map(Number) : [0,0,0];
 
@@ -303,7 +304,7 @@ export default function BirdIdentifierPromptEditorPage() {
     setIsEditLoaded(true);
     toast({
         title: 'Version Loaded for Editing',
-        description: `Version ${editorCurrentContent.version.includes('draft') ? 'Draft' : editorCurrentContent.version} text has been loaded into the editor.`,
+        description: `Version ${String(editorCurrentContent.version).includes('draft') ? 'Draft' : editorCurrentContent.version} text has been loaded into the editor.`,
     });
   };
 
