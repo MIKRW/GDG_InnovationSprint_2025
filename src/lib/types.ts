@@ -84,7 +84,10 @@ export type AnalysisRun = {
   };
   dataQualityScore?: number;
   recordingLengthSeconds?: number;
-  analysisDurationMs?: number;
+  analysisTimings?: {
+    primaryIdentificationMs?: number;
+    // This structure can be expanded with more detailed timings later
+  };
 }
 
 

@@ -10,7 +10,7 @@ import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storag
 
 import { identifyBirdBySound } from '@/ai/flows/identify-bird-flow';
 import { db, storage } from '@/lib/firebase';
-import type { BirdLog, LocationSettings, AppSettings, AppMode } from '@/lib/types';
+import type { BirdLog, LocationSettings, AppSettings, AppMode, AnalysisRun } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { MicrophoneIcon } from './MicrophoneIcon';
 import { Loader2, MicOff, Square } from 'lucide-react';
@@ -126,7 +126,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         mode: AppMode, 
         isDeveloperRun: boolean,
         recordingLengthSeconds?: number,
-        analysisDurationMs?: number
+        analysisTimings?: AnalysisRun['analysisTimings']
     ) => {
      if (!user) {
       console.error("Cannot create analysis run: user is not authenticated.");
@@ -164,7 +164,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       mode: mode,
       isDeveloperData: isDeveloperRun,
       recordingLengthSeconds: recordingLengthSeconds,
-      analysisDurationMs: analysisDurationMs,
+      analysisTimings: analysisTimings,
     });
 
     return analysisRunId;
@@ -235,7 +235,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   const handleStop = async () => {
     setRecordingState('processing');
     const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-    const recordingLengthSeconds = recordingStartTimeRef.current ? (Date.now() - recordingStartTimeRef.current) / 1000 : undefined;
+    const recordingLengthSeconds = recordingStartTimeRef.current ? parseFloat(((Date.now() - recordingStartTimeRef.current) / 1000).toFixed(2)) : undefined;
 
     const reader = new FileReader();
     reader.readAsDataURL(audioBlob);
@@ -325,7 +325,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           appSettings.mode, 
           isDeveloperRun,
           recordingLengthSeconds,
-          analysisDurationMs
+          { primaryIdentificationMs: analysisDurationMs }
       );
 
       if (analysisRunId) {
@@ -360,7 +360,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
            appSettings.mode, 
            isDeveloperRun,
            recordingLengthSeconds,
-           analysisDurationMs
+           analysisDurationMs ? { primaryIdentificationMs: analysisDurationMs } : undefined
         );
       if (analysisRunId) {
           setLastAudio(JSON.stringify([base64Audio, analysisRunId]));
