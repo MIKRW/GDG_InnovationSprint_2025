@@ -70,7 +70,8 @@ export default function LogDetailPage() {
     setIsDeleting(true);
 
     try {
-      await disownLog(log, user);
+      // The user object is no longer passed to the server action
+      await disownLog(log);
       toast({
         title: 'Log Removed',
         description: 'The log entry has been removed from your Bird Book.',

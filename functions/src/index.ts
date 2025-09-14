@@ -48,7 +48,9 @@ export const onUserLogDisowned = functions.firestore
 
     // Check user's authentication status
     const userRecord = await admin.auth().getUser(userId);
-    const isAnonymous = !userRecord.providerData.some((provider) => provider.providerId !== "anonymous");
+    // Correct way to check for anonymous user in Firebase Auth Admin SDK
+    const isAnonymous = userRecord.providerData.length === 0 || userRecord.providerData[0].providerId === 'anonymous';
+
 
     // Apply deletion logic
     if (isAnonymous && (analysisData.dataQualityScore < LOW_QUALITY_THRESHOLD)) {

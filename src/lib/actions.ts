@@ -129,13 +129,14 @@ export async function upgradeAnonymousUser(currentUser: User, { email, pass }: R
  * This action sets a flag `isDisowned` to true, which will trigger
  * a Cloud Function to process the associated backend data based on
  * defined data retention policies.
+ * 
+ * This action no longer accepts the `user` object to prevent serialization errors.
+ * It is assumed that this action is called from a client context where the
+ * user's identity is already established via Firebase Auth state. The function
+ * relies on Firestore Security Rules to enforce ownership.
  */
-export async function disownLog(log: BirdLog, user: User) {
-    if (!user || user.uid !== log.userId) {
-        throw new Error("Permission denied. You can only disown your own logs.");
-    }
-
-    const userLogRef = doc(db, 'users', user.uid, 'identifications', log.id);
+export async function disownLog(log: BirdLog) {
+    const userLogRef = doc(db, 'users', log.userId, 'identifications', log.id);
     await updateDoc(userLogRef, { isDisowned: true });
 
     return { success: true };
