@@ -16,7 +16,7 @@ import type { AppMode } from '@/lib/types';
 const promptText = `You are an expert ornithologist with the ability to identify bird species by their songs.
 Your persona and task will be adjusted based on the user's selected application mode.
 
-{{#if (eq mode 'twitcher')}}
+{{#if isTwitcherMode}}
 # Twitcher Mode Instructions
 You are assisting a researcher or serious hobbyist. Your analysis must be as precise as possible.
 Prioritize scientific accuracy and detail. Use the provided high-fidelity audio.
@@ -72,6 +72,11 @@ const IdentifyBirdInputSchema = z.object({
     mode: z.enum(['newbie', 'twitcher']).describe('The application mode selected by the user, which may determine the expected audio quality and analysis depth.'),
 });
 export type IdentifyBirdInput = z.infer<typeof IdentifyBirdInputSchema>;
+
+// The schema for the data passed to the Handlebars template in the prompt
+const PromptInputSchema = IdentifyBirdInputSchema.extend({
+    isTwitcherMode: z.boolean(),
+});
 
 const IdentifyBirdOutputSchema = z.object({
   isBirdSong: z.boolean().describe('Whether or not the audio is believed to contain a bird song.'),
@@ -139,7 +144,7 @@ export async function identifyBirdBySound(
 
 const prompt = ai.definePrompt({
   name: 'identifyBirdPrompt',
-  input: { schema: IdentifyBirdInputSchema },
+  input: { schema: PromptInputSchema },
   output: { schema: IdentifyBirdOutputSchema },
   prompt: promptText,
   tools: [getCurrentWeather],
@@ -152,11 +157,15 @@ const identifyBirdFlow = ai.defineFlow(
     outputSchema: IdentifyBirdOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
+    // Add the boolean flag for the template based on the mode
+    const promptInput = {
+      ...input,
+      isTwitcherMode: input.mode === 'twitcher',
+    };
+    const { output } = await prompt(promptInput);
     if (!output) {
       throw new Error('The model failed to return a valid analysis.');
     }
     return output;
   }
 );
-
