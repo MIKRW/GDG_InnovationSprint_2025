@@ -10,71 +10,34 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-
-const newbiePromptText = `You are an expert ornithologist with the ability to identify bird species by their songs.
-Analyze the following audio data to identify the bird species.
-
-Audio data: {{media url=audioDataUri}}
-
-When using location to assist with identification, you must cross-reference against publicly available data to understand the bird's known geographic range and habitat.
-You must establish a hierarchy of data sources, prioritizing reliable, scientific, and field-specific resources (such as government databases, ornithological research papers, and well-known field guides) over general public information or crowd-sourced data.
-
-{{#if locationDescription}}
-The recording was made in or near: "{{locationDescription}}".
-Use this information as a strong hint to narrow down the possible bird species. A bird not typically found in this location is less likely to be the correct identification.
-{{else if latitude}}
-The recording was made at the absolute location of latitude: {{latitude}}, longitude: {{longitude}}.
-Use this precise location as a primary factor to determine the possible bird species. A bird that is not found in this exact area is highly unlikely to be the correct identification.
-{{/if}}
-
-Your task is to return a JSON object with the following structure:
-- isBirdSong: A boolean indicating if you are confident a bird song is present in the audio.
-- commonName: The common name of the bird.
-- scientificName: The scientific (Latin) name of the bird.
-- description: A brief, interesting fact about the bird.
-- imagePrompt: A simple but effective text-to-image prompt to generate a photo of this bird.
-
-CRITICAL: If the audio does not contain a discernible bird song, or if you are not highly confident in your identification, you MUST set "isBirdSong" to false and leave the other fields empty.
-Do not guess or invent a bird. It is better to indicate that no bird song was identified than to provide a potentially incorrect answer.
-`;
-
-const twitcherPromptText = `You are an expert ornithologist assisting a researcher or serious hobbyist. Your analysis must be as precise as possible.
-Prioritize scientific accuracy and detail. Use the provided high-fidelity audio.
-
-Analyze the following audio data to identify the bird species.
-Audio data: {{media url=audioDataUri}}
-
-When using location to assist with identification, you must cross-reference against publicly available data to understand the bird's known geographic range and habitat.
-You must establish a hierarchy of data sources, prioritizing reliable, scientific, and field-specific resources (such as government databases, ornithological research papers, and well-known field guides) over general public information or crowd-sourced data.
-
-{{#if locationDescription}}
-The recording was made in or near: "{{locationDescription}}".
-Use this information as a strong hint to narrow down the possible bird species. A bird not typically found in this location is less likely to be the correct identification.
-{{else if latitude}}
-The recording was made at the absolute location of latitude: {{latitude}}, longitude: {{longitude}}.
-Use this precise location as a primary factor to determine the possible bird species. A bird that is not found in this exact area is highly unlikely to be the correct identification.
-{{/if}}
-
-If location and timestamp are provided, you MUST use the 'getCurrentWeather' tool to fetch the weather conditions.
-In your analysis, consider the time of day, season, and weather, as these factors influence bird behavior and vocalizations.
-In your final output, include the season and a summary of the weather.
-
-Your task is to return a JSON object with the following structure:
-- isBirdSong: A boolean indicating if you are confident a bird song is present in the audio.
-- commonName: The common name of the bird.
-- scientificName: The scientific (Latin) name of the bird.
-- family: The taxonomic family of the bird (e.g., 'Psittacidae' for parrots).
-- order: The taxonomic order of the bird (e.g., 'Passeriformes' for perching birds).
-- description: A brief, interesting fact about the bird.
-- imagePrompt: A simple but effective text-to-image prompt to generate a photo of this bird.
-- confidence: A number between 0 and 1 representing your confidence in the identification. 0.95 is highly confident, 0.7 is moderately confident, and below 0.5 is a guess.
-- season: The season at the location of the recording (e.g., 'Summer', 'Winter').
-- weather: A brief summary of the weather conditions (eg., 'Clear, 15°C, light breeze').
+import { ref, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/lib/firebase';
 
 
-CRITICAL: If the audio does not contain a discernible bird song, or if you are not highly confident in your identification, you MUST set "isBirdSong" to false and leave the other fields empty.
-Do not guess or invent a bird. It is better to indicate that no bird song was identified than to provide a potentially incorrect answer.
-`;
+// Helper function to fetch prompt text from Firebase Storage
+async function getPromptFromStorage(path: string): Promise<string> {
+    try {
+        const fileRef = ref(storage, path);
+        const url = await getDownloadURL(fileRef);
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch prompt from ${path}: ${response.statusText}`);
+        }
+        return await response.text();
+    } catch (error) {
+        console.error(`Error fetching prompt from storage, falling back to local. Path: ${path}`, error);
+        // This is a fallback for local development or if the file isn't in Storage yet.
+        // In a real app, you might want to handle this more gracefully.
+        if (path.includes('twitcher')) {
+            const fs = await import('fs/promises');
+            const path = await import('path');
+            return fs.readFile(path.join(process.cwd(), 'src', 'ai', 'prompts', 'bird-identification-twitcher-prompt.txt'), 'utf-8');
+        }
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        return fs.readFile(path.join(process.cwd(), 'src', 'ai', 'prompts', 'bird-identification-prompt.txt'), 'utf-8');
+    }
+}
 
 
 const IdentifyBirdInputSchema = z.object({
@@ -168,6 +131,7 @@ const identifyBirdFlow = ai.defineFlow(
     let response;
 
     if (input.mode === 'twitcher') {
+      const twitcherPromptText = await getPromptFromStorage('prompts/bird-identification-twitcher-prompt.txt');
       const twitcherIdentifyBirdPrompt = ai.definePrompt({
           name: 'twitcherIdentifyBirdPrompt',
           input: { schema: IdentifyBirdInputSchema },
@@ -177,6 +141,7 @@ const identifyBirdFlow = ai.defineFlow(
       });
       response = await twitcherIdentifyBirdPrompt(input);
     } else {
+      const newbiePromptText = await getPromptFromStorage('prompts/bird-identification-prompt.txt');
       const newbieIdentifyBirdPrompt = ai.definePrompt({
           name: 'newbieIdentifyBirdPrompt',
           input: { schema: IdentifyBirdInputSchema },
