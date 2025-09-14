@@ -7,7 +7,7 @@ import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { PageTitle } from '@/components/content/PageTitle';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, Save, History } from 'lucide-react';
+import { Loader2, Plus, Save, History, UploadCloud } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -201,7 +201,7 @@ export default function BirdIdentifierPromptEditorPage() {
     setNewPromptText('');
   };
 
-  const handlePublish = async () => {
+  const publishFromDraft = async () => {
     if (!draftContent) {
         toast({ variant: 'destructive', title: 'Publish Failed', description: 'No draft to publish. Please save your changes first.'});
         return;
@@ -253,6 +253,42 @@ export default function BirdIdentifierPromptEditorPage() {
     }
   };
 
+  const handlePublishSelectedVersion = async () => {
+    if (!currentContent || currentContent.version === 0) {
+      toast({ variant: 'destructive', title: 'Publish Failed', description: 'Cannot publish a draft from here. Please use the main Publish button.' });
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      const promptsToPublish = Object.entries(selectedVersions)
+        .filter(([catId]) => enabledCategories[catId])
+        .reduce((acc, [catId, versionId]) => {
+          if (versionId) {
+            acc[catId] = catId === selectedCategory ? currentContent.id : versionId;
+          }
+          return acc;
+        }, {} as Record<string, string>);
+
+      const newVersion = await publishNewPromptVersion({
+        systemId: systemId,
+        composedPrompts: promptsToPublish,
+        previousVersion: activeVersions[selectedMode]?.version,
+        versionType: 'minor', // Publishing an existing version is always a minor change to the system
+      });
+
+      await fetchPromptData();
+      setActiveVersions(prev => ({ ...prev, [selectedMode]: newVersion }));
+      toast({ title: 'Published!', description: `Successfully published version ${newVersion.version} using recalled content.` });
+
+    } catch (error) {
+      console.error('Failed to publish recalled version:', error);
+      toast({ variant: 'destructive', title: 'Publish Failed' });
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
   const handleRecallVersion = () => {
     if (!currentContent || currentContent.version === 0) return;
     setNewPromptText(currentContent.promptText);
@@ -266,9 +302,9 @@ export default function BirdIdentifierPromptEditorPage() {
     return <p className="p-4">This page is only available in developer mode.</p>;
   }
 
-  const hasUnsavedChanges = newPromptText.trim() !== (draftContent?.promptText || '').trim();
+  const hasUnsavedChanges = newPromptText.trim() !== '' && newPromptText.trim() !== (draftContent?.promptText || '').trim();
   const canSave = newPromptText.trim() !== '' && hasUnsavedChanges && !isSaving;
-  const canPublish = !hasUnsavedChanges && !!draftContent;
+  const canPublishFromDraft = !hasUnsavedChanges && !!draftContent;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -373,6 +409,9 @@ export default function BirdIdentifierPromptEditorPage() {
                     <Button onClick={handleRecallVersion} variant="outline" size="sm" disabled={!currentContent || currentContent.version === 0}>
                         <History className="mr-2 h-4 w-4" /> Recall
                     </Button>
+                    <Button onClick={handlePublishSelectedVersion} variant="outline" size="sm" disabled={!currentContent || currentContent.version === 0 || isPublishing}>
+                        {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />} Publish
+                    </Button>
                 </div>
               </CardHeader>
               <CardContent>
@@ -418,13 +457,13 @@ export default function BirdIdentifierPromptEditorPage() {
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <div className="inline-block">
-                                    <Button onClick={handlePublish} disabled={!canPublish || isPublishing}>
-                                        {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                    <Button onClick={publishFromDraft} disabled={!canPublishFromDraft || isPublishing}>
+                                        {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
                                         Publish
                                     </Button>
                                 </div>
                             </TooltipTrigger>
-                            {!canPublish && (
+                            {!canPublishFromDraft && (
                                 <TooltipContent>
                                     <p>Save your draft before publishing.</p>
                                 </TooltipContent>
