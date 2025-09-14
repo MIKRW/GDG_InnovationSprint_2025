@@ -59,19 +59,6 @@ export function SettingsPage() {
                 </div>
             )}
         </div>
-         {isDevMode && (
-          <div className="pt-8 w-full max-w-sm">
-              <h2 className="text-lg font-semibold mb-2">Developer Tools</h2>
-              <Card className="bg-hazard-stripes p-1 rounded-lg">
-                <Button asChild variant="outline" className="w-full bg-background hover:bg-accent">
-                    <Link href="/settings/prompts" className="flex items-center">
-                      <FlaskConical className="mr-2 h-4 w-4" />
-                      Prompt Management
-                    </Link>
-                </Button>
-              </Card>
-          </div>
-        )}
       </div>
     </div>
   );

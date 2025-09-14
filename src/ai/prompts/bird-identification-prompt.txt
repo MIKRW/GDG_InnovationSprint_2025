@@ -1,4 +1,0 @@
-
-DEPRECATED: The canonical source for this prompt is now stored in the `prompt_content` collection in Firestore.
-It is managed via the Prompt Management UI in the application settings.
-This file is kept for historical reference only and is no longer read by the application.
