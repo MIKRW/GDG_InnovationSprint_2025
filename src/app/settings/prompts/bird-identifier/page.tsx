@@ -71,6 +71,8 @@ export default function BirdIdentifierPromptEditorPage() {
   const [newPromptText, setNewPromptText] = useState('');
   
   const [publishVersionType, setPublishVersionType] = useState<'minor' | 'major' | 'patch'>('patch');
+  const [contentPublishVersionType, setContentPublishVersionType] = useState<'minor' | 'major' | 'patch'>('patch');
+
   
   const { toast } = useToast();
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
@@ -545,6 +547,16 @@ export default function BirdIdentifierPromptEditorPage() {
                             )}
                         </Tooltip>
                     </TooltipProvider>
+                    <Select value={contentPublishVersionType} onValueChange={(v) => setContentPublishVersionType(v as 'minor' | 'major' | 'patch')}>
+                        <SelectTrigger className="w-[120px]">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="patch">Patch</SelectItem>
+                            <SelectItem value="minor">Minor</SelectItem>
+                            <SelectItem value="major">Major</SelectItem>
+                        </SelectContent>
+                    </Select>
                    </div>
               </CardFooter>
             </Card>
@@ -554,4 +566,3 @@ export default function BirdIdentifierPromptEditorPage() {
     </div>
   );
 }
-
