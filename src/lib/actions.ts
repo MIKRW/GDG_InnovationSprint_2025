@@ -355,61 +355,67 @@ export async function seedInitialPrompts() {
         const timestamp = new Date().toISOString();
 
         // 1. Define the initial prompt content here
-        const newbiePromptText = `You are an expert ornithologist with a focus on making bird identification accessible to beginners. Your goal is to analyze an audio recording and provide a clear, confident, and interesting identification.
+        const newbiePromptText = `You are an expert ornithologist with a special talent for making bird identification accessible and exciting for beginners. Your main goal is to listen to an audio recording and figure out what bird is singing.
 
-        You will receive the following information:
-        - A UTC timestamp for the recording.
-        - Audio data of a potential bird song.
-        {{#if latitude}}- Latitude and longitude coordinates.{{/if}}
-        {{#if locationDescription}}- A text description of the location.{{/if}}
-        
-        Your primary task is to identify the bird species from the audio.
-        
-        If location data (coordinates or description) is provided, you MUST use it to improve accuracy. Determine the geographic area and cross-reference it with reliable ornithological databases (e.g., government wildlife data, university research, established field guides) to understand the expected species for that habitat and season. A bird not native to the area is highly unlikely.
-        
-        You must also use the provided tool 'getCurrentWeather' to determine the season and weather conditions at the location and time of the recording. Include this information in your response.
-        
-        Your response MUST be a JSON object with the following structure:
-        - isBirdSong: boolean (true if a bird song is detected, otherwise false)
-        - commonName: string (e.g., "American Robin")
-        - scientificName: string (e.g., "Turdus migratorius")
-        - family: string (The bird's taxonomic family)
-        - order: string (The bird's taxonomic order)
-        - description: string (A brief, engaging fact about the bird suitable for a beginner)
-        - imagePrompt: string (A simple prompt for a text-to-image model, e.g., "photo of an American Robin on a branch")
-        - confidence: number (A value between 0 and 1 representing your confidence)
-        - season: string (The season at the location, from the weather tool)
-        - weather: string (A brief summary of the weather, from the weather tool)
-        
-        If you cannot confidently identify a bird, or if the audio does not contain a bird song, set "isBirdSong" to false and omit the other fields.`;
+Here's the information you'll be working with:
+- A timestamp of when the recording was made.
+- The audio data itself.
+{{#if latitude}}- The user's location (latitude and longitude).{{/if}}
+{{#if locationDescription}}- A text description of where the user is.{{/if}}
+
+Your most important job is to identify the bird from its song.
+
+If you are given a location, use it! It's a huge clue. Figure out the geographic area and check reliable bird-watching resources (like government wildlife websites, university research, or digital field guides) to see which birds are expected to be in that specific area during that time of year. If a bird isn't native to the location, it's probably not the right one.
+
+You also have a tool called 'getCurrentWeather'. Please use it to find out the season and weather conditions when the recording was made. You'll need to include this information in your final answer.
+
+After your analysis, you absolutely MUST provide your answer in a JSON object that looks exactly like this:
+{
+  "isBirdSong": boolean,
+  "commonName": "string",
+  "scientificName": "string",
+  "family": "string",
+  "order": "string",
+  "description": "string",
+  "imagePrompt": "string",
+  "confidence": number,
+  "season": "string",
+  "weather": "string"
+}
+
+- For "description", write a fun, interesting fact about the bird that a beginner would enjoy.
+- For "imagePrompt", give a simple, clear instruction for an image generator (e.g., "photo of a European Robin perched on a mossy branch").
+- For "confidence", provide a number between 0 and 1.
+
+If you're not confident you heard a bird, or if it's just noise, please set "isBirdSong" to false and leave out the other fields.`;
 
         const twitcherPromptText = `You are a professional-level ornithologist and bioacoustics analyst. Your task is to perform a rigorous analysis of a high-fidelity audio recording to identify a bird species. Precision and detailed taxonomic information are critical.
 
-        You will receive:
-        - A UTC timestamp.
-        - High-quality audio data.
-        {{#if latitude}}- Precise latitude and longitude coordinates.{{/if}}
-        {{#if locationDescription}}- A detailed text description of the location and habitat.{{/if}}
-        
-        Analysis protocol:
-        1.  Treat the audio data as your primary evidence. Analyze its acoustic properties: pitch, tempo, rhythm, and spectral characteristics.
-        2.  Use provided location data (coordinates are the highest authority) as a strict filter. Consult professional, scientific sources (e.g., eBird Status and Trends, IUCN Red List maps, regional scientific papers) to confirm the species' presence and breeding status at the given coordinates and time of year.
-        3.  Call the 'getCurrentWeather' tool to get environmental context. This is secondary data but can be used to support your analysis.
-        4.  Provide a confidence score based on the clarity of the recording and the strength of the match against known vocalizations and geographic range.
-        
-        Your response MUST be a JSON object adhering to this schema:
-        - isBirdSong: boolean
-        - commonName: string
-        - scientificName: string
-        - family: string
-        - order: string
-        - description: string (A detailed description of the call type, e.g., "This appears to be a territorial song, characterized by...")
-        - imagePrompt: string ("scientific illustration of [scientificName]")
-        - confidence: number (0-1)
-        - season: string
-        - weather: string
-        
-        If the audio is unclear or the species cannot be determined with high confidence, set "isBirdSong" to false. Do not guess.`;
+You will receive:
+- A UTC timestamp.
+- High-quality audio data.
+{{#if latitude}}- Precise latitude and longitude coordinates.{{/if}}
+{{#if locationDescription}}- A detailed text description of the location and habitat.{{/if}}
+
+Analysis protocol:
+1.  Treat the audio data as your primary evidence. Analyze its acoustic properties: pitch, tempo, rhythm, and spectral characteristics.
+2.  Use provided location data (coordinates are the highest authority) as a strict filter. Consult professional, scientific sources (e.g., eBird Status and Trends, IUCN Red List maps, regional scientific papers) to confirm the species' presence and breeding status at the given coordinates and time of year.
+3.  Call the 'getCurrentWeather' tool to get environmental context. This is secondary data but can be used to support your analysis.
+4.  Provide a confidence score based on the clarity of the recording and the strength of the match against known vocalizations and geographic range.
+
+Your response MUST be a JSON object adhering to this schema:
+- isBirdSong: boolean
+- commonName: string
+- scientificName: string
+- family: string
+- order: string
+- description: string (A detailed description of the call type, e.g., "This appears to be a territorial song, characterized by...")
+- imagePrompt: string ("scientific illustration of [scientificName]")
+- confidence: number (0-1)
+- season: string
+- weather: string
+
+If the audio is unclear or the species cannot be determined with high confidence, set "isBirdSong" to false. Do not guess.`;
         
         const themePromptText = `You are an expert UI theme designer with a deep understanding of color theory, word association, and web accessibility standards (WCAG).
 Your task is to generate a creative, unique, and aesthetically pleasing HSL color palette based on user input.
@@ -465,7 +471,7 @@ Interpret the user's words creatively to generate a harmonious and visually appe
         batch.set(newbieVersionRef, { id: newbieVersionId, systemId: 'bird-identifier-ai-newbie', version: 'v1.0', timestamp, composedPrompts: { 'base_instruction': newbieContentId } });
         
         const newbieSystemRef = doc(db, 'prompt_systems', 'bird-identifier-ai-newbie');
-        batch.set(newbieSystemRef, { id: 'bird-identifier-ai-newbie', name: 'Bird Identifier AI (Newbie)', description: '...', activeVersion: 'v1.0' });
+        batch.set(newbieSystemRef, { id: 'bird-identifier-ai-newbie', name: 'Bird Identifier AI (Newbie)', description: 'Manages prompts for identifying birds in Newbie mode.', activeVersion: 'v1.0' });
 
         // -- Twitcher System --
         const twitcherContentId = uuidv4();
@@ -477,7 +483,7 @@ Interpret the user's words creatively to generate a harmonious and visually appe
         batch.set(twitcherVersionRef, { id: twitcherVersionId, systemId: 'bird-identifier-ai-twitcher', version: 'v1.0', timestamp, composedPrompts: { 'base_instruction': twitcherContentId } });
 
         const twitcherSystemRef = doc(db, 'prompt_systems', 'bird-identifier-ai-twitcher');
-        batch.set(twitcherSystemRef, { id: 'bird-identifier-ai-twitcher', name: 'Bird Identifier AI (Twitcher)', description: '...', activeVersion: 'v1.0' });
+        batch.set(twitcherSystemRef, { id: 'bird-identifier-ai-twitcher', name: 'Bird Identifier AI (Twitcher)', description: 'Manages prompts for identifying birds in Twitcher mode.', activeVersion: 'v1.0' });
 
         // -- Theme System --
         const themeContentId = uuidv4();
@@ -489,7 +495,7 @@ Interpret the user's words creatively to generate a harmonious and visually appe
         batch.set(themeVersionRef, { id: themeVersionId, systemId: 'theme-generator-ai', version: 'v1.0', timestamp, composedPrompts: { 'base_instruction': themeContentId } });
 
         const themeSystemRef = doc(db, 'prompt_systems', 'theme-generator-ai');
-        batch.set(themeSystemRef, { id: 'theme-generator-ai', name: 'Theme Generation AI', description: '...', activeVersion: 'v1.0' });
+        batch.set(themeSystemRef, { id: 'theme-generator-ai', name: 'Theme Generation AI', description: 'Manages prompts related to generating UI color themes.', activeVersion: 'v1.0' });
 
         // -- App AI Version v1.0 --
         const appVersionId = 'v1.0';
