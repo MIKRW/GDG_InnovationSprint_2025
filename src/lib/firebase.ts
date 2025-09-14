@@ -2,8 +2,8 @@
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import { firebaseConfig } from './firebase-config';
 import { getAuth } from 'firebase/auth';
+import { firebaseConfig } from './firebase-config';
 
 // The robust singleton pattern for Firebase initialization in a Next.js environment.
 // This ensures that Firebase is initialized only once.
