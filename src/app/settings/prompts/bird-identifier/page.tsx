@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -384,9 +385,9 @@ export default function BirdIdentifierPromptEditorPage() {
       </div>
 
        <Card className="mt-8">
-        <CardHeader>
-            <CardTitle className="text-lg mb-2">Enabled Prompt Categories</CardTitle>
-            <CardDescription>
+        <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-semibold leading-none tracking-tight">Enabled Prompt Categories</CardTitle>
+            <CardDescription className="text-center">
             Toggle which categories are included in the published AI version. A category must be enabled and have a selected version to be included.
             </CardDescription>
         </CardHeader>
