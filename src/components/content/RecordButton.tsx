@@ -33,7 +33,7 @@ interface RecordButtonProps {
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
-const PROMPT_VERSION = "1.3"; // Updated for confirmation flow
+const PROMPT_VERSION = "1.4"; // Updated for confidence score
 
 
 const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps, ref) => {
@@ -117,28 +117,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
   };
 
-  const saveToFirestore = async (logData: Omit<BirdLog, 'id' | 'userId' | 'audioUrl' | 'analysisRunId' | 'status'>, audioDataUri: string, aiResult: any, wasSuccessful: boolean) => {
-    if (!user) {
-      console.error("Cannot save log: user is not authenticated.");
-      logErrorToFirestore(new Error("Save attempt failed: No user."), 'firestore-write-failure', { detail: 'User was not authenticated during saveToFirestore call.'});
-      setRecordingState('idle');
-      return null;
-    }
-  
-    const analysisRunId = await createAnalysisRun(audioDataUri, aiResult, wasSuccessful, logData, logData.mode);
-    
-    if (!analysisRunId) {
-        setRecordingState('idle');
-        return null;
-    }
-
-    // This function will now navigate to the confirmation page.
-    setRecordingState('idle');
-    router.push(`/record/confirm/${analysisRunId}`);
-    return analysisRunId;
-  };
-
-   const createAnalysisRun = async (audioDataUri: string, aiResult: any, wasSuccessful: boolean, locationData: any, mode: AppMode) => {
+   const createAnalysisRun = async (audioDataUri: string, aiResult: any, wasSuccessful: boolean, locationData: any, mode: AppMode, isDeveloperRun: boolean) => {
      if (!user) {
       console.error("Cannot create analysis run: user is not authenticated.");
       logErrorToFirestore(new Error("Analysis run failed: No user."), 'firestore-write-failure', { detail: 'User not authenticated during createAnalysisRun.'});
@@ -149,8 +128,6 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     const audioId = uuidv4();
     const filePath = `users/${user.uid}/recordings/${audioId}.webm`;
     const fileRef = storageRef(storage, filePath);
-    // Note: We are now storing the path, not the full URL initially.
-    // The full URL can be generated on-demand or stored when finalized.
     await uploadString(fileRef, audioDataUri, 'data_url');
     const downloadURL = await getDownloadURL(fileRef);
 
@@ -163,20 +140,19 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       timestamp: currentTimestamp.current!,
       userId: user.uid,
       sessionId: currentSessionId.current!,
-      inputAudioUrl: downloadURL, // Storing the final download URL
-      inputAudioStoragePath: filePath, // Store path for deletion
+      inputAudioUrl: downloadURL,
+      inputAudioStoragePath: filePath,
       locationData: {
-        latitude: locationData.latitude ?? null,
-        longitude: locationData.longitude ?? null,
-        locationDescription: locationData.locationDescription ?? null,
+        latitude: locationData?.latitude ?? null,
+        longitude: locationData?.longitude ?? null,
+        locationDescription: locationData?.locationDescription ?? null,
       },
       analysisMethod: `gemini-pro-vision-prompt-v${PROMPT_VERSION}`,
       aiResult: aiResult,
       wasSuccessful: wasSuccessful,
-      wasSavedByUser: false, // This is now set after user confirmation
+      wasSavedByUser: false, 
       mode: mode,
-      isDeveloperData: isDevMode,
-      // dataQualityScore will be calculated later
+      isDeveloperData: isDeveloperRun,
     });
 
     return analysisRunId;
@@ -191,18 +167,9 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       return;
     }
     
-    // If in dev mode, save as a test run instead of a user-facing mystery log
-    if (isDevMode) {
-      await saveTestRunToFirestore(aiResult, { birdId: 'unknown-dev-test', testAudioId: 'live-recording', source: 'live_recording' });
-      setRecordingState('idle');
-      setLastAudio(null);
-      router.push('/log/test/live');
-      return;
-    }
-    
     // Create an analysis run for the mystery log
     const appSettings = getAppSettings();
-    const analysisRunId = await createAnalysisRun(audioDataUri, aiResult, false, locationData, appSettings.mode);
+    const analysisRunId = await createAnalysisRun(audioDataUri, aiResult, false, locationData, appSettings.mode, isDevMode);
     if (!analysisRunId) {
         setRecordingState('idle');
         return;
@@ -212,8 +179,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     const logId = uuidv4();
     const logDocRef = doc(db, 'users', user.uid, 'identifications', logId);
 
-    const mysteryLogData = {
-      id: logId,
+    const mysteryLogData: Omit<BirdLog, 'id'> = {
       sessionId: currentSessionId.current!,
       analysisRunId: analysisRunId,
       userId: user.uid,
@@ -222,7 +188,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       scientificName: 'Unknown',
       description: 'This is a recording that could not be identified by the AI. You can listen to it here and try to identify it yourself!',
       imagePrompt: 'question mark',
-      audioUrl: (await getDownloadURL(storageRef(storage, `users/${user.uid}/recordings/${analysisRunId}.webm`))),
+      audioUrl: (await getDownloadURL(storageRef(storage, `users/${user.uid}/recordings/${audioId}.webm`))),
       isMystery: true,
       status: 'active',
       mode: appSettings.mode,
@@ -313,28 +279,6 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
   };
 
-  const saveTestRunToFirestore = async (result: any, testContext: { birdId: string, testAudioId: string, source: 'master_audio' | 'live_recording' }) => {
-    try {
-      const testRunData = {
-          aiResult: result,
-          timestamp: currentTimestamp.current!,
-          promptVersion: PROMPT_VERSION,
-          birdId: testContext.birdId,
-          testAudioId: testContext.testAudioId,
-          source: testContext.source,
-      };
-      await addDoc(collection(db, 'all_test_runs'), testRunData);
-    } catch (error) {
-       console.error('Error saving test run to Firestore:', error);
-       logErrorToFirestore(error as Error, 'firestore-write-failure', {
-         collection: 'all_test_runs',
-         operation: 'addDoc',
-       });
-       // Optionally, inform the user that saving the test run failed
-    }
-  }
-
-
   const processAudio = async (base64Audio: string, locationData?: { latitude?: number, longitude?: number, locationDescription?: string }, testContext?: { birdId: string, testAudioId: string }) => {
     if (!currentTimestamp.current) {
       setRecordingState('idle');
@@ -342,10 +286,8 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
     const appSettings = getAppSettings();
     
-    // If in dev mode, this is a test run.
-    if (isDevMode && !testContext) { // Live recording in dev mode
-      testContext = { birdId: 'unknown-dev-test', testAudioId: 'live-recording' };
-    }
+    // Developer mode flag is now passed to createAnalysisRun, not used to bypass flow
+    const isDeveloperRun = isDevMode && (!!testContext || window.location.pathname.includes('/record'));
 
     try {
       const result = await identifyBirdBySound({ 
@@ -354,30 +296,25 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           mode: appSettings.mode,
           ...locationData
       });
-
-      if (isDevMode && testContext) {
-         const source = testContext.testAudioId === 'live-recording' ? 'live_recording' : 'master_audio';
-         await saveTestRunToFirestore(result, { ...testContext, source });
-         setRecordingState('idle');
-         const targetPage = source === 'master_audio' ? '/log/test' : '/log/test/live';
-         router.push(targetPage);
-         return;
-      }
       
-      // Regular user flow
-      if (result && result.isBirdSong && result.commonName) {
-         const analysisRunId = await createAnalysisRun(base64Audio, result, true, locationData, appSettings.mode);
-         if (analysisRunId) {
-             setRecordingState('idle');
-             router.push(`/record/confirm/${analysisRunId}`);
-         } else {
-             setRecordingState('idle');
-         }
+      const wasSuccessful = result && result.isBirdSong && !!result.commonName;
+
+      // All runs now go through this flow.
+      const analysisRunId = await createAnalysisRun(base64Audio, result, wasSuccessful, locationData, appSettings.mode, isDeveloperRun);
+
+      if (analysisRunId) {
+          setRecordingState('idle');
+          if (wasSuccessful) {
+            router.push(`/record/confirm/${analysisRunId}`);
+          } else {
+            // Handle AI not finding a bird
+            setLastAudio(JSON.stringify([base64Audio, result]));
+            setRecordingState('confirming');
+          }
       } else {
-           // AI failed to identify a bird, trigger confirmation to save as mystery.
-           setLastAudio(JSON.stringify([base64Audio, result]));
-           setRecordingState('confirming');
+           setRecordingState('idle');
       }
+
     } catch (error) {
       console.error('Error identifying bird sound:', error);
       logErrorToFirestore(error as Error, 'ai-identification-failure', {
@@ -468,3 +405,5 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 RecordButton.displayName = "RecordButton";
 
 export { RecordButton };
+
+    
