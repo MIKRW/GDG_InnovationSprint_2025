@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -6,7 +5,7 @@ import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { PageTitle } from '@/components/content/PageTitle';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, Save } from 'lucide-react';
+import { Loader2, Plus, Save, History } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -213,6 +212,15 @@ export default function ThemeGeneratorPromptEditorPage() {
     }
   };
 
+  const handleRecallVersion = () => {
+    if (!currentSelectedVersionId) return;
+    setSelectedVersions(prev => ({ ...prev, [selectedCategory]: currentSelectedVersionId }));
+    toast({
+        title: 'Version Recalled',
+        description: `Category '${selectedCategory.replace(/_/g, ' ')}' is now set to use version ${currentContent?.version}. Publish to make it live.`,
+    });
+  };
+
   if (!isDevMode) {
     return <p className="p-4">This page is only available in developer mode.</p>;
   }
@@ -299,6 +307,9 @@ export default function ThemeGeneratorPromptEditorPage() {
                             ))}
                         </SelectContent>
                     </Select>
+                    <Button onClick={handleRecallVersion} variant="outline" size="sm" className="mb-2" disabled={!currentSelectedVersionId || currentCategoryHistory.length === 0}>
+                        <History className="mr-2 h-4 w-4" /> Recall this Version
+                    </Button>
                     <Textarea
                         value={currentContent?.promptText || ''}
                         readOnly
