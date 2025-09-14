@@ -2,8 +2,8 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, signInAnonymously, type User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { onAuthStateChanged, signInAnonymously, type User, getAuth } from 'firebase/auth';
+import { app } from '@/lib/firebase';
 import { logErrorToFirestore } from '@/lib/error-logging';
 
 interface AuthContextType {
@@ -21,6 +21,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const auth = getAuth(app); // Get auth instance here
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);

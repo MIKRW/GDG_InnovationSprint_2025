@@ -11,9 +11,7 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 const db = getFirestore(app);
 const storage = getStorage(app);
-const auth = getAuth(app);
-
 
 // We export the app and the getAuth function itself, but not the auth instance.
 // This allows us to create the auth instance only on the client-side when needed.
-export { app, auth, db, storage };
+export { app, getAuth, db, storage };
