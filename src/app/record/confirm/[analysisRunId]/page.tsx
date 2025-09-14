@@ -1,8 +1,9 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
-import { doc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
 import { notFound, useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { v4 as uuidv4 } from 'uuid';
@@ -16,7 +17,7 @@ import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Check, X, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -69,16 +70,18 @@ export default function ConfirmIdentificationPage() {
 
     setIsSubmitting(true);
     setUserFeedback(wasCorrect ? 'correct' : 'incorrect');
+    const analysisRunRef = doc(db, 'all_analysis_runs', analysisRunId);
+
 
     if (wasCorrect) {
         // AI was correct. Create the log and update the analysis run.
         try {
-            const analysisRunRef = doc(db, 'all_analysis_runs', analysisRunId);
             await updateDoc(analysisRunRef, { 
                 userFeedback: {
                     aiWasCorrect: true,
                     timestamp: new Date().toISOString()
-                }
+                },
+                wasSavedByUser: true
             });
 
             // Create the final user-facing log
@@ -97,7 +100,7 @@ export default function ConfirmIdentificationPage() {
                 order: aiResult.order,
                 description: aiResult.description || '',
                 imagePrompt: aiResult.imagePrompt || 'bird',
-                audioUrl: analysisRun.inputAudioUrl, // Will be transformed to download URL in future step
+                audioUrl: analysisRun.inputAudioUrl,
                 isMystery: false,
                 status: 'active',
                 latitude: analysisRun.locationData?.latitude,
@@ -129,7 +132,6 @@ export default function ConfirmIdentificationPage() {
         // AI was incorrect. For now, we will just record this and save as a mystery log.
         // In the future, this is where we would show a search input to find the correct bird.
         try {
-            const analysisRunRef = doc(db, 'all_analysis_runs', analysisRunId);
             await updateDoc(analysisRunRef, { 
                 userFeedback: {
                     aiWasCorrect: false,
@@ -180,18 +182,11 @@ export default function ConfirmIdentificationPage() {
   const { aiResult } = analysisRun;
 
   if (!aiResult.isBirdSong || !aiResult.commonName) {
-     return (
-        <AppLayout header={<SecondaryHeader title="Analysis Complete" />}>
-         <main className="flex-1 overflow-y-auto p-4 md:p-6 flex justify-center items-center">
-            <Alert>
-                <AlertTitle>No Bird Identified</AlertTitle>
-                <AlertDescription>
-                    The AI could not identify a bird in the recording. This analysis has been saved to your mystery logs.
-                </AlertDescription>
-            </Alert>
-         </main>
-        </AppLayout>
-     )
+     // If the AI didn't find a bird, this page shouldn't have been loaded.
+     // The RecordButton now handles this by showing a "save as mystery" dialog.
+     // We'll redirect to the log page as a fallback.
+     router.replace('/log');
+     return renderLoading();
   }
 
   return (
@@ -256,3 +251,5 @@ export default function ConfirmIdentificationPage() {
     </AppLayout>
   );
 }
+
+    

@@ -33,8 +33,7 @@ interface RecordButtonProps {
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
-const PROMPT_VERSION = "1.4"; // Updated for confidence score
-
+const PROMPT_VERSION = "1.5"; // Updated for user feedback loop
 
 const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps, ref) => {
   const router = useRouter();
@@ -159,7 +158,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   }
 
 
-  const saveMysteryLog = async (audioDataUri: string, aiResult: any, locationData?: { latitude?: number; longitude?: number; locationDescription?: string; }) => {
+  const saveMysteryLog = async (audioDataUri: string, analysisRunId: string, locationData?: { latitude?: number; longitude?: number; locationDescription?: string; }) => {
      if (!user) {
       console.error("Cannot save mystery log: user is not authenticated.");
       logErrorToFirestore(new Error("Save attempt failed: No user."), 'firestore-write-failure', { detail: 'User was not authenticated during saveMysteryLog call.'});
@@ -167,17 +166,18 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       return;
     }
     
-    // Create an analysis run for the mystery log
-    const appSettings = getAppSettings();
-    const analysisRunId = await createAnalysisRun(audioDataUri, aiResult, false, locationData, appSettings.mode, isDevMode);
-    if (!analysisRunId) {
-        setRecordingState('idle');
-        return;
-    }
-
-    // Now create the user-facing log entry
+    // Create the user-facing log entry
     const logId = uuidv4();
     const logDocRef = doc(db, 'users', user.uid, 'identifications', logId);
+
+    // Fetch the download URL from the analysis run document
+    const analysisRunRef = doc(db, 'all_analysis_runs', analysisRunId);
+    const analysisRunSnap = await getDoc(analysisRunRef);
+    if (!analysisRunSnap.exists()) {
+        console.error("Could not find analysis run to create mystery log.");
+        return;
+    }
+    const audioUrl = analysisRunSnap.data().inputAudioUrl;
 
     const mysteryLogData: Omit<BirdLog, 'id'> = {
       sessionId: currentSessionId.current!,
@@ -188,25 +188,26 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       scientificName: 'Unknown',
       description: 'This is a recording that could not be identified by the AI. You can listen to it here and try to identify it yourself!',
       imagePrompt: 'question mark',
-      audioUrl: (await getDownloadURL(storageRef(storage, `users/${user.uid}/recordings/${audioId}.webm`))),
+      audioUrl: audioUrl,
       isMystery: true,
       status: 'active',
-      mode: appSettings.mode,
+      mode: getAppSettings().mode,
       ...locationData,
     };
     
     await setDoc(logDocRef, mysteryLogData);
+     await updateDoc(analysisRunRef, { wasSavedByUser: true });
 
     setRecordingState('idle');
     setLastAudio(null);
-    router.push(`/log/mystery`);
+    router.push(`/log/${logId}`);
   };
 
   const handleSaveConfirmation = () => {
     if (lastAudio) {
-        const [audioData, aiResult] = JSON.parse(lastAudio);
+        const [audioData, analysisRunId] = JSON.parse(lastAudio);
         // Re-fetch location based on settings when user confirms save
-        getLocationForAIShot(locationData => saveMysteryLog(audioData, aiResult, locationData));
+        getLocationForAIShot(locationData => saveMysteryLog(audioData, analysisRunId, locationData));
     }
   };
 
@@ -214,6 +215,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     setRecordingState('idle');
     setLastAudio(null);
     onIdentificationFailed?.();
+    router.push('/log');
   };
 
   const handleStop = async () => {
@@ -286,7 +288,6 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
     const appSettings = getAppSettings();
     
-    // Developer mode flag is now passed to createAnalysisRun, not used to bypass flow
     const isDeveloperRun = isDevMode && (!!testContext || window.location.pathname.includes('/record'));
 
     try {
@@ -299,7 +300,6 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       
       const wasSuccessful = result && result.isBirdSong && !!result.commonName;
 
-      // All runs now go through this flow.
       const analysisRunId = await createAnalysisRun(base64Audio, result, wasSuccessful, locationData, appSettings.mode, isDeveloperRun);
 
       if (analysisRunId) {
@@ -308,7 +308,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
             router.push(`/record/confirm/${analysisRunId}`);
           } else {
             // Handle AI not finding a bird
-            setLastAudio(JSON.stringify([base64Audio, result]));
+            setLastAudio(JSON.stringify([base64Audio, analysisRunId]));
             setRecordingState('confirming');
           }
       } else {
@@ -324,9 +324,14 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         appMode: appSettings.mode,
         userId: user?.uid
       });
-      // API failed, trigger confirmation to save as mystery
-      setLastAudio(JSON.stringify([base64Audio, { error: (error as Error).message }]));
-      setRecordingState('confirming');
+      // API failed, so we can't create an analysis run, but we can still save as a mystery
+       const analysisRunId = await createAnalysisRun(base64Audio, { error: (error as Error).message, isBirdSong: false }, false, locationData, appSettings.mode, isDeveloperRun);
+      if (analysisRunId) {
+          setLastAudio(JSON.stringify([base64Audio, analysisRunId]));
+          setRecordingState('confirming');
+      } else {
+          setRecordingState('idle');
+      }
     }
   }
 
