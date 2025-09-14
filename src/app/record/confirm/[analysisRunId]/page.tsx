@@ -3,7 +3,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { doc, getDoc, onSnapshot, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, addDoc, collection } from 'firebase/firestore';
 import { notFound, useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { v4 as uuidv4 } from 'uuid';
@@ -20,6 +20,8 @@ import { Button } from '@/components/ui/button';
 import { ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
+const PROMPT_VERSION = "1.8"; // Added confidence score to AI output
 
 export default function ConfirmIdentificationPage() {
   const params = useParams();
@@ -72,91 +74,75 @@ export default function ConfirmIdentificationPage() {
     setUserFeedback(wasCorrect ? 'correct' : 'incorrect');
     const analysisRunRef = doc(db, 'all_analysis_runs', analysisRunId);
 
+    // Update the analysis run with the user's feedback
+    await updateDoc(analysisRunRef, { 
+        userFeedback: {
+            aiWasCorrect: wasCorrect,
+            timestamp: new Date().toISOString()
+        },
+        wasSavedByUser: wasCorrect // Only mark as saved if user confirmed it
+    });
 
-    if (wasCorrect) {
-        // AI was correct. Create the log and update the analysis run.
-        try {
-            await updateDoc(analysisRunRef, { 
-                userFeedback: {
-                    aiWasCorrect: true,
-                    timestamp: new Date().toISOString()
-                },
-                wasSavedByUser: true
-            });
+    if (analysisRun.isDeveloperData) {
+        // This is a test run, log it to the dedicated test collection
+        await addDoc(collection(db, 'all_test_runs'), {
+            timestamp: analysisRun.timestamp,
+            promptVersion: PROMPT_VERSION,
+            aiResult: analysisRun.aiResult,
+            source: analysisRun.birdId === 'live-test' ? 'live_recording' : 'master_audio',
+            birdId: analysisRun.birdId,
+            testAudioId: analysisRun.testAudioId,
+            userFeedback: { aiWasCorrect: wasCorrect },
+        });
+        toast({
+            title: 'Test Feedback Recorded',
+            description: `Marked identification as ${wasCorrect ? 'correct' : 'incorrect'}.`,
+        });
+        const redirectPath = analysisRun.birdId === 'live-test' ? '/log/test/live' : '/log/test';
+        router.push(redirectPath);
 
-            // Create the final user-facing log
-            const logId = uuidv4();
-            const logDocRef = doc(db, 'users', user.uid, 'identifications', logId);
-            const aiResult = analysisRun.aiResult;
+    } else if (wasCorrect) {
+        // This is a regular user and the AI was correct. Create the final log.
+        const logId = uuidv4();
+        const logDocRef = doc(db, 'users', user.uid, 'identifications', logId);
+        const aiResult = analysisRun.aiResult;
 
-            const finalLog: Omit<BirdLog, 'id'> = {
-                sessionId: analysisRun.sessionId,
-                analysisRunId: analysisRun.id,
-                userId: user.uid,
-                timestamp: analysisRun.timestamp,
-                commonName: aiResult.commonName || 'Unknown',
-                scientificName: aiResult.scientificName || 'Unknown',
-                family: aiResult.family,
-                order: aiResult.order,
-                description: aiResult.description || '',
-                imagePrompt: aiResult.imagePrompt || 'bird',
-                audioUrl: analysisRun.inputAudioUrl,
-                isMystery: false,
-                status: 'active',
-                latitude: analysisRun.locationData?.latitude,
-                longitude: analysisRun.locationData?.longitude,
-                locationDescription: analysisRun.locationData?.locationDescription,
-                weather: aiResult.weather,
-                season: aiResult.season,
-                mode: analysisRun.mode,
-            };
+        const finalLog: Omit<BirdLog, 'id'> = {
+            sessionId: analysisRun.sessionId,
+            analysisRunId: analysisRun.id,
+            userId: user.uid,
+            timestamp: analysisRun.timestamp,
+            commonName: aiResult.commonName || 'Unknown',
+            scientificName: aiResult.scientificName || 'Unknown',
+            family: aiResult.family,
+            order: aiResult.order,
+            description: aiResult.description || '',
+            imagePrompt: aiResult.imagePrompt || 'bird',
+            audioUrl: analysisRun.inputAudioUrl,
+            isMystery: false,
+            status: 'active',
+            latitude: analysisRun.locationData?.latitude,
+            longitude: analysisRun.locationData?.longitude,
+            locationDescription: analysisRun.locationData?.locationDescription,
+            weather: aiResult.weather,
+            season: aiResult.season,
+            mode: analysisRun.mode,
+        };
 
-            await setDoc(logDocRef, finalLog);
+        await setDoc(logDocRef, finalLog);
+        toast({
+            title: 'Log Saved!',
+            description: `${aiResult.commonName} has been added to your Bird Book.`,
+        });
+        router.push(`/log/${logId}`);
 
-            toast({
-                title: 'Log Saved!',
-                description: `${aiResult.commonName} has been added to your Bird Book.`,
-            });
-            router.push(`/log/${logId}`);
-
-        } catch (error) {
-            console.error('Failed to finalize log:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Save Failed',
-                description: 'Could not save the log. Please try again.',
-            });
-            setIsSubmitting(false);
-        }
     } else {
-        // AI was incorrect. For now, we will just record this and save as a mystery log.
-        // In the future, this is where we would show a search input to find the correct bird.
-        try {
-            await updateDoc(analysisRunRef, { 
-                userFeedback: {
-                    aiWasCorrect: false,
-                    timestamp: new Date().toISOString()
-                },
-                 wasSavedByUser: false // User is not saving this as the AI suggested
-            });
-
-            toast({
-                title: 'Feedback Recorded',
-                description: "Thank you! We've noted the AI was incorrect.",
-            });
-
-            // For now, redirect to the main log page. A future step could involve a correction UI.
-            router.push('/log');
-
-        } catch(error) {
-             console.error('Failed to record feedback:', error);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Could not record your feedback. Please try again.',
-            });
-             setIsSubmitting(false);
-        }
+        // This is a regular user and the AI was incorrect.
+        toast({
+            title: 'Feedback Recorded',
+            description: "Thank you! We've noted the AI was incorrect. This recording won't be saved to your log.",
+        });
+        router.push('/log');
     }
   };
 
@@ -181,12 +167,59 @@ export default function ConfirmIdentificationPage() {
 
   const { aiResult } = analysisRun;
 
-  if (!aiResult.isBirdSong || !aiResult.commonName) {
-     // If the AI didn't find a bird, this page shouldn't have been loaded.
-     // The RecordButton now handles this by showing a "save as mystery" dialog.
-     // We'll redirect to the log page as a fallback.
-     router.replace('/log');
-     return renderLoading();
+  // Handle case where AI analysis failed or didn't find a bird
+  if (!aiResult.isBirdSong) {
+     return (
+        <AppLayout header={<SecondaryHeader title="Confirm Identification" />}>
+            <main className="flex-1 overflow-y-auto p-4 md:p-6 flex justify-center">
+                <div className="w-full max-w-2xl">
+                    <Card>
+                         <CardHeader>
+                            <CardTitle className="pt-4 text-3xl">Identification Failed</CardTitle>
+                            <p className="text-lg text-muted-foreground italic">The AI could not identify a bird.</p>
+                        </CardHeader>
+                        <CardContent>
+                             <Alert>
+                                <AlertTitle className="text-xl">Was the AI wrong?</AlertTitle>
+                                <AlertDescription>
+                                    If you believe there was a bird in the recording, please mark this as incorrect. Your feedback is valuable.
+                                </AlertDescription>
+                            </Alert>
+                        </CardContent>
+                        <CardFooter className="flex-col sm:flex-row gap-4 border-t pt-6">
+                            <Button 
+                                variant="outline"
+                                size="lg" 
+                                className="w-full"
+                                onClick={() => handleConfirmation(false)}
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting && userFeedback === 'incorrect' ? (
+                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                ) : (
+                                    <ThumbsDown className="mr-2 h-5 w-5" />
+                                )}
+                                No, AI was wrong
+                            </Button>
+                            <Button 
+                                size="lg" 
+                                className="w-full"
+                                onClick={() => handleConfirmation(true)}
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting && userFeedback === 'correct' ? (
+                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                ) : (
+                                    <ThumbsUp className="mr-2 h-5 w-5" />
+                                )}
+                                Yes, AI was correct
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </div>
+            </main>
+        </AppLayout>
+     )
   }
 
   return (
@@ -198,7 +231,7 @@ export default function ConfirmIdentificationPage() {
                 <div className="aspect-square relative w-full rounded-md overflow-hidden bg-muted">
                    <Image
                       src={`https://picsum.photos/seed/${analysisRun.id}/600/400`}
-                      alt={aiResult.commonName}
+                      alt={aiResult.commonName || 'Identified bird'}
                       fill
                       className="object-cover"
                       data-ai-hint={aiResult.imagePrompt}
@@ -251,5 +284,3 @@ export default function ConfirmIdentificationPage() {
     </AppLayout>
   );
 }
-
-    

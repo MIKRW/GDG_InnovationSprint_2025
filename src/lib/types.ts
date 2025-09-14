@@ -88,6 +88,9 @@ export type AnalysisRun = {
     primaryIdentificationMs?: number;
     // This structure can be expanded with more detailed timings later
   };
+  // Fields for dev test runs
+  birdId?: string;
+  testAudioId?: string;
 }
 
 
