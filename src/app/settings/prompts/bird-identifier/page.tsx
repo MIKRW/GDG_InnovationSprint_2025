@@ -212,16 +212,16 @@ export default function BirdIdentifierPromptEditorPage() {
 
   const { majorVersions, minorVersions, patchVersions } = useMemo(() => {
       const published = editorCategoryHistory.filter(v => v.version !== 'v0.0.0-draft');
-      const major = [...new Set(published.map(v => v.version.split('.')[0].replace('v','')))].sort((a,b) => Number(a) - Number(b));
+      const major = [...new Set(published.map(v => String(v.version).split('.')[0].replace('v','')))].sort((a,b) => Number(a) - Number(b));
       
       let minor: string[] = [];
       if (selectedMajor) {
-          minor = [...new Set(published.filter(v => v.version.startsWith(`v${selectedMajor}.`)).map(v => v.version.split('.')[1]))].sort((a,b) => Number(a) - Number(b));
+          minor = [...new Set(published.filter(v => String(v.version).startsWith(`v${selectedMajor}.`)).map(v => String(v.version).split('.')[1]))].sort((a,b) => Number(a) - Number(b));
       }
 
       let patch: string[] = [];
       if (selectedMajor && selectedMinor) {
-          patch = [...new Set(published.filter(v => v.version.startsWith(`v${selectedMajor}.${selectedMinor}.`)).map(v => v.version.split('.')[2]))].sort((a,b) => Number(a) - Number(b));
+          patch = [...new Set(published.filter(v => String(v.version).startsWith(`v${selectedMajor}.${selectedMinor}.`)).map(v => String(v.version).split('.')[2]))].sort((a,b) => Number(a) - Number(b));
       }
       
       return { majorVersions: major, minorVersions: minor, patchVersions: patch };
@@ -655,4 +655,3 @@ export default function BirdIdentifierPromptEditorPage() {
     </div>
   );
 }
-
