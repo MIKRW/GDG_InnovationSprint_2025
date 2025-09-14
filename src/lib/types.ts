@@ -195,3 +195,16 @@ export interface PromptContent {
     promptText: string;
     previousVersionId?: string;
 }
+
+
+// A fully-composed type for displaying the active AI version details.
+export interface FullAppAIVersion {
+  id: string;
+  version: string;
+  systems: {
+    id: string;
+    name: string;
+    version: string;
+    promptContents: PromptContent[];
+  }[];
+}
