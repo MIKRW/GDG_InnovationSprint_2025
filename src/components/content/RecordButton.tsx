@@ -33,7 +33,7 @@ interface RecordButtonProps {
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
-const PROMPT_VERSION = "1.6"; // Updated to include confidence score
+const PROMPT_VERSION = "1.7"; // Separated dev/user flows
 
 const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps, ref) => {
   const router = useRouter();
@@ -170,6 +170,21 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     return analysisRunId;
   }
 
+  const createTestRun = async (
+    aiResult: any, 
+    source: 'master_audio' | 'live_recording',
+    testContext?: { birdId: string, testAudioId: string }
+  ) => {
+      await addDoc(collection(db, 'all_test_runs'), {
+        timestamp: currentTimestamp.current!,
+        promptVersion: PROMPT_VERSION,
+        aiResult: aiResult,
+        source: source,
+        birdId: testContext?.birdId,
+        testAudioId: testContext?.testAudioId,
+      });
+  }
+
 
   const saveMysteryLog = async (audioDataUri: string, analysisRunId: string, locationData?: { latitude?: number; longitude?: number; locationDescription?: string; }) => {
      if (!user) {
@@ -241,7 +256,9 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     reader.readAsDataURL(audioBlob);
     reader.onloadend = async () => {
         const base64Audio = reader.result as string;
-        getLocationForAIShot(locationData => processAudio(base64Audio, recordingLengthSeconds, locationData));
+        // In dev mode, a live recording is a test run.
+        const testContext = isDevMode ? { birdId: 'live-test', testAudioId: uuidv4() } : undefined;
+        getLocationForAIShot(locationData => processAudio(base64Audio, recordingLengthSeconds, locationData, testContext));
     };
   };
 
@@ -303,6 +320,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
     const appSettings = getAppSettings();
     
+    // A developer run happens if we are in dev mode OR if there is testContext from a master audio file
     const isDeveloperRun = isDevMode;
 
     try {
@@ -317,6 +335,16 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       
       const wasSuccessful = result && result.isBirdSong && !!result.commonName;
 
+      // If this is a test run (from master audio or live recording in dev mode), log it to the test collection
+      if (testContext) {
+          const source = testContext.birdId === 'live-test' ? 'live_recording' : 'master_audio';
+          await createTestRun(result, source, testContext);
+          setRecordingState('idle');
+          router.push(source === 'live_recording' ? '/log/test/live' : '/log/test');
+          return;
+      }
+
+      // Standard user flow continues here...
       const analysisRunId = await createAnalysisRun(
           base64Audio, 
           result, 
@@ -333,7 +361,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           if (wasSuccessful) {
             router.push(`/record/confirm/${analysisRunId}`);
           } else {
-            // Handle AI not finding a bird
+            // Handle AI not finding a bird for a regular user
             setLastAudio(JSON.stringify([base64Audio, analysisRunId]));
             setRecordingState('confirming');
           }
@@ -351,7 +379,17 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         appMode: appSettings.mode,
         userId: user?.uid
       });
-      // API failed, so we can't create an analysis run, but we can still save as a mystery
+
+      // Handle API failure for dev mode test runs
+      if (testContext) {
+          const source = testContext.birdId === 'live-test' ? 'live_recording' : 'master_audio';
+          await createTestRun({ isBirdSong: false, error: (error as Error).message }, source, testContext);
+          setRecordingState('idle');
+          router.push(source === 'live_recording' ? '/log/test/live' : '/log/test');
+          return;
+      }
+
+      // Handle API failure for regular users
        const analysisRunId = await createAnalysisRun(
            base64Audio, 
            { error: (error as Error).message, isBirdSong: false }, 
