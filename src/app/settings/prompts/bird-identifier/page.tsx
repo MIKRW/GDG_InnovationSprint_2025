@@ -540,6 +540,20 @@ export default function BirdIdentifierPromptEditorPage() {
               </CardContent>
               <CardFooter className="flex-col items-start gap-4">
                  <div className="flex items-center gap-2">
+                    <Select value={contentPublishVersionType} onValueChange={(v) => setContentPublishVersionType(v as 'patch' | 'minor' | 'major')}>
+                        <SelectTrigger className="w-[120px]">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="patch">Patch</SelectItem>
+                            <SelectItem value="minor">Minor</SelectItem>
+                            <SelectItem value="major">Major</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Button onClick={handleSaveDraft} disabled={!canSave}>
+                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save Draft
+                    </Button>
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -557,20 +571,6 @@ export default function BirdIdentifierPromptEditorPage() {
                             )}
                         </Tooltip>
                     </TooltipProvider>
-                    <Select value={contentPublishVersionType} onValueChange={(v) => setContentPublishVersionType(v as 'patch' | 'minor' | 'major')}>
-                        <SelectTrigger className="w-[120px]">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="patch">Patch</SelectItem>
-                            <SelectItem value="minor">Minor</SelectItem>
-                            <SelectItem value="major">Major</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Button onClick={handleSaveDraft} disabled={!canSave}>
-                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Save Draft
-                    </Button>
                    </div>
               </CardFooter>
             </Card>
