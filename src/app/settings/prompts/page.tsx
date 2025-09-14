@@ -10,11 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ChevronRight, Loader2, Save } from 'lucide-react';
 import { doc, getDoc, collection, getDocs, query, where, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { AppAIVersion, FullAppAIVersion, PromptContent, PromptVersion } from '@/lib/types';
+import type { AppAIVersion, FullAppAIVersion, PromptContent, PromptVersion, PromptSystem } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useToast } from '@/hooks/use-toast';
-import { publishNewAppAIVersion } from '@/lib/actions';
+import { publishNewAppAIVersion, seedInitialPrompts } from '@/lib/actions';
 
 const aiSystems = [
     {
@@ -51,6 +51,8 @@ export default function PromptManagementPage() {
     const [activeVersionDetails, setActiveVersionDetails] = useState<FullAppAIVersion | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isPublishing, setIsPublishing] = useState(false);
+    const [needsMigration, setNeedsMigration] = useState(false);
+    const [isMigrating, setIsMigrating] = useState(false);
 
     useEffect(() => {
         if (!isDevMode) {
@@ -61,10 +63,18 @@ export default function PromptManagementPage() {
         async function fetchActiveVersionDetails() {
             setIsLoading(true);
             try {
+                 // Check if migration is needed
+                const systemsCheck = await getDocs(query(collection(db, 'prompt_systems')));
+                if (systemsCheck.empty) {
+                    setNeedsMigration(true);
+                    setIsLoading(false);
+                    return;
+                }
+                setNeedsMigration(false);
+
                 // 1. Get active version ID
                 const configDoc = await getDoc(doc(db, 'app_ai_config', 'main'));
                 if (!configDoc.exists()) {
-                    // This is not an error, it just means nothing has been published yet.
                     setActiveVersionDetails(null);
                     setIsLoading(false);
                     return;
@@ -140,6 +150,23 @@ export default function PromptManagementPage() {
         }
     };
 
+    const handleMigration = async () => {
+        setIsMigrating(true);
+        try {
+            await seedInitialPrompts();
+            toast({
+                title: 'Migration Complete!',
+                description: 'Initial prompts have been seeded to Firestore. The page will now reload.',
+            });
+            // Reload the page to fetch the new data
+            window.location.reload();
+        } catch (error) {
+            console.error("Failed to seed initial prompts:", error);
+            toast({ variant: 'destructive', title: 'Migration Failed', description: (error as Error).message });
+            setIsMigrating(false);
+        }
+    };
+
 
     if (!isDevMode) {
         return (
@@ -147,6 +174,21 @@ export default function PromptManagementPage() {
                 <p>This page is only available in developer mode.</p>
             </div>
         )
+    }
+
+    if (needsMigration) {
+         return (
+            <div className="container mx-auto px-4 py-8 text-center">
+                <PageTitle>Prompt System Migration</PageTitle>
+                <p className="max-w-2xl mx-auto text-muted-foreground mt-4">
+                    The prompt management system is new and the database is empty. The existing prompts from the old `.txt` files need to be migrated into Firestore.
+                </p>
+                <Button onClick={handleMigration} disabled={isMigrating} className="mt-6">
+                    {isMigrating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    Migrate Prompts to Firestore
+                </Button>
+            </div>
+        );
     }
 
     return (

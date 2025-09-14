@@ -8,6 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
 import type { TestAudioMetadata, BirdLog, PromptContent, PromptVersion, PromptSystem } from './types';
 import { EmailAuthProvider, linkWithCredential, type User } from 'firebase/auth';
 import { kebabCase } from 'lodash';
+import { promises as fs } from 'fs';
+import path from 'path';
 
 
 interface UploadMasterAudioInput {
@@ -341,4 +343,42 @@ export async function publishNewAppAIVersion() {
     await batch.commit();
 
     return newAppVersionData;
+}
+
+
+/**
+ * A one-time server action to seed the initial prompts from the old .txt files
+ * into the new Firestore prompt management system.
+ */
+export async function seedInitialPrompts() {
+    console.log("Starting initial prompt migration...");
+
+    try {
+        const promptsDir = path.join(process.cwd(), 'src', 'ai', 'prompts');
+
+        // 1. Read old prompt files
+        const newbiePromptText = await fs.readFile(path.join(promptsDir, 'bird-identification-prompt.txt'), 'utf-8');
+        const twitcherPromptText = await fs.readFile(path.join(promptsDir, 'bird-identification-twitcher-prompt.txt'), 'utf-8');
+        const themePromptText = await fs.readFile(path.join(promptsDir, 'theme-generation-prompt.txt'), 'utf-8');
+
+        // 2. Create Prompt Content v1 for each
+        const newbieContent = await savePromptContent({ systemId: 'bird-identifier-ai-newbie', categoryId: 'base_instruction', promptText: newbiePromptText });
+        const twitcherContent = await savePromptContent({ systemId: 'bird-identifier-ai-twitcher', categoryId: 'base_instruction', promptText: twitcherPromptText });
+        const themeContent = await savePromptContent({ systemId: 'theme-generator-ai', categoryId: 'base_instruction', promptText: themePromptText });
+
+        // 3. Publish v1.0 of each AI System
+        await publishNewPromptVersion({ systemId: 'bird-identifier-ai-newbie', composedPrompts: { 'base_instruction': newbieContent.id } });
+        await publishNewPromptVersion({ systemId: 'bird-identifier-ai-twitcher', composedPrompts: { 'base_instruction': twitcherContent.id } });
+        await publishNewPromptVersion({ systemId: 'theme-generator-ai', composedPrompts: { 'base_instruction': themeContent.id } });
+        
+        // 4. Publish App AI v1.0
+        const appVersion = await publishNewAppAIVersion();
+
+        console.log(`Successfully migrated prompts and published App AI version ${appVersion.version}.`);
+
+        return { success: true, version: appVersion.version };
+    } catch (error) {
+        console.error("CRITICAL: Prompt migration failed.", error);
+        throw new Error("Failed during prompt migration. Check server logs.");
+    }
 }
