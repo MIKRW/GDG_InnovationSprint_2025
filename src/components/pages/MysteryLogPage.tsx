@@ -47,7 +47,7 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
     const q = query(
         logsCollectionRef, 
         where('isMystery', '==', true),
-        where('isDisowned', '!=', true),
+        where('isDisowned', '==', false),
         orderBy('timestamp', 'desc')
     );
 

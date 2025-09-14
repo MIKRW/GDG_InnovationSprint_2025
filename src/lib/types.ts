@@ -39,7 +39,7 @@ export type BirdLog = {
     imagePrompt: string;
     audioUrl?: string;
     isMystery: boolean;
-    isDisowned?: boolean; // Flag to indicate user has "deleted" it
+    isDisowned: boolean; // Flag to indicate user has "deleted" it
     latitude?: number;
     longitude?: number;
     locationDescription?: string;
