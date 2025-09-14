@@ -155,9 +155,10 @@ export default function BirdIdentifierPromptEditorPage() {
     fetchPromptData();
   }, [fetchPromptData]);
 
+  // Reset editor when mode or category changes
   useEffect(() => {
-      setNewPromptText(currentContent?.promptText || '');
-  }, [currentSelectedVersionId, currentContent]);
+      setNewPromptText('');
+  }, [selectedMode, selectedCategory]);
 
 
   const handleSaveDraft = async () => {
