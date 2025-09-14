@@ -344,12 +344,16 @@ export async function publishNewAppAIVersion() {
 
 /**
  * A one-time server action to seed the initial prompts by hard-coding their content.
- * This populates the new Firestore prompt management system.
+ * This populates the new Firestore prompt management system. This is a self-contained
+ * function that uses a direct write batch to avoid read-before-write issues.
  */
 export async function seedInitialPrompts() {
     console.log("Starting initial prompt migration from hard-coded values...");
 
     try {
+        const batch = writeBatch(db);
+        const timestamp = new Date().toISOString();
+
         // 1. Define the initial prompt content here
         const newbiePromptText = `You are an expert ornithologist with a focus on making bird identification accessible to beginners. Your goal is to analyze an audio recording and provide a clear, confident, and interesting identification.
 
@@ -406,7 +410,7 @@ export async function seedInitialPrompts() {
         - weather: string
         
         If the audio is unclear or the species cannot be determined with high confidence, set "isBirdSong" to false. Do not guess.`;
-
+        
         const themePromptText = `You are an expert UI theme designer with a deep understanding of color theory, word association, and web accessibility standards (WCAG).
 Your task is to generate a creative, unique, and aesthetically pleasing HSL color palette based on user input.
 
@@ -449,22 +453,68 @@ Output Requirements:
 
 Interpret the user's words creatively to generate a harmonious and visually appealing theme that meets all constraints.`;
 
-        // 2. Create Prompt Content v1 for each
-        const newbieContent = await savePromptContent({ systemId: 'bird-identifier-ai-newbie', categoryId: 'base_instruction', promptText: newbiePromptText });
-        const twitcherContent = await savePromptContent({ systemId: 'bird-identifier-ai-twitcher', categoryId: 'base_instruction', promptText: twitcherPromptText });
-        const themeContent = await savePromptContent({ systemId: 'theme-generator-ai', categoryId: 'base_instruction', promptText: themePromptText });
+        // 2. Prepare all documents for the batch write
 
-        // 3. Publish v1.0 of each AI System
-        await publishNewPromptVersion({ systemId: 'bird-identifier-ai-newbie', composedPrompts: { 'base_instruction': newbieContent.id } });
-        await publishNewPromptVersion({ systemId: 'bird-identifier-ai-twitcher', composedPrompts: { 'base_instruction': twitcherContent.id } });
-        await publishNewPromptVersion({ systemId: 'theme-generator-ai', composedPrompts: { 'base_instruction': themeContent.id } });
+        // -- Newbie System --
+        const newbieContentId = uuidv4();
+        const newbieContentRef = doc(db, 'prompt_content', newbieContentId);
+        batch.set(newbieContentRef, { id: newbieContentId, systemId: 'bird-identifier-ai-newbie', categoryId: 'base_instruction', version: 1, promptText: newbiePromptText, timestamp });
         
-        // 4. Publish App AI v1.0
-        const appVersion = await publishNewAppAIVersion();
+        const newbieVersionId = 'bird-identifier-ai-newbie-v1.0';
+        const newbieVersionRef = doc(db, 'prompt_versions', newbieVersionId);
+        batch.set(newbieVersionRef, { id: newbieVersionId, systemId: 'bird-identifier-ai-newbie', version: 'v1.0', timestamp, composedPrompts: { 'base_instruction': newbieContentId } });
+        
+        const newbieSystemRef = doc(db, 'prompt_systems', 'bird-identifier-ai-newbie');
+        batch.set(newbieSystemRef, { id: 'bird-identifier-ai-newbie', name: 'Bird Identifier AI (Newbie)', description: '...', activeVersion: 'v1.0' });
 
-        console.log(`Successfully migrated prompts and published App AI version ${appVersion.version}.`);
+        // -- Twitcher System --
+        const twitcherContentId = uuidv4();
+        const twitcherContentRef = doc(db, 'prompt_content', twitcherContentId);
+        batch.set(twitcherContentRef, { id: twitcherContentId, systemId: 'bird-identifier-ai-twitcher', categoryId: 'base_instruction', version: 1, promptText: twitcherPromptText, timestamp });
+        
+        const twitcherVersionId = 'bird-identifier-ai-twitcher-v1.0';
+        const twitcherVersionRef = doc(db, 'prompt_versions', twitcherVersionId);
+        batch.set(twitcherVersionRef, { id: twitcherVersionId, systemId: 'bird-identifier-ai-twitcher', version: 'v1.0', timestamp, composedPrompts: { 'base_instruction': twitcherContentId } });
 
-        return { success: true, version: appVersion.version };
+        const twitcherSystemRef = doc(db, 'prompt_systems', 'bird-identifier-ai-twitcher');
+        batch.set(twitcherSystemRef, { id: 'bird-identifier-ai-twitcher', name: 'Bird Identifier AI (Twitcher)', description: '...', activeVersion: 'v1.0' });
+
+        // -- Theme System --
+        const themeContentId = uuidv4();
+        const themeContentRef = doc(db, 'prompt_content', themeContentId);
+        batch.set(themeContentRef, { id: themeContentId, systemId: 'theme-generator-ai', categoryId: 'base_instruction', version: 1, promptText: themePromptText, timestamp });
+        
+        const themeVersionId = 'theme-generator-ai-v1.0';
+        const themeVersionRef = doc(db, 'prompt_versions', themeVersionId);
+        batch.set(themeVersionRef, { id: themeVersionId, systemId: 'theme-generator-ai', version: 'v1.0', timestamp, composedPrompts: { 'base_instruction': themeContentId } });
+
+        const themeSystemRef = doc(db, 'prompt_systems', 'theme-generator-ai');
+        batch.set(themeSystemRef, { id: 'theme-generator-ai', name: 'Theme Generation AI', description: '...', activeVersion: 'v1.0' });
+
+        // -- App AI Version v1.0 --
+        const appVersionId = 'v1.0';
+        const appVersionRef = doc(db, 'app_ai_versions', appVersionId);
+        batch.set(appVersionRef, {
+            id: appVersionId,
+            version: 'v1.0',
+            timestamp,
+            systems: {
+                'bird-identifier-ai-newbie': newbieVersionId,
+                'bird-identifier-ai-twitcher': twitcherVersionId,
+                'theme-generator-ai': themeVersionId,
+            }
+        });
+
+        // -- Main Config --
+        const configRef = doc(db, 'app_ai_config', 'main');
+        batch.set(configRef, { activeAppAIVersion: 'v1.0' });
+
+        // 3. Commit the batch
+        await batch.commit();
+
+        console.log("Successfully migrated prompts and published App AI version v1.0.");
+        return { success: true, version: 'v1.0' };
+
     } catch (error) {
         console.error("CRITICAL: Prompt migration failed.", error);
         throw new Error("Failed during prompt migration. Check server logs.");
