@@ -2,6 +2,8 @@
 'use server';
 /**
  * @fileOverview An AI flow for identifying bird species from audio recordings.
+ * This flow now dynamically assembles its prompt at runtime based on the
+ * active AI version configured in Firestore.
  *
  * - identifyBirdBySound - A function that analyzes an audio recording to identify a bird.
  * - IdentifyBirdInput - The input type for the identifyBirdBySound function.
@@ -10,32 +12,71 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { ref, getDownloadURL } from 'firebase/storage';
-import { storage } from '@/lib/firebase';
+import { collection, getDoc, doc, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { AppAIVersion, PromptContent, PromptVersion } from '@/lib/types';
+import { handlebars } from 'genkit/tools';
 
 
-// Helper function to fetch prompt text from Firebase Storage
-async function getPromptFromStorage(path: string): Promise<string> {
+// Helper function to fetch and compose the prompt dynamically from Firestore
+async function getDynamicPrompt(systemId: string): Promise<string> {
     try {
-        const fileRef = ref(storage, path);
-        const url = await getDownloadURL(fileRef);
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch prompt from ${path}: ${response.statusText}`);
+        // 1. Get the active App AI Version ID
+        const configDocSnap = await getDoc(doc(db, 'app_ai_config', 'main'));
+        if (!configDocSnap.exists()) {
+            throw new Error('FATAL: app_ai_config/main document not found.');
         }
-        return await response.text();
+        const activeAppVersionId = configDocSnap.data().activeAppAIVersion;
+
+        // 2. Get the App AI Version manifest
+        const appVersionDocSnap = await getDoc(doc(db, 'app_ai_versions', activeAppVersionId));
+        if (!appVersionDocSnap.exists()) {
+            throw new Error(`FATAL: Active App AI Version document '${activeAppVersionId}' not found.`);
+        }
+        const appVersionData = appVersionDocSnap.data() as AppAIVersion;
+
+        // 3. Find the prompt_version ID for the requested system
+        const promptVersionId = appVersionData.systems[systemId];
+        if (!promptVersionId) {
+            throw new Error(`System '${systemId}' not found in App AI Version '${activeAppVersionId}'.`);
+        }
+
+        // 4. Get the prompt_version document
+        const promptVersionDocSnap = await getDoc(doc(db, 'prompt_versions', promptVersionId));
+        if (!promptVersionDocSnap.exists()) {
+            throw new Error(`Prompt version document '${promptVersionId}' not found.`);
+        }
+        const promptVersionData = promptVersionDocSnap.data() as PromptVersion;
+
+        // 5. Fetch all required prompt_content documents
+        const contentIds = Object.values(promptVersionData.composedPrompts);
+        if (contentIds.length === 0) {
+            return ''; // Return empty if no content is specified
+        }
+
+        const contentQuery = query(collection(db, 'prompt_content'), where('__name__', 'in', contentIds));
+        const contentSnapshot = await getDocs(contentQuery);
+        
+        const contentsById = new Map<string, PromptContent>();
+        contentSnapshot.forEach(doc => {
+            contentsById.set(doc.id, doc.data() as PromptContent);
+        });
+
+        // 6. Assemble the prompt in the correct order
+        const composedPrompt = Object.values(promptVersionData.composedPrompts)
+            .map(id => contentsById.get(id)?.promptText)
+            .filter(Boolean) // Filter out any undefined/missing content
+            .join('\n\n'); // Join parts with double newlines
+
+        return composedPrompt;
+
     } catch (error) {
-        console.error(`Error fetching prompt from storage, falling back to local. Path: ${path}`, error);
-        // This is a fallback for local development or if the file isn't in Storage yet.
-        // In a real app, you might want to handle this more gracefully.
-        if (path.includes('twitcher')) {
-            const fs = await import('fs/promises');
-            const path = await import('path');
-            return fs.readFile(path.join(process.cwd(), 'src', 'ai', 'prompts', 'bird-identification-twitcher-prompt.txt'), 'utf-8');
-        }
-        const fs = await import('fs/promises');
-        const path = await import('path');
-        return fs.readFile(path.join(process.cwd(), 'src', 'ai', 'prompts', 'bird-identification-prompt.txt'), 'utf-8');
+        console.error("CRITICAL: Failed to assemble dynamic prompt.", error);
+        // Fallback to a very basic, hardcoded prompt as a last resort
+        return `You are an expert ornithologist. Analyze the provided audio and identify the bird.
+        Audio data: {{media url=audioDataUri}}
+        Return a JSON object with 'isBirdSong', 'commonName', 'scientificName', and 'description'.
+        If no bird is identified, set 'isBirdSong' to false.`;
     }
 }
 
@@ -128,31 +169,23 @@ const identifyBirdFlow = ai.defineFlow(
     retries: 3,
   },
   async (input) => {
-    let response;
+    
+    const systemId = input.mode === 'twitcher' ? 'bird-identifier-ai-twitcher' : 'bird-identifier-ai-newbie';
+    const promptTemplate = await getDynamicPrompt(systemId);
+    
+    const prompt = handlebars.compile(promptTemplate, {
+      noEscape: true,
+    });
+    
+    const finalPrompt = await prompt(input);
 
-    if (input.mode === 'twitcher') {
-      const twitcherPromptText = await getPromptFromStorage('prompts/bird-identification-twitcher-prompt.txt');
-      const twitcherIdentifyBirdPrompt = ai.definePrompt({
-          name: 'twitcherIdentifyBirdPrompt',
-          input: { schema: IdentifyBirdInputSchema },
-          output: { schema: IdentifyBirdOutputSchema },
-          prompt: twitcherPromptText,
-          tools: [getCurrentWeather],
-      });
-      response = await twitcherIdentifyBirdPrompt(input);
-    } else {
-      const newbiePromptText = await getPromptFromStorage('prompts/bird-identification-prompt.txt');
-      const newbieIdentifyBirdPrompt = ai.definePrompt({
-          name: 'newbieIdentifyBirdPrompt',
-          input: { schema: IdentifyBirdInputSchema },
-          output: { schema: IdentifyBirdOutputSchema },
-          prompt: newbiePromptText,
-          tools: [getCurrentWeather],
-      });
-      response = await newbieIdentifyBirdPrompt(input);
-    }
+    const { output } = await ai.generate({
+      prompt: finalPrompt,
+      model: 'googleai/gemini-2.5-flash',
+      output: { schema: IdentifyBirdOutputSchema },
+      tools: [getCurrentWeather]
+    });
 
-    const { output } = response;
     if (!output) {
       throw new Error('The model failed to return a valid analysis.');
     }

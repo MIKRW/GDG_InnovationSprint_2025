@@ -7,12 +7,14 @@ import { PageTitle } from '@/components/content/PageTitle';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronRight, Loader2 } from 'lucide-react';
-import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { ChevronRight, Loader2, Save } from 'lucide-react';
+import { doc, getDoc, collection, getDocs, query, where, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppAIVersion, FullAppAIVersion, PromptContent, PromptVersion } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from '@/components/ui/table';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { useToast } from '@/hooks/use-toast';
+import { publishNewAppAIVersion } from '@/lib/actions';
 
 const aiSystems = [
     {
@@ -44,9 +46,11 @@ const aiSystems = [
 export default function PromptManagementPage() {
     const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
     const router = useRouter();
+    const { toast } = useToast();
     const [selectedSystem, setSelectedSystem] = useState(aiSystems[0].href);
     const [activeVersionDetails, setActiveVersionDetails] = useState<FullAppAIVersion | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isPublishing, setIsPublishing] = useState(false);
 
     useEffect(() => {
         if (!isDevMode) {
@@ -116,6 +120,29 @@ export default function PromptManagementPage() {
         router.push(selectedSystem);
     };
 
+    const handlePublish = async () => {
+        setIsPublishing(true);
+        try {
+            const newVersion = await publishNewAppAIVersion();
+            setActiveVersionDetails(null); // Force a re-fetch of the new details
+            
+            toast({
+                title: 'Published New AI Version!',
+                description: `Successfully published ${newVersion.version}. The app will now use this configuration.`,
+            });
+             // Trigger a re-fetch
+            const event = new Event('storage');
+            window.dispatchEvent(event);
+
+        } catch (error) {
+            console.error("Failed to publish new App AI version:", error);
+            toast({ variant: 'destructive', title: 'Publish Failed' });
+        } finally {
+            setIsPublishing(false);
+        }
+    };
+
+
     if (!isDevMode) {
         return (
              <div className="container mx-auto px-4 py-8">
@@ -157,7 +184,13 @@ export default function PromptManagementPage() {
             </div>
 
              <div className="mt-12">
-                <h2 className="text-2xl font-bold text-center mb-4">Active AI Configuration</h2>
+                <div className="flex justify-center items-center mb-4 gap-4">
+                     <h2 className="text-2xl font-bold text-center">Active AI Configuration</h2>
+                     <Button size="sm" onClick={handlePublish} disabled={isPublishing}>
+                        {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Publish New Version
+                    </Button>
+                </div>
                 <Card>
                     <CardHeader>
                         {isLoading ? (
@@ -172,7 +205,7 @@ export default function PromptManagementPage() {
                         ) : (
                              <div className="text-center p-8">
                                 <p className="text-muted-foreground">No active AI version has been published yet.</p>
-                                <p className="text-sm text-muted-foreground">Publish a version from an editor page to see it here.</p>
+                                <p className="text-sm text-muted-foreground">Go to an editor, select prompt versions, and click "Publish" on that page.</p>
                             </div>
                         )}
                     </CardHeader>

@@ -254,8 +254,9 @@ export async function publishNewPromptVersion(data: PublishNewPromptVersionInput
 
     // 2. Create the new prompt_versions document
     const newVersionRef = doc(collection(db, 'prompt_versions'));
+    const newVersionId = `${systemId}-${newVersionString}`;
     const newVersion: PromptVersion = {
-        id: newVersionRef.id,
+        id: newVersionId,
         systemId,
         version: newVersionString,
         timestamp: new Date().toISOString(),
@@ -264,7 +265,7 @@ export async function publishNewPromptVersion(data: PublishNewPromptVersionInput
     
     // 3. Use a batch write to update both the new version and the system's activeVersion
     const batch = writeBatch(db);
-    batch.set(newVersionRef, newVersion);
+    batch.set(doc(db, 'prompt_versions', newVersionId), newVersion);
 
     const systemRef = doc(db, 'prompt_systems', systemId);
     const systemSnap = await getDoc(systemRef);
@@ -274,7 +275,7 @@ export async function publishNewPromptVersion(data: PublishNewPromptVersionInput
         // If the system doesn't exist, create it.
         const systemData: Partial<PromptSystem> = {
             id: systemId,
-            name: `${kebabCase(systemId).replace(/-/g, ' ')}`, // Generate a name
+            name: `${kebabCase(systemId).replace(/-ai/g, '').replace(/-/g, ' ')}`, // Generate a name
             description: `Manages prompts for the ${systemId} AI.`,
             activeVersion: newVersionString
         };
@@ -286,4 +287,58 @@ export async function publishNewPromptVersion(data: PublishNewPromptVersionInput
     return newVersion;
 }
 
-    
+
+/**
+ * Takes the currently active version of EACH AI system and bundles them
+ * into a single, new, versioned "App AI". This becomes the new live version
+ * for the entire application.
+ */
+export async function publishNewAppAIVersion() {
+    const batch = writeBatch(db);
+
+    // 1. Get the latest version of each AI system
+    const systemsQuery = query(collection(db, 'prompt_systems'));
+    const systemsSnapshot = await getDocs(systemsQuery);
+    const systemsToBundle: Record<string, string> = {};
+
+    for (const systemDoc of systemsSnapshot.docs) {
+        const systemData = systemDoc.data() as PromptSystem;
+        if (systemData.activeVersion) {
+            const promptVersionId = `${systemData.id}-${systemData.activeVersion}`;
+            systemsToBundle[systemData.id] = promptVersionId;
+        }
+    }
+
+    if (Object.keys(systemsToBundle).length === 0) {
+        throw new Error("No active AI systems with versions found to publish.");
+    }
+
+    // 2. Determine the new App AI Version number
+    const configDocRef = doc(db, 'app_ai_config', 'main');
+    const configDocSnap = await getDoc(configDocRef);
+    let newAppVersionString = 'v1.0';
+
+    if (configDocSnap.exists()) {
+        const currentVersion = configDocSnap.data().activeAppAIVersion || 'v0.9';
+        const parts = currentVersion.substring(1).split('.').map(Number);
+        parts[parts.length - 1] += 1;
+        newAppVersionString = 'v' + parts.join('.');
+    }
+
+    // 3. Create the new app_ai_versions document
+    const newAppVersionRef = doc(db, 'app_ai_versions', newAppVersionString);
+    const newAppVersionData = {
+        id: newAppVersionString,
+        version: newAppVersionString,
+        timestamp: new Date().toISOString(),
+        systems: systemsToBundle,
+    };
+    batch.set(newAppVersionRef, newAppVersionData);
+
+    // 4. Update the main config to point to the new version
+    batch.set(configDocRef, { activeAppAIVersion: newAppVersionString }, { merge: true });
+
+    await batch.commit();
+
+    return newAppVersionData;
+}
