@@ -49,8 +49,8 @@ export default function BirdIdentifierPromptEditorPage() {
   const [isNewCategoryDialogOpen, setIsNewCategoryDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [newPromptText, setNewPromptText] = useState('');
-  const [enabledCategories, setEnabledCategories] = useState<Record<string, boolean>>({});
   const [versionType, setVersionType] = useState<'minor' | 'major'>('minor');
+  const [enabledCategories, setEnabledCategories] = useState<Record<string, boolean>>({});
   
   const { toast } = useToast();
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
@@ -91,8 +91,14 @@ export default function BirdIdentifierPromptEditorPage() {
 
         const activeVersionPromises = Object.entries(activeSystemVersions).map(async ([mode, versionString]) => {
             if (!versionString) return { mode, version: null };
-            const versionId = `${SYSTEM_IDS[mode as 'newbie' | 'twitcher']}-${versionString}`;
-            const versionQuery = query(collection(db, 'prompt_versions'), where('id', '==', versionId));
+            // A version string can be reused on recall, so we need the latest one.
+            const versionQuery = query(
+              collection(db, 'prompt_versions'), 
+              where('systemId', '==', SYSTEM_IDS[mode as 'newbie' | 'twitcher']),
+              where('version', '==', versionString), 
+              orderBy('timestamp', 'desc')
+            );
+
             const versionSnap = await getDocs(versionQuery);
             if (!versionSnap.empty) {
                 const doc = versionSnap.docs[0];
@@ -110,16 +116,6 @@ export default function BirdIdentifierPromptEditorPage() {
       
       const latestVersion = newActiveVersionsState[selectedMode];
 
-      let initialCategories: string[] = [];
-      let initialSelected: Record<string, string> = {};
-      let initialEnabled: Record<string, boolean> = {};
-
-      if (latestVersion) {
-        initialCategories = Object.keys(latestVersion.composedPrompts);
-        initialSelected = { ...latestVersion.composedPrompts };
-        initialCategories.forEach(cat => initialEnabled[cat] = true);
-      }
-
       const contentQuery = query(collection(db, 'prompt_content'), where('systemId', '==', systemId));
       const contentSnapshot = await getDocs(contentQuery);
       const contents = contentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptContent));
@@ -131,8 +127,12 @@ export default function BirdIdentifierPromptEditorPage() {
         return acc;
       }, {} as Record<string, PromptContent[]>);
 
-      const allCategories = Array.from(new Set([...initialCategories, ...Object.keys(contentsByCategory)]));
+      const allCategories = Array.from(new Set(Object.keys(contentsByCategory)));
       
+      let initialEnabled: Record<string, boolean> = {};
+      if (latestVersion) {
+         Object.keys(latestVersion.composedPrompts).forEach(cat => initialEnabled[cat] = true);
+      }
       allCategories.forEach(cat => {
         if (initialEnabled[cat] === undefined) {
            initialEnabled[cat] = false;
@@ -148,23 +148,24 @@ export default function BirdIdentifierPromptEditorPage() {
 
       setPromptContents(contentsByCategory);
 
-      const finalSelectedVersions = { ...initialSelected };
+      const initialSelectedVersions = latestVersion ? { ...latestVersion.composedPrompts } : {};
+      
       allCategories.forEach(cat => {
         const categoryContent = contentsByCategory[cat] || [];
         const draft = categoryContent.find(c => c.version === 0);
         
-        if (!finalSelectedVersions[cat]) {
+        if (!initialSelectedVersions[cat]) {
             if (draft) {
-                finalSelectedVersions[cat] = draft.id;
+                initialSelectedVersions[cat] = draft.id;
             } else {
                 const latestPublished = categoryContent.filter(c => c.version > 0).sort((a,b) => b.version - a.version)[0];
                 if (latestPublished) {
-                    finalSelectedVersions[cat] = latestPublished.id;
+                    initialSelectedVersions[cat] = latestPublished.id;
                 }
             }
         }
       });
-      setSelectedVersions(finalSelectedVersions);
+      setSelectedVersions(initialSelectedVersions);
 
     } catch (error) {
       console.error('Error fetching prompt data:', error);
@@ -200,7 +201,6 @@ export default function BirdIdentifierPromptEditorPage() {
 
         toast({ title: 'Draft Saved', description: 'Your changes have been saved to the cloud.' });
         
-        // Optimistically update UI to avoid full reload
         setPromptContents(prev => {
             const categoryContents = prev[selectedCategory] || [];
             const existingDraftIndex = categoryContents.findIndex(c => c.version === 0);
@@ -212,7 +212,7 @@ export default function BirdIdentifierPromptEditorPage() {
             return {...prev, [selectedCategory]: categoryContents};
         });
         setSelectedVersions(prev => ({...prev, [selectedCategory]: savedDraft.id}));
-        setNewPromptText(''); // Clear editor after successful save
+        setNewPromptText('');
 
     } catch (error) {
         console.error("Failed to save draft:", error);
@@ -254,16 +254,8 @@ export default function BirdIdentifierPromptEditorPage() {
             isDraft: false,
         });
 
-        const promptsToPublish = Object.entries(selectedVersions)
-            .filter(([catId]) => enabledCategories[catId])
-            .reduce((acc, [catId, versionId]) => {
-                if (versionId) {
-                    acc[catId] = catId === selectedCategory ? newContent.id : (versionId.startsWith('draft_') ? activeVersions[selectedMode]?.composedPrompts[catId] || '' : versionId);
-                }
-                return acc;
-            }, {} as Record<string, string>);
-        
-        if (enabledCategories[selectedCategory] && !promptsToPublish[selectedCategory]) {
+        const promptsToPublish = { ...activeVersions[selectedMode]?.composedPrompts };
+         if (enabledCategories[selectedCategory]) {
             promptsToPublish[selectedCategory] = newContent.id;
         }
 
@@ -293,14 +285,11 @@ export default function BirdIdentifierPromptEditorPage() {
 
     setIsPublishing(true);
     try {
-      const promptsToPublish = Object.entries(selectedVersions)
-        .filter(([catId]) => enabledCategories[catId])
-        .reduce((acc, [catId, versionId]) => {
-          if (versionId) {
-            acc[catId] = catId === selectedCategory ? currentContent.id : (versionId.startsWith('draft_') ? activeVersions[selectedMode]?.composedPrompts[catId] || '' : versionId);
-          }
-          return acc;
-        }, {} as Record<string, string>);
+      
+      const promptsToPublish: Record<string, string> = {
+        ...activeVersions[selectedMode]?.composedPrompts,
+        [selectedCategory]: currentContent.id
+      };
 
       const newVersion = await publishNewPromptVersion({
         systemId: systemId,
@@ -335,7 +324,25 @@ export default function BirdIdentifierPromptEditorPage() {
 
   const hasUnsavedChanges = newPromptText.trim() !== '' && newPromptText.trim() !== (draftContent?.promptText || '').trim();
   const canSave = newPromptText.trim() !== '' && hasUnsavedChanges && !isSaving;
-  const canPublishFromDraft = !hasUnsavedChanges && !!draftContent;
+  const canPublish = !hasUnsavedChanges && !!draftContent;
+  
+  const activeVersionForMode = activeVersions[selectedMode];
+  const activePromptContents = useMemo(() => {
+    if (!activeVersionForMode) return [];
+    
+    const contentDetails: { categoryId: string; contentId: string; version: number }[] = [];
+    
+    for (const categoryId in activeVersionForMode.composedPrompts) {
+        const contentId = activeVersionForMode.composedPrompts[categoryId];
+        const contentHistory = promptContents[categoryId] || [];
+        const content = contentHistory.find(c => c.id === contentId);
+        if (content) {
+            contentDetails.push({ categoryId, contentId, version: content.version });
+        }
+    }
+    return contentDetails.sort((a,b) => a.categoryId.localeCompare(b.categoryId));
+  }, [activeVersionForMode, promptContents]);
+
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -365,58 +372,58 @@ export default function BirdIdentifierPromptEditorPage() {
       </Card>
       
       <Card className="mt-4 max-w-lg mx-auto">
-          <CardHeader className="text-center">
-              <CardTitle>Prompt Category</CardTitle>
-          </CardHeader>
-          <CardContent className="flex justify-center items-center gap-2">
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-[280px]">
-                <SelectValue placeholder="Select a category..." />
-                </SelectTrigger>
-                <SelectContent>
-                {Object.keys(promptContents).sort().map(categoryId => (
-                    <SelectItem key={categoryId} value={categoryId} className="capitalize">{categoryId.replace(/_/g, ' ')}</SelectItem>
-                ))}
-                </SelectContent>
-            </Select>
-             <Dialog open={isNewCategoryDialogOpen} onOpenChange={setIsNewCategoryDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                            <Plus className="h-4 w-4"/>
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Add New Prompt Category</DialogTitle>
-                        <DialogDescription>
-                        Create a new component for the AI's prompt. Use a short, descriptive name (e.g., 'error_handling').
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="category-name" className="text-right">Name</Label>
-                        <Input
-                            id="category-name"
-                            value={newCategoryName}
-                            onChange={(e) => setNewCategoryName(e.target.value)}
-                            className="col-span-3"
-                            placeholder="e.g., audio_analysis_rules"
-                        />
-                        </div>
+        <CardHeader className="text-center">
+            <CardTitle>Prompt Category</CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center items-center gap-2">
+        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="w-[280px]">
+            <SelectValue placeholder="Select a category..." />
+            </SelectTrigger>
+            <SelectContent>
+            {Object.keys(promptContents).sort().map(categoryId => (
+                <SelectItem key={categoryId} value={categoryId} className="capitalize">{categoryId.replace(/_/g, ' ')}</SelectItem>
+            ))}
+            </SelectContent>
+        </Select>
+            <Dialog open={isNewCategoryDialogOpen} onOpenChange={setIsNewCategoryDialogOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                        <Plus className="h-4 w-4"/>
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add New Prompt Category</DialogTitle>
+                    <DialogDescription>
+                    Create a new component for the AI's prompt. Use a short, descriptive name (e.g., 'error_handling').
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="category-name" className="text-right">Name</Label>
+                    <Input
+                        id="category-name"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        className="col-span-3"
+                        placeholder="e.g., audio_analysis_rules"
+                    />
                     </div>
-                    <DialogFooter>
-                        <Button onClick={handleAddNewCategory}>Add Category</Button>
-                    </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-          </CardContent>
+                </div>
+                <DialogFooter>
+                    <Button onClick={handleAddNewCategory}>Add Category</Button>
+                </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </CardContent>
       </Card>
-
+      
       <Card className="mt-4 max-w-lg mx-auto">
         <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-semibold leading-none tracking-tight">Enabled Prompt Categories</CardTitle>
+            <CardTitle className="text-2xl font-semibold leading-none tracking-tight">Active Prompt Configuration</CardTitle>
             <CardDescription>
-                Toggle which categories are included in the published AI version. A category must be enabled and have a selected version to be included.
+                This is the currently published configuration for the <strong>{selectedMode}</strong> AI (Version {activeVersions[selectedMode]?.version || 'N/A'}).
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -424,43 +431,41 @@ export default function BirdIdentifierPromptEditorPage() {
                 <TableHeader>
                     <TableRow>
                         <TableHead>Category</TableHead>
-                        <TableHead className="text-center">Selected Version</TableHead>
+                        <TableHead className="text-center">Active Version</TableHead>
                         <TableHead className="text-center">Published</TableHead>
-                        <TableHead className="text-right">Enabled</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {Object.keys(promptContents).sort().map(categoryId => {
-                        const selectedContentId = selectedVersions[categoryId];
-                        const selectedContent = promptContents[categoryId]?.find(c => c.id === selectedContentId);
-                        const activePublishedVersion = activeVersions[selectedMode];
-                        const isPublished = activePublishedVersion?.composedPrompts[categoryId] === selectedContentId;
-                        
-                        return (
-                            <TableRow key={categoryId}>
-                                <TableCell className="font-medium capitalize">{categoryId.replace(/_/g, ' ')}</TableCell>
+                    {isLoading ? (
+                         Array.from({length: 3}).map((_, i) => (
+                           <TableRow key={i}>
+                                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                                <TableCell className="text-center"><Skeleton className="h-4 w-12 mx-auto" /></TableCell>
+                                <TableCell className="text-center"><Skeleton className="h-6 w-10 mx-auto" /></TableCell>
+                           </TableRow>
+                        ))
+                    ) : activePromptContents.length > 0 ? (
+                        activePromptContents.map(item => (
+                            <TableRow key={item.categoryId}>
+                                <TableCell className="font-medium capitalize">{item.categoryId.replace(/_/g, ' ')}</TableCell>
+                                <TableCell className="text-center">v{item.version}</TableCell>
                                 <TableCell className="text-center">
-                                    {selectedContent ? (selectedContent.version === 0 ? 'Draft' : `v${selectedContent.version}`) : 'None'}
-                                </TableCell>
-                                <TableCell className="text-center">
-                                    <Badge variant={isPublished && selectedContent?.version !== 0 ? 'default' : 'secondary'}>
-                                        {isPublished && selectedContent?.version !== 0 ? 'Yes' : 'No'}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <Switch
-                                        id={`switch-${categoryId}`}
-                                        checked={enabledCategories[categoryId] || false}
-                                        onCheckedChange={(checked) => setEnabledCategories(prev => ({...prev, [categoryId]: checked}))}
-                                    />
+                                    <Badge variant="default">Yes</Badge>
                                 </TableCell>
                             </TableRow>
-                        );
-                    })}
+                        ))
+                    ) : (
+                        <TableRow>
+                            <TableCell colSpan={3} className="text-center text-muted-foreground">
+                                No prompts are published for this mode yet.
+                            </TableCell>
+                        </TableRow>
+                    )}
                 </TableBody>
             </Table>
         </CardContent>
       </Card>
+
 
       <div className="mt-8 flex flex-col md:flex-row gap-6">
         {isLoading ? (
@@ -521,10 +526,6 @@ export default function BirdIdentifierPromptEditorPage() {
               </CardContent>
               <CardFooter>
                  <div className="flex items-center gap-2">
-                    <Button onClick={handleSaveDraft} disabled={!canSave}>
-                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Save
-                    </Button>
                     <Select value={versionType} onValueChange={(v) => setVersionType(v as 'minor' | 'major')}>
                         <SelectTrigger className="w-[140px]">
                             <SelectValue />
@@ -534,17 +535,21 @@ export default function BirdIdentifierPromptEditorPage() {
                             <SelectItem value="major">Major-Ver</SelectItem>
                         </SelectContent>
                     </Select>
+                    <Button onClick={handleSaveDraft} disabled={!canSave}>
+                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save
+                    </Button>
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <div className="inline-block">
-                                    <Button onClick={publishFromDraft} disabled={!canPublishFromDraft || isPublishing}>
+                                    <Button onClick={publishFromDraft} disabled={!canPublish || isPublishing}>
                                         {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />}
                                         Publish
                                     </Button>
                                 </div>
                             </TooltipTrigger>
-                            {!canPublishFromDraft && (
+                            {!canPublish && (
                                 <TooltipContent>
                                     <p>Save changes to a draft to enable publishing.</p>
                                 </TooltipContent>
@@ -560,3 +565,4 @@ export default function BirdIdentifierPromptEditorPage() {
     </div>
   );
 }
+
