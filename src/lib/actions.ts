@@ -3,7 +3,7 @@
 'use server';
 
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString, getMetadata, deleteObject } from 'firebase/storage';
-import { doc, setDoc, getDoc, updateDoc, arrayUnion, addDoc, collection, serverTimestamp, query, where, getDocs, orderBy, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, arrayUnion, addDoc, collection, serverTimestamp, query, where, getDocs, orderBy, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
 import type { TestAudioMetadata, BirdLog, PromptContent, PromptVersion, PromptSystem } from './types';
@@ -251,7 +251,7 @@ export async function savePromptContent(data: SavePromptContentInput): Promise<P
         // After creating a new permanent version, delete the old draft
         const draftId = `draft_${systemId}_${categoryId}`;
         const draftRef = doc(db, 'prompt_content', draftId);
-        await deleteObject(draftRef as any); // Should be deleteDoc
+        await deleteDoc(draftRef);
 
         return newContent;
     }
@@ -262,7 +262,7 @@ interface PublishNewPromptVersionInput {
     systemId: string;
     composedPrompts: Record<string, string>;
     previousVersion?: string;
-    versionType: 'major' | 'minor';
+    versionType: 'major' | 'minor' | 'recall';
 }
 
 /**
@@ -281,14 +281,23 @@ export async function publishNewPromptVersion(data: PublishNewPromptVersionInput
         if (versionType === 'major') {
             major += 1;
             minor = 0;
-        } else {
+        } else if (versionType === 'minor') {
             minor += 1;
         }
-        newVersionString = `v${major}.${minor}`;
+        // If 'recall', we don't increment, just use the current active version string
+        
+        if(versionType !== 'recall') {
+          newVersionString = `v${major}.${minor}`;
+        } else {
+          newVersionString = `v${major}.${minor}`;
+        }
     }
 
     // 2. Create the new prompt_versions document
-    const newVersionId = `${systemId}-${newVersionString}`;
+    // If recalling, we create a new document with a new ID but the same version string
+    // This maintains a history of publications, even for rollbacks.
+    const newVersionId = versionType === 'recall' ? `${systemId}-${newVersionString}-${uuidv4()}` : `${systemId}-${newVersionString}`;
+
     const newVersion: PromptVersion = {
         id: newVersionId,
         systemId,
@@ -338,8 +347,18 @@ export async function publishNewAppAIVersion() {
     for (const systemDoc of systemsSnapshot.docs) {
         const systemData = systemDoc.data() as PromptSystem;
         if (systemData.activeVersion) {
-            const promptVersionId = `${systemData.id}-${systemData.activeVersion}`;
-            systemsToBundle[systemData.id] = promptVersionId;
+            // We need to find the latest prompt_version document that matches the active version string
+            const q = query(
+                collection(db, 'prompt_versions'),
+                where('systemId', '==', systemData.id),
+                where('version', '==', systemData.activeVersion),
+                orderBy('timestamp', 'desc')
+            );
+            const promptVersionSnapshot = await getDocs(q);
+            if (!promptVersionSnapshot.empty) {
+                const latestDocId = promptVersionSnapshot.docs[0].id;
+                systemsToBundle[systemData.id] = latestDocId;
+            }
         }
     }
 

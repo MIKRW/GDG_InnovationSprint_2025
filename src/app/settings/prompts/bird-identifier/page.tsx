@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { PageTitle } from '@/components/content/PageTitle';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,8 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { v4 as uuidv4 } from 'uuid';
+
 
 const SYSTEM_IDS = {
   newbie: 'bird-identifier-ai-newbie',
@@ -75,26 +77,46 @@ export default function BirdIdentifierPromptEditorPage() {
     }
     setIsLoading(true);
     try {
-      const versionsQuery = query(
-        collection(db, 'prompt_versions'),
-        where('systemId', '==', systemId),
-        orderBy('version', 'desc')
-      );
-      const versionsSnapshot = await getDocs(versionsQuery);
-      const latestVersionDoc = versionsSnapshot.docs[0];
+        const systemQuery = query(collection(db, 'prompt_systems'), where('__name__', 'in', Object.values(SYSTEM_IDS)));
+        const systemSnap = await getDocs(systemQuery);
+        
+        const activeSystemVersions: Record<string, string> = {};
+        systemSnap.forEach(doc => {
+            const data = doc.data() as PromptSystem;
+            const mode = Object.keys(SYSTEM_IDS).find(key => SYSTEM_IDS[key as 'newbie' | 'twitcher'] === data.id) as 'newbie' | 'twitcher';
+            if (mode) {
+                activeSystemVersions[mode] = data.activeVersion;
+            }
+        });
+
+        const activeVersionPromises = Object.entries(activeSystemVersions).map(async ([mode, versionString]) => {
+            const versionId = `${SYSTEM_IDS[mode as 'newbie' | 'twitcher']}-${versionString}`;
+            const versionQuery = query(collection(db, 'prompt_versions'), where('id', '==', versionId));
+            const versionSnap = await getDocs(versionQuery);
+            if (!versionSnap.empty) {
+                const doc = versionSnap.docs[0];
+                return { mode, version: { id: doc.id, ...doc.data() } as PromptVersion };
+            }
+            return { mode, version: null };
+        });
+
+        const resolvedActiveVersions = await Promise.all(activeVersionPromises);
+        const newActiveVersionsState: Record<string, PromptVersion | null> = {};
+        resolvedActiveVersions.forEach(({mode, version}) => {
+            newActiveVersionsState[mode] = version;
+        });
+        setActiveVersions(newActiveVersionsState);
+      
+      const latestVersion = newActiveVersionsState[selectedMode];
 
       let initialCategories: string[] = [];
       let initialSelected: Record<string, string> = {};
       let initialEnabled: Record<string, boolean> = {};
 
-      if (latestVersionDoc) {
-        const latestVersion = { id: latestVersionDoc.id, ...latestVersionDoc.data() } as PromptVersion;
-        setActiveVersions(prev => ({ ...prev, [selectedMode]: latestVersion }));
+      if (latestVersion) {
         initialCategories = Object.keys(latestVersion.composedPrompts);
         initialSelected = { ...latestVersion.composedPrompts };
         initialCategories.forEach(cat => initialEnabled[cat] = true);
-      } else {
-        setActiveVersions(prev => ({ ...prev, [selectedMode]: null }));
       }
 
       const contentQuery = query(collection(db, 'prompt_content'), where('systemId', '==', systemId));
@@ -129,12 +151,16 @@ export default function BirdIdentifierPromptEditorPage() {
       allCategories.forEach(cat => {
         const categoryContent = contentsByCategory[cat] || [];
         const draft = categoryContent.find(c => c.version === 0);
-        const latestPublished = categoryContent.filter(c => c.version > 0).sort((a,b) => b.version - a.version)[0];
-
-        if (draft) {
-          finalSelectedVersions[cat] = draft.id;
-        } else if (!finalSelectedVersions[cat] && latestPublished) {
-          finalSelectedVersions[cat] = latestPublished.id;
+        
+        if (!finalSelectedVersions[cat]) {
+            if (draft) {
+                finalSelectedVersions[cat] = draft.id;
+            } else {
+                const latestPublished = categoryContent.filter(c => c.version > 0).sort((a,b) => b.version - a.version)[0];
+                if (latestPublished) {
+                    finalSelectedVersions[cat] = latestPublished.id;
+                }
+            }
         }
       });
       setSelectedVersions(finalSelectedVersions);
@@ -155,7 +181,6 @@ export default function BirdIdentifierPromptEditorPage() {
     fetchPromptData();
   }, [fetchPromptData]);
 
-  // Reset editor when mode or category changes
   useEffect(() => {
       setNewPromptText('');
   }, [selectedMode, selectedCategory]);
@@ -173,8 +198,18 @@ export default function BirdIdentifierPromptEditorPage() {
         });
 
         toast({ title: 'Draft Saved', description: 'Your changes have been saved to the cloud.' });
-        await fetchPromptData();
-        // Ensure the newly saved draft is selected
+        
+        // Optimistically update UI to avoid full reload
+        setPromptContents(prev => {
+            const categoryContents = prev[selectedCategory] || [];
+            const existingDraftIndex = categoryContents.findIndex(c => c.version === 0);
+            if (existingDraftIndex !== -1) {
+                categoryContents[existingDraftIndex] = savedDraft;
+            } else {
+                categoryContents.push(savedDraft);
+            }
+            return {...prev, [selectedCategory]: categoryContents};
+        });
         setSelectedVersions(prev => ({...prev, [selectedCategory]: savedDraft.id}));
 
     } catch (error) {
@@ -209,21 +244,19 @@ export default function BirdIdentifierPromptEditorPage() {
 
     setIsPublishing(true);
     try {
-        // 1. Create a new permanent version from the draft
         const newContent = await savePromptContent({
             systemId,
             categoryId: selectedCategory,
             promptText: draftContent.promptText,
-            previousVersionId: currentCategoryHistory.filter(c => c.version > 0)[0]?.id, // previous *published* version
-            isDraft: false, // Make it permanent
+            previousVersionId: currentCategoryHistory.filter(c => c.version > 0)[0]?.id,
+            isDraft: false,
         });
 
-        // 2. Prepare the list of prompts to publish
         const promptsToPublish = Object.entries(selectedVersions)
             .filter(([catId]) => enabledCategories[catId])
             .reduce((acc, [catId, versionId]) => {
                 if (versionId) {
-                    acc[catId] = catId === selectedCategory ? newContent.id : versionId;
+                    acc[catId] = catId === selectedCategory ? newContent.id : (versionId.startsWith('draft_') ? activeVersions[selectedMode]?.composedPrompts[catId] || '' : versionId);
                 }
                 return acc;
             }, {} as Record<string, string>);
@@ -232,7 +265,6 @@ export default function BirdIdentifierPromptEditorPage() {
             promptsToPublish[selectedCategory] = newContent.id;
         }
 
-        // 3. Publish the new AI system version
         const newVersion = await publishNewPromptVersion({
             systemId: systemId,
             composedPrompts: promptsToPublish,
@@ -240,9 +272,7 @@ export default function BirdIdentifierPromptEditorPage() {
             versionType: versionType,
         });
 
-        // 4. Cleanup and refresh
         await fetchPromptData();
-        setActiveVersions(prev => ({ ...prev, [selectedMode]: newVersion }));
         toast({ title: 'Published!', description: `Successfully published version ${newVersion.version}.` });
 
     } catch (error) {
@@ -265,7 +295,7 @@ export default function BirdIdentifierPromptEditorPage() {
         .filter(([catId]) => enabledCategories[catId])
         .reduce((acc, [catId, versionId]) => {
           if (versionId) {
-            acc[catId] = catId === selectedCategory ? currentContent.id : versionId;
+            acc[catId] = catId === selectedCategory ? currentContent.id : (versionId.startsWith('draft_') ? activeVersions[selectedMode]?.composedPrompts[catId] || '' : versionId);
           }
           return acc;
         }, {} as Record<string, string>);
@@ -274,12 +304,11 @@ export default function BirdIdentifierPromptEditorPage() {
         systemId: systemId,
         composedPrompts: promptsToPublish,
         previousVersion: activeVersions[selectedMode]?.version,
-        versionType: 'minor', // Publishing an existing version is always a minor change to the system
+        versionType: 'recall',
       });
 
       await fetchPromptData();
-      setActiveVersions(prev => ({ ...prev, [selectedMode]: newVersion }));
-      toast({ title: 'Published!', description: `Successfully published version ${newVersion.version} using recalled content.` });
+      toast({ title: 'Published!', description: `Successfully published recalled configuration as version ${newVersion.version}.` });
 
     } catch (error) {
       console.error('Failed to publish recalled version:', error);
@@ -290,11 +319,11 @@ export default function BirdIdentifierPromptEditorPage() {
   };
 
   const handleRecallVersion = () => {
-    if (!currentContent || currentContent.version === 0) return;
+    if (!currentContent) return;
     setNewPromptText(currentContent.promptText);
     toast({
         title: 'Version Recalled',
-        description: `Version ${currentContent.version} text has been loaded into the editor. Save it as a draft to edit.`,
+        description: `Version ${currentContent.version > 0 ? currentContent.version : 'Draft'} text has been loaded into the editor. Save it as a draft to edit.`,
     });
   };
 
@@ -406,7 +435,7 @@ export default function BirdIdentifierPromptEditorPage() {
                         ))}
                     </SelectContent>
                     </Select>
-                    <Button onClick={handleRecallVersion} variant="outline" size="sm" disabled={!currentContent || currentContent.version === 0}>
+                    <Button onClick={handleRecallVersion} variant="outline" size="sm" disabled={!currentContent}>
                         <History className="mr-2 h-4 w-4" /> Recall
                     </Button>
                     <Button onClick={handlePublishSelectedVersion} variant="outline" size="sm" disabled={!currentContent || currentContent.version === 0 || isPublishing}>
@@ -465,7 +494,7 @@ export default function BirdIdentifierPromptEditorPage() {
                             </TooltipTrigger>
                             {!canPublishFromDraft && (
                                 <TooltipContent>
-                                    <p>Save your draft before publishing.</p>
+                                    <p>Save draft to enable publishing.</p>
                                 </TooltipContent>
                             )}
                         </Tooltip>
@@ -498,7 +527,8 @@ export default function BirdIdentifierPromptEditorPage() {
                     {Object.keys(promptContents).sort().map(categoryId => {
                         const selectedContentId = selectedVersions[categoryId];
                         const selectedContent = promptContents[categoryId]?.find(c => c.id === selectedContentId);
-                        const isPublished = activeVersions[selectedMode]?.composedPrompts[categoryId] === selectedContentId;
+                        const activePublishedVersion = activeVersions[selectedMode];
+                        const isPublished = activePublishedVersion?.composedPrompts[categoryId] === selectedContentId;
                         
                         return (
                             <TableRow key={categoryId}>
