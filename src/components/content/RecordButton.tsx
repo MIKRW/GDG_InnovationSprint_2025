@@ -180,10 +180,10 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     
     // If in dev mode, save as a test run instead of a user-facing mystery log
     if (isDevMode) {
-      await saveTestRunToFirestore(aiResult, { birdId: 'unknown-dev-test', testAudioId: 'live-recording' });
+      await saveTestRunToFirestore(aiResult, { birdId: 'unknown-dev-test', testAudioId: 'live-recording', source: 'live_recording' });
       setRecordingState('idle');
       setLastAudio(null);
-      router.push('/log/test');
+      router.push('/log/test/live');
       return;
     }
 
@@ -286,7 +286,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
   };
 
-  const saveTestRunToFirestore = async (result: any, testContext: { birdId: string, testAudioId: string }) => {
+  const saveTestRunToFirestore = async (result: any, testContext: { birdId: string, testAudioId: string, source: 'master_audio' | 'live_recording' }) => {
     try {
       const testRunData = {
           aiResult: result,
@@ -294,6 +294,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           promptVersion: PROMPT_VERSION,
           birdId: testContext.birdId,
           testAudioId: testContext.testAudioId,
+          source: testContext.source,
       };
       await addDoc(collection(db, 'all_test_runs'), testRunData);
     } catch (error) {
@@ -314,11 +315,43 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
     const appSettings = getAppSettings();
     
-    // If in dev mode and this is NOT from the dedicated test tool, treat it as a test run.
-    if (isDevMode && !testContext) {
-      testContext = { birdId: 'unknown-dev-test', testAudioId: 'live-recording' };
+    // If in dev mode, this is a test run. Determine the source.
+    if (isDevMode) {
+      const source = testContext ? 'master_audio' : 'live_recording';
+      const birdId = testContext ? testContext.birdId : 'unknown-dev-test';
+      const testAudioId = testContext ? testContext.testAudioId : 'live-recording';
+      
+      try {
+        const result = await identifyBirdBySound({ 
+            audioDataUri: base64Audio,
+            timestamp: currentTimestamp.current,
+            mode: appSettings.mode,
+            ...locationData
+        });
+        
+        await saveTestRunToFirestore(result, { birdId, testAudioId, source });
+        
+        setRecordingState('idle');
+        
+        // Navigate to the correct test log page
+        if (source === 'master_audio') {
+            router.push('/log/test');
+        } else {
+            router.push('/log/test/live');
+        }
+        return;
+      } catch (error) {
+        console.error('Error during dev mode identification:', error);
+        // Still save the failure to the test log
+        await saveTestRunToFirestore({ error: (error as Error).message }, { birdId, testAudioId, source });
+        setRecordingState('idle');
+        router.push(source === 'master_audio' ? '/log/test' : '/log/test/live');
+        return;
+      }
     }
 
+
+    // Regular user flow (not in dev mode)
     try {
       const result = await identifyBirdBySound({ 
           audioDataUri: base64Audio,
@@ -326,14 +359,6 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           mode: appSettings.mode,
           ...locationData
       });
-
-      if (testContext) {
-        // In dev mode, always save the test run, regardless of success or failure.
-        await saveTestRunToFirestore(result, testContext);
-        setRecordingState('idle');
-        router.push('/log/test'); // Navigate to test log page after test run
-        return;
-      }
 
       if (result && result.isBirdSong && result.commonName && result.scientificName && result.description && result.imagePrompt) {
           const newLogData = {
@@ -354,13 +379,11 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           await saveToFirestore(newLogData, base64Audio, result, true);
       } else {
            // AI failed, trigger confirmation
-           // We now store the audio data AND the raw AI result
            setLastAudio(JSON.stringify([base64Audio, result]));
            setRecordingState('confirming');
       }
     } catch (error) {
       console.error('Error identifying bird sound:', error);
-      // Log the error to Firestore
       logErrorToFirestore(error as Error, 'ai-identification-failure', {
         sessionId: currentSessionId.current,
         timestamp: currentTimestamp.current,
@@ -449,9 +472,3 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 RecordButton.displayName = "RecordButton";
 
 export { RecordButton };
-
-    
-
-    
-
-    

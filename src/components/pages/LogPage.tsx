@@ -14,7 +14,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { PageTitle } from '../content/PageTitle';
-import { FlaskConical, HelpCircle, ShieldAlert, Loader2 } from 'lucide-react';
+import { FlaskConical, HelpCircle, ShieldAlert, Loader2, Mic } from 'lucide-react';
 import { SecondaryPageFooterV2 } from '../layout/SecondaryPageFooterV2';
 import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
@@ -114,8 +114,25 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                           </CardContent>
                           <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
                               <div className="text-left">
-                              <p className="font-bold text-sm truncate">Test Results</p>
-                              <p className="text-xs text-muted-foreground truncate italic">Developer test logs</p>
+                              <p className="font-bold text-sm truncate">Master Audio Tests</p>
+                              <p className="text-xs text-muted-foreground truncate italic">Controlled test runs</p>
+                              </div>
+                          </CardFooter>
+                      </div>
+                  </Card>
+                </Link>
+                <Link href="/log/test/live">
+                  <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
+                      <div className="bg-background h-full flex flex-col rounded-sm">
+                          <CardContent className="p-0 flex-grow flex items-center justify-center">
+                              <div className="aspect-square relative w-full flex items-center justify-center">
+                                  <Mic className="w-24 h-24 text-secondary-foreground" />
+                              </div>
+                          </CardContent>
+                          <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
+                              <div className="text-left">
+                              <p className="font-bold text-sm truncate">Live Test Logs</p>
+                              <p className="text-xs text-muted-foreground truncate italic">Live dev recordings</p>
                               </div>
                           </CardFooter>
                       </div>

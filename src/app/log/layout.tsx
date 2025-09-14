@@ -23,8 +23,11 @@ export default function LogLayout({
     if (pathname.startsWith('/log/mystery')) {
       return 'Mystery Recordings';
     }
+    if (pathname.startsWith('/log/test/live')) {
+        return 'Live Test Results';
+    }
     if (pathname.startsWith('/log/test')) {
-        return 'Test Results'
+        return 'Master Audio Test Results'
     }
     if (pathname.startsWith('/log/errors')) {
         return 'Error Logs'

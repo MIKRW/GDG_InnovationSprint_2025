@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
@@ -24,7 +24,7 @@ interface TestRun {
     }
 }
 
-export default function TestLogPage() {
+export default function MasterAudioTestLogPage() {
   const [testRuns, setTestRuns] = useState<TestRun[]>([]);
   const [loading, setLoading] = useState(true);
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
@@ -32,9 +32,9 @@ export default function TestLogPage() {
   useEffect(() => {
     if (!isDevMode) return;
 
-    // Query the flat 'all_test_runs' collection
     const testRunCollectionRef = collection(db, 'all_test_runs');
-    const q = query(testRunCollectionRef, orderBy('timestamp', 'desc'));
+    // Filter for tests that came from master audio files
+    const q = query(testRunCollectionRef, where('source', '==', 'master_audio'), orderBy('timestamp', 'desc'));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const runs: TestRun[] = [];
@@ -61,9 +61,9 @@ export default function TestLogPage() {
   }
 
   return (
-    <AppLayout header={<SecondaryHeader title="Test Results" />}>
+    <AppLayout header={<SecondaryHeader title="Master Audio Test Results" />}>
       <main className="flex-1 overflow-y-auto p-4 md:p-6">
-        <PageTitle>Test Run History</PageTitle>
+        <PageTitle>Master Audio Test History</PageTitle>
         <p className="text-muted-foreground mb-6">
           This log contains the results of running master audio files through the AI identifier.
         </p>
@@ -76,7 +76,7 @@ export default function TestLogPage() {
             )}
             {!loading && testRuns.length === 0 && (
                 <Card className="p-4">
-                    <p className="text-muted-foreground">No test results have been logged yet. Upload a test audio file on the Record page to begin.</p>
+                    <p className="text-muted-foreground">No master audio tests have been logged yet. Use the "Run Test Audio" tool on the Record page to begin.</p>
                 </Card>
             )}
             {testRuns.map((run) => (
