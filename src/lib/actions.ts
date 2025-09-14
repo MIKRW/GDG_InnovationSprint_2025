@@ -255,7 +255,6 @@ export async function publishNewPromptVersion(data: PublishNewPromptVersionInput
     }
 
     // 2. Create the new prompt_versions document
-    const newVersionRef = doc(collection(db, 'prompt_versions'));
     const newVersionId = `${systemId}-${newVersionString}`;
     const newVersion: PromptVersion = {
         id: newVersionId,
@@ -347,19 +346,71 @@ export async function publishNewAppAIVersion() {
 
 
 /**
- * A one-time server action to seed the initial prompts from the old .txt files
- * into the new Firestore prompt management system.
+ * A one-time server action to seed the initial prompts by hard-coding their content.
+ * This populates the new Firestore prompt management system.
  */
 export async function seedInitialPrompts() {
-    console.log("Starting initial prompt migration...");
+    console.log("Starting initial prompt migration from hard-coded values...");
 
     try {
-        const promptsDir = path.join(process.cwd(), 'src', 'ai', 'prompts');
+        // 1. Define the initial prompt content here
+        const newbiePromptText = `You are an expert ornithologist with a focus on making bird identification accessible to beginners. Your goal is to analyze an audio recording and provide a clear, confident, and interesting identification.
 
-        // 1. Read old prompt files
-        const newbiePromptText = await fs.readFile(path.join(promptsDir, 'bird-identification-prompt.txt'), 'utf-8');
-        const twitcherPromptText = await fs.readFile(path.join(promptsDir, 'bird-identification-twitcher-prompt.txt'), 'utf-8');
-        const themePromptText = await fs.readFile(path.join(promptsDir, 'theme-generation-prompt.txt'), 'utf-8');
+        You will receive the following information:
+        - A UTC timestamp for the recording.
+        - Audio data of a potential bird song.
+        {{#if latitude}}- Latitude and longitude coordinates.{{/if}}
+        {{#if locationDescription}}- A text description of the location.{{/if}}
+        
+        Your primary task is to identify the bird species from the audio.
+        
+        If location data (coordinates or description) is provided, you MUST use it to improve accuracy. Determine the geographic area and cross-reference it with reliable ornithological databases (e.g., government wildlife data, university research, established field guides) to understand the expected species for that habitat and season. A bird not native to the area is highly unlikely.
+        
+        You must also use the provided tool 'getCurrentWeather' to determine the season and weather conditions at the location and time of the recording. Include this information in your response.
+        
+        Your response MUST be a JSON object with the following structure:
+        - isBirdSong: boolean (true if a bird song is detected, otherwise false)
+        - commonName: string (e.g., "American Robin")
+        - scientificName: string (e.g., "Turdus migratorius")
+        - family: string (The bird's taxonomic family)
+        - order: string (The bird's taxonomic order)
+        - description: string (A brief, engaging fact about the bird suitable for a beginner)
+        - imagePrompt: string (A simple prompt for a text-to-image model, e.g., "photo of an American Robin on a branch")
+        - confidence: number (A value between 0 and 1 representing your confidence)
+        - season: string (The season at the location, from the weather tool)
+        - weather: string (A brief summary of the weather, from the weather tool)
+        
+        If you cannot confidently identify a bird, or if the audio does not contain a bird song, set "isBirdSong" to false and omit the other fields.`;
+
+        const twitcherPromptText = `You are a professional-level ornithologist and bioacoustics analyst. Your task is to perform a rigorous analysis of a high-fidelity audio recording to identify a bird species. Precision and detailed taxonomic information are critical.
+
+        You will receive:
+        - A UTC timestamp.
+        - High-quality audio data.
+        {{#if latitude}}- Precise latitude and longitude coordinates.{{/if}}
+        {{#if locationDescription}}- A detailed text description of the location and habitat.{{/if}}
+        
+        Analysis protocol:
+        1.  Treat the audio data as your primary evidence. Analyze its acoustic properties: pitch, tempo, rhythm, and spectral characteristics.
+        2.  Use provided location data (coordinates are the highest authority) as a strict filter. Consult professional, scientific sources (e.g., eBird Status and Trends, IUCN Red List maps, regional scientific papers) to confirm the species' presence and breeding status at the given coordinates and time of year.
+        3.  Call the 'getCurrentWeather' tool to get environmental context. This is secondary data but can be used to support your analysis.
+        4.  Provide a confidence score based on the clarity of the recording and the strength of the match against known vocalizations and geographic range.
+        
+        Your response MUST be a JSON object adhering to this schema:
+        - isBirdSong: boolean
+        - commonName: string
+        - scientificName: string
+        - family: string
+        - order: string
+        - description: string (A detailed description of the call type, e.g., "This appears to be a territorial song, characterized by...")
+        - imagePrompt: string ("scientific illustration of [scientificName]")
+        - confidence: number (0-1)
+        - season: string
+        - weather: string
+        
+        If the audio is unclear or the species cannot be determined with high confidence, set "isBirdSong" to false. Do not guess.`;
+
+        const themePromptText = await fs.readFile(path.join(process.cwd(), 'src', 'ai', 'prompts', 'theme-generation-prompt.txt'), 'utf-8');
 
         // 2. Create Prompt Content v1 for each
         const newbieContent = await savePromptContent({ systemId: 'bird-identifier-ai-newbie', categoryId: 'base_instruction', promptText: newbiePromptText });
