@@ -26,8 +26,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 
-const ADD_NEW_CATEGORY_VALUE = 'add_new_category';
-
 const SYSTEM_IDS = {
   newbie: 'bird-identifier-ai-newbie',
   twitcher: 'bird-identifier-ai-twitcher',
@@ -142,6 +140,7 @@ export default function BirdIdentifierPromptEditorPage() {
   const currentContent = useMemo(() => currentCategoryHistory.find(c => c.id === currentSelectedVersionId), [currentCategoryHistory, currentSelectedVersionId]);
 
   useEffect(() => {
+    // When the selected version or category changes, pre-fill the "new" text with the content of the "current" one
     setNewPromptText(currentContent?.promptText || '');
   }, [currentContent]);
 
@@ -159,9 +158,13 @@ export default function BirdIdentifierPromptEditorPage() {
         promptText: newPromptText,
         previousVersionId: currentSelectedVersionId,
       });
-      setPromptContents(prev => ({ ...prev, [selectedCategory]: [newContent, ...(prev[selectedCategory] || [])] }));
+      // Refresh all data to get the new version
+      await fetchPromptData();
+
+      // Set the newly created version as the selected one
       setSelectedVersions(prev => ({ ...prev, [selectedCategory]: newContent.id }));
       setEnabledCategories(prev => ({...prev, [selectedCategory]: true }));
+
       toast({ title: 'Prompt Saved', description: `${selectedCategory} was updated to version ${newContent.version}.` });
     } catch (error) {
       console.error('Failed to save prompt content:', error);
@@ -180,7 +183,7 @@ export default function BirdIdentifierPromptEditorPage() {
     }
     setPromptContents(prev => ({ ...prev, [categoryId]: [] }));
     setSelectedVersions(prev => ({ ...prev, [categoryId]: '' }));
-    setEnabledCategories(prev => ({...prev, [categoryId]: false }));
+    setEnabledCategories(prev => ({...prev, [categoryId]: true }));
     setSelectedCategory(categoryId);
     setNewCategoryName('');
     setIsNewCategoryDialogOpen(false);
@@ -301,7 +304,7 @@ export default function BirdIdentifierPromptEditorPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <Label>Current Version</Label>
+                    <Label>Version History</Label>
                     <Select
                         value={currentSelectedVersionId}
                         onValueChange={(versionId) => setSelectedVersions(prev => ({ ...prev, [selectedCategory]: versionId }))}
@@ -326,7 +329,7 @@ export default function BirdIdentifierPromptEditorPage() {
                     />
                 </div>
                 <div>
-                    <Label htmlFor="new-prompt-text">New Prompt Text</Label>
+                    <Label htmlFor="new-prompt-text">New/Edit Prompt Text</Label>
                     <Textarea
                         id="new-prompt-text"
                         value={newPromptText}

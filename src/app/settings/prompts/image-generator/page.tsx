@@ -99,7 +99,7 @@ export default function ImageGeneratorPromptEditorPage() {
       setEnabledCategories(initialEnabled);
 
       if (allCategories.length > 0 && (!selectedCategory || !allCategories.includes(selectedCategory))) {
-        setSelectedCategory(allCategories[0]);
+        setSelectedCategory(allCategories[0] || 'base_instruction');
       } else if (allCategories.length === 0) {
         setSelectedCategory('');
       }
@@ -152,7 +152,7 @@ export default function ImageGeneratorPromptEditorPage() {
         promptText: newPromptText,
         previousVersionId: currentSelectedVersionId,
       });
-      setPromptContents(prev => ({ ...prev, [selectedCategory]: [newContent, ...(prev[selectedCategory] || [])] }));
+      await fetchPromptData();
       setSelectedVersions(prev => ({ ...prev, [selectedCategory]: newContent.id }));
       setEnabledCategories(prev => ({...prev, [selectedCategory]: true }));
       toast({ title: 'Prompt Saved', description: `${selectedCategory} was updated to version ${newContent.version}.` });
@@ -173,7 +173,7 @@ export default function ImageGeneratorPromptEditorPage() {
     }
     setPromptContents(prev => ({ ...prev, [categoryId]: [] }));
     setSelectedVersions(prev => ({ ...prev, [categoryId]: '' }));
-    setEnabledCategories(prev => ({...prev, [categoryId]: false }));
+    setEnabledCategories(prev => ({...prev, [categoryId]: true }));
     setSelectedCategory(categoryId);
     setNewCategoryName('');
     setIsNewCategoryDialogOpen(false);
@@ -282,7 +282,7 @@ export default function ImageGeneratorPromptEditorPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <Label>Current Version</Label>
+                    <Label>Version History</Label>
                     <Select
                         value={currentSelectedVersionId}
                         onValueChange={(versionId) => setSelectedVersions(prev => ({ ...prev, [selectedCategory]: versionId }))}
@@ -307,7 +307,7 @@ export default function ImageGeneratorPromptEditorPage() {
                     />
                 </div>
                 <div>
-                    <Label htmlFor="new-prompt-text">New Prompt Text</Label>
+                    <Label htmlFor="new-prompt-text">New/Edit Prompt Text</Label>
                     <Textarea
                         id="new-prompt-text"
                         value={newPromptText}
