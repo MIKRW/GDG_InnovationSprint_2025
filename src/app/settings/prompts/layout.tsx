@@ -24,6 +24,9 @@ export default function PromptManagementLayout({
     if (pathname.includes('image-generator')) {
       return 'Image Generation Prompts';
     }
+    if (pathname.includes('weather')) {
+        return 'Weather Analysis Prompts';
+    }
     return 'Prompt Management';
   }, [pathname]);
 

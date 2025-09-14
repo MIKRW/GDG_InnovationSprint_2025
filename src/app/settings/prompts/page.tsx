@@ -23,6 +23,11 @@ const aiSystems = [
         title: 'Image Generation AI',
         description: 'Defines the prompts used by Imagen 4 to create bird images from text descriptions.',
     },
+    {
+        href: '/settings/prompts/weather',
+        title: 'Weather Analysis AI',
+        description: 'Defines how the AI should interpret and use weather data in its analysis.',
+    },
 ];
 
 export default function PromptManagementPage() {
