@@ -239,6 +239,8 @@ export default function BirdIdentifierPromptEditorPage() {
     return <p className="p-4">This page is only available in developer mode.</p>;
   }
 
+  const hasUnsavedChanges = newPromptText.trim() !== '';
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="text-center">
@@ -374,7 +376,7 @@ export default function BirdIdentifierPromptEditorPage() {
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Save as New Version
                     </Button>
-                    <Button size="lg" onClick={handlePublish} disabled={isPublishing}>
+                    <Button size="lg" onClick={handlePublish} disabled={isPublishing || hasUnsavedChanges} title={hasUnsavedChanges ? "You must save your new prompt text before publishing." : ""}>
                         {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Publish New '{selectedMode}' AI Version
                     </Button>
