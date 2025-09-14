@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-import { collection, doc, getDocs, setDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, setDoc, query, orderBy } from 'firebase/firestore';
 
 import {
   Form,
@@ -28,6 +28,7 @@ import { ManualThemeEditor } from './ManualThemeEditor';
 import { PageTitle } from '../content/PageTitle';
 import { db } from '@/lib/firebase';
 import { logErrorToFirestore } from '@/lib/error-logging';
+import { useAuth } from '../providers/AuthProvider';
 
 const formSchema = z.object({
   word1: z.string(),
@@ -80,6 +81,7 @@ const MAX_SAVED_THEMES = 6;
 
 export function ThemeGenerator() {
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isApiOverloaded, setIsApiOverloaded] = useState(false);
   const [showEmptyInputInfo, setShowEmptyInputInfo] = useState(false);
@@ -126,55 +128,69 @@ export function ThemeGenerator() {
     root.style.setProperty('--custom-ring-l', `${ringColor.l}%`);
   }, []);
 
-    // Load themes from LocalStorage
+    // Load themes from Firestore
     useEffect(() => {
-        setIsFirestoreLoading(true);
-        const themesFromStorage: (Theme | null)[] = Array.from({ length: MAX_SAVED_THEMES }).map((_, i) => {
-            const themeJson = localStorage.getItem(`theme-slot-${i}`);
-            if (themeJson) {
-                try {
-                    return JSON.parse(themeJson);
-                } catch (e) {
-                    console.error(`Failed to parse theme from slot ${i}`, e);
-                    return null;
-                }
-            }
-            return null;
-        });
-
-        let activeTheme: Theme | null = null;
-        let activeIndex = -1;
-
-        themesFromStorage.forEach((theme, index) => {
-            if (theme?.isActive) {
-                activeTheme = theme;
-                activeIndex = index;
-            }
-        });
-
-        if (!activeTheme) {
-            activeIndex = 0;
-            activeTheme = themesFromStorage[0] || { ...DEFAULTS, id: uuidv4(), isActive: true };
+        if (authLoading) return;
+        if (!user) {
+            setIsFirestoreLoading(false);
+            return;
         }
 
-        const finalThemes = themesFromStorage.map((theme, i) => {
-            if (theme) {
-                return { ...theme, isActive: i === activeIndex };
-            }
-            // Fill empty slots
-            return {
-                 ...DEFAULTS, 
-                 id: uuidv4(), 
-                 isActive: i === activeIndex,
-                 words: i === 0 ? DEFAULTS.words : { word1: 'new', word2: 'theme', word3: 'slot', mood: 'default' }
-            };
-        });
+        const fetchThemes = async () => {
+            setIsFirestoreLoading(true);
+            try {
+                const themesCollectionRef = collection(db, 'users', user.uid, 'themes');
+                const q = query(themesCollectionRef, orderBy('id'));
+                const querySnapshot = await getDocs(q);
+                
+                const themesFromFirestore: Theme[] = [];
+                querySnapshot.forEach((doc) => {
+                    themesFromFirestore.push(doc.data() as Theme);
+                });
+                
+                let themesToSet = themesFromFirestore;
+                let activeIndex = themesToSet.findIndex(t => t.isActive);
 
-        setSelectedSlot(activeIndex);
-        setSavedThemes(finalThemes);
-        localStorage.setItem('active-theme-json', JSON.stringify(activeTheme));
-        updateCSSVariables(activeTheme.colors);
-        setIsFirestoreLoading(false);
+                if (themesToSet.length < MAX_SAVED_THEMES) {
+                    themesToSet = themesToSet.concat(Array(MAX_SAVED_THEMES - themesToSet.length).fill(null));
+                }
+
+                if (activeIndex === -1) {
+                    activeIndex = 0;
+                    if(themesToSet[0]) themesToSet[0].isActive = true;
+                }
+
+                const finalThemes = themesToSet.map((theme, i) => {
+                    if (theme) {
+                        return { ...theme, isActive: i === activeIndex };
+                    }
+                    // Fill empty slots with defaults, ensuring only one is active
+                    return {
+                        ...DEFAULTS, 
+                        id: `${i}`, 
+                        isActive: i === activeIndex,
+                        words: i === 0 ? DEFAULTS.words : { word1: 'new', word2: 'theme', word3: 'slot', mood: 'default' }
+                    };
+                });
+
+                setSelectedSlot(activeIndex);
+                setSavedThemes(finalThemes);
+                
+                const activeTheme = finalThemes[activeIndex];
+                if (activeTheme) {
+                    localStorage.setItem('active-theme-json', JSON.stringify(activeTheme));
+                    updateCSSVariables(activeTheme.colors);
+                }
+
+            } catch (error) {
+                console.error("Error fetching themes from Firestore:", error);
+                 toast({ variant: 'destructive', title: 'Load Failed', description: 'Could not load themes from the cloud.' });
+            } finally {
+                setIsFirestoreLoading(false);
+            }
+        };
+
+        fetchThemes();
     
         const lastGeneratedJson = localStorage.getItem('generated-theme');
         if (lastGeneratedJson) {
@@ -193,7 +209,7 @@ export function ThemeGenerator() {
             } catch (e) { console.error('Failed to parse manual theme', e); }
         }
 
-    }, [updateCSSVariables]);
+    }, [user, authLoading, updateCSSVariables, toast]);
 
 
   useEffect(() => {
@@ -226,18 +242,25 @@ export function ThemeGenerator() {
       });
       return;
     }
+    if (!user) {
+         toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be signed in to save a theme.' });
+         return;
+    }
   
-    const themeToSaveToSlot = { ...themeToSave, id: uuidv4(), isActive: false };
+    // This ID is the slot index '0' through '5'
+    const themeId = `${selectedSlot}`;
+    const themeToSaveToSlot = { ...themeToSave, id: themeId, isActive: false };
+    
+    // Optimistically update UI
     const newSavedThemes = savedThemes.map((theme, index) => 
         index === selectedSlot ? themeToSaveToSlot : theme
     );
-
     setSavedThemes(newSavedThemes);
     
-    // Save to local storage first for immediate offline access
     try {
-        localStorage.setItem(`theme-slot-${selectedSlot}`, JSON.stringify(themeToSaveToSlot));
-        
+        const themeDocRef = doc(db, 'users', user.uid, 'themes', themeId);
+        await setDoc(themeDocRef, themeToSaveToSlot);
+
         if(savedThemes[selectedSlot]?.isActive) {
             updateCSSVariables(themeToSaveToSlot.colors);
             localStorage.setItem('active-theme-json', JSON.stringify(themeToSaveToSlot));
@@ -248,29 +271,20 @@ export function ThemeGenerator() {
           description: `Theme saved to slot ${selectedSlot + 1}.`,
         });
     } catch (error) {
-        console.error("Error saving theme to LocalStorage: ", error);
-        toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not save theme to LocalStorage.' });
-        // Don't proceed to Firestore if local save fails
-        return;
-    }
-  
-    // Then, attempt to save to Firestore (without authentication for now)
-    try {
-      console.warn("Auth system disabled. Saving theme to a shared document.");
-      const themeDocRef = doc(db, 'user_themes', `shared_slot_${selectedSlot}`);
-      await setDoc(themeDocRef, themeToSaveToSlot);
-    } catch (error) {
        console.error("Error saving theme to Firestore: ", error);
        logErrorToFirestore(error as Error, 'firestore-write-failure', {
          collection: 'user_themes',
          operation: 'setDoc',
-         documentId: `shared_slot_${selectedSlot}`
+         documentId: themeId,
+         userId: user.uid,
        });
        toast({
          variant: 'destructive',
          title: 'Cloud Sync Failed',
-         description: 'Theme was saved on this device, but failed to sync to the cloud. This has been logged.',
+         description: 'Theme failed to sync to the cloud. Please try again.',
        });
+       // Revert optimistic update on failure
+       setSavedThemes(savedThemes);
     }
 
     if (isPreviewingGenerated || isPreviewingManual) {
@@ -334,6 +348,7 @@ export function ThemeGenerator() {
   }
 
   const handleSlotClick = async (index: number) => {
+    if (!user) return;
     const themeToActivate = savedThemes[index];
     if (!themeToActivate) return;
   
@@ -351,11 +366,13 @@ export function ThemeGenerator() {
     document.documentElement.classList.add('custom');
   
     try {
-      for (let i = 0; i < newSavedThemes.length; i++) {
-        localStorage.setItem(`theme-slot-${i}`, JSON.stringify(newSavedThemes[i]));
+      // Update the status of all themes for this user in a batch
+      for (const theme of newSavedThemes) {
+          const themeDocRef = doc(db, 'users', user.uid, 'themes', theme.id);
+          await setDoc(themeDocRef, theme, { merge: true });
       }
     } catch (error) {
-      console.error("Error updating active theme in LocalStorage: ", error);
+      console.error("Error updating active theme in Firestore: ", error);
     }
   
     setIsPreviewingGenerated(false);
@@ -539,7 +556,7 @@ localStorage.setItem('manual-theme', JSON.stringify(newTheme));
               <Button
                 type="button"
                 onClick={() => saveThemeToSlot(generatedTheme)}
-                disabled={generatedTheme.id === 'empty'}
+                disabled={generatedTheme.id === 'empty' || !user}
                 className="w-full h-40 text-lg"
               >
                 <Save className="mr-2 h-4 w-4" />
@@ -596,5 +613,7 @@ localStorage.setItem('manual-theme', JSON.stringify(newTheme));
     </>
   );
 }
+
+    
 
     
