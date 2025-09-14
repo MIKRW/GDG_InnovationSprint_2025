@@ -19,10 +19,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogTrigger
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 
 const ADD_NEW_CATEGORY_VALUE = 'add_new_category';
 
@@ -43,6 +45,7 @@ export default function BirdIdentifierPromptEditorPage() {
   const [isNewCategoryDialogOpen, setIsNewCategoryDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [newPromptText, setNewPromptText] = useState('');
+  const [enabledCategories, setEnabledCategories] = useState<Record<string, boolean>>({});
 
   const { toast } = useToast();
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
@@ -66,12 +69,14 @@ export default function BirdIdentifierPromptEditorPage() {
 
       let initialCategories: string[] = [];
       let initialSelected: Record<string, string> = {};
+      let initialEnabled: Record<string, boolean> = {};
 
       if (latestVersionDoc) {
         const latestVersion = { id: latestVersionDoc.id, ...latestVersionDoc.data() } as PromptVersion;
         setActiveVersions(prev => ({ ...prev, [selectedMode]: latestVersion }));
         initialCategories = Object.keys(latestVersion.composedPrompts);
         initialSelected = { ...latestVersion.composedPrompts };
+        initialCategories.forEach(cat => initialEnabled[cat] = true);
       } else {
         setActiveVersions(prev => ({ ...prev, [selectedMode]: null }));
       }
@@ -92,6 +97,13 @@ export default function BirdIdentifierPromptEditorPage() {
       }
 
       const allCategories = Array.from(new Set([...initialCategories, ...Object.keys(contentsByCategory)]));
+      
+      allCategories.forEach(cat => {
+        if (initialEnabled[cat] === undefined) {
+           initialEnabled[cat] = false;
+        }
+      });
+      setEnabledCategories(initialEnabled);
 
       if (allCategories.length > 0 && (!selectedCategory || !allCategories.includes(selectedCategory))) {
         setSelectedCategory(allCategories[0]);
@@ -149,6 +161,7 @@ export default function BirdIdentifierPromptEditorPage() {
       });
       setPromptContents(prev => ({ ...prev, [selectedCategory]: [newContent, ...(prev[selectedCategory] || [])] }));
       setSelectedVersions(prev => ({ ...prev, [selectedCategory]: newContent.id }));
+      setEnabledCategories(prev => ({...prev, [selectedCategory]: true }));
       toast({ title: 'Prompt Saved', description: `${selectedCategory} was updated to version ${newContent.version}.` });
     } catch (error) {
       console.error('Failed to save prompt content:', error);
@@ -167,33 +180,34 @@ export default function BirdIdentifierPromptEditorPage() {
     }
     setPromptContents(prev => ({ ...prev, [categoryId]: [] }));
     setSelectedVersions(prev => ({ ...prev, [categoryId]: '' }));
+    setEnabledCategories(prev => ({...prev, [categoryId]: false }));
     setSelectedCategory(categoryId);
     setNewCategoryName('');
     setIsNewCategoryDialogOpen(false);
     setNewPromptText('');
   };
 
-  const handleCategorySelect = (categoryId: string) => {
-    if (categoryId === ADD_NEW_CATEGORY_VALUE) {
-      setIsNewCategoryDialogOpen(true);
-    } else {
-      setSelectedCategory(categoryId);
-    }
-  };
-
   const handlePublish = async () => {
     setIsPublishing(true);
     try {
-       const composedPrompts = { ...selectedVersions };
-      if (Object.values(composedPrompts).every(v => !v)) {
-        toast({ variant: 'destructive', title: 'Cannot Publish', description: 'Select at least one version for a prompt category.'});
-        setIsPublishing(false);
-        return;
-      }
+        const promptsToPublish = Object.entries(selectedVersions)
+            .filter(([categoryId]) => enabledCategories[categoryId])
+            .reduce((acc, [categoryId, versionId]) => {
+                if (versionId) {
+                    acc[categoryId] = versionId;
+                }
+                return acc;
+            }, {} as Record<string, string>);
+
+        if (Object.keys(promptsToPublish).length === 0) {
+            toast({ variant: 'destructive', title: 'Cannot Publish', description: 'At least one enabled category must have a selected version.'});
+            setIsPublishing(false);
+            return;
+        }
 
       const newVersion = await publishNewPromptVersion({
         systemId: systemId,
-        composedPrompts: composedPrompts,
+        composedPrompts: promptsToPublish,
         previousVersion: activeVersions[selectedMode]?.version,
       });
       setActiveVersions(prev => ({ ...prev, [selectedMode]: newVersion }));
@@ -236,19 +250,48 @@ export default function BirdIdentifierPromptEditorPage() {
             </div>
             <div className="flex-1">
               <Label>Prompt Category</Label>
-              <Select value={selectedCategory} onValueChange={handleCategorySelect}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a category..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.keys(promptContents).sort().map(categoryId => (
-                    <SelectItem key={categoryId} value={categoryId} className="capitalize">{categoryId.replace(/_/g, ' ')}</SelectItem>
-                  ))}
-                  <SelectItem value={ADD_NEW_CATEGORY_VALUE} className="text-primary">
-                    <Plus className="inline-block mr-2 h-4 w-4" /> Add New Category...
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger>
+                    <SelectValue placeholder="Select a category..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                    {Object.keys(promptContents).sort().map(categoryId => (
+                        <SelectItem key={categoryId} value={categoryId} className="capitalize">{categoryId.replace(/_/g, ' ')}</SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                 <Dialog open={isNewCategoryDialogOpen} onOpenChange={setIsNewCategoryDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                                <Plus className="h-4 w-4 mr-2"/> Add New
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Add New Prompt Category</DialogTitle>
+                            <DialogDescription>
+                            Create a new component for the AI's prompt. Use a short, descriptive name (e.g., 'error_handling').
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="category-name" className="text-right">Name</Label>
+                            <Input
+                                id="category-name"
+                                value={newCategoryName}
+                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                className="col-span-3"
+                                placeholder="e.g., audio_analysis_rules"
+                            />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={handleAddNewCategory}>Add Category</Button>
+                        </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -292,51 +335,46 @@ export default function BirdIdentifierPromptEditorPage() {
                         placeholder="Write new prompt content here..."
                         disabled={!selectedCategory}
                     />
-                    <Button onClick={handleSaveContent} disabled={isSaving || !selectedCategory || !newPromptText} className="mt-2">
-                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Save as New Version
-                    </Button>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Button onClick={handleSaveContent} disabled={isSaving || !selectedCategory || !newPromptText}>
+                          {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                          Save as New Version
+                      </Button>
+                      <Button size="lg" onClick={handlePublish} disabled={isPublishing}>
+                          {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                          Publish New '{selectedMode}' AI Version
+                      </Button>
+                    </div>
                 </div>
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex justify-between items-center border-t pt-6">
-          <div>
-            <p className="text-sm text-muted-foreground">Active {selectedMode} version</p>
-            <p className="text-lg font-bold">{activeVersions[selectedMode]?.version || 'N/A'}</p>
-          </div>
-           <Button size="lg" onClick={handlePublish} disabled={isPublishing}>
-                {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Publish New '{selectedMode}' AI Version
-            </Button>
+        <CardFooter className="flex-col items-start gap-4 border-t pt-6">
+            <div>
+                <CardTitle className="text-lg mb-2">Enabled Prompt Categories</CardTitle>
+                <CardDescription>
+                Toggle which categories are included in the published AI version. A category must be enabled and have a selected version to be included.
+                </CardDescription>
+                 <div className="mt-4 space-y-2">
+                    {Object.keys(promptContents).sort().map(categoryId => (
+                        <div key={categoryId} className="flex items-center justify-between p-2 rounded-md border">
+                            <Label htmlFor={`switch-${categoryId}`} className="capitalize flex-1 cursor-pointer">{categoryId.replace(/_/g, ' ')}</Label>
+                             <div className="flex items-center gap-4">
+                               <Badge variant={enabledCategories[categoryId] ? 'default' : 'secondary'}>
+                                {enabledCategories[categoryId] ? 'Enabled' : 'Disabled'}
+                               </Badge>
+                                <Switch
+                                    id={`switch-${categoryId}`}
+                                    checked={enabledCategories[categoryId] || false}
+                                    onCheckedChange={(checked) => setEnabledCategories(prev => ({...prev, [categoryId]: checked}))}
+                                />
+                             </div>
+                        </div>
+                    ))}
+                 </div>
+            </div>
         </CardFooter>
       </Card>
-      
-      <Dialog open={isNewCategoryDialogOpen} onOpenChange={setIsNewCategoryDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Prompt Category</DialogTitle>
-              <DialogDescription>
-                Create a new component for the AI's prompt. Use a short, descriptive name (e.g., 'error_handling').
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="category-name" className="text-right">Name</Label>
-                <Input
-                  id="category-name"
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  className="col-span-3"
-                  placeholder="e.g., audio_analysis_rules"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={handleAddNewCategory}>Add Category</Button>
-            </DialogFooter>
-          </DialogContent>
-      </Dialog>
 
     </div>
   );
