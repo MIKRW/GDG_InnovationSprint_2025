@@ -1,8 +1,8 @@
 
 'use server';
 
-import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { doc, setDoc, getDoc, updateDoc, arrayUnion, deleteDoc } from 'firebase/firestore';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { doc, setDoc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
 import type { TestAudioMetadata, BirdLog } from './types';
@@ -125,21 +125,18 @@ export async function upgradeAnonymousUser(currentUser: User, { email, pass }: R
 
 
 /**
- * Deletes a log entry from the user's personal "Bird Book".
- * This action only deletes the user-facing document. The associated backend
- * data (analysis runs, audio files) is processed by the `onUserLogDeleted`
- * Cloud Function based on our defined data retention policies.
+ * Disowns a log entry from the user's personal "Bird Book".
+ * This action sets a flag `isDisowned` to true, which will trigger
+ * a Cloud Function to process the associated backend data based on
+ * defined data retention policies. It does not permanently delete the record.
  */
-export async function deleteLog(log: BirdLog, user: User) {
+export async function disownLog(log: BirdLog, user: User) {
     if (!user || user.uid !== log.userId) {
-        throw new Error("Permission denied. You can only delete your own logs.");
+        throw new Error("Permission denied. You can only disown your own logs.");
     }
 
-    // This action is now much simpler. It only deletes the user-facing log.
-    // The `onUserLogDeleted` Cloud Function will be triggered by this action
-    // and will handle all the complex backend logic.
     const userLogRef = doc(db, 'users', user.uid, 'identifications', log.id);
-    await deleteDoc(userLogRef);
+    await updateDoc(userLogRef, { isDisowned: true });
 
     return { success: true };
 }

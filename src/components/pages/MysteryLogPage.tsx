@@ -44,7 +44,13 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
     // User is authenticated, fetch their data
     setLoading(true);
     const logsCollectionRef = collection(db, 'users', user.uid, 'identifications');
-    const q = query(logsCollectionRef, where('isMystery', '==', true), orderBy('timestamp', 'desc'));
+    const q = query(
+        logsCollectionRef, 
+        where('isMystery', '==', true),
+        where('isDisowned', '!=', true),
+        orderBy('isDisowned'),
+        orderBy('timestamp', 'desc')
+    );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const logs: BirdLog[] = [];

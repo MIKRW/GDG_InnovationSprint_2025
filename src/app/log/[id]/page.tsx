@@ -19,7 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Loader2, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { deleteLog } from '@/lib/actions';
+import { disownLog } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 
 export default function LogDetailPage() {
@@ -47,7 +47,12 @@ export default function LogDetailPage() {
     
     const unsubscribe = onSnapshot(logDocRef, (docSnap) => {
       if (docSnap.exists()) {
-        setLog({ id: docSnap.id, ...docSnap.data() } as BirdLog);
+        const data = docSnap.data() as BirdLog;
+        if (data.isDisowned) {
+            setLog(null); // Treat disowned logs as not found
+        } else {
+            setLog({ id: docSnap.id, ...data });
+        }
       } else {
         setLog(null); // Not found
       }
@@ -65,18 +70,18 @@ export default function LogDetailPage() {
     setIsDeleting(true);
 
     try {
-      await deleteLog(log, user);
+      await disownLog(log, user);
       toast({
-        title: 'Log Deleted',
-        description: 'The log entry has been removed.',
+        title: 'Log Removed',
+        description: 'The log entry has been removed from your Bird Book.',
       });
       router.push('/log');
     } catch (error) {
-      console.error('Failed to delete log:', error);
+      console.error('Failed to remove log:', error);
       toast({
         variant: 'destructive',
-        title: 'Delete Failed',
-        description: 'Could not delete the log. Please try again.',
+        title: 'Removal Failed',
+        description: 'Could not remove the log. Please try again.',
       });
       setIsDeleting(false);
     }
@@ -173,15 +178,14 @@ export default function LogDetailPage() {
                       ) : (
                         <Trash2 className="mr-2 h-4 w-4" />
                       )}
-                      Delete Log
+                      Remove Log
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete this log entry.
-                        Your audio data may be preserved for internal analysis based on your user status and data quality.
+                        This will remove the log from your Bird Book. Depending on your user status and the quality of the recording, the underlying audio data may be kept for internal analysis or permanently deleted.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

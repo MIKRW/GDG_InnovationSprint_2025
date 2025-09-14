@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, where } from 'firebase/firestore';
 import { groupBy } from 'lodash';
 
 import type { BirdLog, SortOption } from '@/lib/types';
@@ -45,7 +45,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
     // User is authenticated, fetch their data
     setLoading(true);
     const logsCollectionRef = collection(db, 'users', user.uid, 'identifications');
-    const q = query(logsCollectionRef, orderBy('timestamp', 'desc'));
+    const q = query(logsCollectionRef, where('isDisowned', '!=', true), orderBy('isDisowned'), orderBy('timestamp', 'desc'));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const logs: BirdLog[] = [];

@@ -10,19 +10,27 @@ const storage = admin.storage();
 const LOW_QUALITY_THRESHOLD = 40;
 
 /**
- * A Cloud Function that triggers when a user's identification log is deleted.
- * It's responsible for the backend data cleanup and retention logic.
+ * A Cloud Function that triggers when a user's identification log is updated.
+ * It specifically looks for the `isDisowned` flag changing to true to process
+ * backend data cleanup and retention logic.
  */
-export const onUserLogDeleted = functions.firestore
+export const onUserLogDisowned = functions.firestore
   .document("users/{userId}/identifications/{logId}")
-  .onDelete(async (snapshot, context) => {
-    const deletedLogData = snapshot.data();
+  .onUpdate(async (change, context) => {
+    const newData = change.after.data();
+    const previousData = change.before.data();
     const {userId, logId} = context.params;
 
-    functions.logger.log(`Processing deletion for log: ${logId} by user: ${userId}`);
+    // We only care about the change where isDisowned goes from false/undefined to true
+    if (newData.isDisowned !== true || previousData.isDisowned === true) {
+      functions.logger.log(`Log ${logId} was updated, but not disowned. No action taken.`);
+      return;
+    }
+
+    functions.logger.log(`Processing disown for log: ${logId} by user: ${userId}`);
 
     // Exit if there's no analysis ID to process
-    const {analysisRunId} = deletedLogData;
+    const {analysisRunId} = newData;
     if (!analysisRunId) {
       functions.logger.log(`Log ${logId} is a legacy entry or has no analysisRunId. No further action.`);
       return;
@@ -46,8 +54,7 @@ export const onUserLogDeleted = functions.firestore
     if (isAnonymous && (analysisData.dataQualityScore < LOW_QUALITY_THRESHOLD)) {
       // HARD DELETE for low-quality anonymous data
       functions.logger.log(`Performing HARD DELETE for analysis ${analysisRunId}.`);
-      await analysisRunRef.delete();
-
+      
       if (analysisData.inputAudioStoragePath) {
         const bucket = storage.bucket();
         const file = bucket.file(analysisData.inputAudioStoragePath);
@@ -62,9 +69,16 @@ export const onUserLogDeleted = functions.firestore
           }
         }
       }
+      // Finally, delete the analysis record itself
+      await analysisRunRef.delete();
+
     } else {
       // SOFT DELETE for registered users or high-quality anonymous data
       functions.logger.log(`Performing SOFT DELETE for analysis ${analysisRunId}.`);
       await analysisRunRef.update({wasSavedByUser: false});
     }
+
+    // Also delete the user-facing log document permanently now.
+    await change.after.ref.delete();
+    functions.logger.log(`Permanently deleted user-facing log document ${logId}.`);
   });
