@@ -1,3 +1,4 @@
+
 # Firestore Data Architecture Plan
 
 This document outlines the complete data architecture for the ChirpID application, covering both developer testing and live user data. This architecture is designed to be robust, scalable, and secure.
@@ -36,6 +37,33 @@ This model is designed for our internal, controlled testing. It is structured ar
         *   `aiResult`: The full, raw output from the AI model.
         *   `wasSuccessful`: A boolean indicating if the AI correctly identified the bird.
 
+*   **Top-Level Collection:** `prompt_systems`
+    *   Stores the high-level definition for each "overarching AI".
+    *   **Document (ID: `bird-identifier-ai`):**
+        *   `name`: "Bird Identifier AI"
+        *   `description`: "Manages all prompts related to identifying birds from audio."
+        *   `activeVersion`: "v1.1" (The currently live version of this AI system)
+
+*   **Top-Level Collection:** `prompt_versions`
+    *   A historical log of every saved version of an overarching AI.
+    *   **Document (ID: `bird-identifier-ai-v1.1`):**
+        *   `systemId`: "bird-identifier-ai"
+        *   `version`: "v1.1"
+        *   `timestamp`: The time this version was saved.
+        *   `composedPrompts`: A map linking prompt categories to specific prompt content versions.
+            *   `base_instruction`: "prompt_content/base_instruction_v1.0"
+            *   `location_handling`: "prompt_content/location_handling_v1.2"
+            *   `weather_handling`: "prompt_content/weather_handling_v1.1"
+
+*   **Top-Level Collection:** `prompt_content`
+    *   Stores the actual text content for every version of every sub-prompt.
+    *   **Document (ID: `location_handling_v1.2`):**
+        *   `systemId`: "bird-identifier-ai"
+        *   `categoryId`: "location_handling"
+        *   `version`: "v1.2"
+        *   `promptText`: "If location is provided, use it as a primary factor..."
+        *   `previousVersionId`: "location_handling_v1.1" (for historical tracking)
+
 ---
 
 ## Part 2: The Live User Data Model
@@ -53,7 +81,7 @@ This professional, two-tiered model perfectly separates our need for analytical 
             *   `inputAudioUrl`: The path to the user's recording in Firebase Storage.
             *   `habitatPhotoUrl`: (string, optional) Path to a user-uploaded habitat photo.
             *   `locationData`: Any location info provided by the user.
-            *   `analysisMethod`: A string identifying the AI model and technique used (e.g., 'audio-gemini-2.5-flash-v1').
+            *   `analysisMethod`: A string identifying the AI model and prompt system version used (e.g., 'bird-identifier-ai-v1.1').
             *   `processingMethod`: (Optional) A tag describing how audio was altered (e.g., 'noise-reduced-v1', 'call-isolation-v1').
             *   `aiResult`: The complete, raw output from the AI.
             *   `wasSuccessful`: A boolean indicating if the AI identified a bird.
