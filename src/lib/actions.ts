@@ -369,11 +369,11 @@ If you are given a location, use it! It's a huge clue. Figure out the geographic
 
 You also have a tool called 'getCurrentWeather'. Please use it to find out the season and weather conditions when the recording was made. You'll need to include this information in your final answer.
 
-For "description", write a fun, interesting fact about the bird that a beginner would enjoy.
-For "imagePrompt", give a simple, clear instruction for an image generator (e.g., "photo of a European Robin perched on a mossy branch").
-For "confidence", provide a number between 0 and 1.
+For the description, write a fun, interesting fact about the bird that a beginner would enjoy.
+For the image prompt, give a simple, clear instruction for an image generator (e.g., "photo of a European Robin perched on a mossy branch").
+Also, provide your confidence in the identification.
 
-If you're not confident you heard a bird, or if it's just noise, please set "isBirdSong" to false and leave out the other fields.`;
+If you're not confident you heard a bird, or if it's just noise, please indicate that.`;
 
         const twitcherPromptText = `You are a professional-level ornithologist and bioacoustics analyst. Your task is to perform a rigorous analysis of a high-fidelity audio recording to identify a bird species. Precision and detailed taxonomic information are critical.
 
@@ -389,7 +389,7 @@ Analysis protocol:
 3.  Call the 'getCurrentWeather' tool to get environmental context. This is secondary data but can be used to support your analysis.
 4.  Provide a confidence score based on the clarity of the recording and the strength of the match against known vocalizations and geographic range.
 
-If the audio is unclear or the species cannot be determined with high confidence, set "isBirdSong" to false. Do not guess.`;
+If the audio is unclear or the species cannot be determined with high confidence, you must indicate that you did not identify a bird song. Do not guess.`;
         
         const themePromptText = `You are an expert UI theme designer with a deep understanding of color theory, word association, and web accessibility standards (WCAG).
 Your task is to generate a creative, unique, and aesthetically pleasing HSL color palette based on user input.
@@ -423,11 +423,8 @@ Mood Definitions:
 - "80s Retro": Creates a nostalgic theme with bold, neon, and often contrasting colors popular in the 1980s.
 - "Dark": A classic dark mode theme with a dark background and light text/accents.
 
-Output Requirements:
-- The 'foreground' color MUST have a high contrast ratio with the background color for accessibility and readability.
-- The 'primary' color also MUST have a high contrast ratio with the background.
-- The 'ring' color must be a lighter or darker shade of the 'primary' color, with a lightness value that is at least 10-15% different. It will be used as a background highlight for selected items, so it needs to be different enough to be noticeable but still harmonious.
-- CRITICAL: You must also consider derived colors. The app uses CSS calculations to create secondary, muted, and accent colors from the three base colors you provide. You MUST generate base colors that result in good contrast for these derived colors as well. For example, the 'foreground' color must be clearly visible on the 'muted' background, which is a lighter shade of the 'primary' color. Always prioritize readability across the entire UI.
+The 'ring' color must be a lighter or darker shade of the 'primary' color. It needs to be different enough to be noticeable but still harmonious.
+CRITICAL: You must also consider derived colors. The app uses CSS calculations to create secondary, muted, and accent colors from the three base colors you provide. You MUST generate base colors that result in good contrast for these derived colors as well. For example, the 'foreground' color must be clearly visible on the 'muted' background, which is a lighter shade of the 'primary' color. Always prioritize readability across the entire UI.
 
 Interpret the user's words creatively to generate a harmonious and visually appealing theme that meets all constraints.`;
 
