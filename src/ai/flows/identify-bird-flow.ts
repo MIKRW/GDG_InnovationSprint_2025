@@ -79,7 +79,7 @@ Your task is to return a JSON object with the following structure:
 - imagePrompt: A simple but effective text-to-image prompt to generate a photo of this bird.
 - confidence: A number between 0 and 1 representing your confidence in the identification. 0.95 is highly confident, 0.7 is moderately confident, and below 0.5 is a guess.
 - season: The season at the location of the recording (e.g., 'Summer', 'Winter').
-- weather: A brief summary of the weather conditions (e.g., 'Clear, 15°C, light breeze').
+- weather: A brief summary of the weather conditions (eg., 'Clear, 15°C, light breeze').
 
 
 CRITICAL: If the audio does not contain a discernible bird song, or if you are not highly confident in your identification, you MUST set "isBirdSong" to false and leave the other fields empty.
@@ -170,6 +170,9 @@ const newbieIdentifyBirdPrompt = ai.definePrompt({
   output: { schema: IdentifyBirdOutputSchema },
   prompt: newbiePromptText,
   tools: [getCurrentWeather],
+  config: {
+    retries: 3,
+  }
 });
 
 const twitcherIdentifyBirdPrompt = ai.definePrompt({
@@ -178,6 +181,9 @@ const twitcherIdentifyBirdPrompt = ai.definePrompt({
   output: { schema: IdentifyBirdOutputSchema },
   prompt: twitcherPromptText,
   tools: [getCurrentWeather],
+  config: {
+    retries: 3,
+  }
 });
 
 const identifyBirdFlow = ai.defineFlow(
@@ -202,5 +208,7 @@ const identifyBirdFlow = ai.defineFlow(
     return output;
   }
 );
+
+    
 
     
