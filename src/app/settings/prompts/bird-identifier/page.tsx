@@ -50,7 +50,7 @@ export default function BirdIdentifierPromptEditorPage() {
   const [isNewCategoryDialogOpen, setIsNewCategoryDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [newPromptText, setNewPromptText] = useState('');
-  const [versionType, setVersionType] = useState<'minor' | 'major'>('minor');
+  const [versionType, setVersionType] = useState<'minor' | 'major' | 'patch'>('patch');
   const [enabledCategories, setEnabledCategories] = useState<Record<string, boolean>>({});
   
   const { toast } = useToast();
@@ -81,40 +81,20 @@ export default function BirdIdentifierPromptEditorPage() {
         const systemQuery = query(collection(db, 'prompt_systems'), where('__name__', 'in', Object.values(SYSTEM_IDS)));
         const systemSnap = await getDocs(systemQuery);
         
-        const activeSystemVersions: Record<string, string> = {};
-        systemSnap.forEach(doc => {
-            const data = doc.data() as PromptSystem;
-            const mode = Object.keys(SYSTEM_IDS).find(key => SYSTEM_IDS[key as 'newbie' | 'twitcher'] === data.id) as 'newbie' | 'twitcher';
-            if (mode) {
-                activeSystemVersions[mode] = data.activeVersion;
-            }
-        });
-
-        const activeVersionPromises = Object.entries(activeSystemVersions).map(async ([mode, versionString]) => {
-            if (!versionString) return { mode, version: null };
-            
-            // Simpler query without ordering to avoid composite index
-            const versionQuery = query(
-              collection(db, 'prompt_versions'), 
-              where('systemId', '==', SYSTEM_IDS[mode as 'newbie' | 'twitcher']),
-              where('version', '==', versionString)
-            );
-
-            const versionSnap = await getDocs(versionQuery);
-            if (!versionSnap.empty) {
-                // Sort client-side to get the most recent one
-                const versions = versionSnap.docs.map(d => ({ id: d.id, ...d.data() } as PromptVersion));
-                versions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-                return { mode, version: versions[0] };
-            }
-            return { mode, version: null };
-        });
-
-        const resolvedActiveVersions = await Promise.all(activeVersionPromises);
         const newActiveVersionsState: Record<string, PromptVersion | null> = {};
-        resolvedActiveVersions.forEach(({mode, version}) => {
-            newActiveVersionsState[mode] = version;
-        });
+        for (const docSnap of systemSnap.docs) {
+          const data = docSnap.data() as PromptSystem;
+          const mode = Object.keys(SYSTEM_IDS).find(key => SYSTEM_IDS[key as 'newbie' | 'twitcher'] === data.id) as 'newbie' | 'twitcher';
+          if (mode && data.activeVersion) {
+            const versionId = `${data.id}-${data.activeVersion}`;
+            const versionDoc = await getDoc(doc(db, 'prompt_versions', versionId));
+            if (versionDoc.exists()) {
+              newActiveVersionsState[mode] = { id: versionDoc.id, ...versionDoc.data() } as PromptVersion;
+            }
+          } else {
+             newActiveVersionsState[mode] = null;
+          }
+        }
         setActiveVersions(newActiveVersionsState);
       
       const latestVersion = newActiveVersionsState[selectedMode];
@@ -253,7 +233,6 @@ export default function BirdIdentifierPromptEditorPage() {
             systemId,
             categoryId: selectedCategory,
             promptText: draftContent.promptText,
-            previousVersionId: currentCategoryHistory.filter(c => c.version > 0)[0]?.id,
             isDraft: false,
         });
 
@@ -298,7 +277,7 @@ export default function BirdIdentifierPromptEditorPage() {
         systemId: systemId,
         composedPrompts: promptsToPublish,
         previousVersion: activeVersions[selectedMode]?.version,
-        versionType: 'recall',
+        versionType: 'patch', // Recalling an old version is a patch
       });
 
       await fetchPromptData();
@@ -374,55 +353,7 @@ export default function BirdIdentifierPromptEditorPage() {
         </CardContent>
       </Card>
       
-      <Card className="mt-4 max-w-lg mx-auto">
-        <CardHeader className="text-center">
-            <CardTitle>Prompt Category</CardTitle>
-        </CardHeader>
-        <CardContent className="flex justify-center items-center gap-2">
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-[280px]">
-            <SelectValue placeholder="Select a category..." />
-            </SelectTrigger>
-            <SelectContent>
-            {Object.keys(promptContents).sort().map(categoryId => (
-                <SelectItem key={categoryId} value={categoryId} className="capitalize">{categoryId.replace(/_/g, ' ')}</SelectItem>
-            ))}
-            </SelectContent>
-        </Select>
-            <Dialog open={isNewCategoryDialogOpen} onOpenChange={setIsNewCategoryDialogOpen}>
-                <DialogTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                        <Plus className="h-4 w-4"/>
-                    </Button>
-                </DialogTrigger>
-                <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Add New Prompt Category</DialogTitle>
-                    <DialogDescription>
-                    Create a new component for the AI's prompt. Use a short, descriptive name (e.g., 'error_handling').
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="category-name" className="text-right">Name</Label>
-                    <Input
-                        id="category-name"
-                        value={newCategoryName}
-                        onChange={(e) => setNewCategoryName(e.target.value)}
-                        className="col-span-3"
-                        placeholder="e.g., audio_analysis_rules"
-                    />
-                    </div>
-                </div>
-                <DialogFooter>
-                    <Button onClick={handleAddNewCategory}>Add Category</Button>
-                </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </CardContent>
-      </Card>
-      
-      <Card className="mt-4 max-w-lg mx-auto">
+      <Card className="mt-8 max-w-lg mx-auto">
         <CardHeader className="text-center">
             <CardTitle className="text-2xl font-semibold leading-none tracking-tight">Active Prompt Configuration</CardTitle>
             <CardDescription>
@@ -469,7 +400,56 @@ export default function BirdIdentifierPromptEditorPage() {
         </CardContent>
       </Card>
 
-
+      <div className="mt-8 text-center">
+          <Card className="w-full">
+            <CardHeader>
+                <CardTitle>Prompt Category</CardTitle>
+            </CardHeader>
+            <CardContent className="flex justify-center items-center gap-2">
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-full max-w-lg">
+                <SelectValue placeholder="Select a category..." />
+                </SelectTrigger>
+                <SelectContent>
+                {Object.keys(promptContents).sort().map(categoryId => (
+                    <SelectItem key={categoryId} value={categoryId} className="capitalize">{categoryId.replace(/_/g, ' ')}</SelectItem>
+                ))}
+                </SelectContent>
+            </Select>
+                <Dialog open={isNewCategoryDialogOpen} onOpenChange={setIsNewCategoryDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                            <Plus className="h-4 w-4"/>
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add New Prompt Category</DialogTitle>
+                        <DialogDescription>
+                        Create a new component for the AI's prompt. Use a short, descriptive name (e.g., 'error_handling').
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="category-name" className="text-right">Name</Label>
+                        <Input
+                            id="category-name"
+                            value={newCategoryName}
+                            onChange={(e) => setNewCategoryName(e.target.value)}
+                            className="col-span-3"
+                            placeholder="e.g., audio_analysis_rules"
+                        />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={handleAddNewCategory}>Add Category</Button>
+                    </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            </CardContent>
+          </Card>
+      </div>
+      
       <div className="mt-8 flex flex-col md:flex-row gap-6">
         {isLoading ? (
             <div className="flex justify-center items-center p-8 w-full"><Loader2 className="w-8 h-8 animate-spin" /></div>
@@ -529,11 +509,12 @@ export default function BirdIdentifierPromptEditorPage() {
               </CardContent>
               <CardFooter>
                  <div className="flex items-center gap-2">
-                    <Select value={versionType} onValueChange={(v) => setVersionType(v as 'minor' | 'major')}>
+                    <Select value={versionType} onValueChange={(v) => setVersionType(v as 'minor' | 'major' | 'patch')}>
                         <SelectTrigger className="w-[140px]">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
+                            <SelectItem value="patch">Patch-Ver</SelectItem>
                             <SelectItem value="minor">Minor-Ver</SelectItem>
                             <SelectItem value="major">Major-Ver</SelectItem>
                         </SelectContent>

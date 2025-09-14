@@ -194,7 +194,6 @@ interface SavePromptContentInput {
     systemId: string;
     categoryId: string;
     promptText: string;
-    previousVersionId?: string;
     isDraft?: boolean;
 }
 
@@ -203,7 +202,7 @@ interface SavePromptContentInput {
  * Can save as a permanent version or as a single, overwritable draft.
  */
 export async function savePromptContent(data: SavePromptContentInput): Promise<PromptContent> {
-    const { systemId, categoryId, promptText, previousVersionId, isDraft = false } = data;
+    const { systemId, categoryId, promptText, isDraft = false } = data;
 
     if (isDraft) {
         // Saving a draft. We use a consistent ID to overwrite it.
@@ -228,12 +227,14 @@ export async function savePromptContent(data: SavePromptContentInput): Promise<P
             collection(db, 'prompt_content'),
             where('systemId', '==', systemId),
             where('categoryId', '==', categoryId),
-            where('version', '>', 0), // Only count published versions
-            orderBy('version', 'desc')
         );
         const contentSnapshot = await getDocs(contentQuery);
-        const latestVersion = contentSnapshot.docs[0]?.data()?.version || 0;
-        const newVersionNumber = latestVersion + 1;
+        const publishedVersions = contentSnapshot.docs
+            .map(doc => doc.data() as PromptContent)
+            .filter(c => c.version > 0);
+        
+        const latestVersionNumber = publishedVersions.reduce((max, c) => Math.max(max, c.version), 0);
+        const newVersionNumber = latestVersionNumber + 1;
 
         const newContentRef = doc(collection(db, 'prompt_content'));
         const newContent: PromptContent = {
@@ -243,7 +244,7 @@ export async function savePromptContent(data: SavePromptContentInput): Promise<P
             version: newVersionNumber,
             promptText,
             timestamp: new Date().toISOString(),
-            previousVersionId: previousVersionId,
+            previousVersionId: publishedVersions.find(c => c.version === latestVersionNumber)?.id,
         };
 
         await setDoc(newContentRef, newContent);
@@ -262,42 +263,44 @@ interface PublishNewPromptVersionInput {
     systemId: string;
     composedPrompts: Record<string, string>;
     previousVersion?: string;
-    versionType: 'major' | 'minor' | 'recall';
+    versionType: 'major' | 'minor' | 'patch';
 }
 
 /**
- * Creates a new "overarching AI" version document and updates the system's activeVersion.
+ * Creates a new "overarching AI" version document using semantic versioning
+ * and updates the system's activeVersion.
  */
 export async function publishNewPromptVersion(data: PublishNewPromptVersionInput): Promise<PromptVersion> {
-    const { systemId, composedPrompts, previousVersion, versionType } = data;
+    const { systemId, composedPrompts, previousVersion = 'v0.0.0', versionType } = data;
 
-    // 1. Determine new version string based on type
-    let newVersionString = 'v1.0';
-    if (previousVersion) {
-        const parts = previousVersion.substring(1).split('.').map(Number);
-        let major = parts[0] || 0;
-        let minor = parts[1] || 0;
+    // 1. Get all existing versions for the system to calculate the next version correctly.
+    const versionsQuery = query(collection(db, 'prompt_versions'), where('systemId', '==', systemId));
+    const versionsSnapshot = await getDocs(versionsQuery);
+    const existingVersions = versionsSnapshot.docs.map(d => d.data().version as string);
 
-        if (versionType === 'major') {
-            major += 1;
-            minor = 0;
-        } else if (versionType === 'minor') {
-            minor += 1;
-        }
-        // If 'recall', we don't increment, just use the current active version string
-        
-        if(versionType !== 'recall') {
-          newVersionString = `v${major}.${minor}`;
-        } else {
-          newVersionString = `v${major}.${minor}`;
-        }
+    // 2. Determine new version string based on semantic versioning.
+    const [major, minor, patch] = previousVersion.replace('v', '').split('.').map(Number);
+    let newMajor = major, newMinor = minor, newPatch = patch;
+
+    if (versionType === 'major') {
+        newMajor++;
+        newMinor = 0;
+        newPatch = 0;
+    } else if (versionType === 'minor') {
+        newMinor++;
+        newPatch = 0;
+    } else { // 'patch'
+        // Find the highest patch for the current major.minor and increment it.
+        const patchVersions = existingVersions
+            .filter(v => v.startsWith(`v${major}.${minor}.`))
+            .map(v => parseInt(v.split('.')[2] || '0'));
+        newPatch = patchVersions.length > 0 ? Math.max(...patchVersions) + 1 : (patch > 0 ? patch + 1 : 1);
     }
-
-    // 2. Create the new prompt_versions document
-    // If recalling, we create a new document with a new ID but the same version string
-    // This maintains a history of publications, even for rollbacks.
-    const newVersionId = versionType === 'recall' ? `${systemId}-${newVersionString}-${uuidv4()}` : `${systemId}-${newVersionString}`;
-
+    
+    const newVersionString = `v${newMajor}.${newMinor}.${newPatch}`;
+    const newVersionId = `${systemId}-${newVersionString}`;
+    
+    // 3. Create the new prompt_versions document
     const newVersion: PromptVersion = {
         id: newVersionId,
         systemId,
@@ -306,7 +309,7 @@ export async function publishNewPromptVersion(data: PublishNewPromptVersionInput
         composedPrompts,
     };
     
-    // 3. Use a batch write to update both the new version and the system's activeVersion
+    // 4. Use a batch write to update both the new version and the system's activeVersion
     const batch = writeBatch(db);
     batch.set(doc(db, 'prompt_versions', newVersionId), newVersion);
 
@@ -315,10 +318,9 @@ export async function publishNewPromptVersion(data: PublishNewPromptVersionInput
     if(systemSnap.exists()) {
         batch.update(systemRef, { activeVersion: newVersionString });
     } else {
-        // If the system doesn't exist, create it.
         const systemData: Partial<PromptSystem> = {
             id: systemId,
-            name: `${kebabCase(systemId).replace(/-ai/g, '').replace(/-/g, ' ')}`, // Generate a name
+            name: `${kebabCase(systemId).replace(/-ai/g, '').replace(/-/g, ' ')}`,
             description: `Manages prompts for the ${systemId} AI.`,
             activeVersion: newVersionString
         };
@@ -347,17 +349,10 @@ export async function publishNewAppAIVersion() {
     for (const systemDoc of systemsSnapshot.docs) {
         const systemData = systemDoc.data() as PromptSystem;
         if (systemData.activeVersion) {
-            // We need to find the latest prompt_version document that matches the active version string
-            const q = query(
-                collection(db, 'prompt_versions'),
-                where('systemId', '==', systemData.id),
-                where('version', '==', systemData.activeVersion),
-                orderBy('timestamp', 'desc')
-            );
-            const promptVersionSnapshot = await getDocs(q);
-            if (!promptVersionSnapshot.empty) {
-                const latestDocId = promptVersionSnapshot.docs[0].id;
-                systemsToBundle[systemData.id] = latestDocId;
+            const promptVersionId = `${systemData.id}-${systemData.activeVersion}`;
+            const promptVersionDoc = await getDoc(doc(db, 'prompt_versions', promptVersionId));
+            if (promptVersionDoc.exists()) {
+                systemsToBundle[systemData.id] = promptVersionId;
             }
         }
     }
@@ -464,51 +459,51 @@ CRITICAL: You must also consider derived colors. The app uses CSS calculations t
         const newbieContentId = `newbie_base_instruction_${uuidv4()}`;
         const newbieContentRef = doc(db, 'prompt_content', newbieContentId);
         batch.set(newbieContentRef, { id: newbieContentId, systemId: 'bird-identifier-ai-newbie', categoryId: 'base_instruction', version: 1, promptText: newbiePromptText, timestamp });
-        const newbieVersionId = 'bird-identifier-ai-newbie-v1.0';
+        const newbieVersionId = 'bird-identifier-ai-newbie-v1.0.0';
         const newbieVersionRef = doc(db, 'prompt_versions', newbieVersionId);
-        batch.set(newbieVersionRef, { id: newbieVersionId, systemId: 'bird-identifier-ai-newbie', version: 'v1.0', timestamp, composedPrompts: { 'base_instruction': newbieContentId } });
+        batch.set(newbieVersionRef, { id: newbieVersionId, systemId: 'bird-identifier-ai-newbie', version: 'v1.0.0', timestamp, composedPrompts: { 'base_instruction': newbieContentId } });
         const newbieSystemRef = doc(db, 'prompt_systems', 'bird-identifier-ai-newbie');
-        batch.set(newbieSystemRef, { id: 'bird-identifier-ai-newbie', name: 'Bird Identifier AI (Newbie)', description: 'Manages prompts for identifying birds in Newbie mode.', activeVersion: 'v1.0' });
+        batch.set(newbieSystemRef, { id: 'bird-identifier-ai-newbie', name: 'Bird Identifier AI (Newbie)', description: 'Manages prompts for identifying birds in Newbie mode.', activeVersion: 'v1.0.0' });
 
         // -- Twitcher System --
         const twitcherContentId = `twitcher_base_instruction_${uuidv4()}`;
         const twitcherContentRef = doc(db, 'prompt_content', twitcherContentId);
         batch.set(twitcherContentRef, { id: twitcherContentId, systemId: 'bird-identifier-ai-twitcher', categoryId: 'base_instruction', version: 1, promptText: twitcherPromptText, timestamp });
-        const twitcherVersionId = 'bird-identifier-ai-twitcher-v1.0';
+        const twitcherVersionId = 'bird-identifier-ai-twitcher-v1.0.0';
         const twitcherVersionRef = doc(db, 'prompt_versions', twitcherVersionId);
-        batch.set(twitcherVersionRef, { id: twitcherVersionId, systemId: 'bird-identifier-ai-twitcher', version: 'v1.0', timestamp, composedPrompts: { 'base_instruction': twitcherContentId } });
+        batch.set(twitcherVersionRef, { id: twitcherVersionId, systemId: 'bird-identifier-ai-twitcher', version: 'v1.0.0', timestamp, composedPrompts: { 'base_instruction': twitcherContentId } });
         const twitcherSystemRef = doc(db, 'prompt_systems', 'bird-identifier-ai-twitcher');
-        batch.set(twitcherSystemRef, { id: 'bird-identifier-ai-twitcher', name: 'Bird Identifier AI (Twitcher)', description: 'Manages prompts for identifying birds in Twitcher mode.', activeVersion: 'v1.0' });
+        batch.set(twitcherSystemRef, { id: 'bird-identifier-ai-twitcher', name: 'Bird Identifier AI (Twitcher)', description: 'Manages prompts for identifying birds in Twitcher mode.', activeVersion: 'v1.0.0' });
 
         // -- Theme System --
         const themeContentId = `theme_base_instruction_${uuidv4()}`;
         const themeContentRef = doc(db, 'prompt_content', themeContentId);
         batch.set(themeContentRef, { id: themeContentId, systemId: 'theme-generator-ai', categoryId: 'base_instruction', version: 1, promptText: themePromptText, timestamp });
-        const themeVersionId = 'theme-generator-ai-v1.0';
+        const themeVersionId = 'theme-generator-ai-v1.0.0';
         const themeVersionRef = doc(db, 'prompt_versions', themeVersionId);
-        batch.set(themeVersionRef, { id: themeVersionId, systemId: 'theme-generator-ai', version: 'v1.0', timestamp, composedPrompts: { 'base_instruction': themeContentId } });
+        batch.set(themeVersionRef, { id: themeVersionId, systemId: 'theme-generator-ai', version: 'v1.0.0', timestamp, composedPrompts: { 'base_instruction': themeContentId } });
         const themeSystemRef = doc(db, 'prompt_systems', 'theme-generator-ai');
-        batch.set(themeSystemRef, { id: 'theme-generator-ai', name: 'Theme Generation AI', description: 'Manages prompts related to generating UI color themes.', activeVersion: 'v1.0' });
+        batch.set(themeSystemRef, { id: 'theme-generator-ai', name: 'Theme Generation AI', description: 'Manages prompts related to generating UI color themes.', activeVersion: 'v1.0.0' });
 
         // -- Image System --
         const imageContentId = `image_base_instruction_${uuidv4()}`;
         const imageContentRef = doc(db, 'prompt_content', imageContentId);
         batch.set(imageContentRef, { id: imageContentId, systemId: 'image-generator-ai', categoryId: 'base_instruction', version: 1, promptText: imagePromptText, timestamp });
-        const imageVersionId = 'image-generator-ai-v1.0';
+        const imageVersionId = 'image-generator-ai-v1.0.0';
         const imageVersionRef = doc(db, 'prompt_versions', imageVersionId);
-        batch.set(imageVersionRef, { id: imageVersionId, systemId: 'image-generator-ai', version: 'v1.0', timestamp, composedPrompts: { 'base_instruction': imageContentId } });
+        batch.set(imageVersionRef, { id: imageVersionId, systemId: 'image-generator-ai', version: 'v1.0.0', timestamp, composedPrompts: { 'base_instruction': imageContentId } });
         const imageSystemRef = doc(db, 'prompt_systems', 'image-generator-ai');
-        batch.set(imageSystemRef, { id: 'image-generator-ai', name: 'Image Generation AI', description: 'Manages prompts for creating images of identified birds.', activeVersion: 'v1.0' });
+        batch.set(imageSystemRef, { id: 'image-generator-ai', name: 'Image Generation AI', description: 'Manages prompts for creating images of identified birds.', activeVersion: 'v1.0.0' });
 
         // -- Weather Tool System --
         const weatherContentId = `weather_base_instruction_${uuidv4()}`;
         const weatherContentRef = doc(db, 'prompt_content', weatherContentId);
         batch.set(weatherContentRef, { id: weatherContentId, systemId: 'weather-ai-tool', categoryId: 'base_instruction', version: 1, promptText: weatherToolPromptText, timestamp });
-        const weatherVersionId = 'weather-ai-tool-v1.0';
+        const weatherVersionId = 'weather-ai-tool-v1.0.0';
         const weatherVersionRef = doc(db, 'prompt_versions', weatherVersionId);
-        batch.set(weatherVersionRef, { id: weatherVersionId, systemId: 'weather-ai-tool', version: 'v1.0', timestamp, composedPrompts: { 'base_instruction': weatherContentId } });
+        batch.set(weatherVersionRef, { id: weatherVersionId, systemId: 'weather-ai-tool', version: 'v1.0.0', timestamp, composedPrompts: { 'base_instruction': weatherContentId } });
         const weatherSystemRef = doc(db, 'prompt_systems', 'weather-ai-tool');
-        batch.set(weatherSystemRef, { id: 'weather-ai-tool', name: 'Weather Analysis AI Tool', description: 'Manages prompts for interpreting weather data for identification.', activeVersion: 'v1.0' });
+        batch.set(weatherSystemRef, { id: 'weather-ai-tool', name: 'Weather Analysis AI Tool', description: 'Manages prompts for interpreting weather data for identification.', activeVersion: 'v1.0.0' });
 
         // -- App AI Version v1.0 --
         const appVersionId = 'v1.0';
