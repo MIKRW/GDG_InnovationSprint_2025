@@ -318,8 +318,8 @@ export default function BirdIdentifierPromptEditorPage() {
         ) : (
           <>
             <Card className="flex-1">
-              <CardHeader>
-                <Label>Version History</Label>
+              <CardHeader className="text-center">
+                <CardTitle>Version History</CardTitle>
                 <Select
                   value={currentSelectedVersionId}
                   onValueChange={(versionId) => setSelectedVersions(prev => ({ ...prev, [selectedCategory]: versionId }))}
@@ -336,7 +336,7 @@ export default function BirdIdentifierPromptEditorPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Button onClick={handleRecallVersion} variant="outline" size="sm" className="w-fit" disabled={!currentContent}>
+                <Button onClick={handleRecallVersion} variant="outline" size="sm" className="w-fit mx-auto" disabled={!currentContent}>
                   <History className="mr-2 h-4 w-4" /> Recall this Version
                 </Button>
               </CardHeader>
@@ -351,8 +351,8 @@ export default function BirdIdentifierPromptEditorPage() {
             </Card>
 
             <Card className="flex-1">
-              <CardHeader>
-                <Label htmlFor="new-prompt-text">New/Edit Prompt Text</Label>
+              <CardHeader className="text-center">
+                <CardTitle>New/Edit Prompt Text</CardTitle>
               </CardHeader>
               <CardContent>
                 <Textarea
@@ -409,3 +409,5 @@ export default function BirdIdentifierPromptEditorPage() {
     </div>
   );
 }
+
+    
