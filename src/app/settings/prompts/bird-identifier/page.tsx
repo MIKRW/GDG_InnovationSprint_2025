@@ -28,6 +28,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const SYSTEM_IDS = {
   newbie: 'bird-identifier-ai-newbie',
@@ -47,6 +48,7 @@ export default function BirdIdentifierPromptEditorPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [newPromptText, setNewPromptText] = useState('');
   const [enabledCategories, setEnabledCategories] = useState<Record<string, boolean>>({});
+  const [versionType, setVersionType] = useState<'minor' | 'major'>('minor');
 
   const { toast } = useToast();
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
@@ -215,6 +217,7 @@ export default function BirdIdentifierPromptEditorPage() {
         systemId: systemId,
         composedPrompts: promptsToPublish,
         previousVersion: activeVersions[selectedMode]?.version,
+        versionType: versionType,
       });
       setActiveVersions(prev => ({ ...prev, [selectedMode]: newVersion }));
       toast({ title: 'Published!', description: `Successfully published version ${newVersion.version}.` });
@@ -342,7 +345,7 @@ export default function BirdIdentifierPromptEditorPage() {
                     </SelectContent>
                     </Select>
                     <Button onClick={handleRecallVersion} variant="outline" size="sm" disabled={!currentContent}>
-                        <History className="mr-2 h-4 w-4" /> Recall this Version
+                        <History className="mr-2 h-4 w-4" /> Recall
                     </Button>
                 </div>
               </CardHeader>
@@ -370,17 +373,41 @@ export default function BirdIdentifierPromptEditorPage() {
                   disabled={!selectedCategory}
                 />
               </CardContent>
-              <CardFooter>
-                 <div className="flex items-center gap-2 mt-2">
+              <CardFooter className="flex-col items-start gap-4">
+                 <div className="flex items-center gap-2">
                     <Button onClick={handleSaveContent} disabled={isSaving || !selectedCategory || !newPromptText}>
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                         Save as New Version
                     </Button>
-                    <Button size="lg" onClick={handlePublish} disabled={isPublishing || hasUnsavedChanges} title={hasUnsavedChanges ? "You must save your new prompt text before publishing." : ""}>
-                        {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Publish New '{selectedMode}' AI Version
-                    </Button>
                   </div>
+                   <div className="flex items-center gap-2">
+                     <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div tabIndex={0}> {/* Wrapper for Tooltip with disabled button */}
+                            <Button size="lg" onClick={handlePublish} disabled={isPublishing || hasUnsavedChanges}>
+                                {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                Publish New AI Version
+                            </Button>
+                          </div>
+                        </TooltipTrigger>
+                        {hasUnsavedChanges && (
+                          <TooltipContent>
+                            <p>You must save your new prompt text before publishing.</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
+                    <Select value={versionType} onValueChange={(v) => setVersionType(v as 'minor' | 'major')}>
+                        <SelectTrigger className="w-[140px]">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="minor">Minor-Ver</SelectItem>
+                            <SelectItem value="major">Major-Ver</SelectItem>
+                        </SelectContent>
+                    </Select>
+                   </div>
               </CardFooter>
             </Card>
           </>

@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString, getMetadata } from 'firebase/storage';
@@ -235,20 +236,27 @@ interface PublishNewPromptVersionInput {
     systemId: string;
     composedPrompts: Record<string, string>;
     previousVersion?: string;
+    versionType: 'major' | 'minor';
 }
 
 /**
  * Creates a new "overarching AI" version document and updates the system's activeVersion.
  */
 export async function publishNewPromptVersion(data: PublishNewPromptVersionInput): Promise<PromptVersion> {
-    const { systemId, composedPrompts, previousVersion } = data;
+    const { systemId, composedPrompts, previousVersion, versionType } = data;
 
-    // 1. Determine new version string (e.g., v1.0 -> v1.1 or v1.9 -> v2.0)
+    // 1. Determine new version string based on type
     let newVersionString = 'v1.0';
     if (previousVersion) {
         const parts = previousVersion.substring(1).split('.').map(Number);
-        parts[parts.length - 1] += 1;
-        newVersionString = 'v' + parts.join('.');
+        const major = parts[0] || 0;
+        const minor = parts[1] || 0;
+
+        if (versionType === 'major') {
+            newVersionString = `v${major + 1}.0`;
+        } else {
+            newVersionString = `v${major}.${minor + 1}`;
+        }
     }
 
     // 2. Create the new prompt_versions document
