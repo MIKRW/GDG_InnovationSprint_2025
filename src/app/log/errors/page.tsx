@@ -3,14 +3,14 @@
 
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
-import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
 import { PageTitle } from '@/components/content/PageTitle';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { db } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
+import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
 
 interface ErrorInstance {
     id: string;
@@ -57,8 +57,7 @@ export default function ErrorLogPage() {
   }
 
   return (
-    <AppLayout header={<SecondaryHeader title="Error Logs" />}>
-      <main className="flex-1 overflow-y-auto p-4 md:p-6">
+    <>
         <PageTitle>Application Error Log</PageTitle>
         <p className="text-muted-foreground mb-6">
           This log contains all error instances captured by the application's logging service.
@@ -105,8 +104,6 @@ export default function ErrorLogPage() {
                 </Card>
             ))}
         </div>
-      </main>
-      <SecondaryPageFooterV2 />
-    </AppLayout>
+    </>
   );
 }

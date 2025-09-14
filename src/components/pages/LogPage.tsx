@@ -1,11 +1,10 @@
 
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { groupBy } from 'lodash';
 
 import type { BirdLog, SortOption } from '@/lib/types';
@@ -15,7 +14,6 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { PageTitle } from '../content/PageTitle';
 import { FlaskConical, HelpCircle, ShieldAlert, Loader2, Mic } from 'lucide-react';
-import { SecondaryPageFooterV2 } from '../layout/SecondaryPageFooterV2';
 import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
 
@@ -70,7 +68,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
 
     const filtered = identifiedLogs.filter(log =>
         log.commonName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        log.scientificName.toLowerCase().includes(searchQuery.toLowerCase())
+        (log.scientificName && log.scientificName.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
     const sorted = [...filtered].sort((a, b) => {
@@ -97,9 +95,9 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
 
 
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8">
+    <>
        {isDevMode && (
-          <div>
+          <div className="mb-8">
             <h2 className="text-sm font-semibold uppercase text-muted-foreground tracking-wider mb-2">
                 Developer Tools
             </h2>
@@ -168,57 +166,60 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
       ): (
         <>
             {groupedAndSortedLogs.hasMystery && (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    <Link href="/log/mystery">
-                        <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-secondary cursor-pointer">
-                        <CardContent className="p-0 flex-grow flex items-center justify-center">
-                            <div className="aspect-square relative w-full flex items-center justify-center">
-                                <HelpCircle className="w-24 h-24 text-secondary-foreground" />
-                            </div>
-                        </CardContent>
-                        <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
-                            <div className="text-left">
-                            <p className="font-bold text-sm truncate">Mystery Recordings</p>
-                            <p className="text-xs text-muted-foreground truncate italic">Unidentified bird songs</p>
-                            </div>
-                        </CardFooter>
-                        </Card>
-                    </Link>
+                <div className="mb-8">
+                  <h2 className="text-sm font-semibold uppercase text-muted-foreground tracking-wider mb-2">
+                      Review
+                  </h2>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      <Link href="/log/mystery">
+                          <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-secondary cursor-pointer">
+                          <CardContent className="p-0 flex-grow flex items-center justify-center">
+                              <div className="aspect-square relative w-full flex items-center justify-center">
+                                  <HelpCircle className="w-24 h-24 text-secondary-foreground" />
+                              </div>
+                          </CardContent>
+                          <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
+                              <div className="text-left">
+                              <p className="font-bold text-sm truncate">Mystery Recordings</p>
+                              <p className="text-xs text-muted-foreground truncate italic">Unidentified bird songs</p>
+                              </div>
+                          </CardFooter>
+                          </Card>
+                      </Link>
+                  </div>
                 </div>
             )}
             
-            {Object.entries(groupedAndSortedLogs.groupedSessions).map(([sessionId, logs]) => (
-                <div key={sessionId}>
+            {Object.entries(groupedAndSortedLogs.groupedSessions).length > 0 && Object.entries(groupedAndSortedLogs.groupedSessions).map(([sessionId, logs]) => (
+                <div key={sessionId} className="mb-8">
                     <h2 className="text-sm font-semibold uppercase text-muted-foreground tracking-wider mb-2">
                         Recording Session - {new Date(logs[0].timestamp).toLocaleString()}
                     </h2>
-                    <Card className="p-4">
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        {logs.map((log) => (
-                            <Link href={`/log/${log.id}`} key={log.id}>
-                            <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer">
-                                <CardContent className="p-0 flex-grow">
-                                <div className="aspect-square relative w-full">
-                                    <Image
-                                    src={`https://picsum.photos/seed/${log.id}/400/400`}
-                                    alt={log.commonName}
-                                    fill
-                                    className="object-cover"
-                                    data-ai-hint={log.imagePrompt}
-                                    />
-                                </div>
-                                </CardContent>
-                                <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
-                                <div className="text-left">
-                                    <p className="font-bold text-sm truncate">{log.commonName}</p>
-                                    <p className="text-xs text-muted-foreground truncate italic">{log.scientificName}</p>
-                                </div>
-                                </CardFooter>
-                            </Card>
-                            </Link>
-                        ))}
-                        </div>
-                    </Card>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {logs.map((log) => (
+                        <Link href={`/log/${log.id}`} key={log.id}>
+                        <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer">
+                            <CardContent className="p-0 flex-grow">
+                            <div className="aspect-square relative w-full">
+                                <Image
+                                src={`https://picsum.photos/seed/${log.id}/400/400`}
+                                alt={log.commonName}
+                                fill
+                                className="object-cover"
+                                data-ai-hint={log.imagePrompt}
+                                />
+                            </div>
+                            </CardContent>
+                            <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
+                            <div className="text-left">
+                                <p className="font-bold text-sm truncate">{log.commonName}</p>
+                                <p className="text-xs text-muted-foreground truncate italic">{log.scientificName}</p>
+                            </div>
+                            </CardFooter>
+                        </Card>
+                        </Link>
+                    ))}
+                    </div>
                 </div>
             ))}
 
@@ -239,6 +240,6 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
             )}
         </>
       )}
-    </div>
+    </>
   );
 }

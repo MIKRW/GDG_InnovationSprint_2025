@@ -63,52 +63,49 @@ export default function LiveTestLogPage() {
   }
 
   return (
-    <AppLayout header={<SecondaryHeader title="Live Test Results" />}>
-      <main className="flex-1 overflow-y-auto p-4 md:p-6">
-        <PageTitle>Live Recording Test History</PageTitle>
-        <p className="text-muted-foreground mb-6">
-          This log contains results from using the main Record button in developer mode.
-        </p>
-        <div className="space-y-4">
-            {loading && (
-                <>
-                    <Skeleton className="w-full h-32" />
-                    <Skeleton className="w-full h-32" />
-                </>
-            )}
-            {!loading && testRuns.length === 0 && (
-                <Card className="p-4">
-                    <p className="text-muted-foreground">No live tests have been logged yet. Use the main Record button to capture audio and create a test run.</p>
-                </Card>
-            )}
-            {testRuns.map((run) => (
-                <Card key={run.id}>
-                    <CardHeader>
-                        <CardTitle className="text-xl flex justify-between items-center">
-                            <span>
-                                {run.aiResult.isBirdSong ? run.aiResult.commonName : "No Bird Identified"}
-                            </span>
-                             <Badge variant={run.aiResult.isBirdSong ? 'default' : 'destructive'}>
-                                {run.aiResult.isBirdSong ? "Success" : "Failure"}
-                            </Badge>
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                            {new Date(run.timestamp).toLocaleString()} &bull; Prompt v{run.promptVersion}
-                        </p>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="italic text-muted-foreground">
-                            {run.aiResult.scientificName || "N/A"}
-                        </p>
-                         <p className="mt-2 text-sm">
-                            {run.aiResult.description || "The AI could not identify a bird in the audio."}
-                        </p>
-                    </CardContent>
-                </Card>
-            ))}
-        </div>
-      </main>
-      <SecondaryPageFooterV2 />
-    </AppLayout>
+    <>
+      <PageTitle>Live Recording Test History</PageTitle>
+      <p className="text-muted-foreground mb-6">
+        This log contains results from using the main Record button in developer mode.
+      </p>
+      <div className="space-y-4">
+          {loading && (
+              <>
+                  <Skeleton className="w-full h-32" />
+                  <Skeleton className="w-full h-32" />
+              </>
+          )}
+          {!loading && testRuns.length === 0 && (
+              <Card className="p-4">
+                  <p className="text-muted-foreground">No live tests have been logged yet. Use the main Record button to capture audio and create a test run.</p>
+              </Card>
+          )}
+          {testRuns.map((run) => (
+              <Card key={run.id}>
+                  <CardHeader>
+                      <CardTitle className="text-xl flex justify-between items-center">
+                          <span>
+                              {run.aiResult.isBirdSong ? run.aiResult.commonName : "No Bird Identified"}
+                          </span>
+                           <Badge variant={run.aiResult.isBirdSong ? 'default' : 'destructive'}>
+                              {run.aiResult.isBirdSong ? "Success" : "Failure"}
+                          </Badge>
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                          {new Date(run.timestamp).toLocaleString()} &bull; Prompt v{run.promptVersion}
+                      </p>
+                  </CardHeader>
+                  <CardContent>
+                      <p className="italic text-muted-foreground">
+                          {run.aiResult.scientificName || "N/A"}
+                      </p>
+                       <p className="mt-2 text-sm">
+                          {run.aiResult.description || "The AI could not identify a bird in the audio."}
+                      </p>
+                  </CardContent>
+              </Card>
+          ))}
+      </div>
+    </>
   );
 }

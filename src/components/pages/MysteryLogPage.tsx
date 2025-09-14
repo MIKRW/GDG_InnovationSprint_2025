@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -105,37 +104,35 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {filteredAndSortedLogs.map((log) => (
-          <Link href={`/log/${log.id}`} key={log.id}>
-            <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer">
-              <CardContent className="p-0 flex-grow flex items-center justify-center bg-muted">
-                <div className="aspect-square relative w-full flex items-center justify-center">
-                   <Image
-                    src={`https://picsum.photos/seed/mystery-${log.id}/400/400`}
-                    alt={log.commonName}
-                    fill
-                    className="object-cover"
-                    data-ai-hint={log.imagePrompt}
-                  />
-                </div>
-              </CardContent>
-              <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
-                <div className="text-left">
-                  <p className="font-bold text-sm truncate">{log.commonName}</p>
-                  <p className="text-xs text-muted-foreground truncate italic">Captured: {new Date(log.timestamp).toLocaleDateString()}</p>
-                </div>
-              </CardFooter>
-            </Card>
-          </Link>
-        ))}
-      </div>
-       {filteredAndSortedLogs.length === 0 && searchQuery && (
-           <div className="col-span-full text-center py-16">
-                <p className="text-lg text-muted-foreground">No results found for "{searchQuery}".</p>
-           </div>
-       )}
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {filteredAndSortedLogs.map((log) => (
+        <Link href={`/log/${log.id}`} key={log.id}>
+          <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer">
+            <CardContent className="p-0 flex-grow flex items-center justify-center bg-muted">
+              <div className="aspect-square relative w-full flex items-center justify-center">
+                 <Image
+                  src={`https://picsum.photos/seed/mystery-${log.id}/400/400`}
+                  alt={log.commonName}
+                  fill
+                  className="object-cover"
+                  data-ai-hint={log.imagePrompt}
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
+              <div className="text-left">
+                <p className="font-bold text-sm truncate">{log.commonName}</p>
+                <p className="text-xs text-muted-foreground truncate italic">Captured: {new Date(log.timestamp).toLocaleDateString()}</p>
+              </div>
+            </CardFooter>
+          </Card>
+        </Link>
+      ))}
+      {filteredAndSortedLogs.length === 0 && searchQuery && (
+         <div className="col-span-full text-center py-16">
+              <p className="text-lg text-muted-foreground">No results found for "{searchQuery}".</p>
+         </div>
+     )}
     </div>
   );
 }

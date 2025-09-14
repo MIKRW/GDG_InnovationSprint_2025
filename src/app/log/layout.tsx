@@ -34,10 +34,15 @@ export default function LogLayout({
     }
     return 'Bird Book';
   }, [pathname]);
+  
+  const showSearch = !pathname.startsWith('/log/test') && !pathname.startsWith('/log/errors');
 
   const childrenWithProps = React.Children.map(children, (child) => {
     if (React.isValidElement(child)) {
-      return React.cloneElement(child, { searchQuery, sortOption } as any);
+      // Pass props only if the child is one of our main log pages
+      if (pathname === '/log' || pathname === '/log/mystery') {
+        return React.cloneElement(child, { searchQuery, sortOption } as any);
+      }
     }
     return child;
   });
@@ -49,10 +54,11 @@ export default function LogLayout({
           title={title}
           onSearchChange={setSearchQuery}
           onSortChange={setSortOption}
+          showSearchAndSort={showSearch}
         />
       }
     >
-      <main className="flex-1 overflow-y-auto bg-muted">
+      <main className="flex-1 overflow-y-auto bg-muted p-4 md:p-6">
          {childrenWithProps}
       </main>
       <SecondaryPageFooterV2 />
