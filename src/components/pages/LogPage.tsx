@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { collection, query, onSnapshot, orderBy, where } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, where, or, and, Query } from 'firebase/firestore';
 import { groupBy } from 'lodash';
 
 import type { BirdLog, SortOption } from '@/lib/types';
@@ -35,25 +35,64 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
       return; // Wait for auth to finish
     }
     if (!user) {
-      // If auth is done and there's no user, stop loading and show empty state.
       console.warn("Log page cannot fetch data: No user authenticated.");
       setLoading(false);
       setAllLogs([]);
       return;
     }
 
-    // User is authenticated, fetch their data
     setLoading(true);
     const logsCollectionRef = collection(db, 'users', user.uid, 'identifications');
-    const q = query(
-        logsCollectionRef, 
-        where('isDisowned', '==', false)
-    );
+    
+    // Base query
+    let q: Query = query(logsCollectionRef);
+
+    // Apply base filters
+    q = query(q, where('isDisowned', '==', false), where('isMystery', '==', false));
+
+    // Apply search filter if there is a query
+    if (searchQuery) {
+        const lowerCaseQuery = searchQuery.toLowerCase();
+        q = query(q, or(
+            where('commonName', '>=', lowerCaseQuery),
+            where('commonName', '<=', lowerCaseQuery + '\uf8ff'),
+            where('scientificName', '>=', lowerCaseQuery),
+            where('scientificName', '<=', lowerCaseQuery + '\uf8ff')
+        ));
+    }
+
+    // Apply sorting
+    switch (sortOption) {
+        case 'a-z':
+            q = query(q, orderBy('commonName', 'asc'));
+            break;
+        case 'z-a':
+            q = query(q, orderBy('commonName', 'desc'));
+            break;
+        case 'oldest':
+            q = query(q, orderBy('timestamp', 'asc'));
+            break;
+        case 'newest':
+        default:
+            q = query(q, orderBy('timestamp', 'desc'));
+            break;
+    }
+
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const logs: BirdLog[] = [];
         querySnapshot.forEach((doc) => {
-            logs.push({ id: doc.id, ...doc.data() } as BirdLog);
+            // Client-side filtering for case-insensitivity
+            const data = doc.data() as BirdLog;
+            if (searchQuery) {
+                const commonNameMatch = data.commonName.toLowerCase().includes(searchQuery.toLowerCase());
+                const scientificNameMatch = data.scientificName?.toLowerCase().includes(searchQuery.toLowerCase());
+                if (commonNameMatch || scientificNameMatch) {
+                    logs.push({ id: doc.id, ...data });
+                }
+            } else {
+                 logs.push({ id: doc.id, ...data });
+            }
         });
         setAllLogs(logs);
         setLoading(false);
@@ -63,34 +102,28 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
     });
 
     return () => unsubscribe();
-  }, [user, authLoading]);
+  }, [user, authLoading, sortOption, searchQuery]);
 
-  const groupedAndSortedLogs = useMemo(() => {
-    const identifiedLogs = allLogs.filter(log => !log.isMystery);
+  const { groupedSessions, hasMystery } = useMemo(() => {
+    // We get all logs (identified and mystery) in a separate query to check for the mystery button
     const hasMysteryLogs = allLogs.some(log => log.isMystery);
-
-    const filtered = identifiedLogs.filter(log =>
-        log.commonName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (log.scientificName && log.scientificName.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
-
-    // Client-side sorting
-    const sorted = [...filtered].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-    if (sortOption === 'a-z') {
-        sorted.sort((a, b) => a.commonName.localeCompare(b.commonName));
-    } else if (sortOption === 'z-a') {
-        sorted.sort((a, b) => b.commonName.localeCompare(a.commonName));
-    } else if (sortOption === 'oldest') {
-        sorted.reverse(); // The default sort is newest, so we just reverse it for oldest
-    }
-    
     // Group by sessionId
-    const groupedBySession = groupBy(sorted, 'sessionId');
+    const groupedBySession = groupBy(allLogs, 'sessionId');
 
     return { groupedSessions: groupedBySession, hasMystery: hasMysteryLogs };
+  }, [allLogs]);
 
-  }, [allLogs, searchQuery, sortOption]);
+
+  // Separate effect to check for any mystery logs
+  const [hasMysteryLogs, setHasMysteryLogs] = useState(false);
+  useEffect(() => {
+    if(!user) return;
+    const mysteryQuery = query(collection(db, 'users', user.uid, 'identifications'), where('isMystery', '==', true), where('isDisowned', '==', false));
+    const unsub = onSnapshot(mysteryQuery, (snapshot) => {
+        setHasMysteryLogs(!snapshot.empty);
+    });
+    return () => unsub();
+  }, [user]);
 
 
   return (
@@ -164,7 +197,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
            </div>
       ): (
         <>
-            {groupedAndSortedLogs.hasMystery && (
+            {hasMysteryLogs && (
                 <div className="mb-8">
                   <h2 className="text-sm font-semibold uppercase text-muted-foreground tracking-wider mb-2">
                       Review
@@ -189,7 +222,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                 </div>
             )}
             
-            {Object.entries(groupedAndSortedLogs.groupedSessions).length > 0 && Object.entries(groupedAndSortedLogs.groupedSessions).map(([sessionId, logs]) => (
+            {Object.entries(groupedSessions).length > 0 && Object.entries(groupedSessions).map(([sessionId, logs]) => (
                 <div key={sessionId} className="mb-8">
                     <h2 className="text-sm font-semibold uppercase text-muted-foreground tracking-wider mb-2">
                         Recording Session - {new Date(logs[0].timestamp).toLocaleString()}
@@ -222,13 +255,13 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                 </div>
             ))}
 
-            {Object.keys(groupedAndSortedLogs.groupedSessions).length === 0 && searchQuery && !loading && (
+            {allLogs.length === 0 && searchQuery && !loading && (
                 <div className="col-span-full text-center py-16">
                     <p className="text-lg text-muted-foreground">No results found for "{searchQuery}".</p>
                 </div>
             )}
 
-            {allLogs.length === 0 && !loading && (
+            {allLogs.length === 0 && !hasMysteryLogs && !loading && (
                  <div className="text-center py-16">
                     <PageTitle>Your Bird Book is Empty</PageTitle>
                     <p className="mt-4 text-muted-foreground">You haven't identified any birds yet.</p>
