@@ -400,9 +400,9 @@ export default function BirdIdentifierPromptEditorPage() {
         </CardContent>
       </Card>
 
-      <div className="mt-8 text-center">
-          <Card className="w-full">
-            <CardHeader>
+      <div className="mt-8 w-full">
+          <Card>
+            <CardHeader className="text-center">
                 <CardTitle>Prompt Category</CardTitle>
             </CardHeader>
             <CardContent className="flex justify-center items-center gap-2">
