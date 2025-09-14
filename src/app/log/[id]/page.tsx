@@ -3,11 +3,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { notFound, useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 
-import type { BirdLog } from '@/lib/types';
+import type { BirdLog, AnalysisRun } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 
@@ -30,6 +30,7 @@ export default function LogDetailPage() {
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { user, loading: authLoading } = useAuth();
   const [log, setLog] = useState<BirdLog | null | undefined>(undefined);
+  const [analysisRun, setAnalysisRun] = useState<AnalysisRun | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -46,13 +47,22 @@ export default function LogDetailPage() {
 
     const logDocRef = doc(db, 'users', user.uid, 'identifications', id);
     
-    const unsubscribe = onSnapshot(logDocRef, (docSnap) => {
+    const unsubscribe = onSnapshot(logDocRef, async (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data() as BirdLog;
         if (data.status === 'trashed') {
             setLog(null); // Treat trashed logs as not found in this view
         } else {
-            setLog({ id: docSnap.id, ...data });
+            const logData = { id: docSnap.id, ...data };
+            setLog(logData);
+            // Fetch associated analysis run
+            if(logData.analysisRunId) {
+                const analysisRunRef = doc(db, 'all_analysis_runs', logData.analysisRunId);
+                const analysisRunSnap = await getDoc(analysisRunRef);
+                if (analysisRunSnap.exists()) {
+                    setAnalysisRun(analysisRunSnap.data() as AnalysisRun);
+                }
+            }
         }
       } else {
         setLog(null); // Not found
@@ -173,6 +183,11 @@ export default function LogDetailPage() {
                         <Badge variant="outline">
                           {log.season}
                         </Badge>
+                      )}
+                      {analysisRun?.appAIVersion && (
+                          <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+                             {analysisRun.appAIVersion}
+                          </Badge>
                       )}
                 </div>
               </CardContent>

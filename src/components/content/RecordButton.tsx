@@ -134,14 +134,26 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       return null;
     }
 
-    // 1. Upload audio to Firebase Storage
+    // 1. Get the active App AI Version
+    let appAIVersion = 'unknown';
+    try {
+        const configDoc = await getDoc(doc(db, 'app_ai_config', 'main'));
+        if (configDoc.exists()) {
+            appAIVersion = configDoc.data().activeAppAIVersion || 'v0.0';
+        }
+    } catch (error) {
+        console.error("Could not fetch active App AI version", error);
+    }
+
+
+    // 2. Upload audio to Firebase Storage
     const audioId = uuidv4();
     const filePath = `users/${user.uid}/recordings/${audioId}.webm`;
     const fileRef = storageRef(storage, filePath);
     await uploadString(fileRef, audioDataUri, 'data_url');
     const downloadURL = await getDownloadURL(fileRef);
 
-    // 2. Create the analysis document
+    // 3. Create the analysis document
     const analysisRunId = uuidv4();
     const analysisRunRef = doc(db, 'all_analysis_runs', analysisRunId);
 
@@ -158,6 +170,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         locationDescription: locationData?.locationDescription ?? null,
       },
       analysisMethod: `gemini-pro-vision-prompt-v${PROMPT_VERSION}`,
+      appAIVersion: `App AI ${appAIVersion}`,
       aiResult: aiResult,
       wasSuccessful: wasSuccessful,
       wasSavedByUser: false, 

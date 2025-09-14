@@ -48,6 +48,7 @@ export type BirdLog = {
     weather?: string; // e.g., 'Clear, 15°C, light breeze'
     season?: string; // e.g., 'Summer'
     mode: AppMode; // To differentiate between 'newbie' and 'twitcher' data
+    appAIVersion?: string; // The overall version of all combined AI prompts
 }
 
 export type AnalysisRun = {
@@ -63,7 +64,8 @@ export type AnalysisRun = {
     longitude?: number;
     locationDescription?: string;
   };
-  analysisMethod: string;
+  analysisMethod: string; // The specific AI system and version used, e.g., 'bird-identifier-newbie-v1.1'
+  appAIVersion?: string; // The overall version of all combined AI prompts, e.g., 'App AI v1.0'
   aiResult: {
     isBirdSong: boolean;
     commonName?: string;
@@ -157,15 +159,27 @@ export interface TestAudioMetadata {
 
 // Prompt Management System Types
 
+export interface AppAIConfig {
+    id: string; // Should be a singleton, e.g., 'main'
+    activeAppAIVersion: string; // e.g., 'v1.0'
+}
+
+export interface AppAIVersion {
+    id: string; // e.g., 'v1.0'
+    version: string;
+    timestamp: string;
+    systems: Record<string, string>; // Maps systemId to a prompt_version document ID
+}
+
 export interface PromptSystem {
-    id: string; // e.g., 'bird-identifier-ai'
+    id: string; // e.g., 'bird-identifier-ai-newbie'
     name: string;
     description: string;
     activeVersion: string; // e.g., 'v1.1'
 }
 
 export interface PromptVersion {
-    id: string; // e.g., 'bird-identifier-ai-v1.1'
+    id: string; // e.g., 'bird-identifier-ai-newbie-v1-1'
     systemId: string;
     version: string;
     timestamp: string;
@@ -173,7 +187,7 @@ export interface PromptVersion {
 }
 
 export interface PromptContent {
-    id: string; // e.g., 'location_handling_v1.2'
+    id: string; // e.g., 'location_handling_v1'
     systemId: string;
     categoryId: string; // e.g., 'location_handling'
     version: number;

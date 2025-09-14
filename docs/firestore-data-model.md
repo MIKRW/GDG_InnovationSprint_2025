@@ -2,62 +2,82 @@
 
 # Firestore Data Architecture Plan
 
-This document outlines the complete data architecture for the ChirpID application, covering both developer testing and live user data. This architecture is designed to be robust, scalable, and secure.
+This document outlines the complete data architecture for the ChirpID application, covering developer testing, live user data, and the prompt management system. This architecture is designed to be robust, scalable, and secure.
 
 ---
 
-## Part 1: The Developer/Test Data Model
+## Part 1: Core App Data
 
-This model is designed for our internal, controlled testing. It is structured around a single, flat collection that allows for powerful cross-species querying and analysis. To enable efficient searching and filtering by scientific classification, each test run document will include the bird's taxonomic family and order.
+### User and Species Data
 
-*   **Top-Level Collection:** `birds`
+*   **Collection:** `users`
+    *   The top-level collection for all user-specific data.
+    *   **Document ID:** `USER_UID_FROM_AUTH`
+    *   **Subcollection:** `identifications`
+        *   The user's personal "Bird Book". Contains a document for each saved identification.
+        *   **Document (ID: `UNIQUE_LOG_ID`):** `BirdLog` object.
+    *   **Subcollection:** `themes`
+        *   Contains documents for each of the user's saved theme slots.
+
+*   **Collection:** `birds`
     *   This collection stores the canonical information about each bird species. It serves as the master record.
-    *   **Document:** `birds/australian-magpie`
-        *   `commonName`: "Australian Magpie"
-        *   `scientificName`: "Gymnorhina tibicen"
-        *   `family`: "Artamidae"
-        *   `order`: "Passeriformes"
-        *   `canonicalImageUrls`: (map) A collection of URLs for standard images.
-            *   `key`: "https://firebasestorage.googleapis.com/..." (The primary, clearest image)
-            *   `side_profile`: "https://firebasestorage.googleapis.com/..."
-            *   `male`: "https://firebasestorage.googleapis.com/..."
-            *   `female`: "https://firebasestorage.googleapis.com/..."
-        *   `masterAudioFiles`: An array of metadata for the master test recordings.
-            *   `audioId`: "magpie-warble-1"
-            *   `storagePath`: "master-audio/magpie-warble-1.wav"
-            *   `description`: "The sound of a magpie in Fryers Forest."
-            *   ... other metadata like author, license, etc.
+    *   **Document ID:** `kebab-case-common-name` (e.g., `australian-magpie`)
+    *   **Fields:**
+        *   `commonName`, `scientificName`, `family`, `order` (string)
+        *   `canonicalImageUrls`: (map) URLs for standard images.
+        *   `masterAudioFiles`: (array) Metadata for master test recordings.
 
-*   **Top-Level Collection:** `all_test_runs`
-    *   This flat collection contains a document for every single AI analysis run performed in developer mode.
-    *   **Document (ID: `UNIQUE_TEST_RUN_ID`):**
-        *   `birdId`: "australian-magpie" (links to the `birds` collection)
-        *   `testAudioId`: "magpie-warble-1" (identifies which master audio was used)
-        *   `timestamp`: The time of the analysis.
-        *   `promptVersion`: The version of the AI prompt used.
-        *   `aiResult`: The full, raw output from the AI model.
-        *   `wasSuccessful`: A boolean indicating if the AI correctly identified the bird.
+### Analysis & Test Run Data
 
-*   **Top-Level Collection:** `prompt_systems`
-    *   Stores the high-level definition for each "overarching AI".
+These flat collections are designed for powerful querying and analysis.
+
+*   **Collection:** `all_analysis_runs`
+    *   Our comprehensive, internal log of every single analysis performed by the app in live mode.
+    *   **Document (ID: `UNIQUE_RUN_ID`):** `AnalysisRun` object. This includes all inputs, AI results, and user feedback.
+
+*   **Collection:** `all_test_runs`
+    *   Contains a document for every single AI analysis run performed in developer mode using master audio files.
+    *   **Document (ID: `UNIQUE_TEST_RUN_ID`):** `AnalysisRun` object, with additional test-specific context.
+
+---
+
+## Part 2: The Prompt Management System
+
+This model provides a multi-tiered, version-controlled system for managing all AI prompts.
+
+*   **Collection:** `app_ai_config`
+    *   Stores the global configuration for the prompt system.
+    *   **Document (ID: `main`):** A singleton document.
+        *   `activeAppAIVersion`: (string) The version string of the currently live App AI Version (e.g., "v1.0").
+
+*   **Collection:** `app_ai_versions`
+    *   The highest level of versioning. Each document is a manifest of an entire "App AI" state.
+    *   **Document (ID: `v1_0`):**
+        *   `version`: "v1.0"
+        *   `timestamp`: The time this version was published.
+        *   `systems`: A map linking `systemId` to a specific `prompt_version` document ID.
+            *   `bird-identifier-ai-newbie`: "bird-identifier-ai-newbie-v1-1"
+            *   `theme-generator-ai`: "theme-generator-ai-v1-0"
+
+*   **Collection:** `prompt_systems`
+    *   Stores the definition for each "overarching AI system".
     *   **Document (ID: `bird-identifier-ai-newbie`):**
         *   `name`: "Bird Identifier AI (Newbie)"
-        *   `description`: "Manages all prompts related to identifying birds from audio in Newbie mode."
-        *   `activeVersion`: "v1.0" (The currently live version of this AI system)
+        *   `description`: "Manages prompts for identifying birds in Newbie mode."
+        *   `activeVersion`: "v1.1" (The currently live version for this specific system)
 
-*   **Top-Level Collection:** `prompt_versions`
-    *   A historical log of every saved version of an overarching AI.
-    *   **Document (ID: `bird-identifier-ai-newbie-v1-0`):**
+*   **Collection:** `prompt_versions`
+    *   A historical log of every saved version of an overarching AI system.
+    *   **Document (ID: `bird-identifier-ai-newbie-v1-1`):**
         *   `systemId`: "bird-identifier-ai-newbie"
-        *   `version`: "v1.0"
+        *   `version`: "v1.1"
         *   `timestamp`: The time this version was saved.
-        *   `composedPrompts`: A map linking prompt categories to specific prompt content versions.
-            *   `base_instruction`: "base_instruction_v1"
+        *   `composedPrompts`: A map linking a prompt category to a specific `prompt_content` document ID.
+            *   `base_instruction`: "base_instruction_v2"
             *   `location_handling`: "location_handling_v1"
-            *   `audio_quality`: "audio_quality_v1"
 
-*   **Top-Level Collection:** `prompt_content`
-    *   Stores the actual text content for every version of every sub-prompt.
+*   **Collection:** `prompt_content`
+    *   Stores the actual text content for every version of every individual sub-prompt.
     *   **Document (ID: `location_handling_v1`):**
         *   `systemId`: "bird-identifier-ai-newbie"
         *   `categoryId`: "location_handling"
@@ -68,46 +88,14 @@ This model is designed for our internal, controlled testing. It is structured ar
 
 ---
 
-## Part 2: The Live User Data Model
+## Part 3: Other Collections
 
-This professional, two-tiered model perfectly separates our need for analytical data from the user's control over their personal log.
-
-*   **Tier 1: The Internal Analysis Log (Invisible to Users)**
-    *   This collection is our comprehensive, internal log of every single analysis performed by the app. It uses a flat structure for maximum query flexibility.
-    *   **Top-Level Collection:** `all_analysis_runs`
-        *   **Document (ID: `UNIQUE_RUN_ID`):**
-            *   `timestamp`: The time of the analysis.
-            *   `userId`: The user's unique ID from Firebase Auth.
-            *   `sessionId`: A UUID to group multiple analyses from a single recording session (e.g., if multiple birds are identified).
-            *   `parentRunId`: (Optional) If this run is on a processed sub-recording, this is the ID of the original run.
-            *   `inputAudioUrl`: The path to the user's recording in Firebase Storage.
-            *   `habitatPhotoUrl`: (string, optional) Path to a user-uploaded habitat photo.
-            *   `locationData`: Any location info provided by the user.
-            *   `analysisMethod`: A string identifying the AI model and prompt system version used (e.g., 'bird-identifier-ai-v1.1').
-            *   `processingMethod`: (Optional) A tag describing how audio was altered (e.g., 'noise-reduced-v1', 'call-isolation-v1').
-            *   `aiResult`: The complete, raw output from the AI.
-            *   `wasSuccessful`: A boolean indicating if the AI identified a bird.
-            *   `wasSavedByUser`: A boolean flag, set to `true` only if the user chooses to save the result to their log.
-            *   `dataQualityScore`: A calculated score indicating the reliability and value of this data point.
-
-*   **Tier 2: The User-Facing "Bird Book" (Visible to Users)**
-    *   This collection contains only the identifications that users have explicitly saved. It's their personal, curated album, synced to the cloud.
-    *   **Top-Level Collection:** `users`
-        *   **Document (ID: `USER_UID_FROM_AUTH`):**
-            *   **Subcollection:** `identifications`
-                *   **Document (ID: `UNIQUE_LOG_ID`):**
-                    *   Contains the user-facing data: `commonName`, `scientificName`, `family`, `order`, `description`, `audioUrl`, `imageUrl` (the canonical URL), `userImageUrl` (optional, user-specific photo URL), etc.
-            *   **Subcollection:** `themes`
-                *   Contains documents for each of the user's saved theme slots (e.g., '0', '1', '2').
-            *   **Subcollection:** `user_media`
-                *   **Document (ID: `UNIQUE_MEDIA_ID`):**
-                    *   `storagePath`: Path to the user-uploaded file in `users/{userId}/uploads/{mediaId}`.
-                    *   `type`: 'habitat-photo' or 'bird-photo'.
-                    *   `timestamp`: Upload timestamp.
+*   **Collection:** `error_definitions` & `error_instances`
+    *   Used for structured error logging as defined in `docs/ERROR_LOG.md`.
 
 ---
 
-## Part 3: Long-Term Data Strategy
+## Part 4: Long-Term Data Strategy
 
 This section outlines key architectural decisions and long-term strategies for user account management and data retention.
 
