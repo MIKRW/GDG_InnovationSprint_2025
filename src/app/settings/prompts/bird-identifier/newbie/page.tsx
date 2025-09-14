@@ -55,19 +55,27 @@ export default function NewbiePromptEditorPage() {
           orderBy('version', 'desc')
         );
         const versionsSnapshot = await getDocs(versionsQuery);
-        const latestVersion = versionsSnapshot.docs[0]?.data() as PromptVersion | undefined;
+        const latestVersionDoc = versionsSnapshot.docs[0];
         
-        if (latestVersion) {
+        let initialCategories = ['base_instruction', 'location_handling', 'audio_quality'];
+        let initialSelected: Record<string, string> = {};
+
+        if (latestVersionDoc) {
+            const latestVersion = { id: latestVersionDoc.id, ...latestVersionDoc.data() } as PromptVersion;
             setActiveVersion(latestVersion);
-            const initialSelected: Record<string, string> = {};
+            initialCategories = Object.keys(latestVersion.composedPrompts);
             Object.keys(latestVersion.composedPrompts).forEach(key => {
                 initialSelected[key] = latestVersion.composedPrompts[key];
             });
             setSelectedVersions(initialSelected);
+        } else {
+            // Handle case where there are no versions yet for this system
+            initialCategories.forEach(cat => { initialSelected[cat] = ''; });
+            setSelectedVersions(initialSelected);
+        }
 
-            // 2. Fetch all content for each category
-            const allCategories = Object.keys(latestVersion.composedPrompts);
-            const contentPromises = allCategories.map(async (category) => {
+        // 2. Fetch all content for each category
+        const contentPromises = initialCategories.map(async (category) => {
             const contentQuery = query(
                 collection(db, 'prompt_content'),
                 where('systemId', '==', SYSTEM_ID),
@@ -77,27 +85,20 @@ export default function NewbiePromptEditorPage() {
             const contentSnapshot = await getDocs(contentQuery);
             const contents = contentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptContent));
             return { category, contents };
-            });
+        });
 
-            const results = await Promise.all(contentPromises);
-            const contentsByCategory: Record<string, PromptContent[]> = {};
-            results.forEach(result => {
+        const results = await Promise.all(contentPromises);
+        const contentsByCategory: Record<string, PromptContent[]> = {};
+        results.forEach(result => {
             contentsByCategory[result.category] = result.contents;
-            });
-            setPromptContents(contentsByCategory);
-        } else {
-            // Handle case where there are no versions yet for this system
-            // We can pre-populate with some initial categories
-            const initialCategories = ['base_instruction', 'location_handling', 'audio_quality'];
-            const initialContents: Record<string, PromptContent[]> = {};
-            const initialSelected: Record<string, string> = {};
-            initialCategories.forEach(cat => {
-                initialContents[cat] = [];
-                initialSelected[cat] = '';
-            });
-            setPromptContents(initialContents);
-            setSelectedVersions(initialSelected);
-        }
+             // Ensure a version is selected if one exists
+            if (!initialSelected[result.category] && result.contents.length > 0) {
+              initialSelected[result.category] = result.contents[0].id;
+            }
+        });
+        setPromptContents(contentsByCategory);
+        setSelectedVersions(initialSelected);
+
 
       } catch (error) {
         console.error('Error fetching prompt data:', error);
@@ -132,17 +133,19 @@ export default function NewbiePromptEditorPage() {
     const currentVersionId = selectedVersions[categoryId];
     const currentContent = promptContents[categoryId]?.find(c => c.id === currentVersionId);
 
-    if (!currentContent?.promptText) {
+    if (!currentContent?.promptText && history.length === 0) {
         toast({ variant: 'destructive', title: 'Cannot Save', description: 'Prompt content cannot be empty.' });
         return;
     }
+    
+    const textToSave = currentContent?.promptText || '';
 
     setIsSaving(prev => ({ ...prev, [categoryId]: true }));
     try {
         const newContent = await savePromptContent({
             systemId: SYSTEM_ID,
             categoryId: categoryId,
-            promptText: currentContent.promptText,
+            promptText: textToSave,
             previousVersionId: currentVersionId,
         });
 
@@ -185,6 +188,13 @@ export default function NewbiePromptEditorPage() {
                 composedPrompts[category] = selectedVersions[category];
               }
           }
+
+          if (Object.keys(composedPrompts).length === 0) {
+            toast({ variant: 'destructive', title: 'Cannot Publish', description: 'You must have at least one prompt category with a selected version.'});
+            setIsPublishing(false);
+            return;
+          }
+
           const newVersion = await publishNewPromptVersion({
               systemId: SYSTEM_ID,
               composedPrompts: composedPrompts,
@@ -226,7 +236,7 @@ export default function NewbiePromptEditorPage() {
       <div className="space-y-6">
         {Object.keys(promptContents).sort().map(categoryId => {
             const history = promptContents[categoryId] || [];
-            const selectedContentId = selectedVersions[categoryId] || history[0]?.id;
+            const selectedContentId = selectedVersions[categoryId] || history[0]?.id || '';
             const content = history.find(c => c.id === selectedContentId);
             const isSavingThis = isSaving[categoryId];
 
@@ -310,3 +320,5 @@ export default function NewbiePromptEditorPage() {
     </div>
   );
 }
+
+    

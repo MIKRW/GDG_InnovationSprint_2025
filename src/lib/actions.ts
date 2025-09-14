@@ -1,12 +1,11 @@
 
-
 'use server';
 
-import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
+import { ref as storageRef, uploadBytes, getDownloadURL, uploadString, getMetadata } from 'firebase/storage';
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, addDoc, collection, serverTimestamp, query, where, getDocs, orderBy, writeBatch } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
-import type { TestAudioMetadata, BirdLog, PromptContent, PromptVersion } from './types';
+import type { TestAudioMetadata, BirdLog, PromptContent, PromptVersion, PromptSystem } from './types';
 import { EmailAuthProvider, linkWithCredential, type User } from 'firebase/auth';
 import { kebabCase } from 'lodash';
 
@@ -175,6 +174,22 @@ export async function saveCanonicalImage(
 
 // PROMPT MANAGEMENT ACTIONS
 
+interface SavePromptInput {
+    promptPath: string;
+    promptContent: string;
+}
+
+/**
+ * Saves a simple prompt file to Firebase Storage. Used for non-versioned, single-file prompts.
+ */
+export async function savePrompt({ promptPath, promptContent }: SavePromptInput) {
+    const promptRef = storageRef(storage, promptPath);
+    const textAsBlob = new Blob([promptContent], { type: 'text/plain' });
+    await uploadBytes(promptRef, textAsBlob);
+    return { success: true };
+}
+
+
 interface SavePromptContentInput {
     systemId: string;
     categoryId: string;
@@ -182,6 +197,9 @@ interface SavePromptContentInput {
     previousVersionId?: string;
 }
 
+/**
+ * Creates a new, versioned document in the `prompt_content` collection.
+ */
 export async function savePromptContent(data: SavePromptContentInput): Promise<PromptContent> {
     const { systemId, categoryId, promptText, previousVersionId } = data;
 
@@ -220,10 +238,13 @@ interface PublishNewPromptVersionInput {
     previousVersion?: string;
 }
 
+/**
+ * Creates a new "overarching AI" version document and updates the system's activeVersion.
+ */
 export async function publishNewPromptVersion(data: PublishNewPromptVersionInput): Promise<PromptVersion> {
     const { systemId, composedPrompts, previousVersion } = data;
 
-    // 1. Determine new version string (e.g., v1.0 -> v1.1)
+    // 1. Determine new version string (e.g., v1.0 -> v1.1 or v1.9 -> v2.0)
     let newVersionString = 'v1.0';
     if (previousVersion) {
         const parts = previousVersion.substring(1).split('.').map(Number);
@@ -246,9 +267,23 @@ export async function publishNewPromptVersion(data: PublishNewPromptVersionInput
     batch.set(newVersionRef, newVersion);
 
     const systemRef = doc(db, 'prompt_systems', systemId);
-    batch.update(systemRef, { activeVersion: newVersionString });
-
+    const systemSnap = await getDoc(systemRef);
+    if(systemSnap.exists()) {
+        batch.update(systemRef, { activeVersion: newVersionString });
+    } else {
+        // If the system doesn't exist, create it.
+        const systemData: Partial<PromptSystem> = {
+            id: systemId,
+            name: `${kebabCase(systemId).replace(/-/g, ' ')}`, // Generate a name
+            description: `Manages prompts for the ${systemId} AI.`,
+            activeVersion: newVersionString
+        };
+        batch.set(systemRef, systemData);
+    }
+    
     await batch.commit();
 
     return newVersion;
 }
+
+    
