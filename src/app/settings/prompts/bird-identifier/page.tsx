@@ -312,91 +312,100 @@ export default function BirdIdentifierPromptEditorPage() {
           </CardContent>
       </Card>
 
-      <Card className="mt-8">
-        <CardContent className="space-y-4 pt-6">
-          {isLoading ? (
+      <div className="mt-8 grid grid-cols-1 gap-6">
+        {isLoading ? (
             <div className="flex justify-center items-center p-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <Label>Version History</Label>
-                    <Select
-                        value={currentSelectedVersionId}
-                        onValueChange={(versionId) => setSelectedVersions(prev => ({ ...prev, [selectedCategory]: versionId }))}
-                        disabled={currentCategoryHistory.length === 0}
-                    >
-                        <SelectTrigger className="mb-2">
-                            <SelectValue placeholder="Select a version to view..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {currentCategoryHistory.map(item => (
-                                <SelectItem key={item.id} value={item.id}>
-                                    Version {item.version} - {new Date(item.timestamp).toLocaleString()}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Button onClick={handleRecallVersion} variant="outline" size="sm" className="mb-2" disabled={!currentContent}>
-                        <History className="mr-2 h-4 w-4" /> Recall this Version
-                    </Button>
-                    <Textarea
-                        value={currentContent?.promptText || ''}
-                        readOnly
-                        className="min-h-[300px] font-mono text-sm bg-muted"
-                        placeholder="No content for this category yet. Write something new on the right."
-                    />
-                </div>
-                <div>
-                    <Label htmlFor="new-prompt-text">New/Edit Prompt Text</Label>
-                    <Textarea
-                        id="new-prompt-text"
-                        value={newPromptText}
-                        onChange={(e) => setNewPromptText(e.target.value)}
-                        className="min-h-[300px] font-mono text-sm"
-                        placeholder="Write new prompt content here, or recall a version to use as a template."
-                        disabled={!selectedCategory}
-                    />
-                    <div className="flex items-center gap-2 mt-2">
-                      <Button onClick={handleSaveContent} disabled={isSaving || !selectedCategory || !newPromptText}>
-                          {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                          Save as New Version
-                      </Button>
-                      <Button size="lg" onClick={handlePublish} disabled={isPublishing}>
-                          {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                          Publish New '{selectedMode}' AI Version
-                      </Button>
-                    </div>
-                </div>
-            </div>
-          )}
-        </CardContent>
-        <CardFooter className="flex-col items-start gap-4 border-t pt-6">
-            <div>
-                <CardTitle className="text-lg mb-2">Enabled Prompt Categories</CardTitle>
-                <CardDescription>
-                Toggle which categories are included in the published AI version. A category must be enabled and have a selected version to be included.
-                </CardDescription>
-                 <div className="mt-4 space-y-2">
-                    {Object.keys(promptContents).sort().map(categoryId => (
-                        <div key={categoryId} className="flex items-center justify-between p-2 rounded-md border">
-                            <Label htmlFor={`switch-${categoryId}`} className="capitalize flex-1 cursor-pointer">{categoryId.replace(/_/g, ' ')}</Label>
-                             <div className="flex items-center gap-4">
-                               <Badge variant={enabledCategories[categoryId] ? 'default' : 'secondary'}>
-                                {enabledCategories[categoryId] ? 'Enabled' : 'Disabled'}
-                               </Badge>
-                                <Switch
-                                    id={`switch-${categoryId}`}
-                                    checked={enabledCategories[categoryId] || false}
-                                    onCheckedChange={(checked) => setEnabledCategories(prev => ({...prev, [categoryId]: checked}))}
-                                />
-                             </div>
-                        </div>
+        ) : (
+          <>
+            <Card>
+              <CardHeader>
+                <Label>Version History</Label>
+                <Select
+                  value={currentSelectedVersionId}
+                  onValueChange={(versionId) => setSelectedVersions(prev => ({ ...prev, [selectedCategory]: versionId }))}
+                  disabled={currentCategoryHistory.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a version to view..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {currentCategoryHistory.map(item => (
+                      <SelectItem key={item.id} value={item.id}>
+                        Version {item.version} - {new Date(item.timestamp).toLocaleString()}
+                      </SelectItem>
                     ))}
-                 </div>
-            </div>
-        </CardFooter>
-      </Card>
+                  </SelectContent>
+                </Select>
+                <Button onClick={handleRecallVersion} variant="outline" size="sm" className="w-fit" disabled={!currentContent}>
+                  <History className="mr-2 h-4 w-4" /> Recall this Version
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={currentContent?.promptText || ''}
+                  readOnly
+                  className="min-h-[300px] font-mono text-sm bg-muted"
+                  placeholder="No content for this category yet. Write something new in the editor below."
+                />
+              </CardContent>
+            </Card>
 
+            <Card>
+              <CardHeader>
+                <Label htmlFor="new-prompt-text">New/Edit Prompt Text</Label>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  id="new-prompt-text"
+                  value={newPromptText}
+                  onChange={(e) => setNewPromptText(e.target.value)}
+                  className="min-h-[300px] font-mono text-sm"
+                  placeholder="Write new prompt content here, or recall a version to use as a template."
+                  disabled={!selectedCategory}
+                />
+              </CardContent>
+              <CardFooter>
+                 <div className="flex items-center gap-2 mt-2">
+                    <Button onClick={handleSaveContent} disabled={isSaving || !selectedCategory || !newPromptText}>
+                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save as New Version
+                    </Button>
+                    <Button size="lg" onClick={handlePublish} disabled={isPublishing}>
+                        {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Publish New '{selectedMode}' AI Version
+                    </Button>
+                  </div>
+              </CardFooter>
+            </Card>
+          </>
+        )}
+      </div>
+
+       <Card className="mt-8">
+        <CardHeader>
+            <CardTitle className="text-lg mb-2">Enabled Prompt Categories</CardTitle>
+            <CardDescription>
+            Toggle which categories are included in the published AI version. A category must be enabled and have a selected version to be included.
+            </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+            {Object.keys(promptContents).sort().map(categoryId => (
+                <div key={categoryId} className="flex items-center justify-between p-2 rounded-md border">
+                    <Label htmlFor={`switch-${categoryId}`} className="capitalize flex-1 cursor-pointer">{categoryId.replace(/_/g, ' ')}</Label>
+                        <div className="flex items-center gap-4">
+                        <Badge variant={enabledCategories[categoryId] ? 'default' : 'secondary'}>
+                        {enabledCategories[categoryId] ? 'Enabled' : 'Disabled'}
+                        </Badge>
+                        <Switch
+                            id={`switch-${categoryId}`}
+                            checked={enabledCategories[categoryId] || false}
+                            onCheckedChange={(checked) => setEnabledCategories(prev => ({...prev, [categoryId]: checked}))}
+                        />
+                        </div>
+                </div>
+            ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }
