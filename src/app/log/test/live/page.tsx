@@ -3,42 +3,34 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, getDoc, doc } from 'firebase/firestore';
 import { PageTitle } from '@/components/content/PageTitle';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { db } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Mic, ShieldAlert } from 'lucide-react';
-
-interface TestRun {
-    id: string;
-    timestamp: string;
-    promptVersion: string;
-    aiResult: {
-        isBirdSong: boolean;
-        commonName?: string;
-        scientificName?: string;
-        description?: string;
-    }
-}
+import { CheckCircle, XCircle } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import type { AnalysisRun } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export default function LiveTestLogPage() {
-  const [testRuns, setTestRuns] = useState<TestRun[]>([]);
+  const [testRuns, setTestRuns] = useState<AnalysisRun[]>([]);
   const [loading, setLoading] = useState(true);
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
   useEffect(() => {
     if (!isDevMode) return;
 
-    const testRunCollectionRef = collection(db, 'all_test_runs');
+    const testRunCollectionRef = collection(db, 'all_analysis_runs');
     // Filter for tests that came from live recordings in dev mode
-    const q = query(testRunCollectionRef, where('source', '==', 'live_recording'));
+    const q = query(testRunCollectionRef, where('isDeveloperData', '==', true), where('birdId', '==', 'live-test'));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const runs: TestRun[] = [];
+        const runs: AnalysisRun[] = [];
         querySnapshot.forEach((doc) => {
-            runs.push({ id: doc.id, ...doc.data() } as TestRun);
+            runs.push({ id: doc.id, ...doc.data() } as AnalysisRun);
         });
         // Sort client-side to avoid needing a composite index in Firestore
         runs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -62,55 +54,69 @@ export default function LiveTestLogPage() {
     <>
       <PageTitle>Live Recording Test History</PageTitle>
       <p className="text-muted-foreground mb-6">
-        This log contains results from using the main Record button in developer mode.
+        This log contains results from using the main Record button in developer mode. User feedback indicates if the AI was correct.
       </p>
-      <div className="space-y-4">
-          {loading && (
-              <>
-                  <Skeleton className="w-full h-32" />
-                  <Skeleton className="w-full h-32" />
-              </>
-          )}
-          {!loading && testRuns.length === 0 && (
-              <Card className="p-4">
-                  <p className="text-muted-foreground">No live tests have been logged yet. Use the main Record button to capture audio and create a test run.</p>
-              </Card>
-          )}
-          {testRuns.map((run) => (
-              <Card key={run.id} className="flex items-center">
-                  <div className="p-6">
-                     {run.aiResult.isBirdSong ? (
-                        <Mic className="w-10 h-10 text-muted-foreground" />
-                     ) : (
-                        <ShieldAlert className="w-10 h-10 text-destructive" />
-                     )}
-                  </div>
-                  <div className="flex-1">
-                    <CardHeader>
-                        <CardTitle className="text-xl flex justify-between items-center">
-                            <span>
-                                {run.aiResult.isBirdSong ? run.aiResult.commonName : "No Bird Identified"}
-                            </span>
-                            <Badge variant={run.aiResult.isBirdSong ? 'default' : 'destructive'}>
-                                {run.aiResult.isBirdSong ? "Success" : "Failure"}
-                            </Badge>
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                            {new Date(run.timestamp).toLocaleString()} &bull; Prompt v{run.promptVersion}
-                        </p>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="italic text-muted-foreground">
-                            {run.aiResult.scientificName || "N/A"}
-                        </p>
-                        <p className="mt-2 text-sm">
-                            {run.aiResult.description || "The AI could not identify a bird in the audio."}
-                        </p>
-                    </CardContent>
-                  </div>
-              </Card>
-          ))}
-      </div>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[80px]">Status</TableHead>
+                <TableHead>Bird Identified (AI)</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="text-right">Confidence</TableHead>
+                <TableHead className="text-right">Analysis Time</TableHead>
+                <TableHead className="text-right">Prompt Ver.</TableHead>
+                 <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading && Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell><Skeleton className="h-5 w-5 rounded-full" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-10" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-20" /></TableCell>
+                </TableRow>
+              ))}
+              {!loading && testRuns.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                    No live tests have been logged yet. Use the main Record button in dev mode to create a test run.
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && testRuns.map((run) => (
+                <TableRow key={run.id}>
+                  <TableCell>
+                    {run.userFeedback?.aiWasCorrect ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : (
+                      <XCircle className="h-5 w-5 text-destructive" />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-medium">{run.aiResult.commonName || "No Bird Identified"}</div>
+                    <div className="text-sm text-muted-foreground italic">{run.aiResult.scientificName}</div>
+                  </TableCell>
+                  <TableCell>{new Date(run.timestamp).toLocaleString()}</TableCell>
+                  <TableCell className="text-right">{run.aiResult.confidence ? `${(run.aiResult.confidence * 100).toFixed(0)}%` : 'N/A'}</TableCell>
+                  <TableCell className="text-right">{run.analysisTimings?.primaryIdentificationMs ? `${run.analysisTimings.primaryIdentificationMs}ms` : 'N/A'}</TableCell>
+                  <TableCell className="text-right">{run.analysisMethod.split('-v').pop()}</TableCell>
+                  <TableCell className="text-right">
+                    <Button asChild variant="outline" size="sm">
+                        <Link href={`/record/confirm/${run.id}`}>View</Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </>
   );
 }

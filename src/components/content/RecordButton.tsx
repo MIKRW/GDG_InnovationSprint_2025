@@ -33,7 +33,7 @@ interface RecordButtonProps {
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
-const PROMPT_VERSION = "1.8"; // Added confidence score to AI output
+const PROMPT_VERSION = "1.8"; // This should be updated when the prompt text files change.
 
 const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps, ref) => {
   const router = useRouter();
@@ -339,13 +339,12 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       );
 
       if (analysisRunId) {
-          if (!isDeveloperRun && !wasSuccessful) {
-            setLastAnalysisRunId(analysisRunId);
-            setRecordingState('confirming');
-          } else {
-            // This path is for all successful runs and all dev runs (success or fail)
-            router.push(`/record/confirm/${analysisRunId}`);
-          }
+          // ALWAYS go to confirmation page now. The page itself will handle
+          // the logic for dev vs user data.
+          router.push(`/record/confirm/${analysisRunId}`);
+      } else {
+        // If analysisRunId failed to create for some reason.
+        setRecordingState('idle');
       }
 
     } catch (error) {
@@ -371,14 +370,10 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
            recordingLengthSeconds,
            analysisDurationMs ? { primaryIdentificationMs: analysisDurationMs } : undefined
         );
+
       if (analysisRunId) {
-          if (isDeveloperRun) {
-             // For developers, go straight to confirmation even on failure
-              router.push(`/record/confirm/${analysisRunId}`);
-          } else {
-              setLastAnalysisRunId(analysisRunId);
-              setRecordingState('confirming');
-          }
+          // ALWAYS go to confirmation page, even on failure.
+          router.push(`/record/confirm/${analysisRunId}`);
       } else {
           setRecordingState('idle');
       }
