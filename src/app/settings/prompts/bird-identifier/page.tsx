@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 const SYSTEM_IDS = {
   newbie: 'bird-identifier-ai-newbie',
@@ -387,26 +388,49 @@ export default function BirdIdentifierPromptEditorPage() {
        <Card className="mt-8">
         <CardHeader className="text-center">
             <CardTitle className="text-2xl font-semibold leading-none tracking-tight">Enabled Prompt Categories</CardTitle>
-            <CardDescription className="text-center">
-            Toggle which categories are included in the published AI version. A category must be enabled and have a selected version to be included.
+            <CardDescription>
+                Toggle which categories are included in the published AI version. A category must be enabled and have a selected version to be included.
             </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
-            {Object.keys(promptContents).sort().map(categoryId => (
-                <div key={categoryId} className="flex items-center justify-between p-2 rounded-md border">
-                    <Label htmlFor={`switch-${categoryId}`} className="capitalize flex-1 cursor-pointer">{categoryId.replace(/_/g, ' ')}</Label>
-                        <div className="flex items-center gap-4">
-                        <Badge variant={enabledCategories[categoryId] ? 'default' : 'secondary'}>
-                        {enabledCategories[categoryId] ? 'Enabled' : 'Disabled'}
-                        </Badge>
-                        <Switch
-                            id={`switch-${categoryId}`}
-                            checked={enabledCategories[categoryId] || false}
-                            onCheckedChange={(checked) => setEnabledCategories(prev => ({...prev, [categoryId]: checked}))}
-                        />
-                        </div>
-                </div>
-            ))}
+        <CardContent>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Category</TableHead>
+                        <TableHead className="text-center">Selected Version</TableHead>
+                        <TableHead className="text-center">Is Published</TableHead>
+                        <TableHead className="text-right">Enabled</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {Object.keys(promptContents).sort().map(categoryId => {
+                        const selectedContentId = selectedVersions[categoryId];
+                        const selectedContent = promptContents[categoryId]?.find(c => c.id === selectedContentId);
+                        const isPublished = activeVersions[selectedMode]?.composedPrompts[categoryId] === selectedContentId;
+                        
+                        return (
+                            <TableRow key={categoryId}>
+                                <TableCell className="font-medium capitalize">{categoryId.replace(/_/g, ' ')}</TableCell>
+                                <TableCell className="text-center">
+                                    {selectedContent ? `v${selectedContent.version}` : 'None'}
+                                </TableCell>
+                                <TableCell className="text-center">
+                                    <Badge variant={isPublished ? 'default' : 'secondary'}>
+                                        {isPublished ? 'Yes' : 'No'}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <Switch
+                                        id={`switch-${categoryId}`}
+                                        checked={enabledCategories[categoryId] || false}
+                                        onCheckedChange={(checked) => setEnabledCategories(prev => ({...prev, [categoryId]: checked}))}
+                                    />
+                                </TableCell>
+                            </TableRow>
+                        );
+                    })}
+                </TableBody>
+            </Table>
         </CardContent>
       </Card>
     </div>
