@@ -80,11 +80,10 @@ export default function BirdIdentifierPromptEditorPage() {
              setActiveVersions(prev => ({ ...prev, [selectedMode]: null }));
         }
 
-        // Fetch all content for all categories of the current system
+        // Fetch all content for the current system, then group and sort client-side.
         const contentQuery = query(
             collection(db, 'prompt_content'),
-            where('systemId', '==', systemId),
-            orderBy('version', 'desc')
+            where('systemId', '==', systemId)
         );
         const contentSnapshot = await getDocs(contentQuery);
         const contents = contentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptContent));
@@ -97,6 +96,11 @@ export default function BirdIdentifierPromptEditorPage() {
             acc[category].push(content);
             return acc;
         }, {} as Record<string, PromptContent[]>);
+
+        // Sort each category's contents by version descending
+        for (const category in contentsByCategory) {
+            contentsByCategory[category].sort((a, b) => b.version - a.version);
+        }
 
         // Merge discovered categories with explicitly defined ones
         const allCategories = Array.from(new Set([...initialCategories, ...Object.keys(contentsByCategory)]));
@@ -356,3 +360,5 @@ export default function BirdIdentifierPromptEditorPage() {
     </div>
   );
 }
+
+    
