@@ -107,6 +107,8 @@ export default function LogDetailPage() {
     notFound();
   }
 
+  const imageSeed = log.isMystery ? `mystery-${log.id}` : log.scientificName;
+
   return (
     <AppLayout header={<SecondaryHeader title={log.commonName} />}>
       <main className="flex-1 overflow-y-auto p-4 md:p-6 flex justify-center">
@@ -115,7 +117,7 @@ export default function LogDetailPage() {
               <CardHeader>
                 <div className="aspect-square relative w-full rounded-md overflow-hidden bg-muted">
                    <Image
-                      src={log.isMystery ? `https://picsum.photos/seed/mystery-${log.id}/600/400` : `https://picsum.photos/seed/${log.id}/600/400`}
+                      src={`https://picsum.photos/seed/${imageSeed}/600/400`}
                       alt={log.commonName}
                       fill
                       className="object-cover"

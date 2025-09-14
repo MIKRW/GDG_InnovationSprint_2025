@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -8,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { db } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { FlaskConical, ShieldAlert } from 'lucide-react';
 
 interface TestRun {
     id: string;
@@ -75,28 +77,37 @@ export default function MasterAudioTestLogPage() {
               </Card>
           )}
           {testRuns.map((run) => (
-              <Card key={run.id}>
-                  <CardHeader>
-                      <CardTitle className="text-xl flex justify-between items-center">
-                          <span>
-                              {run.aiResult.isBirdSong ? run.aiResult.commonName : "No Bird Identified"}
-                          </span>
-                           <Badge variant={run.aiResult.isBirdSong ? 'default' : 'destructive'}>
-                              {run.aiResult.isBirdSong ? "Success" : "Failure"}
-                          </Badge>
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                          {new Date(run.timestamp).toLocaleString()} &bull; Prompt v{run.promptVersion}
-                      </p>
-                  </CardHeader>
-                  <CardContent>
-                      <p className="italic text-muted-foreground">
-                          {run.aiResult.scientificName || "N/A"}
-                      </p>
-                       <p className="mt-2 text-sm">
-                          {run.aiResult.description || "The AI could not identify a bird in the audio."}
-                      </p>
-                  </CardContent>
+              <Card key={run.id} className="flex items-center">
+                  <div className="p-6">
+                     {run.aiResult.isBirdSong ? (
+                        <FlaskConical className="w-10 h-10 text-muted-foreground" />
+                     ) : (
+                        <ShieldAlert className="w-10 h-10 text-destructive" />
+                     )}
+                  </div>
+                  <div className="flex-1">
+                    <CardHeader>
+                        <CardTitle className="text-xl flex justify-between items-center">
+                            <span>
+                                {run.aiResult.isBirdSong ? run.aiResult.commonName : "No Bird Identified"}
+                            </span>
+                            <Badge variant={run.aiResult.isBirdSong ? 'default' : 'destructive'}>
+                                {run.aiResult.isBirdSong ? "Success" : "Failure"}
+                            </Badge>
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                            {new Date(run.timestamp).toLocaleString()} &bull; Prompt v{run.promptVersion}
+                        </p>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="italic text-muted-foreground">
+                            {run.aiResult.scientificName || "N/A"}
+                        </p>
+                        <p className="mt-2 text-sm">
+                            {run.aiResult.description || "The AI could not identify a bird in the audio."}
+                        </p>
+                    </CardContent>
+                  </div>
               </Card>
           ))}
       </div>
