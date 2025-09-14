@@ -312,12 +312,12 @@ export default function BirdIdentifierPromptEditorPage() {
           </CardContent>
       </Card>
 
-      <div className="mt-8 grid grid-cols-1 gap-6">
+      <div className="mt-8 flex flex-col md:flex-row gap-6">
         {isLoading ? (
-            <div className="flex justify-center items-center p-8"><Loader2 className="w-8 h-8 animate-spin" /></div>
+            <div className="flex justify-center items-center p-8 w-full"><Loader2 className="w-8 h-8 animate-spin" /></div>
         ) : (
           <>
-            <Card>
+            <Card className="flex-1">
               <CardHeader>
                 <Label>Version History</Label>
                 <Select
@@ -350,7 +350,7 @@ export default function BirdIdentifierPromptEditorPage() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="flex-1">
               <CardHeader>
                 <Label htmlFor="new-prompt-text">New/Edit Prompt Text</Label>
               </CardHeader>
