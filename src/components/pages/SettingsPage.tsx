@@ -7,6 +7,7 @@ import { PageTitle } from '../content/PageTitle';
 import { useAuth } from '../providers/AuthProvider';
 import { LogOut } from 'lucide-react';
 import { auth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
 
 
 export function SettingsPage() {
@@ -15,7 +16,7 @@ export function SettingsPage() {
 
   const handleSignOut = async () => {
     try {
-      await auth.signOut();
+      await signOut(auth);
       // The AuthProvider will handle signing the user back in anonymously
       window.location.reload(); // Reload to ensure clean state
     } catch (error) {
