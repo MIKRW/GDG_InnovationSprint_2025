@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageTitle } from '@/components/content/PageTitle';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
@@ -59,7 +59,12 @@ export default function PromptManagementPage() {
             try {
                 // 1. Get active version ID
                 const configDoc = await getDoc(doc(db, 'app_ai_config', 'main'));
-                if (!configDoc.exists()) throw new Error("App AI config not found.");
+                if (!configDoc.exists()) {
+                    // This is not an error, it just means nothing has been published yet.
+                    setActiveVersionDetails(null);
+                    setIsLoading(false);
+                    return;
+                }
                 const activeVersionId = configDoc.data().activeAppAIVersion;
 
                 // 2. Get the active App AI Version manifest
@@ -165,7 +170,10 @@ export default function PromptManagementPage() {
                                 <p className="text-4xl font-bold">{activeVersionDetails.version}</p>
                             </div>
                         ) : (
-                             <p className="text-center text-muted-foreground">No active AI version found.</p>
+                             <div className="text-center p-8">
+                                <p className="text-muted-foreground">No active AI version has been published yet.</p>
+                                <p className="text-sm text-muted-foreground">Publish a version from an editor page to see it here.</p>
+                            </div>
                         )}
                     </CardHeader>
                     <CardContent>
