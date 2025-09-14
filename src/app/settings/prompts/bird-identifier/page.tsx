@@ -522,7 +522,7 @@ export default function BirdIdentifierPromptEditorPage() {
                   disabled={!selectedCategoryForEditing}
                 />
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex-col items-start gap-4">
                  <div className="flex items-center gap-2">
                     <Button onClick={handleSaveDraft} disabled={!canSave}>
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -554,3 +554,4 @@ export default function BirdIdentifierPromptEditorPage() {
     </div>
   );
 }
+
