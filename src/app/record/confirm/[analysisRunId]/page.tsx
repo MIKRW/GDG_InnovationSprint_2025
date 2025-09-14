@@ -112,10 +112,10 @@ export default function ConfirmIdentificationPage() {
     const birdDocRef = doc(db, 'birds', birdId);
     const birdDocSnap = await getDoc(birdDocRef);
 
-    if (birdDocSnap.exists() && birdDocSnap.data().canonicalImageUrl) {
+    if (birdDocSnap.exists() && birdDocSnap.data().canonicalImageUrls?.key) {
         // Found an existing canonical image
         setBirdSpeciesData(birdDocSnap.data() as BirdSpeciesData);
-        setGeneratedImageDataUri(birdDocSnap.data().canonicalImageUrl);
+        setGeneratedImageDataUri(birdDocSnap.data().canonicalImageUrls.key);
     } else {
         // No image exists, generate one
         await handleGenerateImage();
@@ -149,7 +149,8 @@ export default function ConfirmIdentificationPage() {
         finalImageUrl = await saveCanonicalImage(
             analysisRun.aiResult.commonName,
             analysisRun.aiResult.scientificName || 'N/A',
-            generatedImageDataUri
+            generatedImageDataUri,
+            'key' // For now, we only handle the 'key' image
         );
     }
     

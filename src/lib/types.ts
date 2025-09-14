@@ -37,6 +37,7 @@ export type BirdLog = {
     order?: string;
     description: string;
     imageUrl: string; // URL to the canonical image in Firebase Storage
+    userImageUrl?: string; // URL to a user-uploaded image for this specific log
     imagePrompt: string; // The prompt used to generate the image, for metadata
     audioUrl?: string;
     isMystery: boolean;
@@ -56,6 +57,7 @@ export type AnalysisRun = {
   sessionId: string;
   inputAudioUrl: string;
   inputAudioStoragePath: string;
+  habitatPhotoUrl?: string; // Path to user's uploaded habitat photo
   locationData?: {
     latitude?: number;
     longitude?: number;
@@ -98,7 +100,12 @@ export type BirdSpeciesData = {
     id: string; // kebab-case common name, e.g., 'australian-magpie'
     commonName: string;
     scientificName: string;
-    canonicalImageUrl?: string; // URL to the approved image in Firebase Storage
+    canonicalImageUrls?: {
+      key?: string; // Main, clear shot
+      side_profile?: string;
+      male?: string;
+      female?: string;
+    };
 }
 
 

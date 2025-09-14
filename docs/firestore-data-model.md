@@ -15,7 +15,11 @@ This model is designed for our internal, controlled testing. It is structured ar
         *   `scientificName`: "Gymnorhina tibicen"
         *   `family`: "Artamidae"
         *   `order`: "Passeriformes"
-        *   `canonicalImageUrl`: "https://firebasestorage.googleapis.com/..." (Path to the approved, canonical image for this species)
+        *   `canonicalImageUrls`: (map) A collection of URLs for standard images.
+            *   `key`: "https://firebasestorage.googleapis.com/..." (The primary, clearest image)
+            *   `side_profile`: "https://firebasestorage.googleapis.com/..."
+            *   `male`: "https://firebasestorage.googleapis.com/..."
+            *   `female`: "https://firebasestorage.googleapis.com/..."
         *   `masterAudioFiles`: An array of metadata for the master test recordings.
             *   `audioId`: "magpie-warble-1"
             *   `storagePath`: "master-audio/magpie-warble-1.wav"
@@ -47,6 +51,7 @@ This professional, two-tiered model perfectly separates our need for analytical 
             *   `sessionId`: A UUID to group multiple analyses from a single recording session (e.g., if multiple birds are identified).
             *   `parentRunId`: (Optional) If this run is on a processed sub-recording, this is the ID of the original run.
             *   `inputAudioUrl`: The path to the user's recording in Firebase Storage.
+            *   `habitatPhotoUrl`: (string, optional) Path to a user-uploaded habitat photo.
             *   `locationData`: Any location info provided by the user.
             *   `analysisMethod`: A string identifying the AI model and technique used (e.g., 'audio-gemini-2.5-flash-v1').
             *   `processingMethod`: (Optional) A tag describing how audio was altered (e.g., 'noise-reduced-v1', 'call-isolation-v1').
@@ -61,9 +66,14 @@ This professional, two-tiered model perfectly separates our need for analytical 
         *   **Document (ID: `USER_UID_FROM_AUTH`):**
             *   **Subcollection:** `identifications`
                 *   **Document (ID: `UNIQUE_LOG_ID`):**
-                    *   Contains the user-facing data: `commonName`, `scientificName`, `family`, `order`, `description`, `audioUrl`, `imageUrl` etc.
+                    *   Contains the user-facing data: `commonName`, `scientificName`, `family`, `order`, `description`, `audioUrl`, `imageUrl` (the canonical URL), `userImageUrl` (optional, user-specific photo URL), etc.
             *   **Subcollection:** `themes`
                 *   Contains documents for each of the user's saved theme slots (e.g., '0', '1', '2').
+            *   **Subcollection:** `user_media`
+                *   **Document (ID: `UNIQUE_MEDIA_ID`):**
+                    *   `storagePath`: Path to the user-uploaded file in `users/{userId}/uploads/{mediaId}`.
+                    *   `type`: 'habitat-photo' or 'bird-photo'.
+                    *   `timestamp`: Upload timestamp.
 
 ---
 

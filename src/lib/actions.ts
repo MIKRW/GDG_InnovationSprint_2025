@@ -146,23 +146,29 @@ export async function trashLog(log: BirdLog) {
 export async function saveCanonicalImage(
     commonName: string,
     scientificName: string,
-    imageDataUri: string
+    imageDataUri: string,
+    imageType: 'key' | 'side_profile' | 'male' | 'female' = 'key'
 ): Promise<string> {
     const birdId = kebabCase(commonName);
-    const imagePath = `canonical-images/${birdId}/${uuidv4()}.jpg`;
+    const imagePath = `canonical-images/${birdId}/${imageType}-${uuidv4()}.jpg`;
     const imageFileRef = storageRef(storage, imagePath);
 
     // Upload the new image from data URI
     await uploadString(imageFileRef, imageDataUri, 'data_url');
     const downloadURL = await getDownloadURL(imageFileRef);
 
-    // Update the 'birds' document with the new canonical URL
+    // Update the 'birds' document with the new canonical URL, nested under the imageType
     const birdDocRef = doc(db, 'birds', birdId);
-    await setDoc(birdDocRef, {
+    
+    const updateData = {
         commonName,
         scientificName,
-        canonicalImageUrl: downloadURL,
-    }, { merge: true });
+        canonicalImageUrls: {
+            [imageType]: downloadURL,
+        }
+    };
+
+    await setDoc(birdDocRef, updateData, { merge: true });
 
     return downloadURL;
 }

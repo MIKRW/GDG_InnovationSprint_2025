@@ -31,6 +31,7 @@ To securely store the user-uploaded photos, a new top-level folder will be creat
 
 -   `users/{userId}/recordings/`: For audio files (existing).
 -   `users/{userId}/habitats/`: For habitat photos (new).
+-   `users/{userId}/bird-photos/`: For user-specific bird photos linked to a log entry (new).
 
 This structure allows us to use Firebase Storage Security Rules to ensure users can only access and upload media associated with their own user ID, maintaining data privacy.
 
