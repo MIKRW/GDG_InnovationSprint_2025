@@ -42,6 +42,17 @@ interface StagedContent extends PromptContent {
     publishedInAppAI?: string[];
 }
 
+// Helper to sort semantic versions (e.g., v1.10.2 > v1.2.3)
+const sortSemanticVersions = (a: string, b: string) => {
+    const aParts = a.substring(1).split('.').map(Number);
+    const bParts = b.substring(1).split('.').map(Number);
+    for(let i = 0; i < 3; i++) {
+        if(aParts[i] !== bParts[i]) return bParts[i] - aParts[i];
+    }
+    return 0;
+};
+
+
 export default function BirdIdentifierPromptEditorPage() {
   const [selectedMode, setSelectedMode] = useState<'newbie' | 'twitcher'>('newbie');
   
@@ -78,14 +89,7 @@ export default function BirdIdentifierPromptEditorPage() {
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
   const systemId = useMemo(() => SYSTEM_IDS[selectedMode], [selectedMode]);
-  const activeBirdAIVersion = useMemo(() => birdAIVersions.sort((a,b) => {
-      const aParts = a.version.substring(1).split('.').map(Number);
-      const bParts = b.version.substring(1).split('.').map(Number);
-      for(let i = 0; i < 3; i++) {
-          if(aParts[i] !== bParts[i]) return bParts[i] - aParts[i];
-      }
-      return 0;
-  })[0], [birdAIVersions]);
+  const activeBirdAIVersion = useMemo(() => birdAIVersions.sort((a,b) => sortSemanticVersions(a.version, b.version))[0], [birdAIVersions]);
 
   const fetchPromptData = useCallback(async () => {
     if (!isDevMode) {
@@ -134,14 +138,7 @@ export default function BirdIdentifierPromptEditorPage() {
 
         const allCategories = Array.from(new Set(Object.keys(contentsByCategory))).sort();
       
-        const latestBirdAIVersion = fetchedBirdAIVersions.sort((a,b) => {
-            const aParts = a.version.substring(1).split('.').map(Number);
-            const bParts = b.version.substring(1).split('.').map(Number);
-            for(let i = 0; i < 3; i++) {
-                if(aParts[i] !== bParts[i]) return bParts[i] - aParts[i];
-            }
-            return 0;
-        })[0];
+        const latestBirdAIVersion = fetchedBirdAIVersions.sort((a,b) => sortSemanticVersions(a.version, b.version))[0];
 
         // Set up the staging table based on the latest version
         let initialStaged: Record<string, string> = {};
@@ -157,7 +154,7 @@ export default function BirdIdentifierPromptEditorPage() {
         // Ensure all categories are represented, defaulting to latest published content if not in active version
         allCategories.forEach(cat => {
             if (!initialStaged[cat]) {
-                const latestPublished = contentsByCategory[cat]?.filter(c => c.version > 0).sort((a,b) => b.version - a.version)[0];
+                const latestPublished = contentsByCategory[cat]?.filter(c => c.version !== 'v0.0.0-draft').sort((a,b) => sortSemanticVersions(a.version, b.version))[0];
                 if (latestPublished) {
                     initialStaged[cat] = latestPublished.id;
                 }
@@ -194,15 +191,15 @@ export default function BirdIdentifierPromptEditorPage() {
   // Editor-related memos and effects
   const editorCategoryHistory = useMemo(() => {
     return (promptContents[selectedCategoryForEditing] || []).sort((a, b) => {
-        if (a.version === 0) return -1; // Draft always first
-        if (b.version === 0) return 1;
-        return b.version - a.version;
+        if (a.version.includes('draft')) return -1;
+        if (b.version.includes('draft')) return 1;
+        return sortSemanticVersions(a.version, b.version);
     });
   }, [promptContents, selectedCategoryForEditing]);
   
   const editorCurrentSelectedContentId = useMemo(() => selectedContentVersionForEditing || editorCategoryHistory[0]?.id || '', [selectedContentVersionForEditing, editorCategoryHistory]);
   const editorCurrentContent = useMemo(() => editorCategoryHistory.find(c => c.id === editorCurrentSelectedContentId), [editorCategoryHistory, editorCurrentSelectedContentId]);
-  const editorDraftContent = useMemo(() => editorCategoryHistory.find(c => c.version === 0), [editorCategoryHistory]);
+  const editorDraftContent = useMemo(() => editorCategoryHistory.find(c => c.version.includes('draft')), [editorCategoryHistory]);
   
   useEffect(() => {
       setNewPromptText('');
@@ -261,7 +258,7 @@ export default function BirdIdentifierPromptEditorPage() {
     setNewPromptText(editorCurrentContent.promptText);
     toast({
         title: 'Version Loaded',
-        description: `Version ${editorCurrentContent.version > 0 ? editorCurrentContent.version : 'Draft'} text has been loaded into the editor. Save it as a draft to edit.`,
+        description: `Version ${editorCurrentContent.version > 'v0.0.0-draft' ? editorCurrentContent.version : 'Draft'} text has been loaded into the editor. Save it as a draft to edit.`,
     });
   };
 
@@ -387,7 +384,7 @@ export default function BirdIdentifierPromptEditorPage() {
                     </TableHeader>
                     <TableBody>
                         {Object.keys(promptContents).sort().map(catId => {
-                            const availableContent = promptContents[catId].filter(c => c.version > 0).sort((a,b) => b.version - a.version);
+                            const availableContent = promptContents[catId].filter(c => c.version !== 'v0.0.0-draft').sort((a,b) => sortSemanticVersions(a.version, b.version));
                             const selectedContentId = stagedVersions[catId];
                             const selectedContent = promptContents[catId].find(c => c.id === selectedContentId);
                             
@@ -404,7 +401,7 @@ export default function BirdIdentifierPromptEditorPage() {
                                                 <SelectValue placeholder="Select a version..." />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {availableContent.map(c => <SelectItem key={c.id} value={c.id}>Version {c.version}</SelectItem>)}
+                                                {availableContent.map(c => <SelectItem key={c.id} value={c.id}>{c.version}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </TableCell>
@@ -503,7 +500,7 @@ export default function BirdIdentifierPromptEditorPage() {
                     <SelectContent>
                         {editorCategoryHistory.map(item => (
                         <SelectItem key={item.id} value={item.id}>
-                            {item.version === 0 ? `Draft - ${new Date(item.timestamp).toLocaleString()}` : `Version ${item.version} - ${new Date(item.timestamp).toLocaleString()}`}
+                            {item.version.includes('draft') ? `Draft - ${new Date(item.timestamp).toLocaleString()}` : `${item.version} - ${new Date(item.timestamp).toLocaleString()}`}
                         </SelectItem>
                         ))}
                     </SelectContent>
@@ -540,7 +537,7 @@ export default function BirdIdentifierPromptEditorPage() {
               </CardContent>
               <CardFooter className="flex-col items-start gap-4">
                  <div className="flex items-center gap-2">
-                    <Select value={contentPublishVersionType} onValueChange={(v) => setContentPublishVersionType(v as 'patch' | 'minor' | 'major')}>
+                     <Select value={contentPublishVersionType} onValueChange={(v) => setContentPublishVersionType(v as 'patch' | 'minor' | 'major')}>
                         <SelectTrigger className="w-[120px]">
                             <SelectValue />
                         </SelectTrigger>

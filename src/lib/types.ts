@@ -161,11 +161,11 @@ export interface TestAudioMetadata {
 
 export interface AppAIConfig {
     id: string; // Should be a singleton, e.g., 'main'
-    activeAppAIVersion: string; // e.g., 'v1.0'
+    activeAppAIVersion: string; // e.g., 'v1.0.0'
 }
 
 export interface AppAIVersion {
-    id: string; // e.g., 'v1.0'
+    id: string; // e.g., 'v1.0.0'
     version: string;
     timestamp: string;
     systems: Record<string, string>; // Maps systemId to a prompt_version document ID
@@ -175,13 +175,13 @@ export interface PromptSystem {
     id: string; // e.g., 'bird-identifier-ai-newbie'
     name: string;
     description: string;
-    activeVersion: string; // e.g., 'v1.1'
+    activeVersion: string; // e.g., 'v1.1.0'
 }
 
 export interface PromptVersion {
-    id: string; // e.g., 'bird-identifier-ai-newbie-v1-1'
+    id: string; // e.g., 'bird-identifier-ai-newbie-v1.1.0'
     systemId: string;
-    version: string;
+    version: string; // e.g., 'v1.1.0'
     timestamp: string;
     composedPrompts: Record<string, string>; // Maps categoryId to a prompt_content document ID
 }
@@ -190,7 +190,7 @@ export interface PromptContent {
     id: string; // e.g., 'location_handling_v1'
     systemId: string;
     categoryId: string; // e.g., 'location_handling'
-    version: number;
+    version: string; // e.g., 'v1.0.1' or 'v0.0.0-draft'
     timestamp: string;
     promptText: string;
     previousVersionId?: string;

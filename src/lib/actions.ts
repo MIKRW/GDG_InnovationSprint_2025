@@ -195,6 +195,7 @@ interface SavePromptContentInput {
     categoryId: string;
     promptText: string;
     isDraft?: boolean;
+    versionType?: 'major' | 'minor' | 'patch';
 }
 
 /**
@@ -202,7 +203,7 @@ interface SavePromptContentInput {
  * Can save as a permanent version or as a single, overwritable draft.
  */
 export async function savePromptContent(data: SavePromptContentInput): Promise<PromptContent> {
-    const { systemId, categoryId, promptText, isDraft = false } = data;
+    const { systemId, categoryId, promptText, isDraft = false, versionType = 'patch' } = data;
 
     if (isDraft) {
         // Saving a draft. We use a consistent ID to overwrite it.
@@ -213,7 +214,7 @@ export async function savePromptContent(data: SavePromptContentInput): Promise<P
             id: draftId,
             systemId,
             categoryId,
-            version: 0, // Version 0 signifies a draft
+            version: 'v0.0.0-draft', // Special version for drafts
             promptText,
             timestamp: new Date().toISOString(),
         };
@@ -227,24 +228,47 @@ export async function savePromptContent(data: SavePromptContentInput): Promise<P
             collection(db, 'prompt_content'),
             where('systemId', '==', systemId),
             where('categoryId', '==', categoryId),
+            where('version', '!=', 'v0.0.0-draft')
         );
         const contentSnapshot = await getDocs(contentQuery);
-        const publishedVersions = contentSnapshot.docs
-            .map(doc => doc.data() as PromptContent)
-            .filter(c => c.version > 0);
+        const publishedVersions = contentSnapshot.docs.map(doc => doc.data() as PromptContent);
         
-        const latestVersionNumber = publishedVersions.reduce((max, c) => Math.max(max, c.version), 0);
-        const newVersionNumber = latestVersionNumber + 1;
+        const latestVersionString = publishedVersions.sort((a, b) => {
+            const aParts = a.version.substring(1).split('.').map(Number);
+            const bParts = b.version.substring(1).split('.').map(Number);
+            for(let i=0; i<3; i++) {
+                if (aParts[i] !== bParts[i]) return bParts[i] - aParts[i];
+            }
+            return 0;
+        })[0]?.version || 'v0.0.0';
 
-        const newContentRef = doc(collection(db, 'prompt_content'));
+        const [major, minor, patch] = latestVersionString.replace('v', '').split('.').map(Number);
+        let newMajor = major, newMinor = minor, newPatch = patch;
+
+        if (versionType === 'major') {
+            newMajor++;
+            newMinor = 0;
+            newPatch = 0;
+        } else if (versionType === 'minor') {
+            newMinor++;
+            newPatch = 0;
+        } else { // 'patch'
+            newPatch++;
+        }
+        
+        const newVersionString = `v${newMajor}.${newMinor}.${newPatch}`;
+        const newVersionId = `${systemId}_${categoryId}_${newVersionString}`;
+
+
+        const newContentRef = doc(db, 'prompt_content', newVersionId);
         const newContent: PromptContent = {
-            id: newContentRef.id,
+            id: newVersionId,
             systemId,
             categoryId,
-            version: newVersionNumber,
+            version: newVersionString,
             promptText,
             timestamp: new Date().toISOString(),
-            previousVersionId: publishedVersions.find(c => c.version === latestVersionNumber)?.id,
+            previousVersionId: latestVersionString !== 'v0.0.0' ? publishedVersions.find(c => c.version === latestVersionString)?.id : undefined,
         };
 
         await setDoc(newContentRef, newContent);
@@ -262,7 +286,6 @@ export async function savePromptContent(data: SavePromptContentInput): Promise<P
 interface PublishNewPromptVersionInput {
     systemId: string;
     composedPrompts: Record<string, string>;
-    previousVersion?: string;
     versionType: 'major' | 'minor' | 'patch';
 }
 
@@ -271,15 +294,24 @@ interface PublishNewPromptVersionInput {
  * and updates the system's activeVersion.
  */
 export async function publishNewPromptVersion(data: PublishNewPromptVersionInput): Promise<PromptVersion> {
-    const { systemId, composedPrompts, previousVersion = 'v0.0.0', versionType } = data;
+    const { systemId, composedPrompts, versionType } = data;
 
     // 1. Get all existing versions for the system to calculate the next version correctly.
     const versionsQuery = query(collection(db, 'prompt_versions'), where('systemId', '==', systemId));
     const versionsSnapshot = await getDocs(versionsQuery);
     const existingVersions = versionsSnapshot.docs.map(d => d.data().version as string);
 
-    // 2. Determine new version string based on semantic versioning.
-    const [major, minor, patch] = (previousVersion || 'v0.0.0').replace('v', '').split('.').map(Number);
+    // 2. Find latest version to increment from
+    const latestVersionString = existingVersions.sort((a, b) => {
+            const aParts = a.substring(1).split('.').map(Number);
+            const bParts = b.substring(1).split('.').map(Number);
+            for(let i=0; i<3; i++) {
+                if (aParts[i] !== bParts[i]) return bParts[i] - aParts[i];
+            }
+            return 0;
+    })[0] || 'v0.0.0';
+
+    const [major, minor, patch] = latestVersionString.replace('v', '').split('.').map(Number);
     let newMajor = major, newMinor = minor, newPatch = patch;
 
     if (versionType === 'major') {
@@ -290,11 +322,7 @@ export async function publishNewPromptVersion(data: PublishNewPromptVersionInput
         newMinor++;
         newPatch = 0;
     } else { // 'patch'
-        // Find the highest patch for the current major.minor and increment it.
-        const patchVersions = existingVersions
-            .filter(v => v.startsWith(`v${newMajor}.${newMinor}.`))
-            .map(v => parseInt(v.split('.')[2] || '0'));
-        newPatch = patchVersions.length > 0 ? Math.max(...patchVersions) + 1 : newPatch + 1;
+        newPatch++;
     }
     
     const newVersionString = `v${newMajor}.${newMinor}.${newPatch}`;
@@ -333,53 +361,64 @@ export async function publishNewPromptVersion(data: PublishNewPromptVersionInput
 }
 
 
+interface PublishNewAppAIVersionInput {
+    composedSystems: Record<string, string>;
+    versionType: 'major' | 'minor' | 'patch';
+}
+
 /**
  * Takes the currently active version of EACH AI system and bundles them
  * into a single, new, versioned "App AI". This becomes the new live version
  * for the entire application.
  */
-export async function publishNewAppAIVersion() {
+export async function publishNewAppAIVersion(data: PublishNewAppAIVersionInput) {
+    const { composedSystems, versionType } = data;
     const batch = writeBatch(db);
 
-    // 1. Get the latest version of each AI system
-    const systemsQuery = query(collection(db, 'prompt_systems'));
-    const systemsSnapshot = await getDocs(systemsQuery);
-    const systemsToBundle: Record<string, string> = {};
-
-    for (const systemDoc of systemsSnapshot.docs) {
-        const systemData = systemDoc.data() as PromptSystem;
-        if (systemData.activeVersion) {
-            const promptVersionId = `${systemData.id}-${systemData.activeVersion}`;
-            const promptVersionDoc = await getDoc(doc(db, 'prompt_versions', promptVersionId));
-            if (promptVersionDoc.exists()) {
-                systemsToBundle[systemData.id] = promptVersionId;
-            }
-        }
-    }
-
-    if (Object.keys(systemsToBundle).length === 0) {
-        throw new Error("No active AI systems with versions found to publish.");
+    if (Object.keys(composedSystems).length === 0) {
+        throw new Error("No AI systems were selected to publish.");
     }
 
     // 2. Determine the new App AI Version number
     const configDocRef = doc(db, 'app_ai_config', 'main');
     const configDocSnap = await getDoc(configDocRef);
-    let newAppVersionString = 'v1.0';
+    
+    const versionsQuery = query(collection(db, 'app_ai_versions'));
+    const versionsSnapshot = await getDocs(versionsQuery);
+    const existingVersions = versionsSnapshot.docs.map(d => d.data().version as string);
 
-    if (configDocSnap.exists()) {
-        const currentVersion = configDocSnap.data().activeAppAIVersion || 'v0.9';
-        const parts = currentVersion.substring(1).split('.').map(Number);
-        parts[parts.length - 1] += 1;
-        newAppVersionString = 'v' + parts.join('.');
+    const latestVersionString = existingVersions.sort((a, b) => {
+            const aParts = a.substring(1).split('.').map(Number);
+            const bParts = b.substring(1).split('.').map(Number);
+            for(let i=0; i<3; i++) {
+                if (aParts[i] !== bParts[i]) return bParts[i] - aParts[i];
+            }
+            return 0;
+    })[0] || 'v0.0.0';
+
+    const [major, minor, patch] = latestVersionString.replace('v', '').split('.').map(Number);
+    let newMajor = major, newMinor = minor, newPatch = patch;
+
+    if (versionType === 'major') {
+        newMajor++;
+        newMinor = 0;
+        newPatch = 0;
+    } else if (versionType === 'minor') {
+        newMinor++;
+        newPatch = 0;
+    } else { // 'patch'
+        newPatch++;
     }
+    
+    const newAppVersionString = `v${newMajor}.${newMinor}.${newPatch}`;
 
     // 3. Create the new app_ai_versions document
     const newAppVersionRef = doc(db, 'app_ai_versions', newAppVersionString);
-    const newAppVersionData = {
+    const newAppVersionData: AppAIVersion = {
         id: newAppVersionString,
         version: newAppVersionString,
         timestamp: new Date().toISOString(),
-        systems: systemsToBundle,
+        systems: composedSystems,
     };
     batch.set(newAppVersionRef, newAppVersionData);
 
@@ -456,9 +495,9 @@ CRITICAL: You must also consider derived colors. The app uses CSS calculations t
         // 2. Prepare all documents for the batch write
 
         // -- Newbie System --
-        const newbieContentId = `newbie_base_instruction_${uuidv4()}`;
+        const newbieContentId = `bird-identifier-ai-newbie_base_instruction_v1.0.0`;
         const newbieContentRef = doc(db, 'prompt_content', newbieContentId);
-        batch.set(newbieContentRef, { id: newbieContentId, systemId: 'bird-identifier-ai-newbie', categoryId: 'base_instruction', version: 1, promptText: newbiePromptText, timestamp });
+        batch.set(newbieContentRef, { id: newbieContentId, systemId: 'bird-identifier-ai-newbie', categoryId: 'base_instruction', version: 'v1.0.0', promptText: newbiePromptText, timestamp });
         const newbieVersionId = 'bird-identifier-ai-newbie-v1.0.0';
         const newbieVersionRef = doc(db, 'prompt_versions', newbieVersionId);
         batch.set(newbieVersionRef, { id: newbieVersionId, systemId: 'bird-identifier-ai-newbie', version: 'v1.0.0', timestamp, composedPrompts: { 'base_instruction': newbieContentId } });
@@ -466,9 +505,9 @@ CRITICAL: You must also consider derived colors. The app uses CSS calculations t
         batch.set(newbieSystemRef, { id: 'bird-identifier-ai-newbie', name: 'Bird Identifier AI (Newbie)', description: 'Manages prompts for identifying birds in Newbie mode.', activeVersion: 'v1.0.0' });
 
         // -- Twitcher System --
-        const twitcherContentId = `twitcher_base_instruction_${uuidv4()}`;
+        const twitcherContentId = `bird-identifier-ai-twitcher_base_instruction_v1.0.0`;
         const twitcherContentRef = doc(db, 'prompt_content', twitcherContentId);
-        batch.set(twitcherContentRef, { id: twitcherContentId, systemId: 'bird-identifier-ai-twitcher', categoryId: 'base_instruction', version: 1, promptText: twitcherPromptText, timestamp });
+        batch.set(twitcherContentRef, { id: twitcherContentId, systemId: 'bird-identifier-ai-twitcher', categoryId: 'base_instruction', version: 'v1.0.0', promptText: twitcherPromptText, timestamp });
         const twitcherVersionId = 'bird-identifier-ai-twitcher-v1.0.0';
         const twitcherVersionRef = doc(db, 'prompt_versions', twitcherVersionId);
         batch.set(twitcherVersionRef, { id: twitcherVersionId, systemId: 'bird-identifier-ai-twitcher', version: 'v1.0.0', timestamp, composedPrompts: { 'base_instruction': twitcherContentId } });
@@ -476,9 +515,9 @@ CRITICAL: You must also consider derived colors. The app uses CSS calculations t
         batch.set(twitcherSystemRef, { id: 'bird-identifier-ai-twitcher', name: 'Bird Identifier AI (Twitcher)', description: 'Manages prompts for identifying birds in Twitcher mode.', activeVersion: 'v1.0.0' });
 
         // -- Theme System --
-        const themeContentId = `theme_base_instruction_${uuidv4()}`;
+        const themeContentId = `theme-generator-ai_base_instruction_v1.0.0`;
         const themeContentRef = doc(db, 'prompt_content', themeContentId);
-        batch.set(themeContentRef, { id: themeContentId, systemId: 'theme-generator-ai', categoryId: 'base_instruction', version: 1, promptText: themePromptText, timestamp });
+        batch.set(themeContentRef, { id: themeContentId, systemId: 'theme-generator-ai', categoryId: 'base_instruction', version: 'v1.0.0', promptText: themePromptText, timestamp });
         const themeVersionId = 'theme-generator-ai-v1.0.0';
         const themeVersionRef = doc(db, 'prompt_versions', themeVersionId);
         batch.set(themeVersionRef, { id: themeVersionId, systemId: 'theme-generator-ai', version: 'v1.0.0', timestamp, composedPrompts: { 'base_instruction': themeContentId } });
@@ -486,9 +525,9 @@ CRITICAL: You must also consider derived colors. The app uses CSS calculations t
         batch.set(themeSystemRef, { id: 'theme-generator-ai', name: 'Theme Generation AI', description: 'Manages prompts related to generating UI color themes.', activeVersion: 'v1.0.0' });
 
         // -- Image System --
-        const imageContentId = `image_base_instruction_${uuidv4()}`;
+        const imageContentId = `image-generator-ai_base_instruction_v1.0.0`;
         const imageContentRef = doc(db, 'prompt_content', imageContentId);
-        batch.set(imageContentRef, { id: imageContentId, systemId: 'image-generator-ai', categoryId: 'base_instruction', version: 1, promptText: imagePromptText, timestamp });
+        batch.set(imageContentRef, { id: imageContentId, systemId: 'image-generator-ai', categoryId: 'base_instruction', version: 'v1.0.0', promptText: imagePromptText, timestamp });
         const imageVersionId = 'image-generator-ai-v1.0.0';
         const imageVersionRef = doc(db, 'prompt_versions', imageVersionId);
         batch.set(imageVersionRef, { id: imageVersionId, systemId: 'image-generator-ai', version: 'v1.0.0', timestamp, composedPrompts: { 'base_instruction': imageContentId } });
@@ -496,9 +535,9 @@ CRITICAL: You must also consider derived colors. The app uses CSS calculations t
         batch.set(imageSystemRef, { id: 'image-generator-ai', name: 'Image Generation AI', description: 'Manages prompts for creating images of identified birds.', activeVersion: 'v1.0.0' });
 
         // -- Weather Tool System --
-        const weatherContentId = `weather_base_instruction_${uuidv4()}`;
+        const weatherContentId = `weather-ai-tool_base_instruction_v1.0.0`;
         const weatherContentRef = doc(db, 'prompt_content', weatherContentId);
-        batch.set(weatherContentRef, { id: weatherContentId, systemId: 'weather-ai-tool', categoryId: 'base_instruction', version: 1, promptText: weatherToolPromptText, timestamp });
+        batch.set(weatherContentRef, { id: weatherContentId, systemId: 'weather-ai-tool', categoryId: 'base_instruction', version: 'v1.0.0', promptText: weatherToolPromptText, timestamp });
         const weatherVersionId = 'weather-ai-tool-v1.0.0';
         const weatherVersionRef = doc(db, 'prompt_versions', weatherVersionId);
         batch.set(weatherVersionRef, { id: weatherVersionId, systemId: 'weather-ai-tool', version: 'v1.0.0', timestamp, composedPrompts: { 'base_instruction': weatherContentId } });
@@ -506,11 +545,11 @@ CRITICAL: You must also consider derived colors. The app uses CSS calculations t
         batch.set(weatherSystemRef, { id: 'weather-ai-tool', name: 'Weather Analysis AI Tool', description: 'Manages prompts for interpreting weather data for identification.', activeVersion: 'v1.0.0' });
 
         // -- App AI Version v1.0 --
-        const appVersionId = 'v1.0';
+        const appVersionId = 'v1.0.0';
         const appVersionRef = doc(db, 'app_ai_versions', appVersionId);
         batch.set(appVersionRef, {
             id: appVersionId,
-            version: 'v1.0',
+            version: 'v1.0.0',
             timestamp,
             systems: {
                 'bird-identifier-ai-newbie': newbieVersionId,
@@ -523,13 +562,13 @@ CRITICAL: You must also consider derived colors. The app uses CSS calculations t
 
         // -- Main Config --
         const configRef = doc(db, 'app_ai_config', 'main');
-        batch.set(configRef, { activeAppAIVersion: 'v1.0' });
+        batch.set(configRef, { activeAppAIVersion: 'v1.0.0' });
 
         // 3. Commit the batch
         await batch.commit();
 
-        console.log("Successfully migrated prompts and published App AI version v1.0.");
-        return { success: true, version: 'v1.0' };
+        console.log("Successfully migrated prompts and published App AI version v1.0.0.");
+        return { success: true, version: 'v1.0.0' };
 
     } catch (error) {
         console.error("CRITICAL: Prompt migration failed.", error);
