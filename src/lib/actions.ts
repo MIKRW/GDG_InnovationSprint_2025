@@ -3,7 +3,7 @@
 'use server';
 
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
-import { doc, setDoc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, arrayUnion, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
 import type { TestAudioMetadata, BirdLog } from './types';
@@ -171,4 +171,38 @@ export async function saveCanonicalImage(
     await setDoc(birdDocRef, updateData, { merge: true });
 
     return downloadURL;
+}
+
+
+interface SavePromptContentInput {
+    systemId: string;
+    categoryId: string;
+    promptText: string;
+    previousVersionId: string;
+    currentVersion: string; // e.g., "v1.1"
+}
+
+/**
+ * Saves a new version of a prompt's content to Firestore.
+ */
+export async function savePromptContent(data: SavePromptContentInput) {
+    const { systemId, categoryId, promptText, previousVersionId, currentVersion } = data;
+
+    // Calculate next version number
+    const versionNum = parseInt(currentVersion.replace('v', '').split('.')[1] || '0') + 1;
+    const majorVersion = currentVersion.split('.')[0];
+    const newVersion = `${majorVersion}.${versionNum}`;
+
+    const newPromptDoc = {
+        systemId,
+        categoryId,
+        version: newVersion,
+        promptText,
+        previousVersionId,
+        timestamp: serverTimestamp(),
+    };
+
+    const docRef = await addDoc(collection(db, 'prompt_content'), newPromptDoc);
+
+    return { id: docRef.id, ...newPromptDoc };
 }

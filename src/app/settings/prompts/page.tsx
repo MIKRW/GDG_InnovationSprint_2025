@@ -1,37 +1,51 @@
-
 'use client';
 
 import { PageTitle } from '@/components/content/PageTitle';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Badge } from '@/components/ui/badge';
 
-const aiSystems = [
-    {
-        href: '/settings/prompts/bird-identifier',
-        title: 'Bird Identifier AI',
-        description: 'Manages prompts for identifying birds from audio, including location and weather handling.',
-    },
-    {
-        href: '/settings/prompts/theme-generator',
-        title: 'Theme Generation AI',
-        description: 'Controls how the AI generates color palettes from user input words and moods.',
-    },
-    {
-        href: '/settings/prompts/image-generator',
-        title: 'Image Generation AI',
-        description: 'Defines the prompts used by Imagen 4 to create bird images from text descriptions.',
-    },
-    {
-        href: '/settings/prompts/weather',
-        title: 'Weather Analysis AI',
-        description: 'Defines how the AI should interpret and use weather data in its analysis.',
-    },
-];
+interface AISystem {
+    id: string;
+    name: string;
+    description: string;
+    activeVersion: string;
+    href: string;
+}
 
 export default function PromptManagementPage() {
     const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+    const [aiSystems, setAiSystems] = useState<AISystem[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchSystems() {
+            if (!isDevMode) {
+                setLoading(false);
+                return;
+            }
+            try {
+                const systemsSnapshot = await getDocs(collection(db, 'prompt_systems'));
+                const systems = systemsSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    href: `/settings/prompts/${doc.id.replace(/-ai$/, '')}`,
+                    ...doc.data()
+                })) as AISystem[];
+                setAiSystems(systems);
+            } catch (error) {
+                console.error("Error fetching AI systems:", error);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchSystems();
+    }, [isDevMode]);
+
 
     if (!isDevMode) {
         return (
@@ -40,6 +54,14 @@ export default function PromptManagementPage() {
             </div>
         )
     }
+     if (loading) {
+        return (
+            <div className="container mx-auto px-4 py-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        )
+    }
+
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -54,7 +76,10 @@ export default function PromptManagementPage() {
                         <Card className="hover:bg-accent transition-colors">
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <div>
-                                    <CardTitle>{system.title}</CardTitle>
+                                    <CardTitle className="flex items-center gap-4">
+                                        {system.name}
+                                        <Badge variant="secondary">{system.activeVersion}</Badge>
+                                    </CardTitle>
                                     <CardDescription className="pt-1">{system.description}</CardDescription>
                                 </div>
                                 <ChevronRight className="h-6 w-6 text-muted-foreground" />
