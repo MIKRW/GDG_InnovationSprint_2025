@@ -16,27 +16,6 @@ import { collection, getDoc, doc, query, where, getDocs } from 'firebase/firesto
 import { db } from '@/lib/firebase';
 import type { AppAIVersion, PromptContent, PromptVersion } from '@/lib/types';
 
-// Helper function to replace placeholders in a template
-function compileTemplate(template: string, data: Record<string, any>): string {
-    let result = template;
-    for (const key in data) {
-        if (Object.prototype.hasOwnProperty.call(data, key)) {
-            const value = data[key];
-            if (value !== undefined && value !== null) {
-                 // Simple replacement for {{key}} and {{media url=key}}
-                 result = result.replace(new RegExp(`{{media url=${key}}}`, 'g'), `{{media url=${value}}}`);
-                 result = result.replace(new RegExp(`{{{?${key}}}}?`, 'g'), String(value));
-            }
-        }
-    }
-    // Handle conditional blocks like {{#if key}}...{{/if}}
-    result = result.replace(/{{#if (\w+)}}([\s\S]*?){{\/if}}/g, (match, key, content) => {
-        return data[key] ? content : '';
-    });
-
-    return result;
-}
-
 
 // Helper function to fetch and compose the prompt dynamically from Firestore
 async function getDynamicPrompt(systemId: string): Promise<string> {
@@ -94,8 +73,7 @@ async function getDynamicPrompt(systemId: string): Promise<string> {
         console.error("CRITICAL: Failed to assemble dynamic prompt.", error);
         // Fallback to a very basic, hardcoded prompt as a last resort
         return `You are an expert ornithologist. Analyze the provided audio and identify the bird.
-        Audio data: {{media url=audioDataUri}}
-        Return a JSON object with 'isBirdSong', 'commonName', 'scientificName', and 'description'.
+        Return an answer that conforms to the provided schema.
         If no bird is identified, set 'isBirdSong' to false.`;
     }
 }
@@ -194,10 +172,14 @@ const identifyBirdFlow = ai.defineFlow(
     const promptTemplate = await getDynamicPrompt(systemId);
     
     const { output } = await ai.generate({
-      prompt: compileTemplate(promptTemplate, input),
+      prompt: promptTemplate,
+      input: input,
       model: 'googleai/gemini-2.5-flash',
       output: { schema: IdentifyBirdOutputSchema },
-      tools: [getCurrentWeather]
+      tools: [getCurrentWeather],
+      toolConfig: {
+        system: await getDynamicPrompt('weather-ai-tool'),
+      },
     });
 
     if (!output) {

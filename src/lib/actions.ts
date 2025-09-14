@@ -374,7 +374,7 @@ For the image prompt, give a simple, clear instruction for an image generator (e
 Also, provide your confidence in the identification.
 
 If you're not confident you heard a bird, or if it's just noise, please indicate that.`;
-
+        
         const twitcherPromptText = `You are a professional-level ornithologist and bioacoustics analyst. Your task is to perform a rigorous analysis of a high-fidelity audio recording to identify a bird species. Precision and detailed taxonomic information are critical.
 
 You will receive:
@@ -391,80 +391,69 @@ Analysis protocol:
 
 If the audio is unclear or the species cannot be determined with high confidence, you must indicate that you did not identify a bird song. Do not guess.`;
         
-        const themePromptText = `You are an expert UI theme designer with a deep understanding of color theory, word association, and web accessibility standards (WCAG).
-Your task is to generate a creative, unique, and aesthetically pleasing HSL color palette based on user input.
+        const themePromptText = `You are an expert UI theme designer with a deep understanding of color theory, word association, and web accessibility standards (WCAG). Your task is to generate a creative, unique, and aesthetically pleasing HSL color palette based on user input. The user can provide up to three inspirational words and a 'mood'.
 
-The user will provide the following parameters:
-- Mood: A keyword that defines the desired aesthetic and accessibility constraints (e.g., "High Contrast", "Tritanopia-Friendly", "Vibrant", "Dark").
-- Words (Optional): Up to three inspirational words.
+Your job is to intelligently assign one word to the background, one to the foreground, and one to the primary accent color. Base your assignments on color theory. For example, a darker, less saturated color is usually best for a background, while a brighter, more saturated color makes a good accent. When choosing colors, base your selections on the real-world colors associated with the input words. You should research how established color brands (like Pantone or paint companies) name their colors.
 
-If words are provided:
-Your job is to intelligently assign one word to the background, one to the foreground, and one to the primary accent color.
-Base your assignments on color theory. For example, a darker, less saturated color is usually best for a background, while a brighter, more saturated color makes a good accent.
+After selecting the initial colors, use the 'mood' as a strong guideline to modify and adjust the final HSL values. The mood is the most important constraint. Pay special attention to accessibility-related moods.
 
-When choosing colors, base your selections on the real-world colors associated with the input words.
-To do this, you should research how established color brands (like Pantone or paint companies) name their colors.
-For example, if a user provides the word "eggshell", you should associate it with a natural, off-white color.
-If they say "lavender" or "forest green", learn from professional color systems to choose an appropriate shade.
-
-If no words are provided:
-Your task is to invent a theme from scratch, based solely on the specified mood.
-Be creative and generate an interesting, high-quality theme. Think like a professional designer choosing a palette for a new product.
-
-After selecting the initial colors (or inventing them), use the 'mood' as a strong guideline to modify and adjust the final HSL values.
-The mood is the most important constraint. Pay special attention to accessibility-related moods.
-
-Mood Definitions:
-- "High Contrast": Ensure a WCAG AA or AAA contrast ratio between background and foreground/primary colors.
-- "Tritanopia-Friendly", "Deuteranopia-Friendly", or "Protanopia-Friendly": Select colors that are easily distinguishable for users with those types of color vision deficiencies. Avoid problematic color combinations (like red-green for Deuteranopia/Protanopia).
-- "Vibrant": Creates a theme with bright, highly saturated colors.
-- "Calm": Generates a palette with more muted, desaturated, and soothing colors.
-- "Minimalist": Produces a simple, clean theme, often using monochromatic or analogous colors.
-- "80s Retro": Creates a nostalgic theme with bold, neon, and often contrasting colors popular in the 1980s.
-- "Dark": A classic dark mode theme with a dark background and light text/accents.
-
-The 'ring' color must be a lighter or darker shade of the 'primary' color. It needs to be different enough to be noticeable but still harmonious.
 CRITICAL: You must also consider derived colors. The app uses CSS calculations to create secondary, muted, and accent colors from the three base colors you provide. You MUST generate base colors that result in good contrast for these derived colors as well. For example, the 'foreground' color must be clearly visible on the 'muted' background, which is a lighter shade of the 'primary' color. Always prioritize readability across the entire UI.
+`;
 
-Interpret the user's words creatively to generate a harmonious and visually appealing theme that meets all constraints.`;
+        const imagePromptText = `You are an expert image generation prompter. Given a simple prompt (e.g., "photo of an American Robin on a branch"), your job is to enhance it into a rich, detailed prompt for a high-quality image generation model like Imagen. Create a photorealistic, high-quality, and visually appealing image. Consider lighting, composition, and background details.`;
+        const weatherToolPromptText = `You are an AI assistant with access to tools. If the user provides a location (either coordinates or a text description), you MUST use the 'getCurrentWeather' tool to get the season and weather conditions for that location and date. Include this information in your final response.`;
 
         // 2. Prepare all documents for the batch write
 
         // -- Newbie System --
-        const newbieContentId = uuidv4();
+        const newbieContentId = `newbie_base_instruction_${uuidv4()}`;
         const newbieContentRef = doc(db, 'prompt_content', newbieContentId);
         batch.set(newbieContentRef, { id: newbieContentId, systemId: 'bird-identifier-ai-newbie', categoryId: 'base_instruction', version: 1, promptText: newbiePromptText, timestamp });
-        
         const newbieVersionId = 'bird-identifier-ai-newbie-v1.0';
         const newbieVersionRef = doc(db, 'prompt_versions', newbieVersionId);
         batch.set(newbieVersionRef, { id: newbieVersionId, systemId: 'bird-identifier-ai-newbie', version: 'v1.0', timestamp, composedPrompts: { 'base_instruction': newbieContentId } });
-        
         const newbieSystemRef = doc(db, 'prompt_systems', 'bird-identifier-ai-newbie');
         batch.set(newbieSystemRef, { id: 'bird-identifier-ai-newbie', name: 'Bird Identifier AI (Newbie)', description: 'Manages prompts for identifying birds in Newbie mode.', activeVersion: 'v1.0' });
 
         // -- Twitcher System --
-        const twitcherContentId = uuidv4();
+        const twitcherContentId = `twitcher_base_instruction_${uuidv4()}`;
         const twitcherContentRef = doc(db, 'prompt_content', twitcherContentId);
         batch.set(twitcherContentRef, { id: twitcherContentId, systemId: 'bird-identifier-ai-twitcher', categoryId: 'base_instruction', version: 1, promptText: twitcherPromptText, timestamp });
-        
         const twitcherVersionId = 'bird-identifier-ai-twitcher-v1.0';
         const twitcherVersionRef = doc(db, 'prompt_versions', twitcherVersionId);
         batch.set(twitcherVersionRef, { id: twitcherVersionId, systemId: 'bird-identifier-ai-twitcher', version: 'v1.0', timestamp, composedPrompts: { 'base_instruction': twitcherContentId } });
-
         const twitcherSystemRef = doc(db, 'prompt_systems', 'bird-identifier-ai-twitcher');
         batch.set(twitcherSystemRef, { id: 'bird-identifier-ai-twitcher', name: 'Bird Identifier AI (Twitcher)', description: 'Manages prompts for identifying birds in Twitcher mode.', activeVersion: 'v1.0' });
 
         // -- Theme System --
-        const themeContentId = uuidv4();
+        const themeContentId = `theme_base_instruction_${uuidv4()}`;
         const themeContentRef = doc(db, 'prompt_content', themeContentId);
         batch.set(themeContentRef, { id: themeContentId, systemId: 'theme-generator-ai', categoryId: 'base_instruction', version: 1, promptText: themePromptText, timestamp });
-        
         const themeVersionId = 'theme-generator-ai-v1.0';
         const themeVersionRef = doc(db, 'prompt_versions', themeVersionId);
         batch.set(themeVersionRef, { id: themeVersionId, systemId: 'theme-generator-ai', version: 'v1.0', timestamp, composedPrompts: { 'base_instruction': themeContentId } });
-
         const themeSystemRef = doc(db, 'prompt_systems', 'theme-generator-ai');
         batch.set(themeSystemRef, { id: 'theme-generator-ai', name: 'Theme Generation AI', description: 'Manages prompts related to generating UI color themes.', activeVersion: 'v1.0' });
+
+        // -- Image System --
+        const imageContentId = `image_base_instruction_${uuidv4()}`;
+        const imageContentRef = doc(db, 'prompt_content', imageContentId);
+        batch.set(imageContentRef, { id: imageContentId, systemId: 'image-generator-ai', categoryId: 'base_instruction', version: 1, promptText: imagePromptText, timestamp });
+        const imageVersionId = 'image-generator-ai-v1.0';
+        const imageVersionRef = doc(db, 'prompt_versions', imageVersionId);
+        batch.set(imageVersionRef, { id: imageVersionId, systemId: 'image-generator-ai', version: 'v1.0', timestamp, composedPrompts: { 'base_instruction': imageContentId } });
+        const imageSystemRef = doc(db, 'prompt_systems', 'image-generator-ai');
+        batch.set(imageSystemRef, { id: 'image-generator-ai', name: 'Image Generation AI', description: 'Manages prompts for creating images of identified birds.', activeVersion: 'v1.0' });
+
+        // -- Weather Tool System --
+        const weatherContentId = `weather_base_instruction_${uuidv4()}`;
+        const weatherContentRef = doc(db, 'prompt_content', weatherContentId);
+        batch.set(weatherContentRef, { id: weatherContentId, systemId: 'weather-ai-tool', categoryId: 'base_instruction', version: 1, promptText: weatherToolPromptText, timestamp });
+        const weatherVersionId = 'weather-ai-tool-v1.0';
+        const weatherVersionRef = doc(db, 'prompt_versions', weatherVersionId);
+        batch.set(weatherVersionRef, { id: weatherVersionId, systemId: 'weather-ai-tool', version: 'v1.0', timestamp, composedPrompts: { 'base_instruction': weatherContentId } });
+        const weatherSystemRef = doc(db, 'prompt_systems', 'weather-ai-tool');
+        batch.set(weatherSystemRef, { id: 'weather-ai-tool', name: 'Weather Analysis AI Tool', description: 'Manages prompts for interpreting weather data for identification.', activeVersion: 'v1.0' });
 
         // -- App AI Version v1.0 --
         const appVersionId = 'v1.0';
@@ -477,6 +466,8 @@ Interpret the user's words creatively to generate a harmonious and visually appe
                 'bird-identifier-ai-newbie': newbieVersionId,
                 'bird-identifier-ai-twitcher': twitcherVersionId,
                 'theme-generator-ai': themeVersionId,
+                'image-generator-ai': imageVersionId,
+                'weather-ai-tool': weatherVersionId,
             }
         });
 
