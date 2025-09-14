@@ -47,7 +47,8 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
     const q = query(
         logsCollectionRef, 
         where('isMystery', '==', true),
-        where('isDisowned', '==', false)
+        where('isDisowned', '==', false),
+        orderBy('timestamp', 'desc')
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -71,16 +72,11 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
           new Date(log.timestamp).toLocaleDateString().includes(searchQuery)
       );
 
-      const sorted = [...filtered].sort((a, b) => {
-        switch (sortOption) {
-            case 'newest':
-                return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-            case 'oldest':
-                return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-            default: // a-z and z-a don't apply here, but we can default to newest
-                return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-        }
-    });
+      // The default from Firestore is newest. Only apply client-side changes for other options.
+      const sorted = [...filtered];
+      if (sortOption === 'oldest') {
+        sorted.reverse();
+      }
 
     return sorted;
 

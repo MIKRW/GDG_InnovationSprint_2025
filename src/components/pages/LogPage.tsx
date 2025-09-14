@@ -45,7 +45,11 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
     // User is authenticated, fetch their data
     setLoading(true);
     const logsCollectionRef = collection(db, 'users', user.uid, 'identifications');
-    const q = query(logsCollectionRef, where('isDisowned', '==', false));
+    const q = query(
+        logsCollectionRef, 
+        where('isDisowned', '==', false),
+        orderBy('timestamp', 'desc')
+    );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const logs: BirdLog[] = [];
@@ -71,20 +75,15 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
         (log.scientificName && log.scientificName.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
-    const sorted = [...filtered].sort((a, b) => {
-        switch (sortOption) {
-            case 'newest':
-                return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-            case 'oldest':
-                return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-            case 'a-z':
-                return a.commonName.localeCompare(b.commonName);
-            case 'z-a':
-                return b.commonName.localeCompare(a.commonName);
-            default:
-                return 0;
-        }
-    });
+    // Client-side sorting for A-Z, Z-A since Firestore returns by timestamp
+    const sorted = [...filtered];
+    if (sortOption === 'a-z') {
+        sorted.sort((a, b) => a.commonName.localeCompare(b.commonName));
+    } else if (sortOption === 'z-a') {
+        sorted.sort((a, b) => b.commonName.localeCompare(a.commonName));
+    } else if (sortOption === 'oldest') {
+        sorted.reverse(); // The default is newest, so we just reverse it for oldest
+    }
     
     // Group by sessionId
     const groupedBySession = groupBy(sorted, 'sessionId');
