@@ -319,26 +319,28 @@ export default function BirdIdentifierPromptEditorPage() {
           <>
             <Card className="flex-1">
               <CardHeader className="text-center">
-                <CardTitle>Version History</CardTitle>
-                <Select
-                  value={currentSelectedVersionId}
-                  onValueChange={(versionId) => setSelectedVersions(prev => ({ ...prev, [selectedCategory]: versionId }))}
-                  disabled={currentCategoryHistory.length === 0}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a version to view..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currentCategoryHistory.map(item => (
-                      <SelectItem key={item.id} value={item.id}>
-                        Version {item.version} - {new Date(item.timestamp).toLocaleString()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button onClick={handleRecallVersion} variant="outline" size="sm" className="w-fit mx-auto" disabled={!currentContent}>
-                  <History className="mr-2 h-4 w-4" /> Recall this Version
-                </Button>
+                <CardTitle className="text-2xl font-semibold leading-none tracking-tight">Version History</CardTitle>
+                 <div className="flex items-center gap-2 pt-2">
+                    <Select
+                    value={currentSelectedVersionId}
+                    onValueChange={(versionId) => setSelectedVersions(prev => ({ ...prev, [selectedCategory]: versionId }))}
+                    disabled={currentCategoryHistory.length === 0}
+                    >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select a version to view..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {currentCategoryHistory.map(item => (
+                        <SelectItem key={item.id} value={item.id}>
+                            Version {item.version} - {new Date(item.timestamp).toLocaleString()}
+                        </SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                    <Button onClick={handleRecallVersion} variant="outline" size="sm" disabled={!currentContent}>
+                        <History className="mr-2 h-4 w-4" /> Recall this Version
+                    </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <Textarea
@@ -352,7 +354,7 @@ export default function BirdIdentifierPromptEditorPage() {
 
             <Card className="flex-1">
               <CardHeader className="text-center">
-                <CardTitle>New/Edit Prompt Text</CardTitle>
+                 <CardTitle className="text-2xl font-semibold leading-none tracking-tight">New/Edit Prompt Text</CardTitle>
               </CardHeader>
               <CardContent>
                 <Textarea
@@ -409,5 +411,3 @@ export default function BirdIdentifierPromptEditorPage() {
     </div>
   );
 }
-
-    
