@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -39,16 +40,12 @@ export function MysteryLogPage() {
     const logsCollectionRef = collection(db, 'users', user.uid, 'identifications');
     
     // This query is now simpler and avoids the composite index requirement.
-    const q: Query = query(logsCollectionRef, where('isMystery', '==', true), orderBy('timestamp', 'desc'));
+    const q: Query = query(logsCollectionRef, where('isMystery', '==', true), where('status', '==', 'active'), orderBy('timestamp', 'desc'));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const logs: BirdLog[] = [];
         querySnapshot.forEach((doc) => {
-          const data = doc.data() as BirdLog;
-          // Filter out disowned logs on the client. The number should be small.
-          if (!data.isDisowned) {
-            logs.push({ id: doc.id, ...data });
-          }
+            logs.push({ id: doc.id, ...doc.data() as BirdLog });
         });
         
         setAllLogs(logs);

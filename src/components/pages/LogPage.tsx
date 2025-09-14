@@ -48,7 +48,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
     let q: Query = query(logsCollectionRef);
 
     // Apply base filters
-    q = query(q, where('isDisowned', '==', false), where('isMystery', '==', false));
+    q = query(q, where('status', '==', 'active'), where('isMystery', '==', false));
 
     // Apply search filter if there is a query.
     // NOTE: This basic search requires Firestore to have single-field indexes on all fields being searched.
@@ -116,7 +116,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
   const [hasMysteryLogs, setHasMysteryLogs] = useState(false);
   useEffect(() => {
     if(!user) return;
-    const mysteryQuery = query(collection(db, 'users', user.uid, 'identifications'), where('isMystery', '==', true), where('isDisowned', '==', false));
+    const mysteryQuery = query(collection(db, 'users', user.uid, 'identifications'), where('isMystery', '==', true), where('status', '==', 'active'));
     const unsub = onSnapshot(mysteryQuery, (snapshot) => {
         setHasMysteryLogs(!snapshot.empty);
     });

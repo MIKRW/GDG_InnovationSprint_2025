@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -19,7 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Loader2, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { disownLog } from '@/lib/actions';
+import { trashLog } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 
 export default function LogDetailPage() {
@@ -48,8 +49,8 @@ export default function LogDetailPage() {
     const unsubscribe = onSnapshot(logDocRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data() as BirdLog;
-        if (data.isDisowned) {
-            setLog(null); // Treat disowned logs as not found
+        if (data.status === 'trashed') {
+            setLog(null); // Treat trashed logs as not found in this view
         } else {
             setLog({ id: docSnap.id, ...data });
         }
@@ -70,19 +71,18 @@ export default function LogDetailPage() {
     setIsDeleting(true);
 
     try {
-      // The user object is no longer passed to the server action
-      await disownLog(log);
+      await trashLog(log);
       toast({
-        title: 'Log Removed',
-        description: 'The log entry has been removed from your Bird Book.',
+        title: 'Log Moved to Trash',
+        description: 'The log entry has been moved to your trash.',
       });
       router.push('/log');
     } catch (error) {
-      console.error('Failed to remove log:', error);
+      console.error('Failed to move log to trash:', error);
       toast({
         variant: 'destructive',
-        title: 'Removal Failed',
-        description: 'Could not remove the log. Please try again.',
+        title: 'Action Failed',
+        description: 'Could not move the log to trash. Please try again.',
       });
       setIsDeleting(false);
     }
@@ -179,14 +179,14 @@ export default function LogDetailPage() {
                       ) : (
                         <Trash2 className="mr-2 h-4 w-4" />
                       )}
-                      Remove Log
+                      Move to Trash
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will remove the log from your Bird Book. Depending on your user status and the quality of the recording, the underlying audio data may be kept for internal analysis or permanently deleted.
+                        This will move the log to your trash. You will be able to restore it later from the Settings page.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

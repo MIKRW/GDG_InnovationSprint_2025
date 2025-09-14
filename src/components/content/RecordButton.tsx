@@ -117,7 +117,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
   };
 
-  const saveToFirestore = async (logData: Omit<BirdLog, 'id' | 'userId' | 'audioUrl' | 'analysisRunId' | 'isDisowned'>, audioDataUri: string, aiResult: any, wasSuccessful: boolean) => {
+  const saveToFirestore = async (logData: Omit<BirdLog, 'id' | 'userId' | 'audioUrl' | 'analysisRunId' | 'status'>, audioDataUri: string, aiResult: any, wasSuccessful: boolean) => {
     if (!user) {
       console.error("Cannot save log: user is not authenticated.");
       logErrorToFirestore(new Error("Save attempt failed: No user."), 'firestore-write-failure', { detail: 'User was not authenticated during saveToFirestore call.'});
@@ -164,7 +164,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       userId: user.uid,
       audioUrl: audioUrl,
       analysisRunId: analysisRunId, // Link to the analysis run
-      isDisowned: false,
+      status: 'active',
     };
     await setDoc(logDocRef, finalLog);
   

@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -125,19 +126,13 @@ export async function upgradeAnonymousUser(currentUser: User, { email, pass }: R
 
 
 /**
- * Disowns a log entry from the user's personal "Bird Book".
- * This action sets a flag `isDisowned` to true, which will trigger
- * a Cloud Function to process the associated backend data based on
- * defined data retention policies.
- * 
- * This action no longer accepts the `user` object to prevent serialization errors.
- * It is assumed that this action is called from a client context where the
- * user's identity is already established via Firebase Auth state. The function
- * relies on Firestore Security Rules to enforce ownership.
+ * Moves a log entry to the 'trashed' state.
+ * This action sets a flag `status` to 'trashed', which will prevent it from being displayed
+ * in the main log views. A future UI will allow users to view and restore trashed items.
  */
-export async function disownLog(log: BirdLog) {
+export async function trashLog(log: BirdLog) {
     const userLogRef = doc(db, 'users', log.userId, 'identifications', log.id);
-    await updateDoc(userLogRef, { isDisowned: true });
+    await updateDoc(userLogRef, { status: 'trashed' });
 
     return { success: true };
 }
