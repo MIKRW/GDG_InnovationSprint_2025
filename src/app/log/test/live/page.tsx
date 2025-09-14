@@ -3,9 +3,6 @@
 
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
-import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
 import { PageTitle } from '@/components/content/PageTitle';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { db } from '@/lib/firebase';
@@ -53,12 +50,9 @@ export default function LiveTestLogPage() {
 
   if (!isDevMode) {
     return (
-        <AppLayout header={<SecondaryHeader title="Not Found" />}>
-            <main className="flex-1 p-4 text-center">
-                <p>This page is not available.</p>
-            </main>
-            <SecondaryPageFooterV2 />
-        </AppLayout>
+        <div className="flex-1 p-4 text-center">
+            <p>This page is not available.</p>
+        </div>
     )
   }
 
@@ -88,6 +82,7 @@ export default function LiveTestLogPage() {
                               {run.aiResult.isBirdSong ? run.aiResult.commonName : "No Bird Identified"}
                           </span>
                            <Badge variant={run.aiResult.isBirdSong ? 'default' : 'destructive'}>
+                              {run.ai-hint={log.imagePrompt}
                               {run.aiResult.isBirdSong ? "Success" : "Failure"}
                           </Badge>
                       </CardTitle>

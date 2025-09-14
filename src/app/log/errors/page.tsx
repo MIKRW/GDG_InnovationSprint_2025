@@ -8,9 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { db } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AppLayout } from '@/components/layout/AppLayout';
-import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
-import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
 
 interface ErrorInstance {
     id: string;
@@ -47,12 +44,9 @@ export default function ErrorLogPage() {
 
   if (!isDevMode) {
     return (
-        <AppLayout header={<SecondaryHeader title="Not Found" />}>
-            <main className="flex-1 p-4 text-center">
-                <p>This page is not available.</p>
-            </main>
-            <SecondaryPageFooterV2 />
-        </AppLayout>
+        <div className="flex-1 p-4 text-center">
+            <p>This page is not available.</p>
+        </div>
     )
   }
 
