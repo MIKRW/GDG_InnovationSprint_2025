@@ -50,7 +50,9 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
     // Apply base filters
     q = query(q, where('isDisowned', '==', false), where('isMystery', '==', false));
 
-    // Apply search filter if there is a query
+    // Apply search filter if there is a query.
+    // NOTE: This basic search requires Firestore to have single-field indexes on all fields being searched.
+    // For more complex text search, a dedicated search service like Algolia or Elasticsearch would be better.
     if (searchQuery) {
         const lowerCaseQuery = searchQuery.toLowerCase();
         q = query(q, or(
@@ -61,7 +63,8 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
         ));
     }
 
-    // Apply sorting
+    // Apply sorting. This can create multiple composite index requirements.
+    // Firestore will provide an error with a link to create them.
     switch (sortOption) {
         case 'a-z':
             q = query(q, orderBy('commonName', 'asc'));
@@ -82,7 +85,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const logs: BirdLog[] = [];
         querySnapshot.forEach((doc) => {
-            // Client-side filtering for case-insensitivity
+            // Client-side filtering for more accurate case-insensitive search
             const data = doc.data() as BirdLog;
             if (searchQuery) {
                 const commonNameMatch = data.commonName.toLowerCase().includes(searchQuery.toLowerCase());
@@ -104,17 +107,12 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
     return () => unsubscribe();
   }, [user, authLoading, sortOption, searchQuery]);
 
-  const { groupedSessions, hasMystery } = useMemo(() => {
-    // We get all logs (identified and mystery) in a separate query to check for the mystery button
-    const hasMysteryLogs = allLogs.some(log => log.isMystery);
-    // Group by sessionId
-    const groupedBySession = groupBy(allLogs, 'sessionId');
-
-    return { groupedSessions: groupedBySession, hasMystery: hasMysteryLogs };
+  const groupedSessions = useMemo(() => {
+    return groupBy(allLogs, 'sessionId');
   }, [allLogs]);
 
 
-  // Separate effect to check for any mystery logs
+  // Separate effect to check for any mystery logs to show the "Mystery Recordings" button
   const [hasMysteryLogs, setHasMysteryLogs] = useState(false);
   useEffect(() => {
     if(!user) return;

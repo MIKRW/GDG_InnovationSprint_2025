@@ -35,12 +35,12 @@ export default function LogLayout({
     return 'Bird Book';
   }, [pathname]);
   
-  const showSearch = !pathname.startsWith('/log/test') && !pathname.startsWith('/log/errors');
+  const showSearch = !pathname.startsWith('/log/test') && !pathname.startsWith('/log/errors') && !pathname.startsWith('/log/mystery');
 
   const childrenWithProps = React.Children.map(children, (child) => {
     if (React.isValidElement(child)) {
-      // Pass props only if the child is one of our main log pages
-      if (pathname === '/log' || pathname === '/log/mystery') {
+      // Pass props only if the child is our main log page
+      if (pathname === '/log') {
         return React.cloneElement(child, { searchQuery, sortOption } as any);
       }
     }

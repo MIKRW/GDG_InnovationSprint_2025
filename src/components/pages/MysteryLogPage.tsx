@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { collection, query, onSnapshot, orderBy, where, Query } from 'firebase/firestore';
 
-import type { BirdLog, SortOption } from '@/lib/types';
+import type { BirdLog } from '@/lib/types';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { db } from '@/lib/firebase';
 
@@ -16,12 +16,7 @@ import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button } from '../ui/button';
 
-interface MysteryLogPageProps {
-    searchQuery: string;
-    sortOption: SortOption;
-}
-
-export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps) {
+export function MysteryLogPage() {
   const [allLogs, setAllLogs] = useState<BirdLog[]>([]);
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -44,7 +39,7 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
     const logsCollectionRef = collection(db, 'users', user.uid, 'identifications');
     
     // This query is now simpler and avoids the composite index requirement.
-    const q: Query = query(logsCollectionRef, where('isMystery', '==', true), where('isDisowned', '==', false));
+    const q: Query = query(logsCollectionRef, where('isMystery', '==', true), where('isDisowned', '==', false), orderBy('timestamp', 'desc'));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const logs: BirdLog[] = [];
@@ -52,24 +47,7 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
             logs.push({ id: doc.id, ...doc.data() } as BirdLog);
         });
         
-        // Client-side filtering and sorting
-        const processedLogs = logs
-            .filter(log => {
-                if (!searchQuery) return true;
-                // Since mystery logs don't have names, we only filter by date
-                return new Date(log.timestamp).toLocaleDateString().includes(searchQuery);
-            })
-            .sort((a, b) => {
-                switch (sortOption) {
-                    case 'oldest':
-                        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
-                    case 'newest':
-                    default:
-                        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-                }
-            });
-
-        setAllLogs(processedLogs);
+        setAllLogs(logs);
         setLoading(false);
     }, (error) => {
         console.error("Error fetching mystery logs:", error);
@@ -77,7 +55,7 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
     });
 
     return () => unsubscribe();
-  }, [user, authLoading, sortOption, searchQuery]);
+  }, [user, authLoading]);
 
 
   if (loading) {
@@ -89,7 +67,7 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
     )
   }
 
-  if (allLogs.length === 0 && !searchQuery) {
+  if (allLogs.length === 0) {
     return (
         <div className="container mx-auto px-4 py-8 text-center">
              <PageTitle>No Mystery Recordings Yet</PageTitle>
@@ -126,11 +104,6 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
           </Card>
         </Link>
       ))}
-      {allLogs.length === 0 && searchQuery && (
-         <div className="col-span-full text-center py-16">
-              <p className="text-lg text-muted-foreground">No results found for "{searchQuery}".</p>
-         </div>
-     )}
     </div>
   );
 }

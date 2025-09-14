@@ -2,15 +2,10 @@
 'use client';
 
 import { MysteryLogPage } from '@/components/pages/MysteryLogPage';
-import type { SortOption } from '@/lib/types';
 
-interface MysteryLogsProps {
-    searchQuery?: string;
-    sortOption?: SortOption;
-}
-
-export default function MysteryLogs({ searchQuery = '', sortOption = 'newest' }: MysteryLogsProps) {
+export default function MysteryLogs() {
+  // This page now fetches its own data and does not receive props.
   return (
-      <MysteryLogPage searchQuery={searchQuery} sortOption={sortOption} />
+      <MysteryLogPage />
   );
 }
