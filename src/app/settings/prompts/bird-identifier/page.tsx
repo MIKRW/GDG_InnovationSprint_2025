@@ -71,14 +71,21 @@ export default function BirdIdentifierPromptEditorPage() {
   const [newPromptText, setNewPromptText] = useState('');
   
   const [publishVersionType, setPublishVersionType] = useState<'minor' | 'major' | 'patch'>('patch');
-  const [contentPublishVersionType, setContentPublishVersionType] = useState<'minor' | 'major' | 'patch'>('patch');
+  const [contentPublishVersionType, setContentPublishVersionType] = useState<'patch' | 'minor' | 'major'>('patch');
 
   
   const { toast } = useToast();
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
   const systemId = useMemo(() => SYSTEM_IDS[selectedMode], [selectedMode]);
-  const activeBirdAIVersion = useMemo(() => birdAIVersions.sort((a,b) => b.timestamp.localeCompare(a.timestamp))[0], [birdAIVersions]);
+  const activeBirdAIVersion = useMemo(() => birdAIVersions.sort((a,b) => {
+      const aParts = a.version.substring(1).split('.').map(Number);
+      const bParts = b.version.substring(1).split('.').map(Number);
+      for(let i = 0; i < 3; i++) {
+          if(aParts[i] !== bParts[i]) return bParts[i] - aParts[i];
+      }
+      return 0;
+  })[0], [birdAIVersions]);
 
   const fetchPromptData = useCallback(async () => {
     if (!isDevMode) {
@@ -127,7 +134,14 @@ export default function BirdIdentifierPromptEditorPage() {
 
         const allCategories = Array.from(new Set(Object.keys(contentsByCategory))).sort();
       
-        const latestBirdAIVersion = fetchedBirdAIVersions.sort((a,b) => b.timestamp.localeCompare(a.timestamp))[0];
+        const latestBirdAIVersion = fetchedBirdAIVersions.sort((a,b) => {
+            const aParts = a.version.substring(1).split('.').map(Number);
+            const bParts = b.version.substring(1).split('.').map(Number);
+            for(let i = 0; i < 3; i++) {
+                if(aParts[i] !== bParts[i]) return bParts[i] - aParts[i];
+            }
+            return 0;
+        })[0];
 
         // Set up the staging table based on the latest version
         let initialStaged: Record<string, string> = {};
@@ -229,6 +243,7 @@ export default function BirdIdentifierPromptEditorPage() {
             systemId,
             categoryId: selectedCategoryForEditing,
             promptText: editorDraftContent.promptText,
+            versionType: contentPublishVersionType,
             isDraft: false,
         });
         await fetchPromptData();
@@ -284,7 +299,6 @@ export default function BirdIdentifierPromptEditorPage() {
           const newVersion = await publishNewPromptVersion({
               systemId: systemId,
               composedPrompts: promptsToPublish,
-              previousVersion: activeBirdAIVersion?.version,
               versionType: publishVersionType,
           });
 
@@ -526,10 +540,6 @@ export default function BirdIdentifierPromptEditorPage() {
               </CardContent>
               <CardFooter className="flex-col items-start gap-4">
                  <div className="flex items-center gap-2">
-                    <Button onClick={handleSaveDraft} disabled={!canSave}>
-                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Save Draft
-                    </Button>
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -547,7 +557,7 @@ export default function BirdIdentifierPromptEditorPage() {
                             )}
                         </Tooltip>
                     </TooltipProvider>
-                    <Select value={contentPublishVersionType} onValueChange={(v) => setContentPublishVersionType(v as 'minor' | 'major' | 'patch')}>
+                    <Select value={contentPublishVersionType} onValueChange={(v) => setContentPublishVersionType(v as 'patch' | 'minor' | 'major')}>
                         <SelectTrigger className="w-[120px]">
                             <SelectValue />
                         </SelectTrigger>
@@ -557,6 +567,10 @@ export default function BirdIdentifierPromptEditorPage() {
                             <SelectItem value="major">Major</SelectItem>
                         </SelectContent>
                     </Select>
+                    <Button onClick={handleSaveDraft} disabled={!canSave}>
+                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save Draft
+                    </Button>
                    </div>
               </CardFooter>
             </Card>
