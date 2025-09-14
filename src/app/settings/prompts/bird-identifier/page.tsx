@@ -30,6 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { v4 as uuidv4 } from 'uuid';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 const SYSTEM_IDS = {
@@ -565,4 +566,3 @@ export default function BirdIdentifierPromptEditorPage() {
     </div>
   );
 }
-
