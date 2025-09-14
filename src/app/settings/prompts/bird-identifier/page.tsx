@@ -92,18 +92,20 @@ export default function BirdIdentifierPromptEditorPage() {
 
         const activeVersionPromises = Object.entries(activeSystemVersions).map(async ([mode, versionString]) => {
             if (!versionString) return { mode, version: null };
-            // A version string can be reused on recall, so we need the latest one.
+            
+            // Simpler query without ordering to avoid composite index
             const versionQuery = query(
               collection(db, 'prompt_versions'), 
               where('systemId', '==', SYSTEM_IDS[mode as 'newbie' | 'twitcher']),
-              where('version', '==', versionString), 
-              orderBy('timestamp', 'desc')
+              where('version', '==', versionString)
             );
 
             const versionSnap = await getDocs(versionQuery);
             if (!versionSnap.empty) {
-                const doc = versionSnap.docs[0];
-                return { mode, version: { id: doc.id, ...doc.data() } as PromptVersion };
+                // Sort client-side to get the most recent one
+                const versions = versionSnap.docs.map(d => ({ id: d.id, ...d.data() } as PromptVersion));
+                versions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                return { mode, version: versions[0] };
             }
             return { mode, version: null };
         });
