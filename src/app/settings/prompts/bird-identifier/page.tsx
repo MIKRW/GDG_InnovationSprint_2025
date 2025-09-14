@@ -140,9 +140,8 @@ export default function BirdIdentifierPromptEditorPage() {
   const currentContent = useMemo(() => currentCategoryHistory.find(c => c.id === currentSelectedVersionId), [currentCategoryHistory, currentSelectedVersionId]);
 
   useEffect(() => {
-    // When the selected version or category changes, pre-fill the "new" text with the content of the "current" one
-    setNewPromptText(currentContent?.promptText || '');
-  }, [currentContent]);
+    setNewPromptText('');
+  }, [selectedCategory, selectedMode]);
 
   const handleSaveContent = async () => {
     if (!selectedCategory) return;
@@ -224,11 +223,11 @@ export default function BirdIdentifierPromptEditorPage() {
   };
 
   const handleRecallVersion = () => {
-    if (!currentSelectedVersionId) return;
-    setSelectedVersions(prev => ({ ...prev, [selectedCategory]: currentSelectedVersionId }));
+    if (!currentContent) return;
+    setNewPromptText(currentContent.promptText);
     toast({
         title: 'Version Recalled',
-        description: `Category '${selectedCategory.replace(/_/g, ' ')}' is now set to use version ${currentContent?.version}. Publish to make it live.`,
+        description: `Version ${currentContent.version} text has been loaded into the editor.`,
     });
   };
 
@@ -330,7 +329,7 @@ export default function BirdIdentifierPromptEditorPage() {
                             ))}
                         </SelectContent>
                     </Select>
-                    <Button onClick={handleRecallVersion} variant="outline" size="sm" className="mb-2" disabled={!currentSelectedVersionId || currentCategoryHistory.length === 0}>
+                    <Button onClick={handleRecallVersion} variant="outline" size="sm" className="mb-2" disabled={!currentContent}>
                         <History className="mr-2 h-4 w-4" /> Recall this Version
                     </Button>
                     <Textarea
