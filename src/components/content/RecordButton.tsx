@@ -46,19 +46,27 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 
 
   useImperativeHandle(ref, () => ({
-    handleFileSelect(file: File, testContext?: { birdId: string, testAudioId: string }) {
+    handleFileSelect: async (file: File, testContext?: { birdId: string, testAudioId: string }) => {
       if (currentSessionId.current === null) {
         currentSessionId.current = uuidv4();
       }
       currentTimestamp.current = new Date().toISOString();
 
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onloadend = () => {
-        const base64Audio = reader.result as string;
-        setRecordingState('processing');
-        processAudio(base64Audio, undefined, testContext);
-      };
+      return new Promise<void>((resolve) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onloadend = async () => {
+              const base64Audio = reader.result as string;
+              setRecordingState('processing');
+              await processAudio(base64Audio, undefined, testContext);
+              resolve();
+          };
+          reader.onerror = () => {
+              console.error("Failed to read file for test run.");
+              setRecordingState('idle');
+              resolve();
+          }
+      });
     }
   }));
 
