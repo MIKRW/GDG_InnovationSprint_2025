@@ -1,9 +1,27 @@
 
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { PageTitle } from '../content/PageTitle';
+import { useAuth } from '../providers/AuthProvider';
+import { LogOut } from 'lucide-react';
+import { auth } from '@/lib/firebase';
+
 
 export function SettingsPage() {
+  const { user } = useAuth();
+  const isAnonymous = user?.isAnonymous;
+
+  const handleSignOut = async () => {
+    try {
+      await auth.signOut();
+      // The AuthProvider will handle signing the user back in anonymously
+      window.location.reload(); // Reload to ensure clean state
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <PageTitle>Settings</PageTitle>
@@ -20,6 +38,23 @@ export function SettingsPage() {
          <Button asChild variant="outline">
           <Link href="/settings/mode">App Mode</Link>
         </Button>
+
+        <div className="pt-8 w-full max-w-sm">
+            <h2 className="text-lg font-semibold mb-2">Account</h2>
+            {isAnonymous ? (
+                 <Button asChild variant="outline">
+                    <Link href="/settings/register">Create Account</Link>
+                </Button>
+            ) : (
+                <div className="space-y-4">
+                    <p className="text-muted-foreground">You are signed in as {user?.email}.</p>
+                    <Button variant="destructive" onClick={handleSignOut}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Sign Out
+                    </Button>
+                </div>
+            )}
+        </div>
       </div>
     </div>
   );

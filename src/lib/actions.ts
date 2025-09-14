@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -6,6 +7,7 @@ import { doc, setDoc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
 import type { TestAudioMetadata } from './types';
+import { EmailAuthProvider, linkWithCredential, type User } from 'firebase/auth';
 
 
 interface UploadMasterAudioInput {
@@ -97,4 +99,27 @@ export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<T
         family: family,
         order: order
     };
+}
+
+interface RegisterUserInput {
+    email: string;
+    pass: string;
+}
+
+// This server action cannot be called from the client directly because it needs the `currentUser` object,
+// which is only available on the client. It must be called from another client-aware component or hook.
+// This is a common pattern in Next.js with Firebase.
+export async function upgradeAnonymousUser(currentUser: User, { email, pass }: RegisterUserInput) {
+    if (!currentUser || !currentUser.isAnonymous) {
+        throw new Error("No anonymous user is currently signed in.");
+    }
+    
+    try {
+        const credential = EmailAuthProvider.credential(email, pass);
+        const userCredential = await linkWithCredential(currentUser, credential);
+        return { success: true, user: userCredential.user };
+    } catch (error: any) {
+        console.error("Error upgrading anonymous user:", error.code, error.message);
+        return { success: false, error: { code: error.code, message: error.message } };
+    }
 }

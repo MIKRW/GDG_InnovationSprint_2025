@@ -33,7 +33,7 @@ interface RecordButtonProps {
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
-const PROMPT_VERSION = "1.1"; // Updated for weather tool
+const PROMPT_VERSION = "1.2";
 
 
 const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps, ref) => {
@@ -46,6 +46,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   const [lastAudio, setLastAudio] = useState<string | null>(null);
   const currentSessionId = useRef<string | null>(null);
   const currentTimestamp = useRef<string | null>(null);
+  const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
 
   useImperativeHandle(ref, () => ({
@@ -160,6 +161,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         wasSuccessful: wasSuccessful,
         wasSavedByUser: true,
         dataQualityScore: 80, // Example score
+        isDeveloperData: isDevMode, // Add the developer flag here
     });
     
     setRecordingState('idle');
