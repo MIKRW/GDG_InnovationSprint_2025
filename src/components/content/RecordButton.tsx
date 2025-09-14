@@ -1,4 +1,5 @@
 
+
 'use-client';
 
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
@@ -150,9 +151,9 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         sessionId: logData.sessionId,
         inputAudioUrl: audioUrl,
         locationData: {
-          latitude: logData.latitude,
-          longitude: logData.longitude,
-          locationDescription: logData.locationDescription,
+          latitude: logData.latitude ?? null,
+          longitude: logData.longitude ?? null,
+          locationDescription: logData.locationDescription ?? null,
         },
         analysisMethod: `gemini-pro-vision-prompt-v${PROMPT_VERSION}`,
         aiResult: aiResult,
