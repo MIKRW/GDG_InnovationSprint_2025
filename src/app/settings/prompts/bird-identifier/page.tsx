@@ -246,11 +246,11 @@ export default function BirdIdentifierPromptEditorPage() {
       </div>
 
       <Card className="mt-8">
-        <CardHeader>
+        <CardHeader className="text-center">
             <CardTitle>AI Mode</CardTitle>
             <CardDescription>Select the AI mode you want to configure prompts for.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex justify-center">
             <Select value={selectedMode} onValueChange={(v) => setSelectedMode(v as 'newbie' | 'twitcher')}>
                 <SelectTrigger className="max-w-xs">
                     <SelectValue placeholder="Select a mode..." />
