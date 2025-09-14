@@ -174,35 +174,24 @@ export async function saveCanonicalImage(
 }
 
 
-interface SavePromptContentInput {
-    systemId: string;
-    categoryId: string;
-    promptText: string;
-    previousVersionId: string;
-    currentVersion: string; // e.g., "v1.1"
+interface SavePromptInput {
+    promptPath: string;
+    promptContent: string;
 }
 
 /**
- * Saves a new version of a prompt's content to Firestore.
+ * Saves updated prompt content to a specified file in Firebase Storage.
  */
-export async function savePromptContent(data: SavePromptContentInput) {
-    const { systemId, categoryId, promptText, previousVersionId, currentVersion } = data;
+export async function savePrompt(data: SavePromptInput) {
+    const { promptPath, promptContent } = data;
 
-    // Calculate next version number
-    const versionNum = parseInt(currentVersion.replace('v', '').split('.')[1] || '0') + 1;
-    const majorVersion = currentVersion.split('.')[0];
-    const newVersion = `${majorVersion}.${versionNum}`;
+    const promptRef = storageRef(storage, promptPath);
 
-    const newPromptDoc = {
-        systemId,
-        categoryId,
-        version: newVersion,
-        promptText,
-        previousVersionId,
-        timestamp: serverTimestamp(),
-    };
+    // Convert the string content to a Blob
+    const blob = new Blob([promptContent], { type: 'text/plain' });
 
-    const docRef = await addDoc(collection(db, 'prompt_content'), newPromptDoc);
+    // Upload the new content, overwriting the existing file
+    await uploadBytes(promptRef, blob);
 
-    return { id: docRef.id, ...newPromptDoc };
+    return { success: true, path: promptPath };
 }

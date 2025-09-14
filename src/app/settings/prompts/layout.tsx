@@ -15,6 +15,12 @@ export default function PromptManagementLayout({
   const pathname = usePathname();
 
   const title = useMemo(() => {
+    if (pathname.includes('/bird-identifier/newbie')) {
+      return 'Newbie Mode Prompts';
+    }
+    if (pathname.includes('/bird-identifier/twitcher')) {
+      return 'Twitcher Mode Prompts';
+    }
     if (pathname.includes('bird-identifier')) {
       return 'Bird Identifier Prompts';
     }
