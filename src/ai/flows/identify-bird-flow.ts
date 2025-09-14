@@ -193,10 +193,8 @@ const identifyBirdFlow = ai.defineFlow(
     const systemId = input.mode === 'twitcher' ? 'bird-identifier-ai-twitcher' : 'bird-identifier-ai-newbie';
     const promptTemplate = await getDynamicPrompt(systemId);
     
-    const finalPrompt = compileTemplate(promptTemplate, input);
-
     const { output } = await ai.generate({
-      prompt: finalPrompt,
+      prompt: compileTemplate(promptTemplate, input),
       model: 'googleai/gemini-2.5-flash',
       output: { schema: IdentifyBirdOutputSchema },
       tools: [getCurrentWeather]
