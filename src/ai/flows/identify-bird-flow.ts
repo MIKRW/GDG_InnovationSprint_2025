@@ -15,7 +15,27 @@ import { z } from 'zod';
 import { collection, getDoc, doc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppAIVersion, PromptContent, PromptVersion } from '@/lib/types';
-import { handlebars } from 'genkit/tools';
+
+// Helper function to replace placeholders in a template
+function compileTemplate(template: string, data: Record<string, any>): string {
+    let result = template;
+    for (const key in data) {
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+            const value = data[key];
+            if (value !== undefined && value !== null) {
+                 // Simple replacement for {{key}} and {{media url=key}}
+                 result = result.replace(new RegExp(`{{media url=${key}}}`, 'g'), `{{media url=${value}}}`);
+                 result = result.replace(new RegExp(`{{{?${key}}}}?`, 'g'), String(value));
+            }
+        }
+    }
+    // Handle conditional blocks like {{#if key}}...{{/if}}
+    result = result.replace(/{{#if (\w+)}}([\s\S]*?){{\/if}}/g, (match, key, content) => {
+        return data[key] ? content : '';
+    });
+
+    return result;
+}
 
 
 // Helper function to fetch and compose the prompt dynamically from Firestore
@@ -173,11 +193,7 @@ const identifyBirdFlow = ai.defineFlow(
     const systemId = input.mode === 'twitcher' ? 'bird-identifier-ai-twitcher' : 'bird-identifier-ai-newbie';
     const promptTemplate = await getDynamicPrompt(systemId);
     
-    const prompt = handlebars.compile(promptTemplate, {
-      noEscape: true,
-    });
-    
-    const finalPrompt = await prompt(input);
+    const finalPrompt = compileTemplate(promptTemplate, input);
 
     const { output } = await ai.generate({
       prompt: finalPrompt,

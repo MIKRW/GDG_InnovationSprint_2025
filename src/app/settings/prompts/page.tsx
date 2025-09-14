@@ -114,7 +114,7 @@ export default function PromptManagementPage() {
         }
         
         fetchActiveVersionDetails();
-    }, [isDevMode]);
+    }, [isDevMode, isPublishing]);
 
     const handleNavigation = () => {
         router.push(selectedSystem);
@@ -124,15 +124,13 @@ export default function PromptManagementPage() {
         setIsPublishing(true);
         try {
             const newVersion = await publishNewAppAIVersion();
-            setActiveVersionDetails(null); // Force a re-fetch of the new details
             
             toast({
                 title: 'Published New AI Version!',
                 description: `Successfully published ${newVersion.version}. The app will now use this configuration.`,
             });
-             // Trigger a re-fetch
-            const event = new Event('storage');
-            window.dispatchEvent(event);
+             // The useEffect will re-run now because isPublishing is a dependency,
+             // which will cause a re-fetch of the active version details.
 
         } catch (error) {
             console.error("Failed to publish new App AI version:", error);
