@@ -213,16 +213,16 @@ export default function BirdIdentifierPromptEditorPage() {
 
   const { majorVersions, minorVersions, patchVersions } = useMemo(() => {
       const published = editorCategoryHistory.filter(v => v.version !== 'v0.0.0-draft');
-      const major = [...new Set(published.map(v => String(v.version).split('.')[0].replace('v','')))].sort((a,b) => Number(a) - Number(b));
+      const major = [...new Set(published.map(v => String(v.version).split('.')[0].replace('v','')))].sort((a,b) => Number(b) - Number(a));
       
       let minor: string[] = [];
       if (selectedMajor) {
-          minor = [...new Set(published.filter(v => String(v.version).startsWith(`v${selectedMajor}.`)).map(v => String(v.version).split('.')[1]))].sort((a,b) => Number(a) - Number(b));
+          minor = [...new Set(published.filter(v => String(v.version).startsWith(`v${selectedMajor}.`)).map(v => String(v.version).split('.')[1]))].sort((a,b) => Number(b) - Number(a));
       }
 
       let patch: string[] = [];
       if (selectedMajor && selectedMinor) {
-          patch = [...new Set(published.filter(v => String(v.version).startsWith(`v${selectedMajor}.${selectedMinor}.`)).map(v => String(v.version).split('.')[2]))].sort((a,b) => Number(a) - Number(b));
+          patch = [...new Set(published.filter(v => String(v.version).startsWith(`v${selectedMajor}.${selectedMinor}.`)).map(v => String(v.version).split('.')[2]))].sort((a,b) => Number(b) - Number(a));
       }
       
       return { majorVersions: major, minorVersions: minor, patchVersions: patch };
@@ -235,7 +235,7 @@ export default function BirdIdentifierPromptEditorPage() {
       }
       if (selectedMajor && selectedMinor && selectedPatch) {
           const versionString = `v${selectedMajor}.${selectedMinor}.${selectedPatch}`;
-          return editorCategoryHistory.find(c => c.version === versionString);
+          return editorCategoryHistory.find(c => String(c.version) === versionString);
       }
       return undefined;
   }, [editorCategoryHistory, selectedMajor, selectedMinor, selectedPatch, editorDraftContent]);
@@ -299,12 +299,38 @@ export default function BirdIdentifierPromptEditorPage() {
   };
 
   const handleEditVersion = () => {
-    if (!editorCurrentContent) return;
-    setNewPromptText(editorCurrentContent.promptText);
+    let contentToEdit = editorCurrentContent;
+
+    if (!contentToEdit && selectedMajor) {
+        // If no full version is selected, but a major is, find the latest version in that major branch
+        const latestInMajor = editorCategoryHistory
+            .filter(v => String(v.version).startsWith(`v${selectedMajor}.`))
+            .sort((a,b) => sortSemanticVersions(a.version, b.version))[0];
+        
+        contentToEdit = latestInMajor;
+        
+        // Also update minor/patch states if needed
+        if (latestInMajor) {
+            const [_, minor, patch] = String(latestInMajor.version).substring(1).split('.').map(Number);
+            setSelectedMinor(String(minor));
+            setSelectedPatch(String(patch));
+        }
+    }
+
+    if (!contentToEdit) {
+         if (selectedMajor === '0' && editorDraftContent) {
+             contentToEdit = editorDraftContent;
+         } else {
+            toast({ variant: 'destructive', title: 'Load Failed', description: 'No version found to edit for the current selection.' });
+            return;
+         }
+    }
+
+    setNewPromptText(contentToEdit.promptText);
     setIsEditLoaded(true);
     toast({
         title: 'Version Loaded for Editing',
-        description: `Version ${String(editorCurrentContent.version).includes('draft') ? 'Draft' : editorCurrentContent.version} text has been loaded into the editor.`,
+        description: `Version ${String(contentToEdit.version).includes('draft') ? 'Draft' : contentToEdit.version} text has been loaded into the editor.`,
     });
   };
 
@@ -577,7 +603,7 @@ export default function BirdIdentifierPromptEditorPage() {
                              {patchVersions.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
                         </SelectContent>
                     </Select>
-                    <Button onClick={handleEditVersion} variant="outline" size="sm" disabled={!editorCurrentContent}>
+                    <Button onClick={handleEditVersion} variant="outline" size="sm" disabled={!selectedMajor}>
                         <Pencil className="mr-2 h-4 w-4" /> Edit
                     </Button>
                 </div>
