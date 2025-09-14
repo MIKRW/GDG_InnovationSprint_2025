@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { PageTitle } from '@/components/content/PageTitle';
@@ -26,15 +26,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 const SYSTEM_ID = 'bird-identifier-ai-newbie';
+const ADD_NEW_CATEGORY_VALUE = 'add_new_category';
 
 export default function NewbiePromptEditorPage() {
   const [activeVersion, setActiveVersion] = useState<PromptVersion | null>(null);
   const [promptContents, setPromptContents] = useState<Record<string, PromptContent[]>>({});
   const [selectedVersions, setSelectedVersions] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState<Record<string, boolean>>({});
+  const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [newCategory, setNewCategory] = useState('');
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [isNewCategoryDialogOpen, setIsNewCategoryDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+
   const { toast } = useToast();
 
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
@@ -48,7 +52,6 @@ export default function NewbiePromptEditorPage() {
     async function fetchPromptData() {
       setIsLoading(true);
       try {
-        // 1. Get the active version for the system
         const versionsQuery = query(
           collection(db, 'prompt_versions'),
           where('systemId', '==', SYSTEM_ID),
@@ -57,24 +60,24 @@ export default function NewbiePromptEditorPage() {
         const versionsSnapshot = await getDocs(versionsQuery);
         const latestVersionDoc = versionsSnapshot.docs[0];
         
-        let initialCategories = ['base_instruction', 'location_handling', 'audio_quality'];
+        let initialCategories = ['base_instruction', 'location_handling'];
         let initialSelected: Record<string, string> = {};
 
         if (latestVersionDoc) {
             const latestVersion = { id: latestVersionDoc.id, ...latestVersionDoc.data() } as PromptVersion;
             setActiveVersion(latestVersion);
             initialCategories = Object.keys(latestVersion.composedPrompts);
-            Object.keys(latestVersion.composedPrompts).forEach(key => {
-                initialSelected[key] = latestVersion.composedPrompts[key];
-            });
+            initialSelected = { ...latestVersion.composedPrompts };
             setSelectedVersions(initialSelected);
         } else {
-            // Handle case where there are no versions yet for this system
             initialCategories.forEach(cat => { initialSelected[cat] = ''; });
             setSelectedVersions(initialSelected);
         }
 
-        // 2. Fetch all content for each category
+        if (initialCategories.length > 0 && !selectedCategory) {
+            setSelectedCategory(initialCategories[0]);
+        }
+
         const contentPromises = initialCategories.map(async (category) => {
             const contentQuery = query(
                 collection(db, 'prompt_content'),
@@ -91,14 +94,12 @@ export default function NewbiePromptEditorPage() {
         const contentsByCategory: Record<string, PromptContent[]> = {};
         results.forEach(result => {
             contentsByCategory[result.category] = result.contents;
-             // Ensure a version is selected if one exists
             if (!initialSelected[result.category] && result.contents.length > 0) {
               initialSelected[result.category] = result.contents[0].id;
             }
         });
         setPromptContents(contentsByCategory);
         setSelectedVersions(initialSelected);
-
 
       } catch (error) {
         console.error('Error fetching prompt data:', error);
@@ -113,84 +114,87 @@ export default function NewbiePromptEditorPage() {
     }
 
     fetchPromptData();
-  }, [isDevMode, toast]);
+  }, [isDevMode, toast, selectedCategory]);
 
-  const handleContentChange = (categoryId: string, newText: string) => {
-    // Find the currently selected prompt for this category and update its text
-     const currentVersionId = selectedVersions[categoryId];
-     const categoryContents = promptContents[categoryId] || [];
-     const updatedContents = categoryContents.map(c => 
+  const handleContentChange = (newText: string) => {
+    if (!selectedCategory) return;
+    const currentVersionId = selectedVersions[selectedCategory];
+    const categoryContents = promptContents[selectedCategory] || [];
+    const updatedContents = categoryContents.map(c => 
         c.id === currentVersionId ? { ...c, promptText: newText } : c
-     );
-     setPromptContents(prev => ({ ...prev, [categoryId]: updatedContents }));
+    );
+    setPromptContents(prev => ({ ...prev, [selectedCategory]: updatedContents }));
   };
 
-  const handleVersionChange = (categoryId: string, versionId: string) => {
-    setSelectedVersions(prev => ({ ...prev, [categoryId]: versionId }));
+  const handleVersionChange = (versionId: string) => {
+     if (!selectedCategory) return;
+    setSelectedVersions(prev => ({ ...prev, [selectedCategory]: versionId }));
   };
 
-  const handleSaveContent = async (categoryId: string) => {
-    const currentVersionId = selectedVersions[categoryId];
-    const currentContent = promptContents[categoryId]?.find(c => c.id === currentVersionId);
+  const handleSaveContent = async () => {
+    if (!selectedCategory) return;
+    const currentVersionId = selectedVersions[selectedCategory];
+    const currentContent = promptContents[selectedCategory]?.find(c => c.id === currentVersionId);
+    const textToSave = currentContent?.promptText || '';
 
-    if (!currentContent?.promptText && history.length === 0) {
+    if (!textToSave && promptContents[selectedCategory]?.length === 0) {
         toast({ variant: 'destructive', title: 'Cannot Save', description: 'Prompt content cannot be empty.' });
         return;
     }
-    
-    const textToSave = currentContent?.promptText || '';
 
-    setIsSaving(prev => ({ ...prev, [categoryId]: true }));
+    setIsSaving(true);
     try {
         const newContent = await savePromptContent({
             systemId: SYSTEM_ID,
-            categoryId: categoryId,
+            categoryId: selectedCategory,
             promptText: textToSave,
             previousVersionId: currentVersionId,
         });
 
-        // Update UI with new version
         setPromptContents(prev => ({
             ...prev,
-            [categoryId]: [newContent, ...(prev[categoryId] || [])],
+            [selectedCategory]: [newContent, ...(prev[selectedCategory] || [])],
         }));
-        setSelectedVersions(prev => ({ ...prev, [categoryId]: newContent.id }));
+        setSelectedVersions(prev => ({ ...prev, [selectedCategory]: newContent.id }));
 
-        toast({ title: 'Prompt Saved', description: `${categoryId} was updated to version ${newContent.version}.` });
+        toast({ title: 'Prompt Saved', description: `${selectedCategory} was updated to version ${newContent.version}.` });
     } catch (error) {
         console.error('Failed to save prompt content:', error);
         toast({ variant: 'destructive', title: 'Save Failed' });
     } finally {
-        setIsSaving(prev => ({ ...prev, [categoryId]: false }));
+        setIsSaving(false);
     }
   };
 
-  const handleAddNewCategory = async () => {
-    if (!newCategory) return;
-    const categoryId = newCategory.trim().toLowerCase().replace(/\s+/g, '_');
+  const handleAddNewCategory = () => {
+    if (!newCategoryName) return;
+    const categoryId = newCategoryName.trim().toLowerCase().replace(/\s+/g, '_');
     if (promptContents[categoryId]) {
-        toast({ variant: 'destructive', title: 'Category Exists', description: 'This prompt category already exists.' });
+        toast({ variant: 'destructive', title: 'Category Exists' });
         return;
     }
 
-    // Optimistically update UI
     setPromptContents(prev => ({ ...prev, [categoryId]: [] }));
     setSelectedVersions(prev => ({ ...prev, [categoryId]: '' }));
-    setNewCategory('');
+    setSelectedCategory(categoryId);
+    setNewCategoryName('');
+    setIsNewCategoryDialogOpen(false);
   };
+
+  const handleCategorySelect = (categoryId: string) => {
+    if (categoryId === ADD_NEW_CATEGORY_VALUE) {
+        setIsNewCategoryDialogOpen(true);
+    } else {
+        setSelectedCategory(categoryId);
+    }
+  }
   
   const handlePublish = async () => {
       setIsPublishing(true);
       try {
-          const composedPrompts: Record<string, string> = {};
-          for (const category in selectedVersions) {
-              if(selectedVersions[category]) {
-                composedPrompts[category] = selectedVersions[category];
-              }
-          }
-
-          if (Object.keys(composedPrompts).length === 0) {
-            toast({ variant: 'destructive', title: 'Cannot Publish', description: 'You must have at least one prompt category with a selected version.'});
+          const composedPrompts = { ...selectedVersions };
+          if (Object.values(composedPrompts).every(v => !v)) {
+            toast({ variant: 'destructive', title: 'Cannot Publish', description: 'Select at least one version for a prompt category.'});
             setIsPublishing(false);
             return;
           }
@@ -209,6 +213,10 @@ export default function NewbiePromptEditorPage() {
           setIsPublishing(false);
       }
   }
+
+  const currentCategoryHistory = useMemo(() => promptContents[selectedCategory] || [], [promptContents, selectedCategory]);
+  const currentSelectedVersionId = useMemo(() => selectedVersions[selectedCategory] || currentCategoryHistory[0]?.id || '', [selectedVersions, selectedCategory, currentCategoryHistory]);
+  const currentContent = useMemo(() => currentCategoryHistory.find(c => c.id === currentSelectedVersionId), [currentCategoryHistory, currentSelectedVersionId]);
 
   if (!isDevMode) {
     return <p className="p-4">This page is only available in developer mode.</p>;
@@ -233,60 +241,10 @@ export default function NewbiePromptEditorPage() {
         </Card>
       </div>
 
-      <div className="space-y-6">
-        {Object.keys(promptContents).sort().map(categoryId => {
-            const history = promptContents[categoryId] || [];
-            const selectedContentId = selectedVersions[categoryId] || history[0]?.id || '';
-            const content = history.find(c => c.id === selectedContentId);
-            const isSavingThis = isSaving[categoryId];
-
-            return (
-                <Card key={categoryId}>
-                    <CardHeader>
-                        <CardTitle className="capitalize">{categoryId.replace(/_/g, ' ')}</CardTitle>
-                        <CardDescription>Select a version or edit the content below and save as a new version.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <Select
-                            value={selectedContentId}
-                            onValueChange={(versionId) => handleVersionChange(categoryId, versionId)}
-                            disabled={history.length === 0}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a version..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {history.map(item => (
-                                    <SelectItem key={item.id} value={item.id}>
-                                        Version {item.version} - {new Date(item.timestamp).toLocaleString()}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <Textarea
-                            value={content?.promptText || ''}
-                            onChange={(e) => handleContentChange(categoryId, e.target.value)}
-                            className="min-h-[150px] font-mono text-sm"
-                            placeholder="Enter prompt content for this category..."
-                        />
-                    </CardContent>
-                    <CardFooter>
-                        <Button onClick={() => handleSaveContent(categoryId)} disabled={isSavingThis}>
-                            {isSavingThis ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                            Save as New Version
-                        </Button>
-                    </CardFooter>
-                </Card>
-            );
-        })}
-
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="outline"><Plus className="mr-2 h-4 w-4" /> Add New Prompt Category</Button>
-          </DialogTrigger>
+      <Dialog open={isNewCategoryDialogOpen} onOpenChange={setIsNewCategoryDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Category</DialogTitle>
+              <DialogTitle>Add New Prompt Category</DialogTitle>
               <DialogDescription>
                 Create a new component for the AI's prompt. Use a short, descriptive name (e.g., 'error_handling').
               </DialogDescription>
@@ -296,8 +254,8 @@ export default function NewbiePromptEditorPage() {
                 <Label htmlFor="category-name" className="text-right">Name</Label>
                 <Input
                   id="category-name"
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value)}
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
                   className="col-span-3"
                   placeholder="e.g., audio_analysis_rules"
                 />
@@ -307,18 +265,69 @@ export default function NewbiePromptEditorPage() {
               <Button onClick={handleAddNewCategory}>Add Category</Button>
             </DialogFooter>
           </DialogContent>
-        </Dialog>
-      </div>
+      </Dialog>
       
-       <div className="mt-8 border-t pt-6 text-right">
+      <Card>
+          <CardHeader>
+              <CardTitle>Prompt Category</CardTitle>
+              <CardDescription>Select a prompt category to view or edit its content and version history.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+              <div className="flex gap-4">
+                 <Select value={selectedCategory} onValueChange={handleCategorySelect}>
+                    <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Select a category..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {Object.keys(promptContents).sort().map(categoryId => (
+                            <SelectItem key={categoryId} value={categoryId} className="capitalize">{categoryId.replace(/_/g, ' ')}</SelectItem>
+                        ))}
+                        <SelectItem value={ADD_NEW_CATEGORY_VALUE} className="text-primary">
+                           <Plus className="inline-block mr-2 h-4 w-4" /> Add New Category...
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+                <Select
+                    value={currentSelectedVersionId}
+                    onValueChange={handleVersionChange}
+                    disabled={currentCategoryHistory.length === 0}
+                >
+                    <SelectTrigger className="w-[300px]">
+                        <SelectValue placeholder="Select a version..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {currentCategoryHistory.map(item => (
+                            <SelectItem key={item.id} value={item.id}>
+                                Version {item.version} - {new Date(item.timestamp).toLocaleString()}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+              </div>
+              
+              <Textarea
+                  value={currentContent?.promptText || ''}
+                  onChange={(e) => handleContentChange(e.target.value)}
+                  className="min-h-[250px] font-mono text-sm"
+                  placeholder="Select a category to start editing..."
+                  disabled={!selectedCategory}
+              />
+          </CardContent>
+          <CardFooter>
+              <Button onClick={handleSaveContent} disabled={isSaving || !selectedCategory}>
+                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Save as New Version
+              </Button>
+          </CardFooter>
+      </Card>
+      
+      <div className="mt-8 border-t pt-6 text-right">
             <Button size="lg" onClick={handlePublish} disabled={isPublishing}>
                 {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 Publish New AI Version
             </Button>
             <p className="text-xs text-muted-foreground mt-2">This will save the current selection of prompt versions as a new, active version of the AI.</p>
-       </div>
+      </div>
     </div>
   );
 }
-
-    
