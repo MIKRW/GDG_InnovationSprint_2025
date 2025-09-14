@@ -43,10 +43,9 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingStartTimeRef = useRef<number | null>(null);
-  const [lastAudio, setLastAudio] = useState<string | null>(null);
+  const [lastAnalysisRunId, setLastAnalysisRunId] = useState<string | null>(null);
   const currentSessionId = useRef<string | null>(null);
   const currentTimestamp = useRef<string | null>(null);
-  const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
 
   useImperativeHandle(ref, () => ({
@@ -209,6 +208,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       scientificName: 'Unknown',
       description: 'This is a recording that could not be identified by the AI. You can listen to it here and try to identify it yourself!',
       imagePrompt: 'question mark',
+      imageUrl: '', // No image for mystery logs initially
       audioUrl: audioUrl,
       isMystery: true,
       status: 'active',
@@ -220,21 +220,20 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
      await updateDoc(analysisRunRef, { wasSavedByUser: true });
 
     setRecordingState('idle');
-    setLastAudio(null);
+    setLastAnalysisRunId(null);
     router.push(`/log/${logId}`);
   };
 
   const handleSaveConfirmation = () => {
-    if (lastAudio) {
-        const analysisRunId = lastAudio;
+    if (lastAnalysisRunId) {
         // Re-fetch location based on settings when user confirms save
-        getLocationForAIShot(locationData => saveMysteryLog(analysisRunId, locationData));
+        getLocationForAIShot(locationData => saveMysteryLog(lastAnalysisRunId, locationData));
     }
   };
 
   const handleCancelSave = async () => {
     setRecordingState('idle');
-    setLastAudio(null);
+    setLastAnalysisRunId(null);
     onIdentificationFailed?.();
     router.push('/log');
   };
@@ -248,8 +247,9 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     reader.readAsDataURL(audioBlob);
     reader.onloadend = async () => {
         const base64Audio = reader.result as string;
-        // In dev mode, a live recording is a test run.
-        const testContext = isDevMode ? { birdId: 'live-test', testAudioId: uuidv4() } : undefined;
+        // In dev mode, a live recording is still flagged as dev data
+        const isDeveloperRun = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+        const testContext = isDeveloperRun ? { birdId: 'live-test', testAudioId: uuidv4() } : undefined;
         getLocationForAIShot(locationData => processAudio(base64Audio, recordingLengthSeconds, locationData, testContext));
     };
   };
@@ -339,16 +339,13 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       );
 
       if (analysisRunId) {
-          setRecordingState('idle');
-          if (wasSuccessful) {
-            router.push(`/record/confirm/${analysisRunId}`);
-          } else {
-            // Handle AI not finding a bird for a regular user
-            setLastAudio(analysisRunId);
+          if (!isDeveloperRun && !wasSuccessful) {
+            setLastAnalysisRunId(analysisRunId);
             setRecordingState('confirming');
+          } else {
+            // This path is for all successful runs and all dev runs (success or fail)
+            router.push(`/record/confirm/${analysisRunId}`);
           }
-      } else {
-           setRecordingState('idle');
       }
 
     } catch (error) {
@@ -379,7 +376,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
              // For developers, go straight to confirmation even on failure
               router.push(`/record/confirm/${analysisRunId}`);
           } else {
-              setLastAudio(analysisRunId);
+              setLastAnalysisRunId(analysisRunId);
               setRecordingState('confirming');
           }
       } else {

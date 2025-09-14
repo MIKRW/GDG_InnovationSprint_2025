@@ -36,7 +36,8 @@ export type BirdLog = {
     family?: string;
     order?: string;
     description: string;
-    imagePrompt: string;
+    imageUrl: string; // URL to the canonical image in Firebase Storage
+    imagePrompt: string; // The prompt used to generate the image, for metadata
     audioUrl?: string;
     isMystery: boolean;
     status: 'active' | 'trashed'; // Replaces isDisowned
@@ -91,6 +92,13 @@ export type AnalysisRun = {
   // Fields for dev test runs
   birdId?: string;
   testAudioId?: string;
+}
+
+export type BirdSpeciesData = {
+    id: string; // kebab-case common name, e.g., 'australian-magpie'
+    commonName: string;
+    scientificName: string;
+    canonicalImageUrl?: string; // URL to the approved image in Firebase Storage
 }
 
 

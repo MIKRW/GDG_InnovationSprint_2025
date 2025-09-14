@@ -9,12 +9,13 @@ This document outlines the complete data architecture for the ChirpID applicatio
 This model is designed for our internal, controlled testing. It is structured around a single, flat collection that allows for powerful cross-species querying and analysis. To enable efficient searching and filtering by scientific classification, each test run document will include the bird's taxonomic family and order.
 
 *   **Top-Level Collection:** `birds`
-    *   This collection stores the canonical information about each bird species.
+    *   This collection stores the canonical information about each bird species. It serves as the master record.
     *   **Document:** `birds/australian-magpie`
         *   `commonName`: "Australian Magpie"
         *   `scientificName`: "Gymnorhina tibicen"
         *   `family`: "Artamidae"
         *   `order`: "Passeriformes"
+        *   `canonicalImageUrl`: "https://firebasestorage.googleapis.com/..." (Path to the approved, canonical image for this species)
         *   `masterAudioFiles`: An array of metadata for the master test recordings.
             *   `audioId`: "magpie-warble-1"
             *   `storagePath`: "master-audio/magpie-warble-1.wav"
@@ -60,7 +61,7 @@ This professional, two-tiered model perfectly separates our need for analytical 
         *   **Document (ID: `USER_UID_FROM_AUTH`):**
             *   **Subcollection:** `identifications`
                 *   **Document (ID: `UNIQUE_LOG_ID`):**
-                    *   Contains the user-facing data: `commonName`, `scientificName`, `family`, `order`, `description`, `audioUrl`, etc.
+                    *   Contains the user-facing data: `commonName`, `scientificName`, `family`, `order`, `description`, `audioUrl`, `imageUrl` etc.
             *   **Subcollection:** `themes`
                 *   Contains documents for each of the user's saved theme slots (e.g., '0', '1', '2').
 

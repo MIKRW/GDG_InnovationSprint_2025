@@ -13,7 +13,7 @@ import { db } from '@/lib/firebase';
 
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { PageTitle } from '../content/PageTitle';
-import { Loader2 } from 'lucide-react';
+import { Bird, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button } from '../ui/button';
 
@@ -91,13 +91,19 @@ export function MysteryLogPage() {
           <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer">
             <CardContent className="p-0 flex-grow flex items-center justify-center bg-muted">
               <div className="aspect-square relative w-full flex items-center justify-center">
-                 <Image
-                  src={`https://picsum.photos/seed/mystery-${log.id}/400/400`}
-                  alt={log.commonName}
-                  fill
-                  className="object-cover"
-                  data-ai-hint={log.imagePrompt}
-                />
+                 {log.imageUrl ? (
+                    <Image
+                        src={log.imageUrl}
+                        alt={log.commonName}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                    />
+                 ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-secondary">
+                        <Bird className="w-16 h-16 text-muted-foreground" />
+                    </div>
+                 )}
               </div>
             </CardContent>
             <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">

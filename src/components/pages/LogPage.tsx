@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -7,13 +8,13 @@ import Image from 'next/image';
 import { collection, query, onSnapshot, orderBy, where, or, and, Query } from 'firebase/firestore';
 import { groupBy } from 'lodash';
 
-import type { BirdLog, SortOption } from '@/lib/types';
+import type { BirdLog } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { PageTitle } from '../content/PageTitle';
-import { FlaskConical, HelpCircle, ShieldAlert, Loader2, Mic } from 'lucide-react';
+import { Bird, FlaskConical, HelpCircle, ShieldAlert, Loader2, Mic } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
 
@@ -230,15 +231,21 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                         <Link href={`/log/${log.id}`} key={log.id}>
                         <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer">
                             <CardContent className="p-0 flex-grow">
-                            <div className="aspect-square relative w-full">
-                                <Image
-                                src={`https://picsum.photos/seed/${log.id}/400/400`}
-                                alt={log.commonName}
-                                fill
-                                className="object-cover"
-                                data-ai-hint={log.imagePrompt}
-                                />
-                            </div>
+                                <div className="aspect-square relative w-full">
+                                    {log.imageUrl ? (
+                                        <Image
+                                            src={log.imageUrl}
+                                            alt={log.commonName}
+                                            fill
+                                            className="object-cover"
+                                            unoptimized
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center bg-secondary">
+                                            <Bird className="w-16 h-16 text-muted-foreground" />
+                                        </div>
+                                    )}
+                                </div>
                             </CardContent>
                             <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
                             <div className="text-left">

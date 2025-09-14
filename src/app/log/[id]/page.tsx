@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Bird, Loader2, Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { trashLog } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -107,8 +107,6 @@ export default function LogDetailPage() {
     notFound();
   }
 
-  const imageSeed = log.isMystery ? `mystery-${log.id}` : log.scientificName;
-
   return (
     <AppLayout header={<SecondaryHeader title={log.commonName} />}>
       <main className="flex-1 overflow-y-auto p-4 md:p-6 flex justify-center">
@@ -116,13 +114,19 @@ export default function LogDetailPage() {
             <Card>
               <CardHeader>
                 <div className="aspect-square relative w-full rounded-md overflow-hidden bg-muted">
-                   <Image
-                      src={`https://picsum.photos/seed/${imageSeed}/600/400`}
-                      alt={log.commonName}
-                      fill
-                      className="object-cover"
-                      data-ai-hint={log.imagePrompt}
-                    />
+                    {log.imageUrl ? (
+                        <Image
+                            src={log.imageUrl}
+                            alt={log.commonName}
+                            fill
+                            className="object-cover"
+                            unoptimized // Important for Firebase Storage URLs
+                        />
+                    ) : (
+                         <div className="w-full h-full flex items-center justify-center bg-secondary">
+                            <Bird className="w-24 h-24 text-muted-foreground" />
+                        </div>
+                    )}
                 </div>
                  <CardTitle className="pt-4 text-3xl">{log.commonName}</CardTitle>
                  <p className="text-lg text-muted-foreground italic">{log.scientificName}</p>

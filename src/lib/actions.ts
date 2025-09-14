@@ -2,12 +2,13 @@
 
 'use server';
 
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
 import { doc, setDoc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
 import type { TestAudioMetadata, BirdLog } from './types';
 import { EmailAuthProvider, linkWithCredential, type User } from 'firebase/auth';
+import { kebabCase } from 'lodash';
 
 
 interface UploadMasterAudioInput {
@@ -135,4 +136,33 @@ export async function trashLog(log: BirdLog) {
     await updateDoc(userLogRef, { status: 'trashed' });
 
     return { success: true };
+}
+
+
+/**
+ * Saves a new canonical image for a bird species.
+ * It uploads the image to a dedicated path in Storage and updates the 'birds' collection.
+ */
+export async function saveCanonicalImage(
+    commonName: string,
+    scientificName: string,
+    imageDataUri: string
+): Promise<string> {
+    const birdId = kebabCase(commonName);
+    const imagePath = `canonical-images/${birdId}/${uuidv4()}.jpg`;
+    const imageFileRef = storageRef(storage, imagePath);
+
+    // Upload the new image from data URI
+    await uploadString(imageFileRef, imageDataUri, 'data_url');
+    const downloadURL = await getDownloadURL(imageFileRef);
+
+    // Update the 'birds' document with the new canonical URL
+    const birdDocRef = doc(db, 'birds', birdId);
+    await setDoc(birdDocRef, {
+        commonName,
+        scientificName,
+        canonicalImageUrl: downloadURL,
+    }, { merge: true });
+
+    return downloadURL;
 }
