@@ -2,7 +2,7 @@
 
 'use server';
 
-import { ref as storageRef, uploadBytes, getDownloadURL, uploadString, getMetadata } from 'firebase/storage';
+import { ref as storageRef, uploadBytes, getDownloadURL, uploadString, getMetadata, deleteObject } from 'firebase/storage';
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, addDoc, collection, serverTimestamp, query, where, getDocs, orderBy, writeBatch } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
@@ -195,40 +195,66 @@ interface SavePromptContentInput {
     categoryId: string;
     promptText: string;
     previousVersionId?: string;
+    isDraft?: boolean;
 }
 
 /**
- * Creates a new, versioned document in the `prompt_content` collection.
+ * Creates or updates a versioned document in the `prompt_content` collection.
+ * Can save as a permanent version or as a single, overwritable draft.
  */
 export async function savePromptContent(data: SavePromptContentInput): Promise<PromptContent> {
-    const { systemId, categoryId, promptText, previousVersionId } = data;
+    const { systemId, categoryId, promptText, previousVersionId, isDraft = false } = data;
 
-    // 1. Find the latest version number for this category
-    const contentQuery = query(
-        collection(db, 'prompt_content'),
-        where('systemId', '==', systemId),
-        where('categoryId', '==', categoryId),
-        orderBy('version', 'desc')
-    );
-    const contentSnapshot = await getDocs(contentQuery);
-    const latestVersion = contentSnapshot.docs[0]?.data()?.version || 0;
-    const newVersionNumber = latestVersion + 1;
+    if (isDraft) {
+        // Saving a draft. We use a consistent ID to overwrite it.
+        const draftId = `draft_${systemId}_${categoryId}`;
+        const draftRef = doc(db, 'prompt_content', draftId);
+        
+        const draftContent: PromptContent = {
+            id: draftId,
+            systemId,
+            categoryId,
+            version: 0, // Version 0 signifies a draft
+            promptText,
+            timestamp: new Date().toISOString(),
+        };
 
-    // 2. Create the new prompt content document
-    const newContentRef = doc(collection(db, 'prompt_content'));
-    const newContent: PromptContent = {
-        id: newContentRef.id,
-        systemId,
-        categoryId,
-        version: newVersionNumber,
-        promptText,
-        timestamp: new Date().toISOString(),
-        previousVersionId: previousVersionId,
-    };
+        await setDoc(draftRef, draftContent);
+        return draftContent;
 
-    await setDoc(newContentRef, newContent);
+    } else {
+        // Saving a permanent version
+        const contentQuery = query(
+            collection(db, 'prompt_content'),
+            where('systemId', '==', systemId),
+            where('categoryId', '==', categoryId),
+            where('version', '>', 0), // Only count published versions
+            orderBy('version', 'desc')
+        );
+        const contentSnapshot = await getDocs(contentQuery);
+        const latestVersion = contentSnapshot.docs[0]?.data()?.version || 0;
+        const newVersionNumber = latestVersion + 1;
 
-    return newContent;
+        const newContentRef = doc(collection(db, 'prompt_content'));
+        const newContent: PromptContent = {
+            id: newContentRef.id,
+            systemId,
+            categoryId,
+            version: newVersionNumber,
+            promptText,
+            timestamp: new Date().toISOString(),
+            previousVersionId: previousVersionId,
+        };
+
+        await setDoc(newContentRef, newContent);
+        
+        // After creating a new permanent version, delete the old draft
+        const draftId = `draft_${systemId}_${categoryId}`;
+        const draftRef = doc(db, 'prompt_content', draftId);
+        await deleteObject(draftRef as any); // Should be deleteDoc
+
+        return newContent;
+    }
 }
 
 
@@ -249,14 +275,16 @@ export async function publishNewPromptVersion(data: PublishNewPromptVersionInput
     let newVersionString = 'v1.0';
     if (previousVersion) {
         const parts = previousVersion.substring(1).split('.').map(Number);
-        const major = parts[0] || 0;
-        const minor = parts[1] || 0;
+        let major = parts[0] || 0;
+        let minor = parts[1] || 0;
 
         if (versionType === 'major') {
-            newVersionString = `v${major + 1}.0`;
+            major += 1;
+            minor = 0;
         } else {
-            newVersionString = `v${major}.${minor + 1}`;
+            minor += 1;
         }
+        newVersionString = `v${major}.${minor}`;
     }
 
     // 2. Create the new prompt_versions document
