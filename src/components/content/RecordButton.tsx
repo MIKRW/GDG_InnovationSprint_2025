@@ -117,24 +117,45 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
   };
 
-  const saveToFirestore = async (logData: Omit<BirdLog, 'id' | 'userId' | 'audioUrl'>, audioDataUri: string, aiResult: any, wasSuccessful: boolean) => {
+  const saveToFirestore = async (logData: Omit<BirdLog, 'id' | 'userId' | 'audioUrl' | 'analysisRunId'>, audioDataUri: string, aiResult: any, wasSuccessful: boolean) => {
     if (!user) {
       console.error("Cannot save log: user is not authenticated.");
       logErrorToFirestore(new Error("Save attempt failed: No user."), 'firestore-write-failure', { detail: 'User was not authenticated during saveToFirestore call.'});
       setRecordingState('idle');
       return null;
     }
-
-    const analysisRunId = uuidv4();
   
-    // 1. Upload audio to Firebase Storage
+    // 1. Add to the flat analysis collection for internal use
+    const analysisRunId = uuidv4();
+    const analysisRunRef = doc(db, 'all_analysis_runs', analysisRunId);
+    
+    // 2. Upload audio to Firebase Storage
     const audioId = uuidv4();
     const filePath = `users/${user.uid}/recordings/${audioId}.webm`;
     const fileRef = storageRef(storage, filePath);
     await uploadString(fileRef, audioDataUri, 'data_url');
     const audioUrl = await getDownloadURL(fileRef);
   
-    // 2. Add log entry to Firestore
+    await setDoc(analysisRunRef, {
+      timestamp: logData.timestamp,
+      userId: user.uid,
+      sessionId: logData.sessionId,
+      inputAudioUrl: filePath,
+      inputAudioStoragePath: filePath, // Store path for deletion
+      locationData: {
+        latitude: logData.latitude ?? null,
+        longitude: logData.longitude ?? null,
+        locationDescription: logData.locationDescription ?? null,
+      },
+      analysisMethod: `gemini-pro-vision-prompt-v${PROMPT_VERSION}`,
+      aiResult: aiResult,
+      wasSuccessful: wasSuccessful,
+      wasSavedByUser: true,
+      dataQualityScore: wasSuccessful ? 80 : 20, // Example score
+      isDeveloperData: isDevMode,
+    });
+  
+    // 3. Add log entry to the user-facing collection
     const logId = uuidv4();
     const logDocRef = doc(db, 'users', user.uid, 'identifications', logId);
     const finalLog: BirdLog = {
@@ -146,27 +167,6 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     };
     await setDoc(logDocRef, finalLog);
   
-    // 3. Add to the flat analysis collection for internal use
-    const analysisRunRef = doc(db, 'all_analysis_runs', analysisRunId);
-    await setDoc(analysisRunRef, {
-        timestamp: logData.timestamp,
-        userId: user.uid,
-        sessionId: logData.sessionId,
-        inputAudioUrl: filePath,
-        inputAudioStoragePath: filePath, // Store path for deletion
-        locationData: {
-          latitude: logData.latitude ?? null,
-          longitude: logData.longitude ?? null,
-          locationDescription: logData.locationDescription ?? null,
-        },
-        analysisMethod: `gemini-pro-vision-prompt-v${PROMPT_VERSION}`,
-        aiResult: aiResult,
-        wasSuccessful: wasSuccessful,
-        wasSavedByUser: true,
-        dataQualityScore: wasSuccessful ? 80 : 20, // Example score
-        isDeveloperData: isDevMode,
-    });
-    
     setRecordingState('idle');
     router.push(`/log/${logId}`);
     return logId;
@@ -200,7 +200,6 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       isMystery: true,
       mode: getAppSettings().mode,
       ...locationData,
-      analysisRunId: 'will-be-generated-in-saveToFirestore' // Placeholder
     }, audioDataUri, aiResult, false);
 
     if(logId) {
@@ -340,16 +339,18 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         // Navigate to the correct test log page
         const targetPage = source === 'master_audio' ? '/log/test' : '/log/test/live';
         router.push(targetPage);
-        return;
+        
       } catch (error) {
         console.error('Error during dev mode identification:', error);
         // Still save the failure to the test log
-        await saveTestRunToFirestore({ error: (error as Error).message, isBirdSong: false }, { birdId, testAudioId, source });
+        const errorResult = { error: (error as Error).message, isBirdSong: false };
+        await saveTestRunToFirestore(errorResult, { birdId, testAudioId, source });
+
         setRecordingState('idle');
         const targetPage = source === 'master_audio' ? '/log/test' : '/log/test/live';
         router.push(targetPage);
-        return;
       }
+      return; // End the function here for dev mode
     }
 
 
@@ -377,7 +378,6 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
               weather: result.weather,
               mode: appSettings.mode,
               ...locationData,
-              analysisRunId: 'will-be-generated-in-saveToFirestore' // Placeholder
           };
           await saveToFirestore(newLogData, base64Audio, result, true);
       } else {

@@ -136,6 +136,13 @@ export async function deleteLog(log: BirdLog, user: User) {
     const userLogRef = doc(db, 'users', user.uid, 'identifications', log.id);
 
     // 2. Reference the internal analysis run document
+    if (!log.analysisRunId) {
+        // This is a legacy log entry without an analysisRunId. Just delete it.
+        await deleteDoc(userLogRef);
+        console.warn(`Log ${log.id} is a legacy entry. Deleting user log only.`);
+        return { success: true };
+    }
+    
     const analysisRunRef = doc(db, 'all_analysis_runs', log.analysisRunId);
     const analysisRunSnap = await getDoc(analysisRunRef);
 
@@ -156,14 +163,21 @@ export async function deleteLog(log: BirdLog, user: User) {
         // Delete Firestore documents
         batch.delete(userLogRef);
         batch.delete(analysisRunRef);
-
-        // Delete audio file from Storage
-        if (analysisData.inputAudioStoragePath) {
-             const fileRef = storageRef(storage, analysisData.inputAudioStoragePath);
-             await deleteObject(fileRef);
-        }
         
         await batch.commit();
+
+        // Delete audio file from Storage (outside the batch)
+        if (analysisData.inputAudioStoragePath) {
+             try {
+                const fileRef = storageRef(storage, analysisData.inputAudioStoragePath);
+                await deleteObject(fileRef);
+             } catch (storageError: any) {
+                // If file doesn't exist, that's okay. Log other storage errors.
+                if (storageError.code !== 'storage/object-not-found') {
+                    console.error('Failed to delete audio from storage:', storageError);
+                }
+             }
+        }
 
     } else {
         // SOFT DELETE for registered users or high-quality anonymous data
