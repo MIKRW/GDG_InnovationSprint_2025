@@ -3,10 +3,10 @@
 'use server';
 
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
-import { doc, setDoc, getDoc, updateDoc, arrayUnion, addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, arrayUnion, addDoc, collection, serverTimestamp, query, where, getDocs, orderBy, writeBatch } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
-import type { TestAudioMetadata, BirdLog } from './types';
+import type { TestAudioMetadata, BirdLog, PromptContent, PromptVersion } from './types';
 import { EmailAuthProvider, linkWithCredential, type User } from 'firebase/auth';
 import { kebabCase } from 'lodash';
 
@@ -173,25 +173,82 @@ export async function saveCanonicalImage(
     return downloadURL;
 }
 
+// PROMPT MANAGEMENT ACTIONS
 
-interface SavePromptInput {
-    promptPath: string;
-    promptContent: string;
+interface SavePromptContentInput {
+    systemId: string;
+    categoryId: string;
+    promptText: string;
+    previousVersionId?: string;
 }
 
-/**
- * Saves updated prompt content to a specified file in Firebase Storage.
- */
-export async function savePrompt(data: SavePromptInput) {
-    const { promptPath, promptContent } = data;
+export async function savePromptContent(data: SavePromptContentInput): Promise<PromptContent> {
+    const { systemId, categoryId, promptText, previousVersionId } = data;
 
-    const promptRef = storageRef(storage, promptPath);
+    // 1. Find the latest version number for this category
+    const contentQuery = query(
+        collection(db, 'prompt_content'),
+        where('systemId', '==', systemId),
+        where('categoryId', '==', categoryId),
+        orderBy('version', 'desc')
+    );
+    const contentSnapshot = await getDocs(contentQuery);
+    const latestVersion = contentSnapshot.docs[0]?.data()?.version || 0;
+    const newVersionNumber = latestVersion + 1;
 
-    // Convert the string content to a Blob
-    const blob = new Blob([promptContent], { type: 'text/plain' });
+    // 2. Create the new prompt content document
+    const newContentRef = doc(collection(db, 'prompt_content'));
+    const newContent: PromptContent = {
+        id: newContentRef.id,
+        systemId,
+        categoryId,
+        version: newVersionNumber,
+        promptText,
+        timestamp: new Date().toISOString(),
+        previousVersionId: previousVersionId,
+    };
 
-    // Upload the new content, overwriting the existing file
-    await uploadBytes(promptRef, blob);
+    await setDoc(newContentRef, newContent);
 
-    return { success: true, path: promptPath };
+    return newContent;
+}
+
+
+interface PublishNewPromptVersionInput {
+    systemId: string;
+    composedPrompts: Record<string, string>;
+    previousVersion?: string;
+}
+
+export async function publishNewPromptVersion(data: PublishNewPromptVersionInput): Promise<PromptVersion> {
+    const { systemId, composedPrompts, previousVersion } = data;
+
+    // 1. Determine new version string (e.g., v1.0 -> v1.1)
+    let newVersionString = 'v1.0';
+    if (previousVersion) {
+        const parts = previousVersion.substring(1).split('.').map(Number);
+        parts[parts.length - 1] += 1;
+        newVersionString = 'v' + parts.join('.');
+    }
+
+    // 2. Create the new prompt_versions document
+    const newVersionRef = doc(collection(db, 'prompt_versions'));
+    const newVersion: PromptVersion = {
+        id: newVersionRef.id,
+        systemId,
+        version: newVersionString,
+        timestamp: new Date().toISOString(),
+        composedPrompts,
+    };
+    
+    // 3. Use a batch write to update both the new version and the system's activeVersion
+    const batch = writeBatch(db);
+    batch.set(newVersionRef, newVersion);
+
+    const systemRef = doc(db, 'prompt_systems', systemId);
+    batch.update(systemRef, { activeVersion: newVersionString });
+
+    await batch.commit();
+
+    return newVersion;
 }

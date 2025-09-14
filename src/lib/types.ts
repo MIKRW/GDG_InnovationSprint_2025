@@ -154,3 +154,30 @@ export interface TestAudioMetadata {
   family: string;
   order: string;
 }
+
+// Prompt Management System Types
+
+export interface PromptSystem {
+    id: string; // e.g., 'bird-identifier-ai'
+    name: string;
+    description: string;
+    activeVersion: string; // e.g., 'v1.1'
+}
+
+export interface PromptVersion {
+    id: string; // e.g., 'bird-identifier-ai-v1.1'
+    systemId: string;
+    version: string;
+    timestamp: string;
+    composedPrompts: Record<string, string>; // Maps categoryId to a prompt_content document ID
+}
+
+export interface PromptContent {
+    id: string; // e.g., 'location_handling_v1.2'
+    systemId: string;
+    categoryId: string; // e.g., 'location_handling'
+    version: number;
+    timestamp: string;
+    promptText: string;
+    previousVersionId?: string;
+}
