@@ -437,13 +437,20 @@ export async function publishNewAppAIVersion(data: PublishNewAppAIVersionInput) 
  * function that uses a direct write batch to avoid read-before-write issues.
  */
 export async function seedInitialPrompts() {
-    console.log("Starting initial prompt migration from hard-coded values...");
+    console.log("Starting initial prompt migration and reset...");
 
     try {
         const batch = writeBatch(db);
         const timestamp = new Date().toISOString();
 
-        // 1. Define the initial prompt content here
+        // 1. CLEAR ALL EXISTING PROMPT DATA
+        const collectionsToDelete = ['prompt_content', 'prompt_versions', 'prompt_systems', 'app_ai_versions'];
+        for (const coll of collectionsToDelete) {
+            const snapshot = await getDocs(collection(db, coll));
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+        }
+
+        // 2. Define the initial prompt content here
         const newbiePromptText = `You are an expert ornithologist with a special talent for making bird identification accessible and exciting for beginners. Your main goal is to listen to an audio recording and figure out what bird is singing.
 
 Here's the information you'll be working with:
@@ -492,7 +499,7 @@ CRITICAL: You must also consider derived colors. The app uses CSS calculations t
         const imagePromptText = `You are an expert image generation prompter. Given a simple prompt (e.g., "photo of an American Robin on a branch"), your job is to enhance it into a rich, detailed prompt for a high-quality image generation model like Imagen. Create a photorealistic, high-quality, and visually appealing image. Consider lighting, composition, and background details.`;
         const weatherToolPromptText = `You are an AI assistant with access to tools. If the user provides a location (either coordinates or a text description), you MUST use the 'getCurrentWeather' tool to get the season and weather conditions for that location and date. Include this information in your final response.`;
 
-        // 2. Prepare all documents for the batch write
+        // 3. Prepare all documents for the batch write
 
         // -- Newbie System --
         const newbieContentId = `bird-identifier-ai-newbie_base_instruction_v1.0.0`;
@@ -564,14 +571,14 @@ CRITICAL: You must also consider derived colors. The app uses CSS calculations t
         const configRef = doc(db, 'app_ai_config', 'main');
         batch.set(configRef, { activeAppAIVersion: 'v1.0.0' });
 
-        // 3. Commit the batch
+        // 4. Commit the batch
         await batch.commit();
 
-        console.log("Successfully migrated prompts and published App AI version v1.0.0.");
+        console.log("Successfully reset prompts and published App AI version v1.0.0.");
         return { success: true, version: 'v1.0.0' };
 
     } catch (error) {
-        console.error("CRITICAL: Prompt migration failed.", error);
+        console.error("CRITICAL: Prompt migration and reset failed.", error);
         throw new Error("Failed during prompt migration. Check server logs.");
     }
 }

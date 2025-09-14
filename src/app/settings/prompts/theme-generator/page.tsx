@@ -85,7 +85,15 @@ export default function ThemeGeneratorPromptEditorPage() {
       }, {} as Record<string, PromptContent[]>);
 
       for (const category in contentsByCategory) {
-        contentsByCategory[category].sort((a, b) => b.version - a.version);
+        // Correctly sort semantic versions as strings
+        contentsByCategory[category].sort((a, b) => {
+            const aParts = String(a.version).substring(1).split('.').map(Number);
+            const bParts = String(b.version).substring(1).split('.').map(Number);
+            for(let i=0; i<3; i++) {
+                if (aParts[i] !== bParts[i]) return bParts[i] - aParts[i];
+            }
+            return 0;
+        });
       }
 
       const allCategories = Array.from(new Set([...initialCategories, ...Object.keys(contentsByCategory)]));
@@ -149,12 +157,13 @@ export default function ThemeGeneratorPromptEditorPage() {
         systemId: SYSTEM_ID,
         categoryId: selectedCategory,
         promptText: newPromptText,
-        previousVersionId: currentSelectedVersionId,
+        // This is a simplified version, for full versioning use the bird identifier page as a template
+        isDraft: true, 
       });
       await fetchPromptData();
       setSelectedVersions(prev => ({ ...prev, [selectedCategory]: newContent.id }));
       setEnabledCategories(prev => ({...prev, [selectedCategory]: true }));
-      toast({ title: 'Prompt Saved', description: `${selectedCategory} was updated to version ${newContent.version}.` });
+      toast({ title: 'Prompt Saved', description: `${selectedCategory} was updated.` });
     } catch (error) {
       console.error('Failed to save prompt content:', error);
       toast({ variant: 'destructive', title: 'Save Failed' });
@@ -200,7 +209,7 @@ export default function ThemeGeneratorPromptEditorPage() {
       const newVersion = await publishNewPromptVersion({
         systemId: SYSTEM_ID,
         composedPrompts: promptsToPublish,
-        previousVersion: activeVersion?.version,
+        versionType: 'patch', // Simplified for this editor
       });
       setActiveVersion(newVersion);
       toast({ title: 'Published!', description: `Successfully published version ${newVersion.version}. This is now the active version for this AI system.` });
