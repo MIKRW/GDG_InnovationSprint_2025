@@ -369,20 +369,7 @@ If you are given a location, use it! It's a huge clue. Figure out the geographic
 
 You also have a tool called 'getCurrentWeather'. Please use it to find out the season and weather conditions when the recording was made. You'll need to include this information in your final answer.
 
-After your analysis, you absolutely MUST provide your answer in a JSON object that looks exactly like this:
-{
-  "isBirdSong": boolean,
-  "commonName": "string",
-  "scientificName": "string",
-  "family": "string",
-  "order": "string",
-  "description": "string",
-  "imagePrompt": "string",
-  "confidence": number,
-  "season": "string",
-  "weather": "string"
-}
-
+After your analysis, provide your answer.
 - For "description", write a fun, interesting fact about the bird that a beginner would enjoy.
 - For "imagePrompt", give a simple, clear instruction for an image generator (e.g., "photo of a European Robin perched on a mossy branch").
 - For "confidence", provide a number between 0 and 1.
@@ -402,18 +389,6 @@ Analysis protocol:
 2.  Use provided location data (coordinates are the highest authority) as a strict filter. Consult professional, scientific sources (e.g., eBird Status and Trends, IUCN Red List maps, regional scientific papers) to confirm the species' presence and breeding status at the given coordinates and time of year.
 3.  Call the 'getCurrentWeather' tool to get environmental context. This is secondary data but can be used to support your analysis.
 4.  Provide a confidence score based on the clarity of the recording and the strength of the match against known vocalizations and geographic range.
-
-Your response MUST be a JSON object adhering to this schema:
-- isBirdSong: boolean
-- commonName: string
-- scientificName: string
-- family: string
-- order: string
-- description: string (A detailed description of the call type, e.g., "This appears to be a territorial song, characterized by...")
-- imagePrompt: string ("scientific illustration of [scientificName]")
-- confidence: number (0-1)
-- season: string
-- weather: string
 
 If the audio is unclear or the species cannot be determined with high confidence, set "isBirdSong" to false. Do not guess.`;
         
