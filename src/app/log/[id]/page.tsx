@@ -184,9 +184,9 @@ export default function LogDetailPage() {
                           {log.season}
                         </Badge>
                       )}
-                      {analysisRun?.appAIVersion && (
+                      {analysisRun?.analysisMethod && (
                           <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
-                             {analysisRun.appAIVersion}
+                             {analysisRun.analysisMethod}
                           </Badge>
                       )}
                 </div>

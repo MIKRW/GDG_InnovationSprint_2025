@@ -48,7 +48,6 @@ export type BirdLog = {
     weather?: string; // e.g., 'Clear, 15°C, light breeze'
     season?: string; // e.g., 'Summer'
     mode: AppMode; // To differentiate between 'newbie' and 'twitcher' data
-    appAIVersion?: string; // The overall version of all combined AI prompts
 }
 
 export type AnalysisRun = {
@@ -65,7 +64,6 @@ export type AnalysisRun = {
     locationDescription?: string;
   };
   analysisMethod: string; // The specific AI system and version used, e.g., 'bird-identifier-newbie-v1.1'
-  appAIVersion?: string; // The overall version of all combined AI prompts, e.g., 'App AI v1.0'
   aiResult: {
     isBirdSong: boolean;
     commonName?: string;

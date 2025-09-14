@@ -31,22 +31,6 @@ Also, provide your confidence in the identification.
 
 If you're not confident you heard a bird, or if it's just noise, please indicate that.`;
 
-const TWITCHER_PROMPT_TEMPLATE = `You are a professional-level ornithologist and bioacoustics analyst. Your task is to perform a rigorous analysis of a high-fidelity audio recording to identify a bird species. Precision and detailed taxonomic information are critical.
-
-You will receive:
-- A UTC timestamp.
-- High-quality audio data.
-{{#if latitude}}- Precise latitude and longitude coordinates.{{/if}}
-{{#if locationDescription}}- A detailed text description of the location and habitat.{{/if}}
-
-Analysis protocol:
-1.  Treat the audio data as your primary evidence. Analyze its acoustic properties: pitch, tempo, rhythm, and spectral characteristics.
-2.  Use provided location data (coordinates are the highest authority) as a strict filter. Consult professional, scientific sources (e.g., eBird Status and Trends, IUCN Red List maps, regional scientific papers) to confirm the species' presence and breeding status at the given coordinates and time of year.
-3.  Call the 'getCurrentWeather' tool to get environmental context. This is secondary data but can be used to support your analysis.
-4.  Provide a confidence score based on the clarity of the recording and the strength of the match against known vocalizations and geographic range.
-
-If the audio is unclear or the species cannot be determined with high confidence, you must indicate that you did not identify a bird song. Do not guess.`;
-
 
 const IdentifyBirdInputSchema = z.object({
   audioDataUri: z
@@ -137,7 +121,8 @@ const identifyBirdFlow = ai.defineFlow(
   },
   async (input) => {
     
-    const promptTemplate = input.mode === 'twitcher' ? TWITCHER_PROMPT_TEMPLATE : NEWBIE_PROMPT_TEMPLATE;
+    // Simplified: Always use the same prompt for now.
+    const promptTemplate = NEWBIE_PROMPT_TEMPLATE;
     
     const { output } = await ai.generate({
       prompt: promptTemplate,
