@@ -33,7 +33,7 @@ interface RecordButtonProps {
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
-const PROMPT_VERSION = "1.2";
+const PROMPT_VERSION = "1.3"; // Updated for confirmation flow
 
 
 const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps, ref) => {
@@ -125,53 +125,62 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       return null;
     }
   
-    // 1. Add to the flat analysis collection for internal use
-    const analysisRunId = uuidv4();
-    const analysisRunRef = doc(db, 'all_analysis_runs', analysisRunId);
+    const analysisRunId = await createAnalysisRun(audioDataUri, aiResult, wasSuccessful, logData, logData.mode);
     
-    // 2. Upload audio to Firebase Storage
+    if (!analysisRunId) {
+        setRecordingState('idle');
+        return null;
+    }
+
+    // This function will now navigate to the confirmation page.
+    setRecordingState('idle');
+    router.push(`/record/confirm/${analysisRunId}`);
+    return analysisRunId;
+  };
+
+   const createAnalysisRun = async (audioDataUri: string, aiResult: any, wasSuccessful: boolean, locationData: any, mode: AppMode) => {
+     if (!user) {
+      console.error("Cannot create analysis run: user is not authenticated.");
+      logErrorToFirestore(new Error("Analysis run failed: No user."), 'firestore-write-failure', { detail: 'User not authenticated during createAnalysisRun.'});
+      return null;
+    }
+
+    // 1. Upload audio to Firebase Storage
     const audioId = uuidv4();
     const filePath = `users/${user.uid}/recordings/${audioId}.webm`;
     const fileRef = storageRef(storage, filePath);
+    // Note: We are now storing the path, not the full URL initially.
+    // The full URL can be generated on-demand or stored when finalized.
     await uploadString(fileRef, audioDataUri, 'data_url');
-    const audioUrl = await getDownloadURL(fileRef);
-  
+    const downloadURL = await getDownloadURL(fileRef);
+
+    // 2. Create the analysis document
+    const analysisRunId = uuidv4();
+    const analysisRunRef = doc(db, 'all_analysis_runs', analysisRunId);
+
     await setDoc(analysisRunRef, {
-      timestamp: logData.timestamp,
+      id: analysisRunId,
+      timestamp: currentTimestamp.current!,
       userId: user.uid,
-      sessionId: logData.sessionId,
-      inputAudioUrl: filePath,
+      sessionId: currentSessionId.current!,
+      inputAudioUrl: downloadURL, // Storing the final download URL
       inputAudioStoragePath: filePath, // Store path for deletion
       locationData: {
-        latitude: logData.latitude ?? null,
-        longitude: logData.longitude ?? null,
-        locationDescription: logData.locationDescription ?? null,
+        latitude: locationData.latitude ?? null,
+        longitude: locationData.longitude ?? null,
+        locationDescription: locationData.locationDescription ?? null,
       },
       analysisMethod: `gemini-pro-vision-prompt-v${PROMPT_VERSION}`,
       aiResult: aiResult,
       wasSuccessful: wasSuccessful,
-      wasSavedByUser: true,
-      dataQualityScore: wasSuccessful ? 80 : 20, // Example score
+      wasSavedByUser: false, // This is now set after user confirmation
+      mode: mode,
       isDeveloperData: isDevMode,
+      // dataQualityScore will be calculated later
     });
-  
-    // 3. Add log entry to the user-facing collection
-    const logId = uuidv4();
-    const logDocRef = doc(db, 'users', user.uid, 'identifications', logId);
-    const finalLog: BirdLog = {
-      ...logData,
-      id: logId,
-      userId: user.uid,
-      audioUrl: audioUrl,
-      analysisRunId: analysisRunId, // Link to the analysis run
-      status: 'active',
-    };
-    await setDoc(logDocRef, finalLog);
-  
-    setRecordingState('idle');
-    router.push(`/log/${logId}`);
-    return logId;
-  };
+
+    return analysisRunId;
+  }
 
 
   const saveMysteryLog = async (audioDataUri: string, aiResult: any, locationData?: { latitude?: number; longitude?: number; locationDescription?: string; }) => {
@@ -190,27 +199,41 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       router.push('/log/test/live');
       return;
     }
+    
+    // Create an analysis run for the mystery log
+    const appSettings = getAppSettings();
+    const analysisRunId = await createAnalysisRun(audioDataUri, aiResult, false, locationData, appSettings.mode);
+    if (!analysisRunId) {
+        setRecordingState('idle');
+        return;
+    }
 
-    const logId = await saveToFirestore({
+    // Now create the user-facing log entry
+    const logId = uuidv4();
+    const logDocRef = doc(db, 'users', user.uid, 'identifications', logId);
+
+    const mysteryLogData = {
+      id: logId,
       sessionId: currentSessionId.current!,
+      analysisRunId: analysisRunId,
+      userId: user.uid,
       timestamp: currentTimestamp.current!,
       commonName: 'Mystery Bird',
       scientificName: 'Unknown',
       description: 'This is a recording that could not be identified by the AI. You can listen to it here and try to identify it yourself!',
       imagePrompt: 'question mark',
+      audioUrl: (await getDownloadURL(storageRef(storage, `users/${user.uid}/recordings/${analysisRunId}.webm`))),
       isMystery: true,
-      mode: getAppSettings().mode,
+      status: 'active',
+      mode: appSettings.mode,
       ...locationData,
-    }, audioDataUri, aiResult, false);
+    };
+    
+    await setDoc(logDocRef, mysteryLogData);
 
-    if(logId) {
-      setRecordingState('idle');
-      setLastAudio(null);
-      router.push(`/log/${logId}`);
-    } else {
-      // Handle save failure
-      setRecordingState('idle');
-    }
+    setRecordingState('idle');
+    setLastAudio(null);
+    router.push(`/log/mystery`);
   };
 
   const handleSaveConfirmation = () => {
@@ -319,43 +342,11 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
     const appSettings = getAppSettings();
     
-    // If in dev mode, this is a test run. Determine the source.
-    if (isDevMode) {
-      const source = testContext ? 'master_audio' : 'live_recording';
-      const birdId = testContext ? testContext.birdId : 'unknown-dev-test';
-      const testAudioId = testContext ? testContext.testAudioId : 'live-recording';
-      
-      try {
-        const result = await identifyBirdBySound({ 
-            audioDataUri: base64Audio,
-            timestamp: currentTimestamp.current,
-            mode: appSettings.mode,
-            ...locationData
-        });
-        
-        await saveTestRunToFirestore(result, { birdId, testAudioId, source });
-        
-        setRecordingState('idle');
-        
-        // Navigate to the correct test log page
-        const targetPage = source === 'master_audio' ? '/log/test' : '/log/test/live';
-        router.push(targetPage);
-        
-      } catch (error) {
-        console.error('Error during dev mode identification:', error);
-        // Still save the failure to the test log
-        const errorResult = { error: (error as Error).message, isBirdSong: false };
-        await saveTestRunToFirestore(errorResult, { birdId, testAudioId, source });
-
-        setRecordingState('idle');
-        const targetPage = source === 'master_audio' ? '/log/test' : '/log/test/live';
-        router.push(targetPage);
-      }
-      return; // End the function here for dev mode
+    // If in dev mode, this is a test run.
+    if (isDevMode && !testContext) { // Live recording in dev mode
+      testContext = { birdId: 'unknown-dev-test', testAudioId: 'live-recording' };
     }
 
-
-    // Regular user flow (not in dev mode)
     try {
       const result = await identifyBirdBySound({ 
           audioDataUri: base64Audio,
@@ -364,25 +355,26 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           ...locationData
       });
 
-      if (result && result.isBirdSong && result.commonName && result.scientificName && result.description && result.imagePrompt) {
-          const newLogData = {
-              sessionId: currentSessionId.current!,
-              timestamp: currentTimestamp.current!,
-              commonName: result.commonName,
-              scientificName: result.scientificName,
-              family: result.family,
-              order: result.order,
-              description: result.description,
-              imagePrompt: result.imagePrompt,
-              isMystery: false,
-              season: result.season,
-              weather: result.weather,
-              mode: appSettings.mode,
-              ...locationData,
-          };
-          await saveToFirestore(newLogData, base64Audio, result, true);
+      if (isDevMode && testContext) {
+         const source = testContext.testAudioId === 'live-recording' ? 'live_recording' : 'master_audio';
+         await saveTestRunToFirestore(result, { ...testContext, source });
+         setRecordingState('idle');
+         const targetPage = source === 'master_audio' ? '/log/test' : '/log/test/live';
+         router.push(targetPage);
+         return;
+      }
+      
+      // Regular user flow
+      if (result && result.isBirdSong && result.commonName) {
+         const analysisRunId = await createAnalysisRun(base64Audio, result, true, locationData, appSettings.mode);
+         if (analysisRunId) {
+             setRecordingState('idle');
+             router.push(`/record/confirm/${analysisRunId}`);
+         } else {
+             setRecordingState('idle');
+         }
       } else {
-           // AI failed, trigger confirmation
+           // AI failed to identify a bird, trigger confirmation to save as mystery.
            setLastAudio(JSON.stringify([base64Audio, result]));
            setRecordingState('confirming');
       }
@@ -395,7 +387,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         appMode: appSettings.mode,
         userId: user?.uid
       });
-      // API failed, trigger confirmation, store the error as the result
+      // API failed, trigger confirmation to save as mystery
       setLastAudio(JSON.stringify([base64Audio, { error: (error as Error).message }]));
       setRecordingState('confirming');
     }

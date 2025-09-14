@@ -40,6 +40,7 @@ Your task is to return a JSON object with the following structure:
 - order: The taxonomic order of the bird (e.g., 'Passeriformes' for perching birds).
 - description: A brief, interesting fact about the bird.
 - imagePrompt: A simple but effective text-to-image prompt to generate a photo of this bird.
+- confidence: A number between 0 and 1 representing your confidence in the identification. 0.95 is highly confident, 0.7 is moderately confident, and below 0.5 is a guess.
 - season: The season at the location of the recording (e.g., 'Summer', 'Winter').
 - weather: A brief summary of the weather conditions (e.g., 'Clear, 15°C, light breeze').
 
@@ -76,6 +77,7 @@ Your task is to return a JSON object with the following structure:
 - order: The taxonomic order of the bird (e.g., 'Passeriformes' for perching birds).
 - description: A brief, interesting fact about the bird.
 - imagePrompt: A simple but effective text-to-image prompt to generate a photo of this bird.
+- confidence: A number between 0 and 1 representing your confidence in the identification. 0.95 is highly confident, 0.7 is moderately confident, and below 0.5 is a guess.
 - season: The season at the location of the recording (e.g., 'Summer', 'Winter').
 - weather: A brief summary of the weather conditions (e.g., 'Clear, 15°C, light breeze').
 
@@ -105,6 +107,7 @@ const IdentifyBirdOutputSchema = z.object({
   order: z.string().optional().describe("The taxonomic order of the bird (e.g., 'Passeriformes' for perching birds)."),
   description: z.string().optional().describe('A brief, interesting fact or description about the bird.'),
   imagePrompt: z.string().optional().describe('A simple, descriptive prompt for a text-to-image model to generate a picture of the bird (e.g., "photo of an American Robin on a branch").'),
+  confidence: z.number().optional().describe('A number between 0 and 1 representing the AI\'s confidence in the identification.'),
   season: z.string().optional().describe("The season at the location of the recording (e.g., 'Summer', 'Winter')."),
   weather: z.string().optional().describe("A brief summary of the weather conditions (e.g., 'Clear, 15°C, light breeze')."),
 });
@@ -199,5 +202,3 @@ const identifyBirdFlow = ai.defineFlow(
     return output;
   }
 );
-
-    

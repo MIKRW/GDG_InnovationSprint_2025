@@ -48,6 +48,44 @@ export type BirdLog = {
     mode: AppMode; // To differentiate between 'newbie' and 'twitcher' data
 }
 
+export type AnalysisRun = {
+  id: string;
+  timestamp: string;
+  userId: string;
+  sessionId: string;
+  inputAudioUrl: string;
+  inputAudioStoragePath: string;
+  locationData?: {
+    latitude?: number;
+    longitude?: number;
+    locationDescription?: string;
+  };
+  analysisMethod: string;
+  aiResult: {
+    isBirdSong: boolean;
+    commonName?: string;
+    scientificName?: string;
+    family?: string;
+    order?: string;
+    description?: string;
+    imagePrompt?: string;
+    weather?: string;
+    season?: string;
+    confidence?: number;
+  };
+  wasSuccessful: boolean;
+  wasSavedByUser: boolean;
+  isDeveloperData: boolean;
+  mode: AppMode;
+  userFeedback?: {
+      aiWasCorrect: boolean;
+      userProvidedIdentification?: string; // e.g., a birdId
+      timestamp: string;
+  };
+  dataQualityScore?: number;
+}
+
+
 export type SortOption = 'newest' | 'oldest' | 'a-z' | 'z-a';
 
 export type LocationSetting = 'device' | 'manual' | 'description' | 'privacy';
@@ -93,5 +131,3 @@ export interface TestAudioMetadata {
   family: string;
   order: string;
 }
-
-    
