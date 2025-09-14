@@ -16,7 +16,7 @@ import { logErrorToFirestore } from '@/lib/error-logging';
 import { ref, getDownloadURL } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
 
-// Helper function to fetch prompt text from Firebase Storage
+// Helper function to fetch prompt text from Firestore-managed storage
 async function getPromptFromStorage(path: string): Promise<string> {
     try {
         const fileRef = ref(storage, path);
@@ -27,11 +27,14 @@ async function getPromptFromStorage(path: string): Promise<string> {
         }
         return await response.text();
     } catch (error) {
-        console.error(`Error fetching prompt from storage, falling back to local. Path: ${path}`, error);
-        // Fallback to local file for development or if the file isn't in Storage yet.
-        const fs = await import('fs/promises');
-        const pathModule = await import('path');
-        return fs.readFile(pathModule.join(process.cwd(), 'src', 'ai', 'prompts', 'theme-generation-prompt.txt'), 'utf-8');
+        console.error(`Error fetching prompt from storage, which is expected during initial migration. Path: ${path}`, error);
+        // During migration, the file won't exist yet, so we fall back to a hardcoded default.
+        // This can be removed after the first successful migration.
+        return `You are an expert UI theme designer. Your task is to generate a HSL color palette.
+        You must return an object with four HSL color objects: 'background', 'foreground', 'primary', and 'ring'.
+        The 'foreground' and 'primary' colors MUST have a high contrast ratio with the background for accessibility.
+        The 'ring' color must be a lighter or darker shade of the 'primary' color.
+        Mood: {{{mood}}}, Words: {{{word1}}}, {{{word2}}}, {{{word3}}}`;
     }
 }
 
@@ -75,14 +78,15 @@ const generateThemeFlow = ai.defineFlow(
     
     const promptText = await getPromptFromStorage('prompts/theme-generation-prompt.txt');
 
-    const prompt = ai.definePrompt({
-        name: 'generateThemePrompt',
-        input: { schema: GenerateThemeInputSchema },
-        output: { schema: GenerateThemeOutputSchema },
+    const { output } = await ai.generate({
         prompt: promptText,
+        input: input,
+        model: 'googleai/gemini-2.5-flash',
+        output: {
+            schema: GenerateThemeOutputSchema
+        }
     });
 
-    const { output } = await prompt(input);
     if (!output) {
       throw new Error('Failed to generate theme from the model.');
     }

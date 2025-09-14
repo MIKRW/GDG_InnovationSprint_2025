@@ -369,10 +369,9 @@ If you are given a location, use it! It's a huge clue. Figure out the geographic
 
 You also have a tool called 'getCurrentWeather'. Please use it to find out the season and weather conditions when the recording was made. You'll need to include this information in your final answer.
 
-After your analysis, provide your answer.
-- For "description", write a fun, interesting fact about the bird that a beginner would enjoy.
-- For "imagePrompt", give a simple, clear instruction for an image generator (e.g., "photo of a European Robin perched on a mossy branch").
-- For "confidence", provide a number between 0 and 1.
+For "description", write a fun, interesting fact about the bird that a beginner would enjoy.
+For "imagePrompt", give a simple, clear instruction for an image generator (e.g., "photo of a European Robin perched on a mossy branch").
+For "confidence", provide a number between 0 and 1.
 
 If you're not confident you heard a bird, or if it's just noise, please set "isBirdSong" to false and leave out the other fields.`;
 
@@ -423,8 +422,6 @@ Mood Definitions:
 - "Minimalist": Produces a simple, clean theme, often using monochromatic or analogous colors.
 - "80s Retro": Creates a nostalgic theme with bold, neon, and often contrasting colors popular in the 1980s.
 - "Dark": A classic dark mode theme with a dark background and light text/accents.
-
-You must return an object with four HSL color objects: 'background', 'foreground', 'primary', and 'ring'.
 
 Output Requirements:
 - The 'foreground' color MUST have a high contrast ratio with the background color for accessibility and readability.
