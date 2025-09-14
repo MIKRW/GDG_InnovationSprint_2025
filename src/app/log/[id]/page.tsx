@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { notFound, useParams } from 'next/navigation';
+import { notFound, useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 import type { BirdLog } from '@/lib/types';
@@ -13,16 +13,24 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Loader2, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { deleteLog } from '@/lib/actions';
+import { useToast } from '@/hooks/use-toast';
 
 export default function LogDetailPage() {
   const params = useParams();
+  const router = useRouter();
+  const { toast } = useToast();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const { user, loading: authLoading } = useAuth();
   const [log, setLog] = useState<BirdLog | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (authLoading) {
@@ -51,6 +59,28 @@ export default function LogDetailPage() {
 
     return () => unsubscribe();
   }, [id, user, authLoading]);
+
+  const handleDelete = async () => {
+    if (!log || !user) return;
+    setIsDeleting(true);
+
+    try {
+      await deleteLog(log, user);
+      toast({
+        title: 'Log Deleted',
+        description: 'The log entry has been removed.',
+      });
+      router.push('/log');
+    } catch (error) {
+      console.error('Failed to delete log:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Delete Failed',
+        description: 'Could not delete the log. Please try again.',
+      });
+      setIsDeleting(false);
+    }
+  };
 
 
   if (loading || authLoading || log === undefined) {
@@ -134,6 +164,33 @@ export default function LogDetailPage() {
                       )}
                 </div>
               </CardContent>
+              <CardFooter className="border-t pt-6">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" disabled={isDeleting || !user}>
+                      {isDeleting ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="mr-2 h-4 w-4" />
+                      )}
+                      Delete Log
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete this log entry.
+                        Your audio data may be preserved for internal analysis based on your user status and data quality.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete}>Continue</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </CardFooter>
             </Card>
         </div>
       </main>
@@ -141,5 +198,3 @@ export default function LogDetailPage() {
     </AppLayout>
   );
 }
-
-    

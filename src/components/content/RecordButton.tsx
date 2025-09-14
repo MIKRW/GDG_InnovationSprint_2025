@@ -124,6 +124,8 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       setRecordingState('idle');
       return null;
     }
+
+    const analysisRunId = uuidv4();
   
     // 1. Upload audio to Firebase Storage
     const audioId = uuidv4();
@@ -140,17 +142,18 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       id: logId,
       userId: user.uid,
       audioUrl: audioUrl,
+      analysisRunId: analysisRunId, // Link to the analysis run
     };
     await setDoc(logDocRef, finalLog);
   
     // 3. Add to the flat analysis collection for internal use
-    const analysisRunId = uuidv4();
     const analysisRunRef = doc(db, 'all_analysis_runs', analysisRunId);
     await setDoc(analysisRunRef, {
         timestamp: logData.timestamp,
         userId: user.uid,
         sessionId: logData.sessionId,
-        inputAudioUrl: audioUrl,
+        inputAudioUrl: filePath,
+        inputAudioStoragePath: filePath, // Store path for deletion
         locationData: {
           latitude: logData.latitude ?? null,
           longitude: logData.longitude ?? null,
@@ -160,7 +163,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         aiResult: aiResult,
         wasSuccessful: wasSuccessful,
         wasSavedByUser: true,
-        dataQualityScore: 80, // Example score
+        dataQualityScore: wasSuccessful ? 80 : 20, // Example score
         isDeveloperData: isDevMode,
     });
     
@@ -197,6 +200,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       isMystery: true,
       mode: getAppSettings().mode,
       ...locationData,
+      analysisRunId: 'will-be-generated-in-saveToFirestore' // Placeholder
     }, audioDataUri, aiResult, false);
 
     if(logId) {
@@ -334,18 +338,16 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         setRecordingState('idle');
         
         // Navigate to the correct test log page
-        if (source === 'master_audio') {
-            router.push('/log/test');
-        } else {
-            router.push('/log/test/live');
-        }
+        const targetPage = source === 'master_audio' ? '/log/test' : '/log/test/live';
+        router.push(targetPage);
         return;
       } catch (error) {
         console.error('Error during dev mode identification:', error);
         // Still save the failure to the test log
-        await saveTestRunToFirestore({ error: (error as Error).message }, { birdId, testAudioId, source });
+        await saveTestRunToFirestore({ error: (error as Error).message, isBirdSong: false }, { birdId, testAudioId, source });
         setRecordingState('idle');
-        router.push(source === 'master_audio' ? '/log/test' : '/log/test/live');
+        const targetPage = source === 'master_audio' ? '/log/test' : '/log/test/live';
+        router.push(targetPage);
         return;
       }
     }
@@ -375,6 +377,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
               weather: result.weather,
               mode: appSettings.mode,
               ...locationData,
+              analysisRunId: 'will-be-generated-in-saveToFirestore' // Placeholder
           };
           await saveToFirestore(newLogData, base64Audio, result, true);
       } else {

@@ -2,11 +2,11 @@
 
 'use server';
 
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc, setDoc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { doc, setDoc, getDoc, updateDoc, arrayUnion, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
-import type { TestAudioMetadata } from './types';
+import type { TestAudioMetadata, BirdLog } from './types';
 import { EmailAuthProvider, linkWithCredential, type User } from 'firebase/auth';
 
 
@@ -122,4 +122,59 @@ export async function upgradeAnonymousUser(currentUser: User, { email, pass }: R
         console.error("Error upgrading anonymous user:", error.code, error.message);
         return { success: false, error: { code: error.code, message: error.message } };
     }
+}
+
+
+export async function deleteLog(log: BirdLog, user: User) {
+    if (!user || user.uid !== log.userId) {
+        throw new Error("Permission denied. You can only delete your own logs.");
+    }
+
+    const LOW_QUALITY_THRESHOLD = 40;
+
+    // 1. Always delete the user-facing log
+    const userLogRef = doc(db, 'users', user.uid, 'identifications', log.id);
+
+    // 2. Reference the internal analysis run document
+    const analysisRunRef = doc(db, 'all_analysis_runs', log.analysisRunId);
+    const analysisRunSnap = await getDoc(analysisRunRef);
+
+    if (!analysisRunSnap.exists()) {
+        // If the analysis run doesn't exist, just delete the user log and finish.
+        await deleteDoc(userLogRef);
+        console.warn(`Analysis run ${log.analysisRunId} not found. Deleting user log only.`);
+        return { success: true };
+    }
+
+    const analysisData = analysisRunSnap.data();
+
+    // 3. Apply deletion logic based on user type
+    if (user.isAnonymous && (analysisData.dataQualityScore < LOW_QUALITY_THRESHOLD)) {
+        // HARD DELETE for low-quality anonymous data
+        const batch = writeBatch(db);
+
+        // Delete Firestore documents
+        batch.delete(userLogRef);
+        batch.delete(analysisRunRef);
+
+        // Delete audio file from Storage
+        if (analysisData.inputAudioStoragePath) {
+             const fileRef = storageRef(storage, analysisData.inputAudioStoragePath);
+             await deleteObject(fileRef);
+        }
+        
+        await batch.commit();
+
+    } else {
+        // SOFT DELETE for registered users or high-quality anonymous data
+        // Just remove the user-facing log and mark the analysis as no longer saved by the user.
+        const batch = writeBatch(db);
+        
+        batch.delete(userLogRef);
+        batch.update(analysisRunRef, { wasSavedByUser: false });
+        
+        await batch.commit();
+    }
+
+    return { success: true };
 }
