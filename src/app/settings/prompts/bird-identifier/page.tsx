@@ -7,7 +7,7 @@ import { collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebas
 import { db } from '@/lib/firebase';
 import { PageTitle } from '@/components/content/PageTitle';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, Save, History, UploadCloud, Pencil, ChevronRight } from 'lucide-react';
+import { Loader2, Plus, Save, History, UploadCloud, Pencil, ChevronRight, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -30,6 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
 
 
 const SYSTEM_IDS = {
@@ -83,11 +84,16 @@ export default function BirdIdentifierPromptEditorPage() {
   
   // For the bottom editor section
   const [selectedCategoryForEditing, setSelectedCategoryForEditing] = useState<string>('');
-  const [selectedContentVersionForEditing, setSelectedContentVersionForEditing] = useState<string>('');
   const [newPromptText, setNewPromptText] = useState('');
   
   const [publishVersionType, setPublishVersionType] = useState<'minor' | 'major' | 'patch'>('patch');
   const [contentPublishVersionType, setContentPublishVersionType] = useState<'patch' | 'minor' | 'major'>('patch');
+  const [isEditLoaded, setIsEditLoaded] = useState(false);
+
+  // States for cascading dropdowns in version history
+  const [selectedMajor, setSelectedMajor] = useState<string | null>(null);
+  const [selectedMinor, setSelectedMinor] = useState<string | null>(null);
+  const [selectedPatch, setSelectedPatch] = useState<string | null>(null);
 
   
   const { toast } = useToast();
@@ -159,7 +165,7 @@ export default function BirdIdentifierPromptEditorPage() {
         // Ensure all categories are represented, defaulting to latest published content if not in active version
         allCategories.forEach(cat => {
             if (!initialStaged[cat]) {
-                const latestPublished = contentsByCategory[cat]?.filter(c => !String(c.version).includes('draft')).sort((a,b) => sortSemanticVersions(a.version, b.version))[0];
+                const latestPublished = contentsByCategory[cat]?.filter(c => c.version !== 'v0.0.0-draft').sort((a,b) => sortSemanticVersions(a.version, b.version))[0];
                 if (latestPublished) {
                     initialStaged[cat] = latestPublished.id;
                 }
@@ -201,14 +207,45 @@ export default function BirdIdentifierPromptEditorPage() {
         return sortSemanticVersions(a.version, b.version);
     });
   }, [promptContents, selectedCategoryForEditing]);
-  
-  const editorCurrentSelectedContentId = useMemo(() => selectedContentVersionForEditing || editorCategoryHistory[0]?.id || '', [selectedContentVersionForEditing, editorCategoryHistory]);
-  const editorCurrentContent = useMemo(() => editorCategoryHistory.find(c => c.id === editorCurrentSelectedContentId), [editorCategoryHistory, editorCurrentSelectedContentId]);
+
   const editorDraftContent = useMemo(() => editorCategoryHistory.find(c => String(c.version).includes('draft')), [editorCategoryHistory]);
+
+  const { majorVersions, minorVersions, patchVersions } = useMemo(() => {
+      const published = editorCategoryHistory.filter(v => v.version !== 'v0.0.0-draft');
+      const major = [...new Set(published.map(v => v.version.split('.')[0].replace('v','')))].sort((a,b) => Number(a) - Number(b));
+      
+      let minor: string[] = [];
+      if (selectedMajor) {
+          minor = [...new Set(published.filter(v => v.version.startsWith(`v${selectedMajor}.`)).map(v => v.version.split('.')[1]))].sort((a,b) => Number(a) - Number(b));
+      }
+
+      let patch: string[] = [];
+      if (selectedMajor && selectedMinor) {
+          patch = [...new Set(published.filter(v => v.version.startsWith(`v${selectedMajor}.${selectedMinor}.`)).map(v => v.version.split('.')[2]))].sort((a,b) => Number(a) - Number(b));
+      }
+      
+      return { majorVersions: major, minorVersions: minor, patchVersions: patch };
+  }, [editorCategoryHistory, selectedMajor, selectedMinor]);
+
+
+  const editorCurrentContent = useMemo(() => {
+      if (selectedMajor === '0') {
+          return editorDraftContent;
+      }
+      if (selectedMajor && selectedMinor && selectedPatch) {
+          const versionString = `v${selectedMajor}.${selectedMinor}.${selectedPatch}`;
+          return editorCategoryHistory.find(c => c.version === versionString);
+      }
+      return undefined;
+  }, [editorCategoryHistory, selectedMajor, selectedMinor, selectedPatch, editorDraftContent]);
+  
   
   useEffect(() => {
       setNewPromptText('');
-      setSelectedContentVersionForEditing('');
+      setIsEditLoaded(false);
+      setSelectedMajor(null);
+      setSelectedMinor(null);
+      setSelectedPatch(null);
   }, [selectedMode, selectedCategoryForEditing]);
 
   const handleSaveDraft = async () => {
@@ -235,8 +272,8 @@ export default function BirdIdentifierPromptEditorPage() {
   };
   
   const handlePublishContentFromDraft = async () => {
-    if (!editorDraftContent) {
-        toast({ variant: 'destructive', title: 'Publish Failed', description: 'No draft to publish.'});
+    if (!isEditLoaded || !editorCurrentContent) {
+        toast({ variant: 'destructive', title: 'Publish Failed', description: 'No previous version loaded to create a successor from.'});
         return;
     }
     setIsSaving(true);
@@ -244,12 +281,14 @@ export default function BirdIdentifierPromptEditorPage() {
         const newContent = await savePromptContent({
             systemId,
             categoryId: selectedCategoryForEditing,
-            promptText: editorDraftContent.promptText,
+            promptText: newPromptText,
             versionType: contentPublishVersionType,
             isDraft: false,
         });
         await fetchPromptData();
         toast({ title: 'Content Published!', description: `Created version ${newContent.version} for '${selectedCategoryForEditing}'.` });
+        setNewPromptText('');
+        setIsEditLoaded(false);
     } catch(e) {
         console.error("Failed to publish content:", e);
         toast({ variant: 'destructive', title: 'Publish Failed' });
@@ -261,9 +300,10 @@ export default function BirdIdentifierPromptEditorPage() {
   const handleEditVersion = () => {
     if (!editorCurrentContent) return;
     setNewPromptText(editorCurrentContent.promptText);
+    setIsEditLoaded(true);
     toast({
-        title: 'Version Loaded',
-        description: `Version ${!String(editorCurrentContent.version).includes('draft') ? editorCurrentContent.version : 'Draft'} text has been loaded into the editor. Save it as a draft to edit.`,
+        title: 'Version Loaded for Editing',
+        description: `Version ${editorCurrentContent.version.includes('draft') ? 'Draft' : editorCurrentContent.version} text has been loaded into the editor.`,
     });
   };
 
@@ -315,21 +355,38 @@ export default function BirdIdentifierPromptEditorPage() {
       }
   };
 
+  const handleMajorSelect = (value: string) => {
+    setSelectedMajor(value);
+    setSelectedMinor(null);
+    setSelectedPatch(null);
+  };
+  const handleMinorSelect = (value: string) => {
+    setSelectedMinor(value);
+    setSelectedPatch(null);
+  };
+
   if (!isDevMode) {
     return <p className="p-4">This page is only available in developer mode.</p>;
   }
 
-  const hasUnsavedChanges = newPromptText.trim() !== '' && newPromptText.trim() !== (editorDraftContent?.promptText || '').trim();
-  const canSave = newPromptText.trim() !== '' && hasUnsavedChanges && !isSaving;
-  const canPublishContent = !hasUnsavedChanges && !!editorDraftContent;
+  const hasUnsavedChanges = newPromptText.trim() !== '';
+  const canSaveDraft = hasUnsavedChanges && !isSaving && !isEditLoaded;
+  const canPublishContent = hasUnsavedChanges && isEditLoaded && !isSaving;
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="text-center">
-        <PageTitle>Bird Identifier AI Editor</PageTitle>
-        <p className="max-w-2xl mx-auto text-muted-foreground mt-4">
-          Select a mode, stage the desired prompt versions for each category in the table, then publish a new version of the AI. Use the editor below to create new prompt versions.
-        </p>
+       <div className="flex items-center justify-center relative mb-4">
+            <Button variant="ghost" size="icon" className="absolute left-0" asChild>
+                <Link href="/settings/prompts">
+                    <ArrowLeft className="h-6 w-6" />
+                </Link>
+            </Button>
+            <div className="text-center">
+                <PageTitle>Bird Identifier AI Editor</PageTitle>
+                <p className="max-w-2xl mx-auto text-muted-foreground mt-4">
+                Select a mode, stage the desired prompt versions for each category in the table, then publish a new version of the AI. Use the editor below to create new prompt versions.
+                </p>
+            </div>
       </div>
 
       <Card className="mt-8">
@@ -494,21 +551,30 @@ export default function BirdIdentifierPromptEditorPage() {
                <CardHeader className="text-center">
                 <CardTitle className="text-2xl font-semibold leading-none tracking-tight">Version History</CardTitle>
                 <div className="flex items-center justify-center gap-2 pt-2">
-                    <Select
-                        value={editorCurrentSelectedContentId}
-                        onValueChange={setSelectedContentVersionForEditing}
-                        disabled={editorCategoryHistory.length === 0}
-                    >
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select a version to view..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {editorCategoryHistory.map(item => (
-                        <SelectItem key={item.id} value={item.id}>
-                            {String(item.version).includes('draft') ? `Draft - ${new Date(item.timestamp).toLocaleString()}` : `${item.version} - ${new Date(item.timestamp).toLocaleString()}`}
-                        </SelectItem>
-                        ))}
-                    </SelectContent>
+                    <Select value={selectedMajor || ''} onValueChange={handleMajorSelect} disabled={editorCategoryHistory.length === 0}>
+                        <SelectTrigger className="w-[100px]">
+                            <SelectValue placeholder="Major" />
+                        </SelectTrigger>
+                        <SelectContent>
+                             {editorDraftContent && <SelectItem value="0">Draft</SelectItem>}
+                             {majorVersions.map(v => <SelectItem key={v} value={v}>v{v}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <Select value={selectedMinor || ''} onValueChange={handleMinorSelect} disabled={!selectedMajor || selectedMajor === '0' || minorVersions.length === 0}>
+                        <SelectTrigger className="w-[100px]">
+                            <SelectValue placeholder="Minor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {minorVersions.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                    <Select value={selectedPatch || ''} onValueChange={setSelectedPatch} disabled={!selectedMinor || selectedMajor === '0' || patchVersions.length === 0}>
+                        <SelectTrigger className="w-[100px]">
+                            <SelectValue placeholder="Patch" />
+                        </SelectTrigger>
+                        <SelectContent>
+                             {patchVersions.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                        </SelectContent>
                     </Select>
                     <Button onClick={handleEditVersion} variant="outline" size="sm" disabled={!editorCurrentContent}>
                         <Pencil className="mr-2 h-4 w-4" /> Edit
@@ -520,7 +586,7 @@ export default function BirdIdentifierPromptEditorPage() {
                   value={editorCurrentContent?.promptText || ''}
                   readOnly
                   className="min-h-[300px] font-mono text-sm bg-muted"
-                  placeholder="No content for this category yet. Write something new in the editor below."
+                  placeholder="Select a version to view its content."
                 />
               </CardContent>
             </Card>
@@ -528,7 +594,7 @@ export default function BirdIdentifierPromptEditorPage() {
             <Card className="flex-1">
               <CardHeader className="text-center">
                  <CardTitle className="text-2xl font-semibold leading-none tracking-tight">New/Edit Prompt Text</CardTitle>
-                 <CardDescription>Make changes here and save as a draft. You can then publish the draft from this card.</CardDescription>
+                 <CardDescription>Make changes here. Save as a new draft, or publish as a new version if you've loaded an existing one to edit.</CardDescription>
               </CardHeader>
               <CardContent>
                 <Textarea
@@ -542,7 +608,21 @@ export default function BirdIdentifierPromptEditorPage() {
               </CardContent>
               <CardFooter className="flex-col items-start gap-4">
                  <div className="flex items-center gap-2">
-                     <Select value={contentPublishVersionType} onValueChange={(v) => setContentPublishVersionType(v as 'patch' | 'minor' | 'major')}>
+                    <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                 <div className="inline-block">
+                                    <Button onClick={handleSaveDraft} disabled={!canSaveDraft}>
+                                        {isSaving && !isEditLoaded ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                        Save Draft
+                                    </Button>
+                                 </div>
+                            </TooltipTrigger>
+                            {!canSaveDraft && <TooltipContent><p>Type new content to save a draft. Cannot save draft when in edit mode.</p></TooltipContent>}
+                        </Tooltip>
+                    </TooltipProvider>
+
+                    <Select value={contentPublishVersionType} onValueChange={(v) => setContentPublishVersionType(v as 'patch' | 'minor' | 'major')} disabled={!isEditLoaded}>
                         <SelectTrigger className="w-[120px]">
                             <SelectValue />
                         </SelectTrigger>
@@ -552,25 +632,18 @@ export default function BirdIdentifierPromptEditorPage() {
                             <SelectItem value="major">Major</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Button onClick={handleSaveDraft} disabled={!canSave}>
-                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Save Draft
-                    </Button>
+                    
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <div className="inline-block">
-                                    <Button onClick={handlePublishContentFromDraft} disabled={!canPublishContent || isSaving}>
-                                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ChevronRight className="mr-2 h-4 w-4" />}
-                                        Publish Draft
+                                    <Button onClick={handlePublishContentFromDraft} disabled={!canPublishContent}>
+                                        {isSaving && isEditLoaded ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ChevronRight className="mr-2 h-4 w-4" />}
+                                        Publish as New Version
                                     </Button>
                                 </div>
                             </TooltipTrigger>
-                            {!canPublishContent && (
-                                <TooltipContent>
-                                    <p>Save changes to a draft to enable publishing.</p>
-                                </TooltipContent>
-                            )}
+                            {!canPublishContent && <TooltipContent><p>Load a version, make edits, and then publish a new version.</p></TooltipContent>}
                         </Tooltip>
                     </TooltipProvider>
                    </div>
@@ -582,3 +655,4 @@ export default function BirdIdentifierPromptEditorPage() {
     </div>
   );
 }
+
