@@ -170,9 +170,6 @@ const newbieIdentifyBirdPrompt = ai.definePrompt({
   output: { schema: IdentifyBirdOutputSchema },
   prompt: newbiePromptText,
   tools: [getCurrentWeather],
-  config: {
-    retries: 3,
-  }
 });
 
 const twitcherIdentifyBirdPrompt = ai.definePrompt({
@@ -181,9 +178,6 @@ const twitcherIdentifyBirdPrompt = ai.definePrompt({
   output: { schema: IdentifyBirdOutputSchema },
   prompt: twitcherPromptText,
   tools: [getCurrentWeather],
-  config: {
-    retries: 3,
-  }
 });
 
 const identifyBirdFlow = ai.defineFlow(
@@ -191,6 +185,7 @@ const identifyBirdFlow = ai.defineFlow(
     name: 'identifyBirdFlow',
     inputSchema: IdentifyBirdInputSchema,
     outputSchema: IdentifyBirdOutputSchema,
+    retries: 3,
   },
   async (input) => {
     let response;
