@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
@@ -34,13 +34,15 @@ export default function LiveTestLogPage() {
 
     const testRunCollectionRef = collection(db, 'all_test_runs');
     // Filter for tests that came from live recordings in dev mode
-    const q = query(testRunCollectionRef, where('source', '==', 'live_recording'), orderBy('timestamp', 'desc'));
+    const q = query(testRunCollectionRef, where('source', '==', 'live_recording'));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const runs: TestRun[] = [];
         querySnapshot.forEach((doc) => {
             runs.push({ id: doc.id, ...doc.data() } as TestRun);
         });
+        // Sort client-side to avoid needing a composite index in Firestore
+        runs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         setTestRuns(runs);
         setLoading(false);
     });
