@@ -212,6 +212,7 @@ export default function BirdIdentifierPromptEditorPage() {
             return {...prev, [selectedCategory]: categoryContents};
         });
         setSelectedVersions(prev => ({...prev, [selectedCategory]: savedDraft.id}));
+        setNewPromptText(''); // Clear editor after successful save
 
     } catch (error) {
         console.error("Failed to save draft:", error);
@@ -411,6 +412,56 @@ export default function BirdIdentifierPromptEditorPage() {
           </CardContent>
       </Card>
 
+      <Card className="mt-4 max-w-lg mx-auto">
+        <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-semibold leading-none tracking-tight">Enabled Prompt Categories</CardTitle>
+            <CardDescription>
+                Toggle which categories are included in the published AI version. A category must be enabled and have a selected version to be included.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Category</TableHead>
+                        <TableHead className="text-center">Selected Version</TableHead>
+                        <TableHead className="text-center">Published</TableHead>
+                        <TableHead className="text-right">Enabled</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {Object.keys(promptContents).sort().map(categoryId => {
+                        const selectedContentId = selectedVersions[categoryId];
+                        const selectedContent = promptContents[categoryId]?.find(c => c.id === selectedContentId);
+                        const activePublishedVersion = activeVersions[selectedMode];
+                        const isPublished = activePublishedVersion?.composedPrompts[categoryId] === selectedContentId;
+                        
+                        return (
+                            <TableRow key={categoryId}>
+                                <TableCell className="font-medium capitalize">{categoryId.replace(/_/g, ' ')}</TableCell>
+                                <TableCell className="text-center">
+                                    {selectedContent ? (selectedContent.version === 0 ? 'Draft' : `v${selectedContent.version}`) : 'None'}
+                                </TableCell>
+                                <TableCell className="text-center">
+                                    <Badge variant={isPublished && selectedContent?.version !== 0 ? 'default' : 'secondary'}>
+                                        {isPublished && selectedContent?.version !== 0 ? 'Yes' : 'No'}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <Switch
+                                        id={`switch-${categoryId}`}
+                                        checked={enabledCategories[categoryId] || false}
+                                        onCheckedChange={(checked) => setEnabledCategories(prev => ({...prev, [categoryId]: checked}))}
+                                    />
+                                </TableCell>
+                            </TableRow>
+                        );
+                    })}
+                </TableBody>
+            </Table>
+        </CardContent>
+      </Card>
+
       <div className="mt-8 flex flex-col md:flex-row gap-6">
         {isLoading ? (
             <div className="flex justify-center items-center p-8 w-full"><Loader2 className="w-8 h-8 animate-spin" /></div>
@@ -470,6 +521,10 @@ export default function BirdIdentifierPromptEditorPage() {
               </CardContent>
               <CardFooter>
                  <div className="flex items-center gap-2">
+                    <Button onClick={handleSaveDraft} disabled={!canSave}>
+                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save
+                    </Button>
                     <Select value={versionType} onValueChange={(v) => setVersionType(v as 'minor' | 'major')}>
                         <SelectTrigger className="w-[140px]">
                             <SelectValue />
@@ -479,10 +534,6 @@ export default function BirdIdentifierPromptEditorPage() {
                             <SelectItem value="major">Major-Ver</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Button onClick={handleSaveDraft} disabled={!canSave}>
-                        {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Save
-                    </Button>
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -495,7 +546,7 @@ export default function BirdIdentifierPromptEditorPage() {
                             </TooltipTrigger>
                             {!canPublishFromDraft && (
                                 <TooltipContent>
-                                    <p>Save draft to enable publishing.</p>
+                                    <p>Save changes to a draft to enable publishing.</p>
                                 </TooltipContent>
                             )}
                         </Tooltip>
@@ -506,56 +557,6 @@ export default function BirdIdentifierPromptEditorPage() {
           </>
         )}
       </div>
-
-       <Card className="mt-8">
-        <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-semibold leading-none tracking-tight">Enabled Prompt Categories</CardTitle>
-            <CardDescription>
-                Toggle which categories are included in the published AI version. A category must be enabled and have a selected version to be included.
-            </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Category</TableHead>
-                        <TableHead className="text-center">Selected Version</TableHead>
-                        <TableHead className="text-center">Published</TableHead>
-                        <TableHead className="text-right">Enabled</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {Object.keys(promptContents).sort().map(categoryId => {
-                        const selectedContentId = selectedVersions[categoryId];
-                        const selectedContent = promptContents[categoryId]?.find(c => c.id === selectedContentId);
-                        const activePublishedVersion = activeVersions[selectedMode];
-                        const isPublished = activePublishedVersion?.composedPrompts[categoryId] === selectedContentId;
-                        
-                        return (
-                            <TableRow key={categoryId}>
-                                <TableCell className="font-medium capitalize">{categoryId.replace(/_/g, ' ')}</TableCell>
-                                <TableCell className="text-center">
-                                    {selectedContent ? (selectedContent.version === 0 ? 'Draft' : `v${selectedContent.version}`) : 'None'}
-                                </TableCell>
-                                <TableCell className="text-center">
-                                    <Badge variant={isPublished && selectedContent?.version !== 0 ? 'default' : 'secondary'}>
-                                        {isPublished && selectedContent?.version !== 0 ? 'Yes' : 'No'}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <Switch
-                                        id={`switch-${categoryId}`}
-                                        checked={enabledCategories[categoryId] || false}
-                                        onCheckedChange={(checked) => setEnabledCategories(prev => ({...prev, [categoryId]: checked}))}
-                                    />
-                                </TableCell>
-                            </TableRow>
-                        );
-                    })}
-                </TableBody>
-            </Table>
-        </CardContent>
-      </Card>
     </div>
   );
 }
