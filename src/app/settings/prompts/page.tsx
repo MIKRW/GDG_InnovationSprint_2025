@@ -5,47 +5,45 @@ import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { Badge } from '@/components/ui/badge';
 
-interface AISystem {
-    id: string;
-    name: string;
-    description: string;
-    activeVersion: string;
-    href: string;
-}
+// NOTE: This has been reverted to a static page to ensure stability.
+// The AI system list is hardcoded here. A future improvement could be to
+// dynamically load this from a 'prompt_systems' collection if needed.
+
+const aiSystems = [
+    {
+        id: 'bird-identifier-ai',
+        name: 'Bird Identifier AI',
+        description: 'Manages all prompts related to identifying birds from audio.',
+        href: '/settings/prompts/bird-identifier',
+        activeVersion: 'v1.0' // Placeholder
+    },
+    {
+        id: 'theme-generator-ai',
+        name: 'Theme Generation AI',
+        description: 'Manages prompts related to generating UI color themes.',
+        href: '/settings/prompts/theme-generator',
+        activeVersion: 'v1.0' // Placeholder
+    },
+    {
+        id: 'image-generator-ai',
+        name: 'Image Generation AI',
+        description: 'Manages prompts for creating images of identified birds.',
+        href: '/settings/prompts/image-generator',
+        activeVersion: 'v1.0' // Placeholder
+    },
+    {
+        id: 'weather-ai',
+        name: 'Weather Analysis AI',
+        description: 'Manages prompts for interpreting weather data for identification.',
+        href: '/settings/prompts/weather',
+        activeVersion: 'v1.0' // Placeholder
+    }
+];
+
 
 export default function PromptManagementPage() {
     const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
-    const [aiSystems, setAiSystems] = useState<AISystem[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        async function fetchSystems() {
-            if (!isDevMode) {
-                setLoading(false);
-                return;
-            }
-            try {
-                const systemsSnapshot = await getDocs(collection(db, 'prompt_systems'));
-                const systems = systemsSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    href: `/settings/prompts/${doc.id.replace(/-ai$/, '')}`,
-                    ...doc.data()
-                })) as AISystem[];
-                setAiSystems(systems);
-            } catch (error) {
-                console.error("Error fetching AI systems:", error);
-            } finally {
-                setLoading(false);
-            }
-        }
-        fetchSystems();
-    }, [isDevMode]);
-
 
     if (!isDevMode) {
         return (
@@ -54,14 +52,6 @@ export default function PromptManagementPage() {
             </div>
         )
     }
-     if (loading) {
-        return (
-            <div className="container mx-auto px-4 py-8">
-                <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-        )
-    }
-
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -78,7 +68,6 @@ export default function PromptManagementPage() {
                                 <div>
                                     <CardTitle className="flex items-center gap-4">
                                         {system.name}
-                                        <Badge variant="secondary">{system.activeVersion}</Badge>
                                     </CardTitle>
                                     <CardDescription className="pt-1">{system.description}</CardDescription>
                                 </div>
