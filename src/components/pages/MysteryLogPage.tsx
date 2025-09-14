@@ -43,38 +43,33 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
     setLoading(true);
     const logsCollectionRef = collection(db, 'users', user.uid, 'identifications');
     
-    let q: Query = query(logsCollectionRef);
-    
-    // Apply base filters
-    q = query(q, where('isMystery', '==', true), where('isDisowned', '==', false));
-
-    // Apply sorting
-    switch (sortOption) {
-        case 'a-z':
-        case 'z-a':
-             // Can't sort mystery logs alphabetically, so fallback to newest
-            q = query(q, orderBy('timestamp', 'desc'));
-            break;
-        case 'oldest':
-            q = query(q, orderBy('timestamp', 'asc'));
-            break;
-        case 'newest':
-        default:
-            q = query(q, orderBy('timestamp', 'desc'));
-            break;
-    }
-
+    // This query is now simpler and avoids the composite index requirement.
+    const q: Query = query(logsCollectionRef, where('isMystery', '==', true), where('isDisowned', '==', false));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const logs: BirdLog[] = [];
         querySnapshot.forEach((doc) => {
-            const data = doc.data() as BirdLog;
-            // Client-side filtering for date
-            if (new Date(data.timestamp).toLocaleDateString().includes(searchQuery)) {
-                logs.push({ id: doc.id, ...data });
-            }
+            logs.push({ id: doc.id, ...doc.data() } as BirdLog);
         });
-        setAllLogs(logs);
+        
+        // Client-side filtering and sorting
+        const processedLogs = logs
+            .filter(log => {
+                if (!searchQuery) return true;
+                // Since mystery logs don't have names, we only filter by date
+                return new Date(log.timestamp).toLocaleDateString().includes(searchQuery);
+            })
+            .sort((a, b) => {
+                switch (sortOption) {
+                    case 'oldest':
+                        return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+                    case 'newest':
+                    default:
+                        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+                }
+            });
+
+        setAllLogs(processedLogs);
         setLoading(false);
     }, (error) => {
         console.error("Error fetching mystery logs:", error);
