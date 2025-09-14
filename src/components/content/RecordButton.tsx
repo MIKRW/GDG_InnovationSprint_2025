@@ -328,6 +328,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       });
 
       if (testContext) {
+        // In dev mode, always save the test run, regardless of success or failure.
         await saveTestRunToFirestore(result, testContext);
         setRecordingState('idle');
         router.push('/log/test'); // Navigate to test log page after test run
@@ -448,6 +449,8 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 RecordButton.displayName = "RecordButton";
 
 export { RecordButton };
+
+    
 
     
 
