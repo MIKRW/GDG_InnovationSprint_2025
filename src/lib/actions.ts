@@ -6,7 +6,7 @@ import { ref as storageRef, uploadBytes, getDownloadURL, uploadString, getMetada
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, addDoc, collection, serverTimestamp, query, where, getDocs, orderBy, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
-import type { TestAudioMetadata, BirdLog, PromptContent, PromptVersion, PromptSystem } from './types';
+import type { TestAudioMetadata, BirdLog, PromptContent, PromptVersion, PromptSystem, AppAIVersion } from './types';
 import { EmailAuthProvider, linkWithCredential, type User } from 'firebase/auth';
 import { kebabCase } from 'lodash';
 
@@ -279,7 +279,7 @@ export async function publishNewPromptVersion(data: PublishNewPromptVersionInput
     const existingVersions = versionsSnapshot.docs.map(d => d.data().version as string);
 
     // 2. Determine new version string based on semantic versioning.
-    const [major, minor, patch] = previousVersion.replace('v', '').split('.').map(Number);
+    const [major, minor, patch] = (previousVersion || 'v0.0.0').replace('v', '').split('.').map(Number);
     let newMajor = major, newMinor = minor, newPatch = patch;
 
     if (versionType === 'major') {
@@ -292,9 +292,9 @@ export async function publishNewPromptVersion(data: PublishNewPromptVersionInput
     } else { // 'patch'
         // Find the highest patch for the current major.minor and increment it.
         const patchVersions = existingVersions
-            .filter(v => v.startsWith(`v${major}.${minor}.`))
+            .filter(v => v.startsWith(`v${newMajor}.${newMinor}.`))
             .map(v => parseInt(v.split('.')[2] || '0'));
-        newPatch = patchVersions.length > 0 ? Math.max(...patchVersions) + 1 : (patch > 0 ? patch + 1 : 1);
+        newPatch = patchVersions.length > 0 ? Math.max(...patchVersions) + 1 : newPatch + 1;
     }
     
     const newVersionString = `v${newMajor}.${newMinor}.${newPatch}`;
