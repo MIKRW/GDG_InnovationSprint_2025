@@ -7,7 +7,7 @@ import { collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebas
 import { db } from '@/lib/firebase';
 import { PageTitle } from '@/components/content/PageTitle';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, Save, History, UploadCloud } from 'lucide-react';
+import { Loader2, Plus, Save, History, UploadCloud, Pencil } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -90,6 +90,7 @@ export default function BirdIdentifierPromptEditorPage() {
         });
 
         const activeVersionPromises = Object.entries(activeSystemVersions).map(async ([mode, versionString]) => {
+            if (!versionString) return { mode, version: null };
             const versionId = `${SYSTEM_IDS[mode as 'newbie' | 'twitcher']}-${versionString}`;
             const versionQuery = query(collection(db, 'prompt_versions'), where('id', '==', versionId));
             const versionSnap = await getDocs(versionQuery);
@@ -283,9 +284,9 @@ export default function BirdIdentifierPromptEditorPage() {
     }
   };
 
-  const handlePublishSelectedVersion = async () => {
+  const handleRecallVersion = async () => {
     if (!currentContent || currentContent.version === 0) {
-      toast({ variant: 'destructive', title: 'Publish Failed', description: 'Cannot publish a draft from here. Please use the main Publish button.' });
+      toast({ variant: 'destructive', title: 'Recall Failed', description: 'Cannot recall a draft from here.' });
       return;
     }
 
@@ -308,21 +309,21 @@ export default function BirdIdentifierPromptEditorPage() {
       });
 
       await fetchPromptData();
-      toast({ title: 'Published!', description: `Successfully published recalled configuration as version ${newVersion.version}.` });
+      toast({ title: 'Recalled!', description: `Successfully published recalled configuration as version ${newVersion.version}.` });
 
     } catch (error) {
-      console.error('Failed to publish recalled version:', error);
-      toast({ variant: 'destructive', title: 'Publish Failed' });
+      console.error('Failed to recall version:', error);
+      toast({ variant: 'destructive', title: 'Recall Failed' });
     } finally {
       setIsPublishing(false);
     }
   };
 
-  const handleRecallVersion = () => {
+  const handleEditVersion = () => {
     if (!currentContent) return;
     setNewPromptText(currentContent.promptText);
     toast({
-        title: 'Version Recalled',
+        title: 'Version Loaded',
         description: `Version ${currentContent.version > 0 ? currentContent.version : 'Draft'} text has been loaded into the editor. Save it as a draft to edit.`,
     });
   };
@@ -435,11 +436,11 @@ export default function BirdIdentifierPromptEditorPage() {
                         ))}
                     </SelectContent>
                     </Select>
-                    <Button onClick={handleRecallVersion} variant="outline" size="sm" disabled={!currentContent}>
-                        <History className="mr-2 h-4 w-4" /> Recall
+                    <Button onClick={handleEditVersion} variant="outline" size="sm" disabled={!currentContent}>
+                        <Pencil className="mr-2 h-4 w-4" /> Edit
                     </Button>
-                    <Button onClick={handlePublishSelectedVersion} variant="outline" size="sm" disabled={!currentContent || currentContent.version === 0 || isPublishing}>
-                        {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UploadCloud className="mr-2 h-4 w-4" />} Publish
+                    <Button onClick={handleRecallVersion} variant="outline" size="sm" disabled={!currentContent || currentContent.version === 0 || isPublishing}>
+                        {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <History className="mr-2 h-4 w-4" />} Recall
                     </Button>
                 </div>
               </CardHeader>
