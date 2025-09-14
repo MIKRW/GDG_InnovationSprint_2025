@@ -83,6 +83,8 @@ export type AnalysisRun = {
       timestamp: string;
   };
   dataQualityScore?: number;
+  recordingLengthSeconds?: number;
+  analysisDurationMs?: number;
 }
 
 
@@ -131,5 +133,3 @@ export interface TestAudioMetadata {
   family: string;
   order: string;
 }
-
-    

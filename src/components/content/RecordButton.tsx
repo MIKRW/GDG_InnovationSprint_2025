@@ -5,7 +5,7 @@
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
-import { doc, setDoc, collection, addDoc } from 'firebase/firestore';
+import { doc, setDoc, collection, addDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
 
 import { identifyBirdBySound } from '@/ai/flows/identify-bird-flow';
@@ -33,7 +33,7 @@ interface RecordButtonProps {
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
-const PROMPT_VERSION = "1.5"; // Updated for user feedback loop
+const PROMPT_VERSION = "1.6"; // Updated to include confidence score
 
 const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps, ref) => {
   const router = useRouter();
@@ -42,6 +42,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     useState<RecordingState>('idle');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recordingStartTimeRef = useRef<number | null>(null);
   const [lastAudio, setLastAudio] = useState<string | null>(null);
   const currentSessionId = useRef<string | null>(null);
   const currentTimestamp = useRef<string | null>(null);
@@ -55,21 +56,21 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       }
       currentTimestamp.current = new Date().toISOString();
 
-      return new Promise<void>((resolve) => {
-          const reader = new FileReader();
+      const audio = new Audio(URL.createObjectURL(file));
+      audio.onloadedmetadata = () => {
+        const duration = audio.duration;
+         const reader = new FileReader();
           reader.readAsDataURL(file);
           reader.onloadend = async () => {
               const base64Audio = reader.result as string;
               setRecordingState('processing');
-              await processAudio(base64Audio, undefined, testContext);
-              resolve();
+              await processAudio(base64Audio, duration, undefined, testContext);
           };
           reader.onerror = () => {
               console.error("Failed to read file for test run.");
               setRecordingState('idle');
-              resolve();
           }
-      });
+      };
     }
   }));
 
@@ -84,6 +85,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 
     currentSessionId.current = uuidv4();
     currentTimestamp.current = new Date().toISOString();
+    recordingStartTimeRef.current = Date.now();
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -116,7 +118,16 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
   };
 
-   const createAnalysisRun = async (audioDataUri: string, aiResult: any, wasSuccessful: boolean, locationData: any, mode: AppMode, isDeveloperRun: boolean) => {
+   const createAnalysisRun = async (
+        audioDataUri: string, 
+        aiResult: any, 
+        wasSuccessful: boolean, 
+        locationData: any, 
+        mode: AppMode, 
+        isDeveloperRun: boolean,
+        recordingLengthSeconds?: number,
+        analysisDurationMs?: number
+    ) => {
      if (!user) {
       console.error("Cannot create analysis run: user is not authenticated.");
       logErrorToFirestore(new Error("Analysis run failed: No user."), 'firestore-write-failure', { detail: 'User not authenticated during createAnalysisRun.'});
@@ -152,6 +163,8 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       wasSavedByUser: false, 
       mode: mode,
       isDeveloperData: isDeveloperRun,
+      recordingLengthSeconds: recordingLengthSeconds,
+      analysisDurationMs: analysisDurationMs,
     });
 
     return analysisRunId;
@@ -177,7 +190,8 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         console.error("Could not find analysis run to create mystery log.");
         return;
     }
-    const audioUrl = analysisRunSnap.data().inputAudioUrl;
+    const analysisRunData = analysisRunSnap.data();
+    const audioUrl = analysisRunData.inputAudioUrl;
 
     const mysteryLogData: Omit<BirdLog, 'id'> = {
       sessionId: currentSessionId.current!,
@@ -221,12 +235,13 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   const handleStop = async () => {
     setRecordingState('processing');
     const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+    const recordingLengthSeconds = recordingStartTimeRef.current ? (Date.now() - recordingStartTimeRef.current) / 1000 : undefined;
 
     const reader = new FileReader();
     reader.readAsDataURL(audioBlob);
     reader.onloadend = async () => {
         const base64Audio = reader.result as string;
-        getLocationForAIShot(locationData => processAudio(base64Audio, locationData));
+        getLocationForAIShot(locationData => processAudio(base64Audio, recordingLengthSeconds, locationData));
     };
   };
 
@@ -281,26 +296,37 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
   };
 
-  const processAudio = async (base64Audio: string, locationData?: { latitude?: number, longitude?: number, locationDescription?: string }, testContext?: { birdId: string, testAudioId: string }) => {
+  const processAudio = async (base64Audio: string, recordingLengthSeconds?: number, locationData?: { latitude?: number, longitude?: number, locationDescription?: string }, testContext?: { birdId: string, testAudioId: string }) => {
     if (!currentTimestamp.current) {
       setRecordingState('idle');
       return;
     }
     const appSettings = getAppSettings();
     
-    const isDeveloperRun = isDevMode && (!!testContext || window.location.pathname.includes('/record'));
+    const isDeveloperRun = isDevMode;
 
     try {
+      const analysisStartTime = Date.now();
       const result = await identifyBirdBySound({ 
           audioDataUri: base64Audio,
           timestamp: currentTimestamp.current,
           mode: appSettings.mode,
           ...locationData
       });
+      const analysisDurationMs = Date.now() - analysisStartTime;
       
       const wasSuccessful = result && result.isBirdSong && !!result.commonName;
 
-      const analysisRunId = await createAnalysisRun(base64Audio, result, wasSuccessful, locationData, appSettings.mode, isDeveloperRun);
+      const analysisRunId = await createAnalysisRun(
+          base64Audio, 
+          result, 
+          wasSuccessful, 
+          locationData, 
+          appSettings.mode, 
+          isDeveloperRun,
+          recordingLengthSeconds,
+          analysisDurationMs
+      );
 
       if (analysisRunId) {
           setRecordingState('idle');
@@ -317,6 +343,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 
     } catch (error) {
       console.error('Error identifying bird sound:', error);
+      const analysisDurationMs = recordingStartTimeRef.current ? Date.now() - recordingStartTimeRef.current : undefined;
       logErrorToFirestore(error as Error, 'ai-identification-failure', {
         sessionId: currentSessionId.current,
         timestamp: currentTimestamp.current,
@@ -325,7 +352,16 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         userId: user?.uid
       });
       // API failed, so we can't create an analysis run, but we can still save as a mystery
-       const analysisRunId = await createAnalysisRun(base64Audio, { error: (error as Error).message, isBirdSong: false }, false, locationData, appSettings.mode, isDeveloperRun);
+       const analysisRunId = await createAnalysisRun(
+           base64Audio, 
+           { error: (error as Error).message, isBirdSong: false }, 
+           false, 
+           locationData, 
+           appSettings.mode, 
+           isDeveloperRun,
+           recordingLengthSeconds,
+           analysisDurationMs
+        );
       if (analysisRunId) {
           setLastAudio(JSON.stringify([base64Audio, analysisRunId]));
           setRecordingState('confirming');
@@ -410,5 +446,3 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 RecordButton.displayName = "RecordButton";
 
 export { RecordButton };
-
-    
