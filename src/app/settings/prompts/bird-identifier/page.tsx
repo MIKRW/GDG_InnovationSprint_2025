@@ -43,11 +43,16 @@ interface StagedContent extends PromptContent {
 }
 
 // Helper to sort semantic versions (e.g., v1.10.2 > v1.2.3)
-const sortSemanticVersions = (a: string, b: string) => {
-    const aParts = a.substring(1).split('.').map(Number);
-    const bParts = b.substring(1).split('.').map(Number);
+const sortSemanticVersions = (a: string | number, b: string | number) => {
+    const aStr = String(a);
+    const bStr = String(b);
+    const aParts = aStr.startsWith('v') ? aStr.substring(1).split('.').map(Number) : [0,0,0];
+    const bParts = bStr.startsWith('v') ? bStr.substring(1).split('.').map(Number) : [0,0,0];
+
     for(let i = 0; i < 3; i++) {
-        if(aParts[i] !== bParts[i]) return bParts[i] - aParts[i];
+        const aPart = aParts[i] || 0;
+        const bPart = bParts[i] || 0;
+        if(aPart !== bPart) return bPart - aPart;
     }
     return 0;
 };
@@ -455,7 +460,7 @@ export default function BirdIdentifierPromptEditorPage() {
                         <DialogHeader>
                             <DialogTitle>Add New Prompt Category</DialogTitle>
                             <DialogDescription>
-                            Create a new component for the AI's prompt. Use a short, descriptive name (e.g., 'error_handling').
+                            Create a new component for the AI's prompt. Use a short, descriptive name (e.g., 'audio_analysis_rules').
                             </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
