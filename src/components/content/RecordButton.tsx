@@ -161,7 +161,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         wasSuccessful: wasSuccessful,
         wasSavedByUser: true,
         dataQualityScore: 80, // Example score
-        isDeveloperData: isDevMode, // Add the developer flag here
+        isDeveloperData: isDevMode,
     });
     
     setRecordingState('idle');
@@ -175,6 +175,15 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       console.error("Cannot save mystery log: user is not authenticated.");
       logErrorToFirestore(new Error("Save attempt failed: No user."), 'firestore-write-failure', { detail: 'User was not authenticated during saveMysteryLog call.'});
       setRecordingState('idle');
+      return;
+    }
+    
+    // If in dev mode, save as a test run instead of a user-facing mystery log
+    if (isDevMode) {
+      await saveTestRunToFirestore(aiResult, { birdId: 'unknown-dev-test', testAudioId: 'live-recording' });
+      setRecordingState('idle');
+      setLastAudio(null);
+      router.push('/log/test');
       return;
     }
 
@@ -305,6 +314,11 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
     const appSettings = getAppSettings();
     
+    // If in dev mode and this is NOT from the dedicated test tool, treat it as a test run.
+    if (isDevMode && !testContext) {
+      testContext = { birdId: 'unknown-dev-test', testAudioId: 'live-recording' };
+    }
+
     try {
       const result = await identifyBirdBySound({ 
           audioDataUri: base64Audio,
@@ -434,5 +448,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 RecordButton.displayName = "RecordButton";
 
 export { RecordButton };
+
+    
 
     
