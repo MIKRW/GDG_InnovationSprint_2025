@@ -82,7 +82,6 @@ export default function LiveTestLogPage() {
                               {run.aiResult.isBirdSong ? run.aiResult.commonName : "No Bird Identified"}
                           </span>
                            <Badge variant={run.aiResult.isBirdSong ? 'default' : 'destructive'}>
-                              {run.ai-hint={log.imagePrompt}
                               {run.aiResult.isBirdSong ? "Success" : "Failure"}
                           </Badge>
                       </CardTitle>
