@@ -154,7 +154,7 @@ export default function BirdIdentifierPromptEditorPage() {
         // Ensure all categories are represented, defaulting to latest published content if not in active version
         allCategories.forEach(cat => {
             if (!initialStaged[cat]) {
-                const latestPublished = contentsByCategory[cat]?.filter(c => c.version !== 'v0.0.0-draft').sort((a,b) => sortSemanticVersions(a.version, b.version))[0];
+                const latestPublished = contentsByCategory[cat]?.filter(c => !String(c.version).includes('draft')).sort((a,b) => sortSemanticVersions(a.version, b.version))[0];
                 if (latestPublished) {
                     initialStaged[cat] = latestPublished.id;
                 }
@@ -191,15 +191,15 @@ export default function BirdIdentifierPromptEditorPage() {
   // Editor-related memos and effects
   const editorCategoryHistory = useMemo(() => {
     return (promptContents[selectedCategoryForEditing] || []).sort((a, b) => {
-        if (a.version.includes('draft')) return -1;
-        if (b.version.includes('draft')) return 1;
+        if (String(a.version).includes('draft')) return -1;
+        if (String(b.version).includes('draft')) return 1;
         return sortSemanticVersions(a.version, b.version);
     });
   }, [promptContents, selectedCategoryForEditing]);
   
   const editorCurrentSelectedContentId = useMemo(() => selectedContentVersionForEditing || editorCategoryHistory[0]?.id || '', [selectedContentVersionForEditing, editorCategoryHistory]);
   const editorCurrentContent = useMemo(() => editorCategoryHistory.find(c => c.id === editorCurrentSelectedContentId), [editorCategoryHistory, editorCurrentSelectedContentId]);
-  const editorDraftContent = useMemo(() => editorCategoryHistory.find(c => c.version.includes('draft')), [editorCategoryHistory]);
+  const editorDraftContent = useMemo(() => editorCategoryHistory.find(c => String(c.version).includes('draft')), [editorCategoryHistory]);
   
   useEffect(() => {
       setNewPromptText('');
@@ -258,7 +258,7 @@ export default function BirdIdentifierPromptEditorPage() {
     setNewPromptText(editorCurrentContent.promptText);
     toast({
         title: 'Version Loaded',
-        description: `Version ${editorCurrentContent.version > 'v0.0.0-draft' ? editorCurrentContent.version : 'Draft'} text has been loaded into the editor. Save it as a draft to edit.`,
+        description: `Version ${!String(editorCurrentContent.version).includes('draft') ? editorCurrentContent.version : 'Draft'} text has been loaded into the editor. Save it as a draft to edit.`,
     });
   };
 
@@ -384,7 +384,7 @@ export default function BirdIdentifierPromptEditorPage() {
                     </TableHeader>
                     <TableBody>
                         {Object.keys(promptContents).sort().map(catId => {
-                            const availableContent = promptContents[catId].filter(c => c.version !== 'v0.0.0-draft').sort((a,b) => sortSemanticVersions(a.version, b.version));
+                            const availableContent = promptContents[catId].filter(c => !String(c.version).includes('draft')).sort((a,b) => sortSemanticVersions(a.version, b.version));
                             const selectedContentId = stagedVersions[catId];
                             const selectedContent = promptContents[catId].find(c => c.id === selectedContentId);
                             
@@ -500,7 +500,7 @@ export default function BirdIdentifierPromptEditorPage() {
                     <SelectContent>
                         {editorCategoryHistory.map(item => (
                         <SelectItem key={item.id} value={item.id}>
-                            {item.version.includes('draft') ? `Draft - ${new Date(item.timestamp).toLocaleString()}` : `${item.version} - ${new Date(item.timestamp).toLocaleString()}`}
+                            {String(item.version).includes('draft') ? `Draft - ${new Date(item.timestamp).toLocaleString()}` : `${item.version} - ${new Date(item.timestamp).toLocaleString()}`}
                         </SelectItem>
                         ))}
                     </SelectContent>
