@@ -150,7 +150,8 @@ export default function BirdIdentifierPromptEditorPage() {
 
   const handleSaveContent = async () => {
     if (!selectedCategory) return;
-    if (!newPromptText) {
+    const hasUnsavedChanges = newPromptText.trim() !== '';
+    if (!hasUnsavedChanges) {
       toast({ variant: 'destructive', title: 'Cannot Save', description: 'Prompt content cannot be empty.' });
       return;
     }
@@ -170,7 +171,7 @@ export default function BirdIdentifierPromptEditorPage() {
       setEnabledCategories(prev => ({...prev, [selectedCategory]: true }));
       setNewPromptText('');
 
-      toast({ title: 'Prompt Saved', description: `${selectedCategory} was updated to version ${newContent.version}.` });
+      toast({ title: 'Prompt Saved', description: `${selectedCategory} was updated to version ${newContent.version}. You can now publish.` });
     } catch (error) {
       console.error('Failed to save prompt content:', error);
       toast({ variant: 'destructive', title: 'Save Failed' });
@@ -373,21 +374,28 @@ export default function BirdIdentifierPromptEditorPage() {
                   disabled={!selectedCategory}
                 />
               </CardContent>
-              <CardFooter className="flex-col items-start gap-4">
+              <CardFooter>
                  <div className="flex items-center gap-2">
-                    <Button onClick={handleSaveContent} disabled={isSaving || !selectedCategory || !newPromptText}>
+                    <Select value={versionType} onValueChange={(v) => setVersionType(v as 'minor' | 'major')}>
+                        <SelectTrigger className="w-[140px]">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="minor">Minor-Ver</SelectItem>
+                            <SelectItem value="major">Major-Ver</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    <Button onClick={handleSaveContent} disabled={isSaving || !hasUnsavedChanges}>
                         {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Save as New Version
+                        Save
                     </Button>
-                  </div>
-                   <div className="flex items-center gap-2">
                      <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div tabIndex={0}> {/* Wrapper for Tooltip with disabled button */}
-                            <Button size="lg" onClick={handlePublish} disabled={isPublishing || hasUnsavedChanges}>
+                            <Button onClick={handlePublish} disabled={isPublishing || hasUnsavedChanges}>
                                 {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                                Publish New AI Version
+                                Publish
                             </Button>
                           </div>
                         </TooltipTrigger>
@@ -398,15 +406,6 @@ export default function BirdIdentifierPromptEditorPage() {
                         )}
                       </Tooltip>
                     </TooltipProvider>
-                    <Select value={versionType} onValueChange={(v) => setVersionType(v as 'minor' | 'major')}>
-                        <SelectTrigger className="w-[140px]">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="minor">Minor-Ver</SelectItem>
-                            <SelectItem value="major">Major-Ver</SelectItem>
-                        </SelectContent>
-                    </Select>
                    </div>
               </CardFooter>
             </Card>
