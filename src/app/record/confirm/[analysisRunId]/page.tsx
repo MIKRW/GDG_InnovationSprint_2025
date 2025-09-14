@@ -3,7 +3,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { doc, getDoc, updateDoc, setDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, addDoc, collection, onSnapshot } from 'firebase/firestore';
 import { notFound, useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { v4 as uuidv4 } from 'uuid';
