@@ -8,6 +8,7 @@ import Image from 'next/image';
 
 import type { BirdLog } from '@/lib/types';
 import { db } from '@/lib/firebase';
+import { useAuth } from '@/components/providers/AuthProvider';
 
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
@@ -19,22 +20,40 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function LogDetailPage() {
   const params = useParams();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const { user, loading: authLoading } = useAuth();
   const [log, setLog] = useState<BirdLog | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
-  // This component will not work correctly without authentication.
-  // For now, it will show a loading state indefinitely.
-  // We will restore its functionality when we re-implement auth.
-  
   useEffect(() => {
-    setLoading(true);
-    // We cannot fetch the log without a user ID.
-    // The component will remain in a loading state.
-    console.warn("Log detail page cannot fetch data: Authentication is disabled.");
-  }, [id]);
+    if (authLoading) {
+      return; // Wait for authentication to resolve
+    }
+    if (!user) {
+      console.warn("Log detail page cannot fetch data: No user authenticated.");
+      setLoading(false);
+      // Optionally redirect or show a 'not logged in' message
+      return;
+    }
+
+    const logDocRef = doc(db, 'users', user.uid, 'identifications', id);
+    
+    const unsubscribe = onSnapshot(logDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setLog({ id: docSnap.id, ...docSnap.data() } as BirdLog);
+      } else {
+        setLog(null); // Not found
+      }
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching log detail:", error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [id, user, authLoading]);
 
 
-  if (loading || log === undefined) {
+  if (loading || authLoading || log === undefined) {
     return (
       <AppLayout header={<SecondaryHeader title="Loading..." />}>
         <main className="flex-1 p-4">

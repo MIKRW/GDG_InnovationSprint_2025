@@ -10,11 +10,14 @@ import { groupBy } from 'lodash';
 
 import type { BirdLog, SortOption } from '@/lib/types';
 import { db } from '@/lib/firebase';
+import { useAuth } from '@/components/providers/AuthProvider';
 
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { PageTitle } from '../content/PageTitle';
-import { FlaskConical, HelpCircle, ShieldAlert } from 'lucide-react';
+import { FlaskConical, HelpCircle, ShieldAlert, Loader2 } from 'lucide-react';
 import { SecondaryPageFooterV2 } from '../layout/SecondaryPageFooterV2';
+import { Button } from '../ui/button';
+import { useRouter } from 'next/navigation';
 
 interface LogPageProps {
     searchQuery: string;
@@ -23,16 +26,43 @@ interface LogPageProps {
 
 export function LogPage({ searchQuery, sortOption }: LogPageProps) {
   const [allLogs, setAllLogs] = useState<BirdLog[]>([]);
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
-  // This component will not work correctly without authentication.
-  // For now, it will show a loading state indefinitely.
-  // We will restore its functionality when we re-implement auth.
   useEffect(() => {
+    if (authLoading) {
+      setLoading(true);
+      return; // Wait for auth to finish
+    }
+    if (!user) {
+      // If auth is done and there's no user, stop loading and show empty state.
+      console.warn("Log page cannot fetch data: No user authenticated.");
+      setLoading(false);
+      setAllLogs([]);
+      return;
+    }
+
+    // User is authenticated, fetch their data
     setLoading(true);
-    console.warn("Log page cannot fetch data: Authentication is disabled.");
-  }, []);
+    const logsCollectionRef = collection(db, 'users', user.uid, 'identifications');
+    const q = query(logsCollectionRef, orderBy('timestamp', 'desc'));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const logs: BirdLog[] = [];
+        querySnapshot.forEach((doc) => {
+            logs.push({ id: doc.id, ...doc.data() } as BirdLog);
+        });
+        setAllLogs(logs);
+        setLoading(false);
+    }, (error) => {
+        console.error("Error fetching logs:", error);
+        setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user, authLoading]);
 
   const groupedAndSortedLogs = useMemo(() => {
     const identifiedLogs = allLogs.filter(log => !log.isMystery);
@@ -113,9 +143,10 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
         )}
 
       {loading ? (
-           <div className="text-center py-16">
-               <PageTitle>Bird Book</PageTitle>
-               <p className="mt-4 text-muted-foreground">Logbook functionality is temporarily disabled pending authentication setup.</p>
+           <div className="text-center py-16 flex flex-col items-center">
+               <Loader2 className="w-12 h-12 animate-spin text-muted-foreground mb-4" />
+               <PageTitle>Loading Bird Book...</PageTitle>
+               <p className="mt-4 text-muted-foreground">Just a moment...</p>
            </div>
       ): (
         <>
@@ -152,7 +183,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                                 <CardContent className="p-0 flex-grow">
                                 <div className="aspect-square relative w-full">
                                     <Image
-                                    src={log.audioUrl ? `https://picsum.photos/seed/${log.id}/400/400` : '/placeholder.png'}
+                                    src={`https://picsum.photos/seed/${log.id}/400/400`}
                                     alt={log.commonName}
                                     fill
                                     className="object-cover"
@@ -174,17 +205,19 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                 </div>
             ))}
 
-            {Object.keys(groupedAndSortedLogs.groupedSessions).length === 0 && searchQuery && (
+            {Object.keys(groupedAndSortedLogs.groupedSessions).length === 0 && searchQuery && !loading && (
                 <div className="col-span-full text-center py-16">
                     <p className="text-lg text-muted-foreground">No results found for "{searchQuery}".</p>
                 </div>
             )}
 
-            {allLogs.length === 0 && !isDevMode && (
+            {allLogs.length === 0 && !loading && (
                  <div className="text-center py-16">
                     <PageTitle>Your Bird Book is Empty</PageTitle>
                     <p className="mt-4 text-muted-foreground">You haven't identified any birds yet.</p>
-                    <p className="mt-2 text-muted-foreground">Go to the record page to start your collection!</p>
+                    <Button className="mt-4" onClick={() => router.push('/record')}>
+                        Start your collection!
+                    </Button>
                 </div>
             )}
         </>

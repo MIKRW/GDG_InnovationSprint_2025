@@ -1,5 +1,5 @@
 
-'use client';
+'use-client';
 
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useRouter } from 'next/navigation';
@@ -15,6 +15,7 @@ import { MicrophoneIcon } from './MicrophoneIcon';
 import { Loader2, MicOff, Square } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import { logErrorToFirestore } from '@/lib/error-logging';
+import { useAuth } from '@/components/providers/AuthProvider';
 
 type RecordingState =
   | 'idle'
@@ -36,6 +37,7 @@ const PROMPT_VERSION = "1.1"; // Updated for weather tool
 
 const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps, ref) => {
   const router = useRouter();
+  const { user } = useAuth();
   const [recordingState, setRecordingState] =
     useState<RecordingState>('idle');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -73,8 +75,9 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 
   const handleStartRecording = async () => {
     onStartRecording?.();
-    if (recordingState === 'denied') {
-        onPermissionDenied?.();
+    if (recordingState === 'denied' || !user) {
+        if (!user) console.error("Cannot record: User not authenticated.");
+        if (recordingState === 'denied') onPermissionDenied?.();
         return;
     }
 
@@ -112,20 +115,86 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
   };
 
-  const saveToFirestore = async (log: Omit<BirdLog, 'id' | 'userId'>, audioDataUri: string, aiResult: any, wasSuccessful: boolean) => {
-    console.warn("Auth system is disabled. Skipping Firestore save.");
-    // Simulate a successful save for navigation purposes
-    router.push(`/log`);
-    return null;
+  const saveToFirestore = async (logData: Omit<BirdLog, 'id' | 'userId' | 'audioUrl'>, audioDataUri: string, aiResult: any, wasSuccessful: boolean) => {
+    if (!user) {
+      console.error("Cannot save log: user is not authenticated.");
+      logErrorToFirestore(new Error("Save attempt failed: No user."), 'firestore-write-failure', { detail: 'User was not authenticated during saveToFirestore call.'});
+      setRecordingState('idle');
+      return null;
+    }
+  
+    // 1. Upload audio to Firebase Storage
+    const audioId = uuidv4();
+    const filePath = `users/${user.uid}/recordings/${audioId}.webm`;
+    const fileRef = storageRef(storage, filePath);
+    await uploadString(fileRef, audioDataUri, 'data_url');
+    const audioUrl = await getDownloadURL(fileRef);
+  
+    // 2. Add log entry to Firestore
+    const logId = uuidv4();
+    const logDocRef = doc(db, 'users', user.uid, 'identifications', logId);
+    const finalLog: BirdLog = {
+      ...logData,
+      id: logId,
+      userId: user.uid,
+      audioUrl: audioUrl,
+    };
+    await setDoc(logDocRef, finalLog);
+  
+    // 3. Add to the flat analysis collection for internal use
+    const analysisRunId = uuidv4();
+    const analysisRunRef = doc(db, 'all_analysis_runs', analysisRunId);
+    await setDoc(analysisRunRef, {
+        timestamp: logData.timestamp,
+        userId: user.uid,
+        sessionId: logData.sessionId,
+        inputAudioUrl: audioUrl,
+        locationData: {
+          latitude: logData.latitude,
+          longitude: logData.longitude,
+          locationDescription: logData.locationDescription,
+        },
+        analysisMethod: `gemini-pro-vision-prompt-v${PROMPT_VERSION}`,
+        aiResult: aiResult,
+        wasSuccessful: wasSuccessful,
+        wasSavedByUser: true,
+        dataQualityScore: 80, // Example score
+    });
+    
+    setRecordingState('idle');
+    router.push(`/log/${logId}`);
+    return logId;
   };
 
 
   const saveMysteryLog = async (audioDataUri: string, aiResult: any, locationData?: { latitude?: number; longitude?: number; locationDescription?: string; }) => {
-    console.warn("Auth system is disabled. Skipping Firestore save for mystery log.");
-    // Just reset the state and navigate
-    setRecordingState('idle');
-    setLastAudio(null);
-    router.push(`/log`);
+     if (!user) {
+      console.error("Cannot save mystery log: user is not authenticated.");
+      logErrorToFirestore(new Error("Save attempt failed: No user."), 'firestore-write-failure', { detail: 'User was not authenticated during saveMysteryLog call.'});
+      setRecordingState('idle');
+      return;
+    }
+
+    const logId = await saveToFirestore({
+      sessionId: currentSessionId.current!,
+      timestamp: currentTimestamp.current!,
+      commonName: 'Mystery Bird',
+      scientificName: 'Unknown',
+      description: 'This is a recording that could not be identified by the AI. You can listen to it here and try to identify it yourself!',
+      imagePrompt: 'question mark',
+      isMystery: true,
+      mode: getAppSettings().mode,
+      ...locationData,
+    }, audioDataUri, aiResult, false);
+
+    if(logId) {
+      setRecordingState('idle');
+      setLastAudio(null);
+      router.push(`/log/${logId}`);
+    } else {
+      // Handle save failure
+      setRecordingState('idle');
+    }
   };
 
   const handleSaveConfirmation = () => {
@@ -137,7 +206,6 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   };
 
   const handleCancelSave = async () => {
-    console.warn("Auth system is disabled. Discarding log.");
     setRecordingState('idle');
     setLastAudio(null);
     onIdentificationFailed?.();
@@ -266,7 +334,6 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
               ...locationData,
           };
           await saveToFirestore(newLogData, base64Audio, result, true);
-          router.push(`/log`);
       } else {
            // AI failed, trigger confirmation
            // We now store the audio data AND the raw AI result
@@ -280,7 +347,8 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         sessionId: currentSessionId.current,
         timestamp: currentTimestamp.current,
         locationData: locationData,
-        appMode: appSettings.mode
+        appMode: appSettings.mode,
+        userId: user?.uid
       });
       // API failed, trigger confirmation, store the error as the result
       setLastAudio(JSON.stringify([base64Audio, { error: (error as Error).message }]));
@@ -324,7 +392,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   };
 
   const { icon, label } = getButtonContent();
-  const isDisabled = recordingState === 'processing' || recordingState === 'confirming';
+  const isDisabled = recordingState === 'processing' || recordingState === 'confirming' || !user;
 
 
   return (
@@ -348,12 +416,12 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           <AlertDialogHeader>
             <AlertDialogTitle>No bird identified</AlertDialogTitle>
             <AlertDialogDescription>
-              The AI could not identify a bird song in this recording. Would you like to save it as a "Mystery Recording" to review later? (This feature is temporarily disabled).
+              The AI could not identify a bird song in this recording. Would you like to save it as a "Mystery Recording" to review later?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleCancelSave}>Discard</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSaveConfirmation} disabled>Save Recording</AlertDialogAction>
+            <AlertDialogAction onClick={handleSaveConfirmation}>Save Recording</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
