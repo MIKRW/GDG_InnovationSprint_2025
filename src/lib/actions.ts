@@ -234,8 +234,8 @@ export async function savePromptContent(data: SavePromptContentInput): Promise<P
         const publishedVersions = contentSnapshot.docs.map(doc => doc.data() as PromptContent);
         
         const latestVersionString = publishedVersions.sort((a, b) => {
-            const aParts = a.version.substring(1).split('.').map(Number);
-            const bParts = b.version.substring(1).split('.').map(Number);
+            const aParts = String(a.version).substring(1).split('.').map(Number);
+            const bParts = String(b.version).substring(1).split('.').map(Number);
             for(let i=0; i<3; i++) {
                 if (aParts[i] !== bParts[i]) return bParts[i] - aParts[i];
             }
