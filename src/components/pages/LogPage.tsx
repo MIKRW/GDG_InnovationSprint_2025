@@ -47,8 +47,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
     const logsCollectionRef = collection(db, 'users', user.uid, 'identifications');
     const q = query(
         logsCollectionRef, 
-        where('isDisowned', '==', false),
-        orderBy('timestamp', 'desc')
+        where('isDisowned', '==', false)
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -75,14 +74,15 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
         (log.scientificName && log.scientificName.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
-    // Client-side sorting for A-Z, Z-A since Firestore returns by timestamp
-    const sorted = [...filtered];
+    // Client-side sorting
+    const sorted = [...filtered].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
     if (sortOption === 'a-z') {
         sorted.sort((a, b) => a.commonName.localeCompare(b.commonName));
     } else if (sortOption === 'z-a') {
         sorted.sort((a, b) => b.commonName.localeCompare(a.commonName));
     } else if (sortOption === 'oldest') {
-        sorted.reverse(); // The default is newest, so we just reverse it for oldest
+        sorted.reverse(); // The default sort is newest, so we just reverse it for oldest
     }
     
     // Group by sessionId

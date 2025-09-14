@@ -47,8 +47,7 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
     const q = query(
         logsCollectionRef, 
         where('isMystery', '==', true),
-        where('isDisowned', '==', false),
-        orderBy('timestamp', 'desc')
+        where('isDisowned', '==', false)
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -73,7 +72,7 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
       );
 
       // The default from Firestore is newest. Only apply client-side changes for other options.
-      const sorted = [...filtered];
+      const sorted = [...filtered].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       if (sortOption === 'oldest') {
         sorted.reverse();
       }
