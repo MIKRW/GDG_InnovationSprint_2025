@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -246,19 +247,24 @@ export default function BirdIdentifierPromptEditorPage() {
 
       <Card className="mt-8">
         <CardHeader>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <Label>AI Mode</Label>
-              <Select value={selectedMode} onValueChange={(v) => setSelectedMode(v as 'newbie' | 'twitcher')}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a mode..." />
+            <CardTitle>AI Mode</CardTitle>
+            <CardDescription>Select the AI mode you want to configure prompts for.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Select value={selectedMode} onValueChange={(v) => setSelectedMode(v as 'newbie' | 'twitcher')}>
+                <SelectTrigger className="max-w-xs">
+                    <SelectValue placeholder="Select a mode..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="newbie">Newbie Mode</SelectItem>
-                  <SelectItem value="twitcher">Twitcher Mode</SelectItem>
+                    <SelectItem value="newbie">Newbie Mode</SelectItem>
+                    <SelectItem value="twitcher">Twitcher Mode</SelectItem>
                 </SelectContent>
-              </Select>
-            </div>
+            </Select>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-8">
+        <CardHeader>
             <div className="flex-1">
               <Label>Prompt Category</Label>
               <div className="flex gap-2">
@@ -304,7 +310,6 @@ export default function BirdIdentifierPromptEditorPage() {
                     </Dialog>
               </div>
             </div>
-          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {isLoading ? (
