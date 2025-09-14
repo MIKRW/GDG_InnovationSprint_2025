@@ -128,7 +128,7 @@ export async function upgradeAnonymousUser(currentUser: User, { email, pass }: R
  * Disowns a log entry from the user's personal "Bird Book".
  * This action sets a flag `isDisowned` to true, which will trigger
  * a Cloud Function to process the associated backend data based on
- * defined data retention policies. It does not permanently delete the record.
+ * defined data retention policies.
  */
 export async function disownLog(log: BirdLog, user: User) {
     if (!user || user.uid !== log.userId) {

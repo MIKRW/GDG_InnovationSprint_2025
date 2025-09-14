@@ -48,7 +48,6 @@ export function MysteryLogPage({ searchQuery, sortOption }: MysteryLogPageProps)
         logsCollectionRef, 
         where('isMystery', '==', true),
         where('isDisowned', '!=', true),
-        orderBy('isDisowned'),
         orderBy('timestamp', 'desc')
     );
 
