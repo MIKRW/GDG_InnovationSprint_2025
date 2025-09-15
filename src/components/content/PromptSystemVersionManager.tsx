@@ -111,7 +111,7 @@ export function PromptSystemVersionManager() {
     } else {
         setSelections({});
     }
-  }, [viewingVersionId, selectedSystemId]);
+  }, [viewingVersionId, selectedSystem, selectedSystemId]);
 
   const selectedSystem = useMemo(() => {
     return systems.find(s => s.id === selectedSystemId);
@@ -146,6 +146,14 @@ export function PromptSystemVersionManager() {
         toast({ variant: 'destructive', title: 'Publish Failed', description: 'Could not save the new prompt version.' });
     } finally {
         setIsSubmitting(false);
+    }
+  };
+  
+  const handleViewVersionChange = (value: string) => {
+    if (value === 'compose-new') {
+      setViewingVersionId(null);
+    } else {
+      setViewingVersionId(value);
     }
   };
 
@@ -199,12 +207,12 @@ export function PromptSystemVersionManager() {
                     </div>
                      <div className="flex items-center gap-4">
                         <Label htmlFor="version-viewer" className="font-semibold whitespace-nowrap">View Version</Label>
-                        <Select onValueChange={setViewingVersionId} value={viewingVersionId || ''}>
+                        <Select onValueChange={handleViewVersionChange} value={viewingVersionId || 'compose-new'}>
                             <SelectTrigger id="version-viewer" className="w-full sm:w-[250px]">
                                 <SelectValue placeholder="Compose New..." />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="">Compose New...</SelectItem>
+                                <SelectItem value="compose-new">Compose New...</SelectItem>
                                 {selectedSystem?.versions.map(v => (
                                     <SelectItem key={v.id} value={v.id}>Version {v.version}</SelectItem>
                                 ))}
@@ -293,3 +301,5 @@ export function PromptSystemVersionManager() {
     </Card>
   );
 }
+
+    
