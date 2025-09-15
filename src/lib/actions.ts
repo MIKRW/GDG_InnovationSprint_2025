@@ -190,10 +190,18 @@ export async function getPromptSystems(): Promise<PromptSystem[]> {
  */
 export async function getPromptVersionsForSystem(systemId: string): Promise<PromptVersion[]> {
     const versionsRef = collection(db, 'prompt_versions');
-    const q = query(versionsRef, where('systemId', '==', systemId), orderBy('timestamp', 'desc'));
+    // We remove the orderBy clause to avoid needing a composite index for this specific query.
+    // We will sort the data manually in the code.
+    const q = query(versionsRef, where('systemId', '==', systemId));
     const snapshot = await getDocs(q);
     if (snapshot.empty) {
         return [];
     }
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptVersion));
+
+    const versions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptVersion));
+    
+    // Sort the versions by timestamp in descending order (newest first) in the server action.
+    versions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    
+    return versions;
 }
