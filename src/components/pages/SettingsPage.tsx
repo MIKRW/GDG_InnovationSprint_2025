@@ -33,24 +33,32 @@ export function SettingsPage() {
         <p className="text-muted-foreground">
           Customize the look, feel, and functionality of your application.
         </p>
-        <Button asChild variant="outline">
-          <Link href="/theme">Customize Theme</Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link href="/settings/location">Location Settings</Link>
-        </Button>
-         <Button asChild variant="outline">
-          <Link href="/settings/mode">App Mode</Link>
-        </Button>
+        <Link href="/theme" passHref>
+          <Button asChild variant="outline">
+            <span>Customize Theme</span>
+          </Button>
+        </Link>
+        <Link href="/settings/location" passHref>
+          <Button asChild variant="outline">
+            <span>Location Settings</span>
+          </Button>
+        </Link>
+         <Link href="/settings/mode" passHref>
+          <Button asChild variant="outline">
+            <span>App Mode</span>
+          </Button>
+        </Link>
 
         {isDevMode && (
           <div className="pt-8 w-full max-w-sm">
               <h2 className="text-lg font-semibold mb-2">Developer Tools</h2>
                 <Card className="bg-hazard-stripes p-1 rounded-lg">
                     <div className="bg-background rounded-sm">
+                      <Link href="/settings/prompts" passHref>
                         <Button asChild variant="outline" className="w-full justify-start">
-                            <Link href="/settings/prompts"><FlaskConical className="mr-2 h-4 w-4" />Prompt Management</Link>
+                          <span><FlaskConical className="mr-2 h-4 w-4" />Prompt Management</span>
                         </Button>
+                      </Link>
                     </div>
                 </Card>
           </div>
@@ -59,9 +67,11 @@ export function SettingsPage() {
         <div className="pt-8 w-full max-w-sm">
             <h2 className="text-lg font-semibold mb-2">Account</h2>
             {isAnonymous ? (
-                 <Button asChild variant="outline">
-                    <Link href="/settings/register">Create Account</Link>
-                </Button>
+                 <Link href="/settings/register" passHref>
+                    <Button asChild variant="outline">
+                        <span>Create Account</span>
+                    </Button>
+                </Link>
             ) : (
                 <div className="space-y-4">
                     <p className="text-muted-foreground">You are signed in as {user?.email}.</p>

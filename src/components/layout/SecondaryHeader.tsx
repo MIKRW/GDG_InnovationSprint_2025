@@ -8,8 +8,10 @@ export function SecondaryHeader({ title }: { title: string }) {
   return (
     <header className="border-b flex items-center justify-between px-4 py-8">
        <Link href="/" passHref>
-        <Button variant="ghost" size="icon">
-            <Home className="h-5 w-5" />
+        <Button variant="ghost" size="icon" asChild>
+          <span>
+              <Home className="h-5 w-5" />
+          </span>
         </Button>
        </Link>
       <h1 className="text-lg font-bold">{title}</h1>

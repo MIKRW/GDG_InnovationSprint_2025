@@ -107,9 +107,11 @@ export default function LiveTestLogPage() {
                   <TableCell className="text-right">{run.analysisTimings?.primaryIdentificationMs ? `${run.analysisTimings.primaryIdentificationMs}ms` : 'N/A'}</TableCell>
                   <TableCell className="text-right">{run.analysisMethod.split('-v').pop()}</TableCell>
                   <TableCell className="text-right">
-                    <Button asChild variant="outline" size="sm">
-                        <Link href={`/record/confirm/${run.id}`}>View</Link>
-                    </Button>
+                    <Link href={`/record/confirm/${run.id}`} passHref>
+                        <Button asChild variant="outline" size="sm">
+                            <span>View</span>
+                        </Button>
+                    </Link>
                   </TableCell>
                 </TableRow>
               ))}

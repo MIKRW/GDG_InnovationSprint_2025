@@ -2,7 +2,7 @@
 'use client';
 
 import { PageTitle } from '@/components/content/PageTitle';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
@@ -47,8 +47,8 @@ export default function PromptManagementPage() {
 
             <div className="space-y-4">
                 {aiSystems.map(system => (
-                    <Link href={system.href} key={system.id} className="block">
-                        <Card className="hover:border-primary transition-colors">
+                    <Link href={system.href} key={system.id} passHref>
+                        <Card className="hover:border-primary transition-colors cursor-pointer">
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <div>
                                     <CardTitle>{system.name}</CardTitle>
