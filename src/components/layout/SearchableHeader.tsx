@@ -14,6 +14,8 @@ import {
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import type { SortOption } from '@/lib/types';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface SearchableHeaderProps {
   title: string;
@@ -31,10 +33,8 @@ export function SearchableHeader({
   return (
     <header className="border-b flex items-center justify-between px-4 py-6 gap-4">
       <div className="flex items-center gap-2">
-        <Link href="/" asChild>
-          <Button variant="ghost" size="icon">
+        <Link href="/" className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }))}>
             <Home className="h-5 w-5" />
-          </Button>
         </Link>
         <h1 className="text-lg font-bold hidden md:block">{title}</h1>
       </div>
