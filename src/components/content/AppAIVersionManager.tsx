@@ -295,8 +295,8 @@ export function AppAIVersionManager() {
       <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
         <AccordionItem value="item-1" className="border-b-0">
           <AccordionTrigger className="p-6 hover:no-underline">
-            <div className="text-left">
-                <CardTitle>App AI Version Publisher</CardTitle>
+            <div className="flex-1 text-center">
+                <CardTitle>AI system version control</CardTitle>
                 <CardDescription className="pt-2">
                     Compose a new App AI Version by selecting a specific version for each AI system, or re-publish an existing version. This combination will be published as a new global version for the application.
                 </CardDescription>
