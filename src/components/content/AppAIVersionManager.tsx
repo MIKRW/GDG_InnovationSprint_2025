@@ -91,7 +91,7 @@ export function AppAIVersionManager() {
           };
 
           versions.forEach((v) => {
-            const [maj, min, pat] = v.version.split('.');
+            const [maj, min, pat] = v.version.split('.').map(part => part.replace('v', ''));
             versionParts.major.add(maj);
 
             if (!versionParts.minor.has(maj)) {
@@ -154,9 +154,9 @@ export function AppAIVersionManager() {
         if (versionToShow) {
             const newSelections: VersionSelection = {};
             for (const systemId in versionToShow.systems) {
-                const fullVersion = versionToShow.systems[systemId];
-                const [major, minor, patch] = fullVersion.split('.');
-                newSelections[systemId] = { major, minor, patch, fullVersion };
+                const fullVersionString = versionToShow.systems[systemId];
+                const [major, minor, patch] = fullVersionString.replace('v', '').split('.');
+                newSelections[systemId] = { major, minor, patch, fullVersion: fullVersionString };
             }
             setSelections(newSelections);
             setIsRepublishing(true); // Default to republish mode when viewing history
@@ -184,7 +184,7 @@ export function AppAIVersionManager() {
       }
 
       if (newSelection.major && newSelection.minor && newSelection.patch) {
-          newSelection.fullVersion = `${newSelection.major}.${newSelection.minor}.${newSelection.patch}`;
+          newSelection.fullVersion = `v${newSelection.major}.${newSelection.minor}.${newSelection.patch}`;
       } else {
           delete newSelection.fullVersion;
       }
@@ -248,7 +248,7 @@ export function AppAIVersionManager() {
 
   const selectedSystem = (systemId: string) => selections[systemId] || {};
   const isViewingHistory = selectedDisplayVersion !== 'new';
-  const isCompositionDisabled = isViewingHistory && isRepublishing;
+  const isCompositionDisabled = isViewingHistory && !isRepublishing;
 
   const activeVersion = useMemo(() => {
       return publishedVersions.find(v => v.id === activeVersionId);
@@ -460,3 +460,5 @@ export function AppAIVersionManager() {
     </Card>
   );
 }
+
+    
