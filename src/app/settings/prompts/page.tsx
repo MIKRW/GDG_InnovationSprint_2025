@@ -7,24 +7,7 @@ import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 const aiSystems = [
-    {
-        id: 'bird-identifier-ai',
-        name: 'Bird Identifier AI',
-        description: 'Manages all prompts related to identifying bird species from audio recordings, location, and weather data.',
-        href: '/settings/prompts/bird-identifier'
-    },
-    {
-        id: 'theme-generator-ai',
-        name: 'Theme Generator AI',
-        description: 'Controls the prompts for generating UI color themes from user-provided words and moods.',
-        href: '#' // To be implemented
-    },
-    {
-        id: 'image-generator-ai',
-        name: 'Image Generator AI',
-        description: 'Manages prompts for all image generation tasks, such as creating bird images from descriptions.',
-        href: '#' // To be implemented
-    }
+    
 ];
 
 export default function PromptManagementPage() {
@@ -46,9 +29,9 @@ export default function PromptManagementPage() {
             </p>
 
             <div className="space-y-4">
-                {aiSystems.map(system => (
-                    <Link href={system.href} key={system.id} className="cursor-pointer">
-                        <Card className="hover:border-primary transition-colors">
+                {aiSystems.length > 0 ? aiSystems.map(system => (
+                    <Link href={system.href} key={system.id} asChild>
+                        <Card className="hover:border-primary transition-colors cursor-pointer">
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <div>
                                     <CardTitle>{system.name}</CardTitle>
@@ -58,7 +41,16 @@ export default function PromptManagementPage() {
                             </CardHeader>
                         </Card>
                     </Link>
-                ))}
+                )) : (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>No AI Systems Defined</CardTitle>
+                            <CardDescription>
+                                The AI systems for this application will be configured here.
+                            </CardDescription>
+                        </CardHeader>
+                    </Card>
+                )}
             </div>
         </div>
     )
