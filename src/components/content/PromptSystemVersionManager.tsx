@@ -123,10 +123,11 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
         const version = selectedSystemMemo.versions.find(v => v.id === viewingVersionId);
         if (version) {
             setSelections(version.composedPrompts);
+            setIsRepublishing(true); // Default to republish when viewing history
         }
     } else {
         setSelections({});
-        setIsRepublishing(false); // Can't republish when composing new
+        setIsRepublishing(false);
     }
   }, [viewingVersionId, selectedSystemMemo]);
 
@@ -227,6 +228,8 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
   }
 
   const isViewingHistory = viewingVersionId !== 'compose-new';
+  const isCompositionDisabled = isViewingHistory && isRepublishing;
+
 
   return (
     <Card>
@@ -281,7 +284,7 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
                               <Select 
                                 value={selections[category] || ''} 
                                 onValueChange={(value) => handleSelection(category, value)}
-                                disabled={isViewingHistory}
+                                disabled={isCompositionDisabled}
                               >
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select content version" />
@@ -318,11 +321,11 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
                                 defaultValue="patch"
                                 className="flex gap-4"
                                 onValueChange={(v) => setSaveType(v as any)}
-                                disabled={isRepublishing || isViewingHistory}
+                                disabled={isRepublishing}
                             >
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="sys-major" /><Label htmlFor="sys-major">Major</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="sys-minor" /><Label htmlFor="sys-minor">Minor</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id="sys-patch" /><Label htmlFor="sys-patch">Patch</Label></div>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="sys-major" disabled={isRepublishing}/><Label htmlFor="sys-major">Major</Label></div>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="sys-minor" disabled={isRepublishing}/><Label htmlFor="sys-minor">Minor</Label></div>
+                                <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id="sys-patch" disabled={isRepublishing}/><Label htmlFor="sys-patch">Patch</Label></div>
                             </RadioGroup>
                         </div>
                         <div className="flex items-center gap-2">

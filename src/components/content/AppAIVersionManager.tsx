@@ -148,7 +148,7 @@ export function AppAIVersionManager() {
     if (selectedDisplayVersion === 'new') {
         // Clear selections when switching to compose a new version
         setSelections({});
-        setIsRepublishing(false); // Can't republish "new"
+        setIsRepublishing(false);
     } else {
         const versionToShow = publishedVersions.find(v => v.id === selectedDisplayVersion);
         if (versionToShow) {
@@ -159,6 +159,7 @@ export function AppAIVersionManager() {
                 newSelections[systemId] = { major, minor, patch, fullVersion };
             }
             setSelections(newSelections);
+            setIsRepublishing(true); // Default to republish mode when viewing history
         }
     }
   }, [selectedDisplayVersion, publishedVersions]);
@@ -247,6 +248,7 @@ export function AppAIVersionManager() {
 
   const selectedSystem = (systemId: string) => selections[systemId] || {};
   const isViewingHistory = selectedDisplayVersion !== 'new';
+  const isCompositionDisabled = isViewingHistory && isRepublishing;
 
   const activeVersion = useMemo(() => {
       return publishedVersions.find(v => v.id === activeVersionId);
@@ -354,7 +356,7 @@ export function AppAIVersionManager() {
                         <Select
                           onValueChange={(value) => handleSelection(system.id, 'major', value)}
                           value={selectedSystem(system.id).major}
-                          disabled={isViewingHistory}
+                          disabled={isCompositionDisabled}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select Major" />
@@ -370,7 +372,7 @@ export function AppAIVersionManager() {
                       </TableCell>
                       <TableCell>
                         <Select
-                          disabled={!selectedSystem(system.id).major || isViewingHistory}
+                          disabled={!selectedSystem(system.id).major || isCompositionDisabled}
                           onValueChange={(value) => handleSelection(system.id, 'minor', value)}
                           value={selectedSystem(system.id).minor}
                         >
@@ -388,7 +390,7 @@ export function AppAIVersionManager() {
                       </TableCell>
                       <TableCell>
                         <Select
-                          disabled={!selectedSystem(system.id).minor || isViewingHistory}
+                          disabled={!selectedSystem(system.id).minor || isCompositionDisabled}
                           onValueChange={(value) => handleSelection(system.id, 'patch', value)}
                           value={selectedSystem(system.id).patch}
                         >
