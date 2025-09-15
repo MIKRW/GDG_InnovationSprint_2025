@@ -202,8 +202,8 @@ export function PromptContentManager({ systemId }: PromptContentManagerProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Prompt Content Editor</CardTitle>
-        <CardDescription>
+        <CardTitle className="text-center">Prompt Editor</CardTitle>
+        <CardDescription className="text-center">
           Edit and version the raw text for each prompt component. A new version is saved each time you publish.
         </CardDescription>
       </CardHeader>
