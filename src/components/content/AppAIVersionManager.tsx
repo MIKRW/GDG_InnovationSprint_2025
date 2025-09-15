@@ -154,9 +154,9 @@ export function AppAIVersionManager() {
         if (versionToShow) {
             const newSelections: VersionSelection = {};
             for (const systemId in versionToShow.systems) {
-                const fullVersionString = versionToShow.systems[systemId];
-                const [major, minor, patch] = fullVersionString.replace('v', '').split('.');
-                newSelections[systemId] = { major, minor, patch, fullVersion: fullVersionString };
+                const [majorWithV, minor, patch] = versionToShow.systems[systemId].split('.');
+                const major = majorWithV.replace('v', '');
+                newSelections[systemId] = { major, minor, patch, fullVersion: versionToShow.systems[systemId] };
             }
             setSelections(newSelections);
             setIsRepublishing(true); // Default to republish mode when viewing history
@@ -248,7 +248,7 @@ export function AppAIVersionManager() {
 
   const selectedSystem = (systemId: string) => selections[systemId] || {};
   const isViewingHistory = selectedDisplayVersion !== 'new';
-  const isCompositionDisabled = isViewingHistory && !isRepublishing;
+  const isCompositionDisabled = isViewingHistory && isRepublishing;
 
   const activeVersion = useMemo(() => {
       return publishedVersions.find(v => v.id === activeVersionId);
@@ -460,5 +460,7 @@ export function AppAIVersionManager() {
     </Card>
   );
 }
+
+    
 
     
