@@ -222,7 +222,7 @@ export async function createNewPromptSystem(data: { systemId: string, name: stri
     // 2. Create default version pointing to content
     const defaultVersion = await publishNewPromptVersion(systemId, 'v1.0.0', {
         base_instruction: defaultContent.id
-    });
+    }, false); // Set makeLive to false, as we are creating the system now.
     
     // 3. Create the system document
     const newSystemData: Omit<PromptSystem, 'id'> = {
@@ -382,7 +382,8 @@ export async function setLivePromptSystemVersion(systemId: string, version: stri
 export async function publishNewPromptVersion(
     systemId: string,
     version: string,
-    composedPrompts: { [categoryId: string]: string }
+    composedPrompts: { [categoryId: string]: string },
+    makeLive: boolean = true
 ): Promise<PromptVersion> {
     const newId = `${systemId}-${version.replace(/\./g, '-')}`;
     const versionRef = doc(db, 'prompt_versions', newId);
@@ -395,7 +396,9 @@ export async function publishNewPromptVersion(
     };
 
     await setDoc(versionRef, newVersionData);
-    await setLivePromptSystemVersion(systemId, version);
+    if (makeLive) {
+        await setLivePromptSystemVersion(systemId, version);
+    }
 
     return { id: newId, ...newVersionData };
 }
