@@ -144,10 +144,15 @@ export default function PromptManagementPage() {
 
       <Separator className="my-12" />
 
+      <Card className="mb-8 bg-muted border-none">
+        <CardHeader>
+          <CardTitle className="text-6xl text-center">AI System Editor</CardTitle>
+          <CardDescription className="text-center">Choose the AI system you want to manage. The publisher and editor below will update accordingly.</CardDescription>
+        </CardHeader>
+      </Card>
+
       <Card className="mb-8">
         <CardHeader>
-            <CardTitle className="text-6xl text-center">AI System Editor</CardTitle>
-            <CardDescription className="text-center">Choose the AI system you want to manage. The publisher and editor below will update accordingly.</CardDescription>
             <div className="flex justify-center pt-4">
                 {loading && !selectedSystemId ? (
                     <Skeleton className="h-10 w-full max-w-xs" />
@@ -220,5 +225,7 @@ export default function PromptManagementPage() {
     </div>
   );
 }
+
+    
 
     
