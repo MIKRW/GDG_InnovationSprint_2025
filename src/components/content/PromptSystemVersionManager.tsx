@@ -97,6 +97,10 @@ export function PromptSystemVersionManager() {
     fetchData();
   }, [fetchData]);
 
+  const selectedSystem = useMemo(() => {
+    return systems.find(s => s.id === selectedSystemId);
+  }, [systems, selectedSystemId]);
+
   useEffect(() => {
     setSelections({});
     setViewingVersionId(null);
@@ -111,11 +115,8 @@ export function PromptSystemVersionManager() {
     } else {
         setSelections({});
     }
-  }, [viewingVersionId, selectedSystem, selectedSystemId]);
+  }, [viewingVersionId, selectedSystem]);
 
-  const selectedSystem = useMemo(() => {
-    return systems.find(s => s.id === selectedSystemId);
-  }, [systems, selectedSystemId]);
 
   const handleSelection = (categoryId: string, contentId: string) => {
     setSelections(prev => ({ ...prev, [categoryId]: contentId }));
@@ -301,5 +302,3 @@ export function PromptSystemVersionManager() {
     </Card>
   );
 }
-
-    
