@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -34,6 +34,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '..
 import { Separator } from '../ui/separator';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
+import { Badge } from '../ui/badge';
 
 interface VersionSelection {
   [systemId: string]: {
@@ -188,6 +189,10 @@ export function AppAIVersionManager() {
   const selectedSystem = (systemId: string) => selections[systemId] || {};
   const isViewingHistory = selectedDisplayVersion !== 'new';
 
+  const activeVersion = useMemo(() => {
+      return publishedVersions.find(v => v.id === activeVersionId);
+  }, [publishedVersions, activeVersionId]);
+
 
   if (loading) {
     return (
@@ -211,22 +216,36 @@ export function AppAIVersionManager() {
           </AccordionTrigger>
           <AccordionContent>
             <div className="px-6 pb-6">
-                 <div className="flex flex-col sm:flex-row items-center gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
-                    <Label htmlFor="version-selector" className="font-semibold">View Version</Label>
-                    <Select value={selectedDisplayVersion} onValueChange={setSelectedDisplayVersion}>
-                        <SelectTrigger id="version-selector" className="w-full sm:w-[350px]">
-                            <SelectValue placeholder="Select a version to view" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="new">Compose New Version</SelectItem>
-                            <Separator />
-                            {publishedVersions.map(v => (
-                                <SelectItem key={v.id} value={v.id}>
-                                    Version {v.version} {v.id === activeVersionId && '(Live)'}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
+                    <div className="flex items-center gap-4">
+                        <Label htmlFor="version-selector" className="font-semibold whitespace-nowrap">View Version</Label>
+                        <Select value={selectedDisplayVersion} onValueChange={setSelectedDisplayVersion}>
+                            <SelectTrigger id="version-selector" className="w-full sm:w-[250px]">
+                                <SelectValue placeholder="Select a version to view" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="new">Compose New Version</SelectItem>
+                                <Separator />
+                                {publishedVersions.map(v => (
+                                    <SelectItem key={v.id} value={v.id}>
+                                        Version {v.version} {v.id === activeVersionId && '(Live)'}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Label className="font-semibold whitespace-nowrap">Live Version:</Label>
+                        {activeVersion ? (
+                            <Badge variant="secondary" className="text-sm">
+                                {activeVersion.version}
+                            </Badge>
+                        ) : (
+                             <Badge variant="outline" className="text-sm">
+                                None
+                            </Badge>
+                        )}
+                    </div>
                  </div>
             </div>
             <CardContent>
