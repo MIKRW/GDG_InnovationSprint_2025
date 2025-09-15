@@ -28,6 +28,9 @@ import { Badge } from '../ui/badge';
 import { Skeleton } from '../ui/skeleton';
 import { Textarea } from '../ui/textarea';
 import { ScrollArea } from '../ui/scroll-area';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Separator } from '../ui/separator';
 
 interface PromptContentManagerProps {
     systemId: string | null;
@@ -45,6 +48,10 @@ export function PromptContentManager({ systemId }: PromptContentManagerProps) {
   
   const [saveType, setSaveType] = useState<'major' | 'minor' | 'patch'>('patch');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
 
   const fetchData = useCallback(async () => {
     if (!systemId) {
@@ -112,6 +119,11 @@ export function PromptContentManager({ systemId }: PromptContentManagerProps) {
 
 
   const handleCategoryChange = (categoryId: string) => {
+    if (categoryId === 'create-new-category') {
+        setIsCategoryDialogOpen(true);
+        return;
+    }
+
     setSelectedCategory(categoryId);
     const contentForCategory = contentByCategory.get(categoryId);
     if (contentForCategory && contentForCategory.length > 0) {
@@ -123,6 +135,30 @@ export function PromptContentManager({ systemId }: PromptContentManagerProps) {
       setEditText('');
     }
   };
+
+  const handleCreateNewCategory = () => {
+    if (!newCategoryName.trim()) {
+        toast({ variant: 'destructive', title: 'Invalid Name', description: 'Category name cannot be empty.' });
+        return;
+    }
+    // Convert to snake_case for consistency
+    const formattedCategoryName = newCategoryName.trim().replace(/\s+/g, '_').toLowerCase();
+
+    if (categories.includes(formattedCategoryName)) {
+        toast({ variant: 'destructive', title: 'Category Exists', description: 'A category with this name already exists.' });
+        return;
+    }
+
+    setCategories(prev => [...prev, formattedCategoryName].sort());
+    setSelectedCategory(formattedCategoryName);
+    setSelectedContent(null);
+    setEditText('');
+    
+    setIsCategoryDialogOpen(false);
+    setNewCategoryName('');
+    toast({ title: 'Category Created', description: `Now writing the first version for "${formattedCategoryName}".` });
+  };
+
 
   const handleContentVersionChange = (contentId: string) => {
     if (!selectedCategory) return;
@@ -211,16 +247,38 @@ export function PromptContentManager({ systemId }: PromptContentManagerProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
                 <Label htmlFor="category-select">Prompt Category</Label>
-                <Select value={selectedCategory || ''} onValueChange={handleCategoryChange}>
-                    <SelectTrigger id="category-select">
-                        <SelectValue placeholder="Select a category..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {categories.map(cat => (
-                            <SelectItem key={cat} value={cat}>{cat.replace(/_/g, ' ')}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+                    <Select value={selectedCategory || ''} onValueChange={handleCategoryChange}>
+                        <SelectTrigger id="category-select">
+                            <SelectValue placeholder="Select a category..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {categories.map(cat => (
+                                <SelectItem key={cat} value={cat}>{cat.replace(/_/g, ' ')}</SelectItem>
+                            ))}
+                             <Separator className="my-1" />
+                            <SelectItem value="create-new-category" className="font-semibold text-primary">
+                                Create New Category...
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                     <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Create New Prompt Category</DialogTitle>
+                            <DialogDescription>
+                                Enter a name for the new category. It will be converted to snake_case (e.g., "My Category" becomes "my_category").
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex items-center space-x-2">
+                           <Input 
+                                placeholder="e.g., Image Analysis" 
+                                value={newCategoryName}
+                                onChange={(e) => setNewCategoryName(e.target.value)}
+                           />
+                           <Button onClick={handleCreateNewCategory}>Create</Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
              <div>
                 <Label htmlFor="content-version-select">Content Version</Label>
