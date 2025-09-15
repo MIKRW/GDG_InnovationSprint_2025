@@ -97,6 +97,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
   }, [viewingVersionId, versions, loadSelectionsFromVersion]);
   
   useEffect(() => {
+    // When user toggles republish back ON, reset any temporary changes
     if (isRepublishing && viewingVersionId !== 'compose-new') {
         loadSelectionsFromVersion(viewingVersionId);
     }
@@ -315,8 +316,3 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
     </Card>
   );
 }
-
-
-    
-
-    
