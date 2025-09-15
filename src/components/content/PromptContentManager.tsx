@@ -31,6 +31,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Separator } from '../ui/separator';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 
 interface PromptContentManagerProps {
     systemId: string | null;
@@ -237,105 +238,113 @@ export function PromptContentManager({ systemId }: PromptContentManagerProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-center">Prompt Editor</CardTitle>
-        <CardDescription className="text-center">
-          Edit and version the raw text for each prompt component. A new version is saved each time you publish.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <Label htmlFor="category-select">Prompt Category</Label>
-                <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
-                    <Select value={selectedCategory || ''} onValueChange={handleCategoryChange}>
-                        <SelectTrigger id="category-select">
-                            <SelectValue placeholder="Select a category..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {categories.map(cat => (
-                                <SelectItem key={cat} value={cat}>{cat.replace(/_/g, ' ')}</SelectItem>
-                            ))}
-                             <Separator className="my-1" />
-                            <SelectItem value="create-new-category" className="font-semibold text-primary">
-                                Create New Category...
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                     <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Create New Prompt Category</DialogTitle>
-                            <DialogDescription>
-                                Enter a name for the new category. It will be converted to snake_case (e.g., "My Category" becomes "my_category").
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="flex items-center space-x-2">
-                           <Input 
-                                placeholder="e.g., Image Analysis" 
-                                value={newCategoryName}
-                                onChange={(e) => setNewCategoryName(e.target.value)}
-                           />
-                           <Button onClick={handleCreateNewCategory}>Create</Button>
-                        </div>
-                    </DialogContent>
-                </Dialog>
+      <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
+        <AccordionItem value="item-1" className="border-b-0">
+          <AccordionTrigger className="p-6 hover:no-underline">
+            <div className="flex-1 text-center">
+              <CardTitle>Prompt Editor</CardTitle>
+              <CardDescription>
+                Edit and version the raw text for each prompt component. A new version is saved each time you publish.
+              </CardDescription>
             </div>
-             <div>
-                <Label htmlFor="content-version-select">Content Version</Label>
-                <Select value={selectedContent?.id || ''} onValueChange={handleContentVersionChange} disabled={!selectedCategory}>
-                    <SelectTrigger id="content-version-select">
-                        <SelectValue placeholder="Select a version..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {selectedCategory && contentByCategory.get(selectedCategory)?.map(c => (
-                            <SelectItem key={c.id} value={c.id}>
-                                {c.version} - {new Date(c.timestamp).toLocaleDateString()}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-        </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                      <Label htmlFor="category-select">Prompt Category</Label>
+                      <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+                          <Select value={selectedCategory || ''} onValueChange={handleCategoryChange}>
+                              <SelectTrigger id="category-select">
+                                  <SelectValue placeholder="Select a category..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                  {categories.map(cat => (
+                                      <SelectItem key={cat} value={cat}>{cat.replace(/_/g, ' ')}</SelectItem>
+                                  ))}
+                                  <Separator className="my-1" />
+                                  <SelectItem value="create-new-category" className="font-semibold text-primary">
+                                      Create New Category...
+                                  </SelectItem>
+                              </SelectContent>
+                          </Select>
+                          <DialogContent>
+                              <DialogHeader>
+                                  <DialogTitle>Create New Prompt Category</DialogTitle>
+                                  <DialogDescription>
+                                      Enter a name for the new category. It will be converted to snake_case (e.g., "My Category" becomes "my_category").
+                                  </DialogDescription>
+                              </DialogHeader>
+                              <div className="flex items-center space-x-2">
+                                <Input 
+                                      placeholder="e.g., Image Analysis" 
+                                      value={newCategoryName}
+                                      onChange={(e) => setNewCategoryName(e.target.value)}
+                                />
+                                <Button onClick={handleCreateNewCategory}>Create</Button>
+                              </div>
+                          </DialogContent>
+                      </Dialog>
+                  </div>
+                  <div>
+                      <Label htmlFor="content-version-select">Content Version</Label>
+                      <Select value={selectedContent?.id || ''} onValueChange={handleContentVersionChange} disabled={!selectedCategory}>
+                          <SelectTrigger id="content-version-select">
+                              <SelectValue placeholder="Select a version..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                              {selectedCategory && contentByCategory.get(selectedCategory)?.map(c => (
+                                  <SelectItem key={c.id} value={c.id}>
+                                      {c.version} - {new Date(c.timestamp).toLocaleDateString()}
+                                  </SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
+                  </div>
+              </div>
 
-        <div>
-            <Label htmlFor="prompt-editor">Prompt Text</Label>
-            <ScrollArea className="h-72 w-full rounded-md border">
-              <Textarea 
-                id="prompt-editor"
-                className="h-full min-h-[inherit] w-full resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                value={editText}
-                onChange={(e) => setEditText(e.target.value)}
-                placeholder="Enter or load prompt text here..."
-              />
-            </ScrollArea>
-        </div>
-      </CardContent>
-      <CardFooter className="border-t pt-6">
-        <div className="flex flex-wrap items-center justify-between gap-6">
-            <div className="flex items-center gap-8">
-                <div className="space-y-2">
-                    <Label>New Version Type</Label>
-                    <RadioGroup
-                        defaultValue="patch"
-                        className="flex gap-4"
-                        onValueChange={(v) => setSaveType(v as any)}
-                    >
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="content-major" /><Label htmlFor="content-major">Major</Label></div>
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="content-minor" /><Label htmlFor="content-minor">Minor</Label></div>
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id="content-patch" /><Label htmlFor="content-patch">Patch</Label></div>
-                    </RadioGroup>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Label className="text-muted-foreground">Next Version:</Label>
-                    <Badge variant="outline">{nextVersionString}</Badge>
-                </div>
-            </div>
-            <Button onClick={handlePublish} disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Publish New Content Version
-            </Button>
-        </div>
-      </CardFooter>
+              <div>
+                  <Label htmlFor="prompt-editor">Prompt Text</Label>
+                  <ScrollArea className="h-72 w-full rounded-md border">
+                    <Textarea 
+                      id="prompt-editor"
+                      className="h-full min-h-[inherit] w-full resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      placeholder="Enter or load prompt text here..."
+                    />
+                  </ScrollArea>
+              </div>
+            </CardContent>
+            <CardFooter className="border-t pt-6">
+              <div className="flex flex-wrap items-center justify-between gap-6">
+                  <div className="flex items-center gap-8">
+                      <div className="space-y-2">
+                          <Label>New Version Type</Label>
+                          <RadioGroup
+                              defaultValue="patch"
+                              className="flex gap-4"
+                              onValueChange={(v) => setSaveType(v as any)}
+                          >
+                              <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="content-major" /><Label htmlFor="content-major">Major</Label></div>
+                              <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="content-minor" /><Label htmlFor="content-minor">Minor</Label></div>
+                              <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id="content-patch" /><Label htmlFor="content-patch">Patch</Label></div>
+                          </RadioGroup>
+                      </div>
+                      <div className="flex items-center gap-2">
+                          <Label className="text-muted-foreground">Next Version:</Label>
+                          <Badge variant="outline">{nextVersionString}</Badge>
+                      </div>
+                  </div>
+                  <Button onClick={handlePublish} disabled={isSubmitting}>
+                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Publish New Content Version
+                  </Button>
+              </div>
+            </CardFooter>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </Card>
   );
 }
