@@ -71,7 +71,7 @@ export default function PromptManagementPage() {
             <Skeleton className="h-10 w-full max-w-xs" />
           ) : (
             <div className="flex items-center gap-4">
-              <Label htmlFor="system-selector" className="font-semibold whitespace-nowrap">AI System</Label>
+              <Label htmlFor="system-selector" className="font-semibold whitespace-nowrap">AI Type</Label>
               <Select value={selectedSystemId || ''} onValueChange={setSelectedSystemId}>
                 <SelectTrigger id="system-selector" className="w-full sm:w-[250px]">
                   <SelectValue placeholder="Select a system" />
