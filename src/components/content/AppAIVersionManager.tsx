@@ -28,7 +28,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import type { PromptSystem, PromptVersion, AppAIVersion } from '@/lib/types';
-import { getPromptSystems, getPromptVersionsForSystem, getAppAIVersions, getAppAIConfig } from '@/lib/actions';
+import { getPromptSystems, getPromptVersionsForSystem, getAppAIVersions, getAppAIConfig, setLiveAppAIVersion } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Separator } from '../ui/separator';
@@ -64,6 +64,7 @@ export function AppAIVersionManager() {
   const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
   const [selectedDisplayVersion, setSelectedDisplayVersion] = useState('new');
   const [saveType, setSaveType] = useState<'major' | 'minor' | 'patch'>('patch');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -184,6 +185,28 @@ export function AppAIVersionManager() {
 
       return { ...prev, [systemId]: newSelection };
     });
+  };
+
+  const handleRepublish = async () => {
+    if (selectedDisplayVersion === 'new') return;
+    setIsSubmitting(true);
+    try {
+        await setLiveAppAIVersion(selectedDisplayVersion);
+        setActiveVersionId(selectedDisplayVersion);
+        toast({
+            title: 'Success!',
+            description: `Version ${publishedVersions.find(v => v.id === selectedDisplayVersion)?.version} is now live.`
+        });
+    } catch(error) {
+        console.error('Failed to set live version:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Update Failed',
+            description: 'Could not set the live version. Please try again.'
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
   };
 
   const selectedSystem = (systemId: string) => selections[systemId] || {};
@@ -345,7 +368,15 @@ export function AppAIVersionManager() {
               </Table>
             </CardContent>
             <CardFooter className="flex-col items-start gap-4">
-               {!isViewingHistory && (
+               {isViewingHistory ? (
+                  <Button 
+                    onClick={handleRepublish} 
+                    disabled={isSubmitting || activeVersionId === selectedDisplayVersion}
+                  >
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {activeVersionId === selectedDisplayVersion ? 'Currently Live' : 'Set as Live Version'}
+                  </Button>
+               ) : (
                  <>
                     <div className="flex items-center gap-8">
                         <div className="space-y-2">
@@ -370,7 +401,10 @@ export function AppAIVersionManager() {
                             <Badge variant="outline">{nextVersionString}</Badge>
                         </div>
                     </div>
-                    <Button>Publish New App AI Version</Button>
+                    <Button disabled={isSubmitting}>
+                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Publish New App AI Version
+                    </Button>
                  </>
                )}
             </CardFooter>

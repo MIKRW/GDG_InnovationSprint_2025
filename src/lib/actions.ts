@@ -1,6 +1,7 @@
 
 
 
+
 'use server';
 
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString, getMetadata, deleteObject } from 'firebase/storage';
@@ -230,4 +231,13 @@ export async function getAppAIVersions(): Promise<AppAIVersion[]> {
         return [];
     }
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
+}
+
+/**
+ * Sets the live (active) App AI Version for the entire application.
+ * @param versionId The ID of the AppAIVersion document to set as live.
+ */
+export async function setLiveAppAIVersion(versionId: string): Promise<void> {
+    const configRef = doc(db, 'app_ai_config', 'main');
+    await setDoc(configRef, { activeAppAIVersion: versionId }, { merge: true });
 }
