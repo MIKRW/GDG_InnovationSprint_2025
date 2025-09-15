@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -18,17 +19,16 @@ export function SecondaryPageFooter() {
     <footer className="border-t">
       <nav className="flex justify-around py-8 px-4">
         {navItems.map(({ href, label, icon: Icon }) => (
-          <Button
-            key={href}
-            variant={pathname === href ? 'secondary' : 'ghost'}
-            size="sm"
-            asChild
-          >
-            <Link href={href} className="flex flex-col items-center h-auto">
+          <Link key={href} href={href} passHref>
+            <Button
+              variant={pathname === href ? 'secondary' : 'ghost'}
+              size="sm"
+              className="flex flex-col items-center h-auto"
+            >
               <Icon className="h-5 w-5" />
               <span className="text-xs mt-1">{label}</span>
-            </Link>
-          </Button>
+            </Button>
+          </Link>
         ))}
       </nav>
     </footer>
