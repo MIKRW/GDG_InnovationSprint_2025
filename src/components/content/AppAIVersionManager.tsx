@@ -36,6 +36,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
 import { Switch } from '../ui/switch';
+import { Skeleton } from '../ui/skeleton';
 
 interface VersionSelection {
   [systemId: string]: {
@@ -207,7 +208,7 @@ export function AppAIVersionManager() {
             });
         } else {
             // Validate that all systems have a full version selected
-            if (systems.length !== Object.keys(selections).length || Object.values(selections).some(s => !s.fullVersion)) {
+            if (systems.some(s => !selections[s.id]?.fullVersion)) {
                 toast({
                     variant: 'destructive',
                     title: 'Incomplete Version',
@@ -271,9 +272,21 @@ export function AppAIVersionManager() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+        <Card>
+            <CardHeader>
+                <Skeleton className="h-8 w-2/3" />
+                <Skeleton className="h-4 w-1/2 mt-2" />
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-4">
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-32 w-full" />
+                </div>
+            </CardContent>
+            <CardFooter>
+                 <Skeleton className="h-10 w-full" />
+            </CardFooter>
+        </Card>
     );
   }
 
@@ -331,7 +344,6 @@ export function AppAIVersionManager() {
                     <TableHead>Major</TableHead>
                     <TableHead>Minor</TableHead>
                     <TableHead>Patch</TableHead>
-                    <TableHead>Published In</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -393,10 +405,6 @@ export function AppAIVersionManager() {
                           </SelectContent>
                         </Select>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-xs">
-                        {/* Logic to show published history will go here */}
-                        -
-                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -438,7 +446,7 @@ export function AppAIVersionManager() {
                         </div>
                     </div>
                     
-                     <Button onClick={handlePublish} disabled={isSubmitting}>
+                     <Button onClick={handlePublish} disabled={isSubmitting || (isViewingHistory && !isRepublishing)}>
                       {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       Publish
                     </Button>

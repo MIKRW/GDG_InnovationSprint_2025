@@ -189,8 +189,6 @@ export async function getPromptSystems(): Promise<PromptSystem[]> {
  */
 export async function getPromptVersionsForSystem(systemId: string): Promise<PromptVersion[]> {
     const versionsRef = collection(db, 'prompt_versions');
-    // We remove the orderBy clause to avoid needing a composite index for this specific query.
-    // We will sort the data manually in the code.
     const q = query(versionsRef, where('systemId', '==', systemId));
     const snapshot = await getDocs(q);
     if (snapshot.empty) {
@@ -199,17 +197,17 @@ export async function getPromptVersionsForSystem(systemId: string): Promise<Prom
 
     const versions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptVersion));
     
-    // Sort the versions by timestamp in descending order (newest first) in the server action.
+    // Sort versions using semantic versioning logic
     versions.sort((a, b) => {
-        if (typeof a.version !== 'string') return 1;
-        if (typeof b.version !== 'string') return -1;
+        if (typeof a.version !== 'string' || !a.version.startsWith('v')) return 1;
+        if (typeof b.version !== 'string' || !b.version.startsWith('v')) return -1;
 
-        const versionA = a.version.replace('v', '').split('.').map(Number);
-        const versionB = b.version.replace('v', '').split('.').map(Number);
+        const verA = a.version.substring(1).split('.').map(Number);
+        const verB = b.version.substring(1).split('.').map(Number);
     
-        if (versionA[0] !== versionB[0]) return versionB[0] - versionA[0];
-        if (versionA[1] !== versionB[1]) return versionB[1] - versionA[1];
-        return versionB[2] - versionA[2];
+        if (verA[0] !== verB[0]) return verB[0] - verA[0];
+        if (verA[1] !== verB[1]) return verB[1] - verA[1];
+        return verB[2] - verA[2];
     });
     
     return versions;
@@ -230,11 +228,11 @@ export async function getPromptContentForSystem(systemId: string): Promise<Promp
     // Sort by version descending (e.g., v1.1.0, v1.0.0)
     contents.sort((a, b) => {
         try {
-            if (typeof a.version !== 'string') return 1;
-            if (typeof b.version !== 'string') return -1;
+            if (typeof a.version !== 'string' || !a.version.startsWith('v')) return 1;
+            if (typeof b.version !== 'string' || !b.version.startsWith('v')) return -1;
             
-            const versionA = a.version.replace('v', '').split('.').map(Number);
-            const versionB = b.version.replace('v', '').split('.').map(Number);
+            const versionA = a.version.substring(1).split('.').map(Number);
+            const versionB = b.version.substring(1).split('.').map(Number);
         
             if (versionA[0] !== versionB[0]) return versionB[0] - versionA[0];
             if (versionA[1] !== versionB[1]) return versionB[1] - versionA[1];

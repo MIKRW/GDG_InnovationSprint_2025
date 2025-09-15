@@ -166,7 +166,7 @@ export function PromptContentManager({ systemId }: PromptContentManagerProps) {
     if (!selectedCategory) return "v1.0.0";
     const versionsForCategory = contentByCategory.get(selectedCategory);
     const latestVersion = versionsForCategory?.[0]; // Assumes sorted
-    if (!latestVersion) return "v1.0.0";
+    if (!latestVersion || !latestVersion.version) return "v1.0.0";
 
     const [major, minor, patch] = latestVersion.version.replace('v', '').split('.').map(Number);
     if (saveType === 'major') return `v${major + 1}.0.0`;
@@ -180,11 +180,15 @@ export function PromptContentManager({ systemId }: PromptContentManagerProps) {
       <Card>
         <CardHeader>
           <Skeleton className="h-8 w-2/3" />
+           <Skeleton className="h-4 w-1/2 mt-2" />
         </CardHeader>
         <CardContent className="space-y-4">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-48 w-full" />
         </CardContent>
+         <CardFooter>
+            <Skeleton className="h-10 w-full" />
+        </CardFooter>
       </Card>
     );
   }

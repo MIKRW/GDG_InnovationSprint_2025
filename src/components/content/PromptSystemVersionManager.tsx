@@ -36,6 +36,7 @@ import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
 import { Switch } from '../ui/switch';
 import { Skeleton } from '../ui/skeleton';
+import { Separator } from '../ui/separator';
 
 interface ContentSelection {
   [categoryId: string]: string; // e.g., { base_instruction: 'base_instruction_v2' }
@@ -59,9 +60,8 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
   
   const [saveType, setSaveType] = useState<'major' | 'minor' | 'patch'>('patch');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [viewingVersionId, setViewingVersionId] = useState<string | null>('compose-new');
+  const [viewingVersionId, setViewingVersionId] = useState<string>('compose-new');
   const [isRepublishing, setIsRepublishing] = useState(false);
-
 
   const fetchData = useCallback(async () => {
     if (!systemId) {
@@ -88,16 +88,6 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
                 contentByCategory.set(c.categoryId, []);
             }
             contentByCategory.get(c.categoryId)!.push(c);
-        });
-
-        // Make sure versions are sorted correctly
-        versions.sort((a, b) => {
-            if (typeof a.version !== 'string' || typeof b.version !== 'string') return 0;
-            const verA = a.version.replace('v', '').split('.').map(Number);
-            const verB = b.version.replace('v', '').split('.').map(Number);
-            if (verA[0] !== verB[0]) return verB[0] - verA[0];
-            if (verA[1] !== verB[1]) return verB[1] - verA[1];
-            return verB[2] - verA[2];
         });
 
         setSelectedSystem({ ...currentSystem, contentByCategory, versions });
@@ -169,7 +159,7 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not determine next version number.' });
                 return;
             }
-            if (Array.from(selectedSystemMemo.contentByCategory.keys()).length !== Object.keys(selections).length) {
+            if (Array.from(selectedSystemMemo.contentByCategory.keys()).some(key => !selections[key])) {
                 toast({ variant: 'destructive', title: 'Incomplete Selection', description: 'Please select a prompt content version for every category.' });
                 return;
             }
@@ -212,12 +202,15 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
       <Card>
         <CardHeader>
             <Skeleton className="h-8 w-1/2" />
-            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-3/4 mt-2" />
         </CardHeader>
         <CardContent className="space-y-4">
           <Skeleton className="h-10 w-full" />
           <Skeleton className="h-32 w-full" />
         </CardContent>
+         <CardFooter>
+            <Skeleton className="h-10 w-full" />
+        </CardFooter>
       </Card>
     );
   }
@@ -258,6 +251,7 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="compose-new">Compose New...</SelectItem>
+                                <Separator/>
                                 {selectedSystemMemo.versions.map(v => (
                                     <SelectItem key={v.id} value={v.id}>
                                       Version {v.version} {selectedSystemMemo.activeVersion === v.version && '(Active)'}
@@ -278,32 +272,35 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Array.from(selectedSystemMemo.contentByCategory.entries()).map(([category, contents]) => (
-                      <TableRow key={category}>
-                        <TableCell className="font-medium capitalize">{category.replace(/_/g, ' ')}</TableCell>
-                        <TableCell>
-                          <Select 
-                            value={selections[category] || ''} 
-                            onValueChange={(value) => handleSelection(category, value)}
-                            disabled={isViewingHistory}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select content version" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {contents.map(c => (
-                                <SelectItem key={c.id} value={c.id}>
-                                  {c.version} - {new Date(c.timestamp).toLocaleDateString()}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell className="text-right text-muted-foreground text-xs">
-                           {selectedSystemMemo.activeVersion}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {Array.from(selectedSystemMemo.contentByCategory.keys()).map((category) => {
+                      const contents = selectedSystemMemo.contentByCategory.get(category) || [];
+                      return (
+                          <TableRow key={category}>
+                            <TableCell className="font-medium capitalize">{category.replace(/_/g, ' ')}</TableCell>
+                            <TableCell>
+                              <Select 
+                                value={selections[category] || ''} 
+                                onValueChange={(value) => handleSelection(category, value)}
+                                disabled={isViewingHistory}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select content version" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {contents.map(c => (
+                                    <SelectItem key={c.id} value={c.id}>
+                                      {c.version} - {new Date(c.timestamp).toLocaleDateString()}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell className="text-right text-muted-foreground text-xs">
+                              {selectedSystemMemo.activeVersion}
+                            </TableCell>
+                          </TableRow>
+                      )
+                    })}
                   </TableBody>
                 </Table>
             </CardContent>
@@ -311,8 +308,8 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
             <CardFooter className="border-t pt-6">
                 <div className="flex flex-wrap items-center gap-6">
                     <div className="flex items-center space-x-2">
-                        <Switch id="republish-switch" checked={isRepublishing} onCheckedChange={setIsRepublishing} disabled={!isViewingHistory} />
-                        <Label htmlFor="republish-switch">Republish Selected</Label>
+                        <Switch id="sys-republish-switch" checked={isRepublishing} onCheckedChange={setIsRepublishing} disabled={!isViewingHistory} />
+                        <Label htmlFor="sys-republish-switch">Republish Selected</Label>
                     </div>
                     <div className="flex items-center gap-8" style={{ opacity: isRepublishing ? 0.5 : 1 }}>
                         <div className="space-y-2">
