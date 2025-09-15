@@ -270,9 +270,11 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                  <div className="text-center py-16">
                     <PageTitle>Your Bird Book is Empty</PageTitle>
                     <p className="mt-4 text-muted-foreground">You haven't identified any birds yet.</p>
-                    <Button className="mt-4" onClick={() => router.push('/record')}>
-                        Start your collection!
-                    </Button>
+                    <Link href="/record" passHref asChild>
+                        <Button className="mt-4">
+                            Start your collection!
+                        </Button>
+                    </Link>
                 </div>
             )}
         </>
