@@ -171,40 +171,58 @@ export async function saveCanonicalImage(
     return downloadURL;
 }
 
+// =================================================================
+// Three-Tiered Prompt Versioning System Actions
+// =================================================================
+
+
 /**
  * Fetches all defined AI prompt systems from Firestore.
+ * If none exist, it creates a default one.
  */
 export async function getPromptSystems(): Promise<PromptSystem[]> {
     const systemsRef = collection(db, 'prompt_systems');
     const q = query(systemsRef, orderBy('name'));
     const snapshot = await getDocs(q);
+
     if (snapshot.empty) {
-        return [];
+        // Create a default system
+        const defaultSystemId = 'bird-identifier-ai-newbie';
+        const defaultSystem: Omit<PromptSystem, 'id'> = {
+            name: "Bird Identifier AI (Newbie)",
+            description: "Manages prompts for identifying birds in Newbie mode.",
+            activeVersion: "v1.0.0"
+        };
+        await setDoc(doc(db, 'prompt_systems', defaultSystemId), defaultSystem);
+        return [{ id: defaultSystemId, ...defaultSystem }];
     }
+
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
 }
 
 /**
  * Fetches all saved versions for a specific prompt system.
+ * If none exist, it creates a default one.
  */
 export async function getPromptVersionsForSystem(systemId: string): Promise<PromptVersion[]> {
     const versionsRef = collection(db, 'prompt_versions');
     const q = query(versionsRef, where('systemId', '==', systemId));
     const snapshot = await getDocs(q);
-    if (snapshot.empty) {
-        return [];
-    }
 
+    if (snapshot.empty && systemId === 'bird-identifier-ai-newbie') {
+        const defaultVersion = await publishNewPromptVersion(systemId, 'v1.0.0', {
+            base_instruction: 'base_instruction_v1-0-0'
+        });
+        return [defaultVersion];
+    }
+    
     const versions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptVersion));
     
-    // Sort versions using semantic versioning logic
     versions.sort((a, b) => {
         if (typeof a.version !== 'string' || !a.version.startsWith('v')) return 1;
         if (typeof b.version !== 'string' || !b.version.startsWith('v')) return -1;
-
         const verA = a.version.substring(1).split('.').map(Number);
         const verB = b.version.substring(1).split('.').map(Number);
-    
         if (verA[0] !== verB[0]) return verB[0] - verA[0];
         if (verA[1] !== verB[1]) return verB[1] - verA[1];
         return verB[2] - verA[2];
@@ -216,30 +234,37 @@ export async function getPromptVersionsForSystem(systemId: string): Promise<Prom
 
 /**
  * Fetches all prompt content pieces for a given system, sorted by version.
+ * If none exist, it creates a default one.
  */
 export async function getPromptContentForSystem(systemId: string): Promise<PromptContent[]> {
     const contentRef = collection(db, 'prompt_content');
     const q = query(contentRef, where('systemId', '==', systemId));
     const snapshot = await getDocs(q);
-    if (snapshot.empty) return [];
+
+    if (snapshot.empty && systemId === 'bird-identifier-ai-newbie') {
+        const defaultContent = await publishNewPromptContent({
+            systemId,
+            categoryId: 'base_instruction',
+            version: 'v1.0.0',
+            promptText: 'enter prompt here:'
+        });
+        return [defaultContent];
+    }
     
     const contents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptContent));
 
-    // Sort by version descending (e.g., v1.1.0, v1.0.0)
     contents.sort((a, b) => {
         try {
             if (typeof a.version !== 'string' || !a.version.startsWith('v')) return 1;
             if (typeof b.version !== 'string' || !b.version.startsWith('v')) return -1;
-            
             const versionA = a.version.substring(1).split('.').map(Number);
             const versionB = b.version.substring(1).split('.').map(Number);
-        
             if (versionA[0] !== versionB[0]) return versionB[0] - versionA[0];
             if (versionA[1] !== versionB[1]) return versionB[1] - versionA[1];
             return versionB[2] - versionA[2];
         } catch (e) {
             console.error("Failed to parse versions for sorting:", a, b, e);
-            return 0; // Don't change order if parsing fails
+            return 0;
         }
     });
 
@@ -261,20 +286,25 @@ export async function getAppAIConfig(): Promise<AppAIConfig | null> {
 
 /**
  * Fetches all published App AI Versions.
+ * If none exist, it creates a default one.
  */
 export async function getAppAIVersions(): Promise<AppAIVersion[]> {
     const versionsRef = collection(db, 'app_ai_versions');
     const q = query(versionsRef, orderBy('timestamp', 'desc'));
     const snapshot = await getDocs(q);
+
     if (snapshot.empty) {
-        return [];
+        const defaultVersion = await publishNewAppAIVersion('v1.0.0', {
+            'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-v1-0-0'
+        });
+        return [defaultVersion];
     }
+    
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
 }
 
 /**
  * Sets the live (active) App AI Version for the entire application.
- * @param versionId The ID of the AppAIVersion document to set as live.
  */
 export async function setLiveAppAIVersion(versionId: string): Promise<void> {
     const configRef = doc(db, 'app_ai_config', 'main');
@@ -283,9 +313,6 @@ export async function setLiveAppAIVersion(versionId: string): Promise<void> {
 
 /**
  * Creates a new App AI Version document in Firestore and sets it as the live version.
- * @param version The version string, e.g., "v1.2.3".
- * @param systems A map of system IDs to their selected prompt version IDs.
- * @returns The newly created AppAIVersion object.
  */
 export async function publishNewAppAIVersion(
     version: string,
@@ -308,8 +335,6 @@ export async function publishNewAppAIVersion(
 
 /**
  * Sets the live (active) Prompt System Version for a specific AI system.
- * @param systemId The ID of the PromptSystem document to update.
- * @param version The version string (e.g., 'v1.2') to set as active.
  */
 export async function setLivePromptSystemVersion(systemId: string, version: string): Promise<void> {
     const systemRef = doc(db, 'prompt_systems', systemId);
@@ -318,10 +343,6 @@ export async function setLivePromptSystemVersion(systemId: string, version: stri
 
 /**
  * Publishes a new version of a specific Prompt System.
- * @param systemId The ID of the system this version belongs to.
- * @param version The new version string (e.g., "v1.2.3").
- * @param composedPrompts A map of category IDs to content IDs.
- * @returns The newly created PromptVersion object.
  */
 export async function publishNewPromptVersion(
     systemId: string,
@@ -354,12 +375,10 @@ interface PublishNewPromptContentInput {
 
 /**
  * Publishes a new version of a single prompt content piece.
- * @returns The newly created PromptContent object.
  */
 export async function publishNewPromptContent(input: PublishNewPromptContentInput): Promise<PromptContent> {
     const { systemId, categoryId, version, promptText, previousVersionId } = input;
     
-    // Create a deterministic ID for the content
     const newId = `${categoryId}_${version.replace(/\./g, '-')}`;
     const contentRef = doc(db, 'prompt_content', newId);
 
