@@ -189,19 +189,17 @@ export function PromptContentManager({ systemId, content, onUpdate, isLoading }:
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-8 w-2/3" />
-           <Skeleton className="h-4 w-1/2 mt-2" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-48 w-full" />
-        </CardContent>
-         <CardFooter>
+        <div className="mt-8">
+            <Skeleton className="h-8 w-2/3" />
+            <Skeleton className="h-4 w-1/2 mt-2" />
+            <div className="space-y-4 mt-4">
             <Skeleton className="h-10 w-full" />
-        </CardFooter>
-      </Card>
+            <Skeleton className="h-48 w-full" />
+            </div>
+            <div className="mt-4">
+                <Skeleton className="h-10 w-full" />
+            </div>
+        </div>
     );
   }
   
@@ -210,10 +208,10 @@ export function PromptContentManager({ systemId, content, onUpdate, isLoading }:
   }
 
   return (
-    <Card>
+    <div>
       <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
         <AccordionItem value="item-1" className="border-b-0">
-          <AccordionTrigger className="p-6 hover:no-underline">
+          <AccordionTrigger className="hover:no-underline">
             <div className="flex-1 text-center">
               <CardTitle>Prompt Editor</CardTitle>
               <CardDescription>
@@ -222,7 +220,7 @@ export function PromptContentManager({ systemId, content, onUpdate, isLoading }:
             </div>
           </AccordionTrigger>
           <AccordionContent>
-            <CardContent className="space-y-6">
+            <div className="space-y-6 pt-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                       <Label htmlFor="category-select">Prompt Category</Label>
@@ -286,8 +284,8 @@ export function PromptContentManager({ systemId, content, onUpdate, isLoading }:
                     placeholder="Enter or load prompt text here..."
                   />
               </div>
-            </CardContent>
-            <CardFooter className="border-t pt-6">
+            </div>
+            <div className="border-t pt-6 mt-6">
               <div className="flex flex-wrap items-center justify-between gap-6">
                   <div className="flex items-center gap-8">
                       <div className="space-y-2">
@@ -312,10 +310,12 @@ export function PromptContentManager({ systemId, content, onUpdate, isLoading }:
                       Publish
                   </Button>
               </div>
-            </CardFooter>
+            </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-    </Card>
+    </div>
   );
 }
+
+    

@@ -248,30 +248,25 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
+        <div className="mt-8">
             <Skeleton className="h-8 w-1/2" />
             <Skeleton className="h-4 w-3/4 mt-2" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-32 w-full" />
-        </CardContent>
-         <CardFooter>
+            <div className="space-y-4 mt-4">
             <Skeleton className="h-10 w-full" />
-        </CardFooter>
-      </Card>
+            <Skeleton className="h-32 w-full" />
+            </div>
+            <div className="mt-4">
+                <Skeleton className="h-10 w-full" />
+            </div>
+        </div>
     );
   }
   
   if (!system) {
     return (
-       <Card>
-          <CardHeader>
-            <CardTitle>No System Selected</CardTitle>
-            <CardDescription>Please select an AI system above to manage its versions.</CardDescription>
-          </CardHeader>
-       </Card>
+        <div className="py-8 text-center text-muted-foreground">
+            Please select an AI system above to manage its versions.
+        </div>
     );
   }
 
@@ -280,19 +275,19 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
 
 
   return (
-    <Card>
+    <div>
       <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
         <AccordionItem value="item-1" className="border-b-0">
-          <AccordionTrigger className="p-6 hover:no-underline">
+          <AccordionTrigger className="hover:no-underline">
             <div className="flex-1 text-center">
-              <CardTitle>AI type version control</CardTitle>
-              <CardDescription className="pt-2">
+              <CardTitle>AI Type Version Control</CardTitle>
+              <CardDescription>
                 Compose new versions of the <span className="font-semibold text-foreground">{system.name}</span> system by selecting which version of each prompt category to include.
               </CardDescription>
             </div>
           </AccordionTrigger>
           <AccordionContent>
-            <div className="px-6 pb-6">
+            <div className="pt-6">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
                      <div className="flex items-center gap-4">
                         <Label htmlFor="version-viewer" className="font-semibold whitespace-nowrap">View/Compose</Label>
@@ -313,7 +308,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                     </div>
                 </div>
             </div>
-            <CardContent>
+            <div>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -360,9 +355,9 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                     })}
                   </TableBody>
                 </Table>
-            </CardContent>
+            </div>
 
-            <CardFooter className="border-t pt-6">
+            <div className="border-t pt-6 mt-6">
                 <div className="flex flex-wrap items-center gap-6">
                     <div className="flex items-center space-x-2">
                         <Switch id="sys-republish-switch" checked={isRepublishing} onCheckedChange={setIsRepublishing} disabled={!isViewingHistory} />
@@ -392,10 +387,12 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                         Publish
                     </Button>
                 </div>
-            </CardFooter>
+            </div>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-    </Card>
+    </div>
   );
 }
+
+    

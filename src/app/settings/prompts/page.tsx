@@ -146,77 +146,79 @@ export default function PromptManagementPage() {
 
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle className="text-3xl text-center">Select AI Type</CardTitle>
-          <CardDescription className="text-center">Choose the AI system you want to manage. The publisher below will update accordingly.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-center">
-          {loading && !selectedSystemId ? (
-            <Skeleton className="h-10 w-full max-w-xs" />
-          ) : (
-            <div className="flex items-center gap-4">
-              <Label htmlFor="system-selector" className="font-semibold whitespace-nowrap">AI Type</Label>
-              <Select value={selectedSystemId || ''} onValueChange={handleSystemChange}>
-                <SelectTrigger id="system-selector" className="w-full sm:w-[250px]">
-                  <SelectValue placeholder="Select a system" />
-                </SelectTrigger>
-                <SelectContent>
-                  {allSystems.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-               <Dialog open={isSystemDialogOpen} onOpenChange={setIsSystemDialogOpen}>
-                <DialogTrigger asChild>
-                    <Button variant="outline">Create New...</Button>
-                </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Create New AI System</DialogTitle>
-                        <DialogDescription>
-                            Define a new high-level AI system. The ID will be automatically generated from the name (e.g., "Theme Generator" becomes "theme-generator").
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-2">
-                        <div className="space-y-2">
-                            <Label htmlFor="new-system-name">System Name</Label>
-                            <Input id="new-system-name" placeholder="e.g., Theme Generator" value={newSystemName} onChange={(e) => setNewSystemName(e.target.value)} />
-                        </div>
-                         <div className="space-y-2">
-                            <Label htmlFor="new-system-desc">Description</Label>
-                            <Textarea id="new-system-desc" placeholder="What does this AI system do?" value={newSystemDescription} onChange={(e) => setNewSystemDescription(e.target.value)} />
-                        </div>
+            <CardTitle className="text-3xl text-center">AI System Editor</CardTitle>
+            <CardDescription className="text-center">Choose the AI system you want to manage. The publisher and editor below will update accordingly.</CardDescription>
+            <div className="flex justify-center pt-4">
+                {loading && !selectedSystemId ? (
+                    <Skeleton className="h-10 w-full max-w-xs" />
+                ) : (
+                    <div className="flex items-center gap-4">
+                        <Label htmlFor="system-selector" className="font-semibold whitespace-nowrap">AI Type</Label>
+                        <Select value={selectedSystemId || ''} onValueChange={handleSystemChange}>
+                            <SelectTrigger id="system-selector" className="w-full sm:w-[250px]">
+                            <SelectValue placeholder="Select a system" />
+                            </SelectTrigger>
+                            <SelectContent>
+                            {allSystems.map((s) => (
+                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                        <Dialog open={isSystemDialogOpen} onOpenChange={setIsSystemDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline">Create New...</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Create New AI System</DialogTitle>
+                                    <DialogDescription>
+                                        Define a new high-level AI system. The ID will be automatically generated from the name (e.g., "Theme Generator" becomes "theme-generator").
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-2">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="new-system-name">System Name</Label>
+                                        <Input id="new-system-name" placeholder="e.g., Theme Generator" value={newSystemName} onChange={(e) => setNewSystemName(e.target.value)} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="new-system-desc">Description</Label>
+                                        <Textarea id="new-system-desc" placeholder="What does this AI system do?" value={newSystemDescription} onChange={(e) => setNewSystemDescription(e.target.value)} />
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button variant="ghost" onClick={() => setIsSystemDialogOpen(false)}>Cancel</Button>
+                                    <Button onClick={handleCreateNewSystem} disabled={isCreatingSystem}>
+                                        {isCreatingSystem && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Create System
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                     </div>
-                    <DialogFooter>
-                        <Button variant="ghost" onClick={() => setIsSystemDialogOpen(false)}>Cancel</Button>
-                        <Button onClick={handleCreateNewSystem} disabled={isCreatingSystem}>
-                            {isCreatingSystem && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Create System
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-               </Dialog>
+                )}
             </div>
-          )}
+        </CardHeader>
+        <CardContent>
+            <PromptSystemVersionManager 
+                system={selectedSystem}
+                versions={versionsForSelectedSystem}
+                content={contentForSelectedSystem}
+                onUpdate={handleDataUpdate}
+                isLoading={loading}
+            />
+
+            <Separator className="my-12" />
+
+            <PromptContentManager 
+                systemId={selectedSystemId} 
+                content={contentForSelectedSystem}
+                onUpdate={handleDataUpdate}
+                isLoading={loading}
+            />
         </CardContent>
       </Card>
-
-      <PromptSystemVersionManager 
-        system={selectedSystem}
-        versions={versionsForSelectedSystem}
-        content={contentForSelectedSystem}
-        onUpdate={handleDataUpdate}
-        isLoading={loading}
-      />
-
-      <Separator className="my-12" />
-
-      <PromptContentManager 
-        systemId={selectedSystemId} 
-        content={contentForSelectedSystem}
-        onUpdate={handleDataUpdate}
-        isLoading={loading}
-      />
-
     </div>
   );
 }
+
+    
