@@ -298,7 +298,7 @@ export function AppAIVersionManager() {
             <div className="flex-1 text-center">
                 <CardTitle>AI system version control</CardTitle>
                 <CardDescription className="pt-2">
-                    Compose a new App AI Version by selecting a specific version for each AI system, or re-publish an existing version. This combination will be published as a new global version for the application.
+                    Manage the current and previous AI system versions. You can selected which AI types and there versions you wish to publish. This will determine what prompts the AI receives and how well it operates.
                 </CardDescription>
             </div>
           </AccordionTrigger>
