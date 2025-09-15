@@ -253,7 +253,7 @@ export function PromptContentManager({ systemId }: PromptContentManagerProps) {
         </div>
       </CardContent>
       <CardFooter className="border-t pt-6">
-        <div className="flex flex-wrap items-center gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-6">
             <div className="flex items-center gap-8">
                 <div className="space-y-2">
                     <Label>New Version Type</Label>
