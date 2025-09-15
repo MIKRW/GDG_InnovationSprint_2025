@@ -1,0 +1,279 @@
+
+'use client';
+
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
+import type { PromptContent } from '@/lib/types';
+import { getPromptContentForSystem, publishNewPromptContent } from '@/lib/actions';
+import { useToast } from '@/hooks/use-toast';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { Label } from '../ui/label';
+import { Badge } from '../ui/badge';
+import { Skeleton } from '../ui/skeleton';
+import { Textarea } from '../ui/textarea';
+import { ScrollArea } from '../ui/scroll-area';
+
+interface PromptContentManagerProps {
+    systemId: string | null;
+}
+
+export function PromptContentManager({ systemId }: PromptContentManagerProps) {
+  const [contentByCategory, setContentByCategory] = useState<Map<string, PromptContent[]>>(new Map());
+  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedContent, setSelectedContent] = useState<PromptContent | null>(null);
+  const [editText, setEditText] = useState('');
+  
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  
+  const [saveType, setSaveType] = useState<'major' | 'minor' | 'patch'>('patch');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    if (!systemId) {
+      setLoading(false);
+      setContentByCategory(new Map());
+      setCategories([]);
+      setSelectedCategory(null);
+      return;
+    }
+    setLoading(true);
+    try {
+        const content = await getPromptContentForSystem(systemId);
+        
+        const newContentByCategory = new Map<string, PromptContent[]>();
+        content.forEach(c => {
+            if (!newContentByCategory.has(c.categoryId)) {
+                newContentByCategory.set(c.categoryId, []);
+            }
+            newContentByCategory.get(c.categoryId)!.push(c);
+        });
+        
+        setContentByCategory(newContentByCategory);
+        const newCategories = Array.from(newContentByCategory.keys());
+        setCategories(newCategories);
+
+        if (newCategories.length > 0) {
+            const currentSelectedCategory = newCategories.includes(selectedCategory || '') ? selectedCategory : newCategories[0];
+            setSelectedCategory(currentSelectedCategory);
+            const contentForCategory = newContentByCategory.get(currentSelectedCategory || newCategories[0]);
+            if (contentForCategory && contentForCategory.length > 0) {
+              setSelectedContent(contentForCategory[0]); // Select latest
+              setEditText(contentForCategory[0].promptText);
+            } else {
+              setSelectedContent(null);
+              setEditText('');
+            }
+        } else {
+            setSelectedCategory(null);
+            setSelectedContent(null);
+            setEditText('');
+        }
+
+    } catch (error) {
+      console.error('Failed to fetch prompt content data:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not load prompt content data from Firestore.',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [systemId, toast, selectedCategory]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Reset when systemId changes
+  useEffect(() => {
+    setSelectedCategory(null);
+    setSelectedContent(null);
+    setEditText('');
+  }, [systemId]);
+
+
+  const handleCategoryChange = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    const contentForCategory = contentByCategory.get(categoryId);
+    if (contentForCategory && contentForCategory.length > 0) {
+      const latestContent = contentForCategory[0]; // Already sorted by action
+      setSelectedContent(latestContent);
+      setEditText(latestContent.promptText);
+    } else {
+      setSelectedContent(null);
+      setEditText('');
+    }
+  };
+
+  const handleContentVersionChange = (contentId: string) => {
+    if (!selectedCategory) return;
+    const contentList = contentByCategory.get(selectedCategory);
+    const content = contentList?.find(c => c.id === contentId);
+    if (content) {
+      setSelectedContent(content);
+      setEditText(content.promptText);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!systemId || !selectedCategory || !nextVersionString || editText.trim() === '') {
+        toast({ variant: 'destructive', title: 'Missing Information', description: 'Please select a system, category, and ensure the prompt text is not empty.' });
+        return;
+    }
+
+    setIsSubmitting(true);
+    try {
+        await publishNewPromptContent({
+            systemId,
+            categoryId: selectedCategory,
+            version: nextVersionString,
+            promptText: editText,
+            previousVersionId: selectedContent?.id
+        });
+        
+        toast({ title: 'Published!', description: `Prompt content ${nextVersionString} for '${selectedCategory}' is now saved.` });
+        
+        await fetchData(); // Refresh data
+
+    } catch (error) {
+        console.error('Failed to publish prompt content:', error);
+        toast({ variant: 'destructive', title: 'Publish Failed', description: 'Could not save the new prompt content.' });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+  
+  const nextVersionString = useMemo(() => {
+    if (!selectedCategory) return "v1.0.0";
+    const versionsForCategory = contentByCategory.get(selectedCategory);
+    const latestVersion = versionsForCategory?.[0]; // Assumes sorted
+    if (!latestVersion) return "v1.0.0";
+
+    const [major, minor, patch] = latestVersion.version.replace('v', '').split('.').map(Number);
+    if (saveType === 'major') return `v${major + 1}.0.0`;
+    if (saveType === 'minor') return `v${major}.${minor + 1}.0`;
+    return `v${major}.${minor}.${patch + 1}`;
+  }, [selectedCategory, contentByCategory, saveType]);
+
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-8 w-2/3" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-48 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (!systemId) {
+    // This state is handled by the PromptSystemVersionManager above, so this should not be visible.
+    // Kept as a safeguard.
+    return null;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Prompt Content Editor</CardTitle>
+        <CardDescription>
+          Edit and version the raw text for each prompt component. A new version is saved each time you publish.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <Label htmlFor="category-select">Prompt Category</Label>
+                <Select value={selectedCategory || ''} onValueChange={handleCategoryChange}>
+                    <SelectTrigger id="category-select">
+                        <SelectValue placeholder="Select a category..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {categories.map(cat => (
+                            <SelectItem key={cat} value={cat}>{cat.replace(/_/g, ' ')}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+             <div>
+                <Label htmlFor="content-version-select">Content Version</Label>
+                <Select value={selectedContent?.id || ''} onValueChange={handleContentVersionChange} disabled={!selectedCategory}>
+                    <SelectTrigger id="content-version-select">
+                        <SelectValue placeholder="Select a version..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {selectedCategory && contentByCategory.get(selectedCategory)?.map(c => (
+                            <SelectItem key={c.id} value={c.id}>
+                                {c.version} - {new Date(c.timestamp).toLocaleDateString()}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
+
+        <div>
+            <Label htmlFor="prompt-editor">Prompt Text</Label>
+            <ScrollArea className="h-72 w-full rounded-md border">
+              <Textarea 
+                id="prompt-editor"
+                className="h-full min-h-[inherit] w-full resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                placeholder="Enter or load prompt text here..."
+              />
+            </ScrollArea>
+        </div>
+      </CardContent>
+      <CardFooter className="border-t pt-6">
+        <div className="flex flex-wrap items-center gap-6">
+            <div className="flex items-center gap-8">
+                <div className="space-y-2">
+                    <Label>New Version Type</Label>
+                    <RadioGroup
+                        defaultValue="patch"
+                        className="flex gap-4"
+                        onValueChange={(v) => setSaveType(v as any)}
+                    >
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="content-major" /><Label htmlFor="content-major">Major</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="content-minor" /><Label htmlFor="content-minor">Minor</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id="content-patch" /><Label htmlFor="content-patch">Patch</Label></div>
+                    </RadioGroup>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Label className="text-muted-foreground">Next Version:</Label>
+                    <Badge variant="outline">{nextVersionString}</Badge>
+                </div>
+            </div>
+            <Button onClick={handlePublish} disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Publish New Content Version
+            </Button>
+        </div>
+      </CardFooter>
+    </Card>
+  );
+}

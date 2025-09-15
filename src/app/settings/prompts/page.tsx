@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { getPromptSystems } from '@/lib/actions';
 import type { PromptSystem } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PromptContentManager } from '@/components/content/PromptContentManager';
 
 export default function PromptManagementPage() {
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
@@ -84,7 +85,12 @@ export default function PromptManagementPage() {
         </CardContent>
       </Card>
 
-      <PromptSystemVersionManager systemId={selectedSystemId} />
+      <PromptSystemVersionManager systemId={selectedSystemId} onUpdate={fetchSystems} />
+
+      <Separator className="my-12" />
+
+      <PromptContentManager systemId={selectedSystemId} />
+
     </div>
   );
 }

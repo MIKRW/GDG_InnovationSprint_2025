@@ -1,12 +1,4 @@
 
-
-
-
-
-
-
-
-
 'use server';
 
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString, getMetadata, deleteObject } from 'firebase/storage';
@@ -237,10 +229,10 @@ export async function getPromptContentForSystem(systemId: string): Promise<Promp
 
     // Sort by version descending (e.g., v1.1.0, v1.0.0)
     contents.sort((a, b) => {
-        if (typeof a.version !== 'string') return 1;
-        if (typeof b.version !== 'string') return -1;
-
         try {
+            if (typeof a.version !== 'string') return 1;
+            if (typeof b.version !== 'string') return -1;
+            
             const versionA = a.version.replace('v', '').split('.').map(Number);
             const versionB = b.version.replace('v', '').split('.').map(Number);
         
@@ -301,7 +293,7 @@ export async function publishNewAppAIVersion(
     version: string,
     systems: { [systemId: string]: string }
 ): Promise<AppAIVersion> {
-    const newVersionId = version.replace('v', '').replace(/\./g, '-');
+    const newVersionId = version.replace(/\./g, '-');
     const versionRef = doc(db, 'app_ai_versions', newVersionId);
 
     const newVersionData: Omit<AppAIVersion, 'id'> = {
@@ -338,7 +330,7 @@ export async function publishNewPromptVersion(
     version: string,
     composedPrompts: { [categoryId: string]: string }
 ): Promise<PromptVersion> {
-    const newId = `${systemId}-${version.replace('v', '').replace(/\./g, '-')}`;
+    const newId = `${systemId}-${version.replace(/\./g, '-')}`;
     const versionRef = doc(db, 'prompt_versions', newId);
 
     const newVersionData: Omit<PromptVersion, 'id'> = {
@@ -352,4 +344,37 @@ export async function publishNewPromptVersion(
     await setLivePromptSystemVersion(systemId, version);
 
     return { id: newId, ...newVersionData };
+}
+
+interface PublishNewPromptContentInput {
+    systemId: string;
+    categoryId: string;
+    version: string;
+    promptText: string;
+    previousVersionId?: string;
+}
+
+/**
+ * Publishes a new version of a single prompt content piece.
+ * @returns The newly created PromptContent object.
+ */
+export async function publishNewPromptContent(input: PublishNewPromptContentInput): Promise<PromptContent> {
+    const { systemId, categoryId, version, promptText, previousVersionId } = input;
+    
+    // Create a deterministic ID for the content
+    const newId = `${categoryId}_${version.replace(/\./g, '-')}`;
+    const contentRef = doc(db, 'prompt_content', newId);
+
+    const newContentData: Omit<PromptContent, 'id'> = {
+        systemId,
+        categoryId,
+        version,
+        promptText,
+        timestamp: new Date().toISOString(),
+        previousVersionId: previousVersionId || undefined,
+    };
+
+    await setDoc(contentRef, newContentData);
+
+    return { id: newId, ...newContentData };
 }

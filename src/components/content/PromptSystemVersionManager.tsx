@@ -48,9 +48,10 @@ interface SystemWithContent extends PromptSystem {
 
 interface PromptSystemVersionManagerProps {
     systemId: string | null;
+    onUpdate: () => void;
 }
 
-export function PromptSystemVersionManager({ systemId }: PromptSystemVersionManagerProps) {
+export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemVersionManagerProps) {
   const [selectedSystem, setSelectedSystem] = useState<SystemWithContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [selections, setSelections] = useState<ContentSelection>({});
@@ -116,6 +117,7 @@ export function PromptSystemVersionManager({ systemId }: PromptSystemVersionMana
     fetchData();
   }, [fetchData]);
 
+  // Reset selections when the system changes
   useEffect(() => {
     setSelections({});
     setViewingVersionId('compose-new');
@@ -176,7 +178,8 @@ export function PromptSystemVersionManager({ systemId }: PromptSystemVersionMana
             toast({ title: 'Published!', description: `Prompt System Version ${newVersion.version} for ${selectedSystemMemo.name} is now available.` });
         }
 
-        await fetchData(); // Refresh all data
+        await fetchData(); // Refresh all data for this component
+        onUpdate(); // Trigger parent page to refetch all systems data
         setSelections({});
         setViewingVersionId('compose-new');
 
