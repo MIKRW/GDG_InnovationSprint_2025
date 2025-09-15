@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -8,17 +9,17 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { getPromptSystems, getPromptVersionsForSystem, getPromptContentForSystem } from '@/lib/actions';
+import { getPromptSystems, getPromptVersionsForSystem, getPromptContentForSystem, createNewPromptSystem } from '@/lib/actions';
 import type { PromptSystem, PromptVersion, PromptContent } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PromptContentManager } from '@/components/content/PromptContentManager';
 import { useToast } from '@/hooks/use-toast';
-
-interface SystemData {
-  systems: PromptSystem[];
-  versions: PromptVersion[];
-  content: PromptContent[];
-}
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Loader2 } from 'lucide-react';
+import { kebabCase } from 'lodash';
 
 export default function PromptManagementPage() {
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
@@ -30,6 +31,12 @@ export default function PromptManagementPage() {
   const [loading, setLoading] = useState(true);
   const [versionsForSelectedSystem, setVersionsForSelectedSystem] = useState<PromptVersion[]>([]);
   const [contentForSelectedSystem, setContentForSelectedSystem] = useState<PromptContent[]>([]);
+
+  // State for the "Create New System" dialog
+  const [isSystemDialogOpen, setIsSystemDialogOpen] = useState(false);
+  const [newSystemName, setNewSystemName] = useState('');
+  const [newSystemDescription, setNewSystemDescription] = useState('');
+  const [isCreatingSystem, setIsCreatingSystem] = useState(false);
 
 
   const fetchAllData = useCallback(async (systemIdToFetch: string | null) => {
@@ -81,6 +88,39 @@ export default function PromptManagementPage() {
     fetchAllData(selectedSystemId);
   }
 
+  const handleCreateNewSystem = async () => {
+    if (!newSystemName.trim() || !newSystemDescription.trim()) {
+        toast({ variant: 'destructive', title: 'Missing Information', description: 'Please provide a name and description.' });
+        return;
+    }
+    setIsCreatingSystem(true);
+
+    try {
+        const newSystemId = kebabCase(newSystemName);
+        await createNewPromptSystem({
+            systemId: newSystemId,
+            name: newSystemName,
+            description: newSystemDescription,
+        });
+
+        toast({ title: 'System Created!', description: `${newSystemName} has been added.` });
+        
+        // Reset dialog and refetch data, selecting the new system
+        setIsSystemDialogOpen(false);
+        setNewSystemName('');
+        setNewSystemDescription('');
+        await fetchAllData(newSystemId); // Refetch all data
+        setSelectedSystemId(newSystemId); // Explicitly select the new system
+
+    } catch (error) {
+        console.error('Failed to create new system:', error);
+        toast({ variant: 'destructive', title: 'Creation Failed', description: (error as Error).message || 'Could not create the new AI system.' });
+    } finally {
+        setIsCreatingSystem(false);
+    }
+  };
+
+
   if (!isDevMode) {
     return (
       <div className="flex-1 p-4 text-center">
@@ -125,6 +165,36 @@ export default function PromptManagementPage() {
                   ))}
                 </SelectContent>
               </Select>
+               <Dialog open={isSystemDialogOpen} onOpenChange={setIsSystemDialogOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="outline">Create New...</Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Create New AI System</DialogTitle>
+                        <DialogDescription>
+                            Define a new high-level AI system. The ID will be automatically generated from the name (e.g., "Theme Generator" becomes "theme-generator").
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="new-system-name">System Name</Label>
+                            <Input id="new-system-name" placeholder="e.g., Theme Generator" value={newSystemName} onChange={(e) => setNewSystemName(e.target.value)} />
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="new-system-desc">Description</Label>
+                            <Textarea id="new-system-desc" placeholder="What does this AI system do?" value={newSystemDescription} onChange={(e) => setNewSystemDescription(e.target.value)} />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setIsSystemDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={handleCreateNewSystem} disabled={isCreatingSystem}>
+                            {isCreatingSystem && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Create System
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+               </Dialog>
             </div>
           )}
         </CardContent>

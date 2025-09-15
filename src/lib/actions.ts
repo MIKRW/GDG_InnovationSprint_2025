@@ -187,17 +187,52 @@ export async function getPromptSystems(): Promise<PromptSystem[]> {
 
     if (snapshot.empty) {
         // Create a default system
-        const defaultSystemId = 'bird-identifier-ai-newbie';
         const defaultSystem: Omit<PromptSystem, 'id'> = {
             name: "Bird Identifier AI (Newbie)",
             description: "Manages prompts for identifying birds in Newbie mode.",
             activeVersion: "v1.0.0"
         };
-        await setDoc(doc(db, 'prompt_systems', defaultSystemId), defaultSystem);
-        return [{ id: defaultSystemId, ...defaultSystem }];
+        const newSystem = await createNewPromptSystem({ systemId: 'bird-identifier-ai-newbie', ...defaultSystem });
+        return [newSystem];
     }
 
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
+}
+
+/**
+ * Creates a new AI Prompt System, its default first version, and its default first content piece.
+ */
+export async function createNewPromptSystem(data: { systemId: string, name: string, description: string }): Promise<PromptSystem> {
+    const { systemId, name, description } = data;
+
+    const systemRef = doc(db, 'prompt_systems', systemId);
+    const systemSnap = await getDoc(systemRef);
+    if (systemSnap.exists()) {
+        throw new Error('A system with this ID already exists.');
+    }
+
+    // 1. Create default content
+    const defaultContent = await publishNewPromptContent({
+        systemId: systemId,
+        categoryId: 'base_instruction',
+        version: 'v1.0.0',
+        promptText: 'enter prompt here:'
+    });
+    
+    // 2. Create default version pointing to content
+    const defaultVersion = await publishNewPromptVersion(systemId, 'v1.0.0', {
+        base_instruction: defaultContent.id
+    });
+    
+    // 3. Create the system document
+    const newSystemData: Omit<PromptSystem, 'id'> = {
+        name,
+        description,
+        activeVersion: defaultVersion.version,
+    };
+    await setDoc(systemRef, newSystemData);
+
+    return { id: systemId, ...newSystemData };
 }
 
 /**
@@ -382,7 +417,7 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
     const newId = `${categoryId}_${version.replace(/\./g, '-')}`;
     const contentRef = doc(db, 'prompt_content', newId);
 
-    const newContentData: Omit<PromptContent, 'id'> = {
+    const newContentData: Omit<PromptContent, 'id'> & { previousVersionId?: string } = {
         systemId,
         categoryId,
         version,
