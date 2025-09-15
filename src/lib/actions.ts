@@ -4,6 +4,7 @@
 
 
 
+
 'use server';
 
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString, getMetadata, deleteObject } from 'firebase/storage';
@@ -231,6 +232,10 @@ export async function getPromptContentForSystem(systemId: string): Promise<Promp
 
     // Sort by version descending (e.g., v1.1.0, v1.0.0)
     contents.sort((a, b) => {
+        // Defensive check: if version is missing, treat it as the oldest.
+        if (!a.version) return 1;
+        if (!b.version) return -1;
+        
         const versionA = a.version.replace('v', '').split('.').map(Number);
         const versionB = b.version.replace('v', '').split('.').map(Number);
     
