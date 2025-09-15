@@ -39,7 +39,12 @@ import { Skeleton } from '../ui/skeleton';
 import { Separator } from '../ui/separator';
 
 interface ContentSelection {
-  [categoryId: string]: string; // e.g., { base_instruction: 'base_instruction_v2' }
+    [categoryId: string]: {
+      major?: string;
+      minor?: string;
+      patch?: string;
+      contentId?: string; // e.g., base_instruction_v1-0-0
+    };
 }
 
 interface PromptSystemVersionManagerProps {
@@ -60,15 +65,48 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
   const [isRepublishing, setIsRepublishing] = useState(false);
 
   // Group content by category for easy lookup
-  const contentByCategory = useMemo(() => {
-    const map = new Map<string, PromptContent[]>();
+  const { contentByCategory, contentVersionParts } = useMemo(() => {
+    const categoryMap = new Map<string, PromptContent[]>();
+    const partsMap = new Map<string, { major: Set<string>, minor: Map<string, Set<string>>, patch: Map<string, Set<string>> }>();
+
     content.forEach(c => {
-        if (!map.has(c.categoryId)) {
-            map.set(c.categoryId, []);
+        if (!categoryMap.has(c.categoryId)) {
+            categoryMap.set(c.categoryId, []);
+            partsMap.set(c.categoryId, {
+                major: new Set(),
+                minor: new Map(),
+                patch: new Map(),
+            });
         }
-        map.get(c.categoryId)!.push(c);
+        categoryMap.get(c.categoryId)!.push(c);
+
+        const categoryParts = partsMap.get(c.categoryId)!;
+        const [maj, min, pat] = c.version.replace('v', '').split('.').map(part => part);
+        
+        categoryParts.major.add(maj);
+
+        if (!categoryParts.minor.has(maj)) {
+          categoryParts.minor.set(maj, new Set());
+        }
+        categoryParts.minor.get(maj)!.add(min);
+
+        const minorKey = `${maj}.${min}`;
+        if (!categoryParts.patch.has(minorKey)) {
+          categoryParts.patch.set(minorKey, new Set());
+        }
+        categoryParts.patch.get(minorKey)!.add(pat);
     });
-    return map;
+
+    const finalPartsMap = new Map<string, any>();
+    for (const [category, parts] of partsMap.entries()) {
+        finalPartsMap.set(category, {
+            major: Array.from(parts.major).sort((a,b) => b.localeCompare(a, undefined, { numeric: true })),
+            minor: new Map(Array.from(parts.minor.entries()).map(([k, v]) => [k, Array.from(v).sort((a,b) => b.localeCompare(a, undefined, { numeric: true }))])),
+            patch: new Map(Array.from(parts.patch.entries()).map(([k, v]) => [k, Array.from(v).sort((a,b) => b.localeCompare(a, undefined, { numeric: true }))])),
+        });
+    }
+
+    return { contentByCategory: categoryMap, contentVersionParts: finalPartsMap };
   }, [content]);
 
 
@@ -82,9 +120,20 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
   const loadSelectionsFromVersion = useCallback((versionId: string) => {
     const version = versions.find(v => v.id === versionId);
     if (version) {
-        setSelections(version.composedPrompts);
+        const newSelections: ContentSelection = {};
+        for(const categoryId in version.composedPrompts) {
+            const contentId = version.composedPrompts[categoryId];
+            const contentItem = content.find(c => c.id === contentId);
+            if (contentItem) {
+                const [major, minor, patch] = contentItem.version.replace('v','').split('.');
+                newSelections[categoryId] = {
+                    major, minor, patch, contentId
+                }
+            }
+        }
+        setSelections(newSelections);
     }
-  }, [versions]);
+  }, [versions, content]);
 
   useEffect(() => {
     if (viewingVersionId && viewingVersionId !== 'compose-new') {
@@ -104,8 +153,31 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
   }, [isRepublishing, viewingVersionId, loadSelectionsFromVersion]);
 
 
-  const handleSelection = (categoryId: string, contentId: string) => {
-    setSelections(prev => ({ ...prev, [categoryId]: contentId }));
+  const handleSelection = (categoryId: string, part: 'major' | 'minor' | 'patch', value: string) => {
+    setSelections(prev => {
+        const newCatSelection = { ...(prev[categoryId] || {}) };
+        
+        if (part === 'major') {
+            newCatSelection.major = value;
+            delete newCatSelection.minor;
+            delete newCatSelection.patch;
+        } else if (part === 'minor') {
+            newCatSelection.minor = value;
+            delete newCatSelection.patch;
+        } else {
+            newCatSelection.patch = value;
+        }
+        
+        if (newCatSelection.major && newCatSelection.minor && newCatSelection.patch) {
+            const versionString = `v${newCatSelection.major}.${newCatSelection.minor}.${newCatSelection.patch}`;
+            const contentId = `${categoryId}_${versionString.replace(/\./g, '-')}`;
+            newCatSelection.contentId = contentId;
+        } else {
+            delete newCatSelection.contentId;
+        }
+
+        return { ...prev, [categoryId]: newCatSelection };
+    });
   };
 
   const handlePublish = async () => {
@@ -132,12 +204,17 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not determine next version number.' });
                 return;
             }
-            if (Array.from(contentByCategory.keys()).some(key => !selections[key])) {
+            if (Array.from(contentByCategory.keys()).some(key => !selections[key]?.contentId)) {
                 toast({ variant: 'destructive', title: 'Incomplete Selection', description: 'Please select a prompt content version for every category.' });
                 return;
             }
+
+            const finalComposedPrompts: { [categoryId: string]: string } = {};
+            for(const categoryId in selections) {
+                finalComposedPrompts[categoryId] = selections[categoryId].contentId!;
+            }
             
-            await publishNewPromptVersion(system.id, nextVersionString, selections);
+            await publishNewPromptVersion(system.id, nextVersionString, finalComposedPrompts);
             toast({ title: 'Published!', description: `Prompt System Version ${nextVersionString} for ${system.name} is now available.` });
         }
 
@@ -240,37 +317,43 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[250px]">Prompt Category</TableHead>
-                      <TableHead>Content Version</TableHead>
-                      <TableHead className="text-right">Live In</TableHead>
+                      <TableHead className="w-[200px]">Prompt Category</TableHead>
+                      <TableHead>Major</TableHead>
+                      <TableHead>Minor</TableHead>
+                      <TableHead>Patch</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {Array.from(contentByCategory.keys()).map((category) => {
-                      const contentsForCategory = contentByCategory.get(category) || [];
+                      const selected = selections[category] || {};
+                      const parts = contentVersionParts.get(category);
+
                       return (
                           <TableRow key={category}>
                             <TableCell className="font-medium capitalize">{category.replace(/_/g, ' ')}</TableCell>
                             <TableCell>
-                              <Select 
-                                value={selections[category] || ''} 
-                                onValueChange={(value) => handleSelection(category, value)}
-                                disabled={isCompositionDisabled}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select content version" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {contentsForCategory.map(c => (
-                                    <SelectItem key={c.id} value={c.id}>
-                                      {c.version} - {new Date(c.timestamp).toLocaleDateString()}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                               <Select onValueChange={(value) => handleSelection(category, 'major', value)} value={selected.major} disabled={isCompositionDisabled}>
+                                  <SelectTrigger><SelectValue placeholder="Select Major" /></SelectTrigger>
+                                  <SelectContent>
+                                    {parts?.major.map(v => <SelectItem key={v} value={v}>v{v}</SelectItem>)}
+                                  </SelectContent>
+                               </Select>
                             </TableCell>
-                            <TableCell className="text-right text-muted-foreground text-xs">
-                              {system.activeVersion}
+                             <TableCell>
+                               <Select onValueChange={(value) => handleSelection(category, 'minor', value)} value={selected.minor} disabled={!selected.major || isCompositionDisabled}>
+                                  <SelectTrigger><SelectValue placeholder="Select Minor" /></SelectTrigger>
+                                  <SelectContent>
+                                    {selected.major && parts?.minor.get(selected.major)?.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                                  </SelectContent>
+                               </Select>
+                            </TableCell>
+                             <TableCell>
+                               <Select onValueChange={(value) => handleSelection(category, 'patch', value)} value={selected.patch} disabled={!selected.minor || isCompositionDisabled}>
+                                  <SelectTrigger><SelectValue placeholder="Select Patch" /></SelectTrigger>
+                                  <SelectContent>
+                                     {selected.major && selected.minor && parts?.patch.get(`${selected.major}.${selected.minor}`)?.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                                  </SelectContent>
+                               </Select>
                             </TableCell>
                           </TableRow>
                       )
