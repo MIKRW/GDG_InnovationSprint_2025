@@ -388,8 +388,11 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
         version,
         promptText,
         timestamp: new Date().toISOString(),
-        previousVersionId: previousVersionId || undefined,
     };
+
+    if (previousVersionId) {
+        newContentData.previousVersionId = previousVersionId;
+    }
 
     await setDoc(contentRef, newContentData);
 
