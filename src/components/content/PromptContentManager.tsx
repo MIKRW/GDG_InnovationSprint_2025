@@ -20,14 +20,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import type { PromptContent } from '@/lib/types';
-import { getPromptContentForSystem, publishNewPromptContent } from '@/lib/actions';
+import { publishNewPromptContent } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
 import { Skeleton } from '../ui/skeleton';
 import { Textarea } from '../ui/textarea';
-import { ScrollArea } from '../ui/scroll-area';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Separator } from '../ui/separator';
@@ -35,16 +34,16 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '..
 
 interface PromptContentManagerProps {
     systemId: string | null;
+    content: PromptContent[];
+    onUpdate: () => void;
+    isLoading: boolean;
 }
 
-export function PromptContentManager({ systemId }: PromptContentManagerProps) {
-  const [contentByCategory, setContentByCategory] = useState<Map<string, PromptContent[]>>(new Map());
-  const [categories, setCategories] = useState<string[]>([]);
+export function PromptContentManager({ systemId, content, onUpdate, isLoading }: PromptContentManagerProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedContent, setSelectedContent] = useState<PromptContent | null>(null);
   const [editText, setEditText] = useState('');
   
-  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   
   const [saveType, setSaveType] = useState<'major' | 'minor' | 'patch'>('patch');
@@ -53,70 +52,50 @@ export function PromptContentManager({ systemId }: PromptContentManagerProps) {
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
-
-  const fetchData = useCallback(async () => {
-    if (!systemId) {
-      setLoading(false);
-      setContentByCategory(new Map());
-      setCategories([]);
-      setSelectedCategory(null);
-      return;
-    }
-    setLoading(true);
-    try {
-        const content = await getPromptContentForSystem(systemId);
-        
-        const newContentByCategory = new Map<string, PromptContent[]>();
-        content.forEach(c => {
-            if (!newContentByCategory.has(c.categoryId)) {
-                newContentByCategory.set(c.categoryId, []);
-            }
-            newContentByCategory.get(c.categoryId)!.push(c);
-        });
-        
-        setContentByCategory(newContentByCategory);
-        const newCategories = Array.from(newContentByCategory.keys());
-        setCategories(newCategories);
-
-        if (newCategories.length > 0) {
-            const currentSelectedCategory = newCategories.includes(selectedCategory || '') ? selectedCategory : newCategories[0];
-            setSelectedCategory(currentSelectedCategory);
-            const contentForCategory = newContentByCategory.get(currentSelectedCategory || newCategories[0]);
-            if (contentForCategory && contentForCategory.length > 0) {
-              setSelectedContent(contentForCategory[0]); // Select latest
-              setEditText(contentForCategory[0].promptText);
-            } else {
-              setSelectedContent(null);
-              setEditText('');
-            }
-        } else {
-            setSelectedCategory(null);
-            setSelectedContent(null);
-            setEditText('');
+  // Group content by category and get category list
+  const { contentByCategory, categories } = useMemo(() => {
+    const map = new Map<string, PromptContent[]>();
+    content.forEach(c => {
+        if (!map.has(c.categoryId)) {
+            map.set(c.categoryId, []);
         }
+        map.get(c.categoryId)!.push(c);
+    });
+    return { contentByCategory: map, categories: Array.from(map.keys()) };
+  }, [content]);
 
-    } catch (error) {
-      console.error('Failed to fetch prompt content data:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not load prompt content data from Firestore.',
-      });
-    } finally {
-      setLoading(false);
+  // Effect to update selections when systemId or categories change
+  useEffect(() => {
+    if (categories.length > 0) {
+      // If the current category is still valid, keep it. Otherwise, pick the first one.
+      const categoryToSelect = categories.includes(selectedCategory || '') ? selectedCategory : categories[0];
+      if (categoryToSelect !== selectedCategory) {
+        setSelectedCategory(categoryToSelect);
+      }
+    } else {
+      setSelectedCategory(null);
     }
-  }, [systemId, toast, selectedCategory]);
+  }, [categories, selectedCategory]);
 
+  // Effect to update editor when selected category or content changes
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  // Reset when systemId changes
-  useEffect(() => {
-    setSelectedCategory(null);
-    setSelectedContent(null);
-    setEditText('');
-  }, [systemId]);
+    if (selectedCategory) {
+      const contentList = contentByCategory.get(selectedCategory);
+      if (contentList && contentList.length > 0) {
+        // Find if the currently selected content is still in the list, otherwise default to the newest
+        const contentToSelect = contentList.find(c => c.id === selectedContent?.id) || contentList[0];
+        setSelectedContent(contentToSelect);
+        setEditText(contentToSelect.promptText);
+      } else {
+        // This category has no content yet (e.g., newly created)
+        setSelectedContent(null);
+        setEditText('');
+      }
+    } else {
+      setSelectedContent(null);
+      setEditText('');
+    }
+  }, [selectedCategory, contentByCategory, selectedContent]);
 
 
   const handleCategoryChange = (categoryId: string) => {
@@ -124,20 +103,10 @@ export function PromptContentManager({ systemId }: PromptContentManagerProps) {
         setIsCategoryDialogOpen(true);
         return;
     }
-
     setSelectedCategory(categoryId);
-    const contentForCategory = contentByCategory.get(categoryId);
-    if (contentForCategory && contentForCategory.length > 0) {
-      const latestContent = contentForCategory[0]; // Already sorted by action
-      setSelectedContent(latestContent);
-      setEditText(latestContent.promptText);
-    } else {
-      setSelectedContent(null);
-      setEditText('');
-    }
   };
 
-  const handleCreateNewCategory = () => {
+  const handleCreateNewCategory = async () => {
     if (!newCategoryName.trim()) {
         toast({ variant: 'destructive', title: 'Invalid Name', description: 'Category name cannot be empty.' });
         return;
@@ -149,11 +118,17 @@ export function PromptContentManager({ systemId }: PromptContentManagerProps) {
         toast({ variant: 'destructive', title: 'Category Exists', description: 'A category with this name already exists.' });
         return;
     }
-
-    setCategories(prev => [...prev, formattedCategoryName].sort());
+    
+    // Publish a dummy first version to create the category in the DB
+    await publishNewPromptContent({
+        systemId: systemId!,
+        categoryId: formattedCategoryName,
+        version: 'v1.0.0',
+        promptText: 'Enter prompt here...'
+    });
+    
+    onUpdate(); // Trigger parent to refetch all data
     setSelectedCategory(formattedCategoryName);
-    setSelectedContent(null);
-    setEditText('');
     
     setIsCategoryDialogOpen(false);
     setNewCategoryName('');
@@ -189,7 +164,7 @@ export function PromptContentManager({ systemId }: PromptContentManagerProps) {
         
         toast({ title: 'Published!', description: `Prompt content ${nextVersionString} for '${selectedCategory}' is now saved.` });
         
-        await fetchData(); // Refresh data
+        onUpdate(); // Trigger parent to refetch
 
     } catch (error) {
         console.error('Failed to publish prompt content:', error);
@@ -212,7 +187,7 @@ export function PromptContentManager({ systemId }: PromptContentManagerProps) {
   }, [selectedCategory, contentByCategory, saveType]);
 
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>
@@ -231,8 +206,6 @@ export function PromptContentManager({ systemId }: PromptContentManagerProps) {
   }
   
   if (!systemId) {
-    // This state is handled by the PromptSystemVersionManager above, so this should not be visible.
-    // Kept as a safeguard.
     return null;
   }
 
@@ -307,7 +280,7 @@ export function PromptContentManager({ systemId }: PromptContentManagerProps) {
                   <Label htmlFor="prompt-editor">Prompt Text</Label>
                   <Textarea 
                     id="prompt-editor"
-                    className="h-72 w-full resize-y focus-visible:ring-offset-0"
+                    className="h-72 w-full resize-y focus-visible:ring-offset-0 border rounded-md p-2 font-mono text-sm"
                     value={editText}
                     onChange={(e) => setEditText(e.target.value)}
                     placeholder="Enter or load prompt text here..."

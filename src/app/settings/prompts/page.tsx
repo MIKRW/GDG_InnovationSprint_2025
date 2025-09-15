@@ -8,37 +8,78 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { getPromptSystems } from '@/lib/actions';
-import type { PromptSystem } from '@/lib/types';
+import { getPromptSystems, getPromptVersionsForSystem, getPromptContentForSystem } from '@/lib/actions';
+import type { PromptSystem, PromptVersion, PromptContent } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PromptContentManager } from '@/components/content/PromptContentManager';
+import { useToast } from '@/hooks/use-toast';
+
+interface SystemData {
+  systems: PromptSystem[];
+  versions: PromptVersion[];
+  content: PromptContent[];
+}
 
 export default function PromptManagementPage() {
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
-  const [promptSystems, setPromptSystems] = useState<PromptSystem[]>([]);
-  const [selectedSystemId, setSelectedSystemId] = useState<string | null>(null);
-  const [loadingSystems, setLoadingSystems] = useState(true);
+  const { toast } = useToast();
 
-  const fetchSystems = useCallback(async () => {
-    setLoadingSystems(true);
+  const [allSystems, setAllSystems] = useState<PromptSystem[]>([]);
+  const [selectedSystemId, setSelectedSystemId] = useState<string | null>(null);
+  
+  const [loading, setLoading] = useState(true);
+  const [versionsForSelectedSystem, setVersionsForSelectedSystem] = useState<PromptVersion[]>([]);
+  const [contentForSelectedSystem, setContentForSelectedSystem] = useState<PromptContent[]>([]);
+
+
+  const fetchAllData = useCallback(async (systemIdToFetch: string | null) => {
+    setLoading(true);
     try {
       const systems = await getPromptSystems();
-      setPromptSystems(systems);
-      if (systems.length > 0 && !selectedSystemId) {
+      setAllSystems(systems);
+
+      let currentSystemId = systemIdToFetch;
+      if (!currentSystemId && systems.length > 0) {
+        currentSystemId = systems[0].id;
         setSelectedSystemId(systems[0].id);
       }
+
+      if (currentSystemId) {
+        const [versions, content] = await Promise.all([
+          getPromptVersionsForSystem(currentSystemId),
+          getPromptContentForSystem(currentSystemId)
+        ]);
+        setVersionsForSelectedSystem(versions);
+        setContentForSelectedSystem(content);
+      } else {
+        setVersionsForSelectedSystem([]);
+        setContentForSelectedSystem([]);
+      }
     } catch (error) {
-      console.error('Failed to fetch prompt systems', error);
+      console.error('Failed to fetch prompt system data', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error Loading Data',
+        description: 'Could not load AI system data from the database.'
+      });
     } finally {
-      setLoadingSystems(false);
+      setLoading(false);
     }
-  }, [selectedSystemId]);
+  }, [toast]);
 
   useEffect(() => {
     if (isDevMode) {
-      fetchSystems();
+      fetchAllData(selectedSystemId);
     }
-  }, [isDevMode, fetchSystems]);
+  }, [isDevMode, selectedSystemId, fetchAllData]);
+
+  const handleSystemChange = (systemId: string) => {
+    setSelectedSystemId(systemId);
+  };
+  
+  const handleDataUpdate = () => {
+    fetchAllData(selectedSystemId);
+  }
 
   if (!isDevMode) {
     return (
@@ -47,6 +88,8 @@ export default function PromptManagementPage() {
       </div>
     );
   }
+  
+  const selectedSystem = allSystems.find(s => s.id === selectedSystemId) || null;
 
   return (
     <div className="container mx-auto">
@@ -67,17 +110,17 @@ export default function PromptManagementPage() {
           <CardDescription className="text-center">Choose the AI system you want to manage. The publisher below will update accordingly.</CardDescription>
         </CardHeader>
         <CardContent className="flex justify-center">
-          {loadingSystems ? (
+          {loading && !selectedSystemId ? (
             <Skeleton className="h-10 w-full max-w-xs" />
           ) : (
             <div className="flex items-center gap-4">
               <Label htmlFor="system-selector" className="font-semibold whitespace-nowrap">AI Type</Label>
-              <Select value={selectedSystemId || ''} onValueChange={setSelectedSystemId}>
+              <Select value={selectedSystemId || ''} onValueChange={handleSystemChange}>
                 <SelectTrigger id="system-selector" className="w-full sm:w-[250px]">
                   <SelectValue placeholder="Select a system" />
                 </SelectTrigger>
                 <SelectContent>
-                  {promptSystems.map((s) => (
+                  {allSystems.map((s) => (
                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -87,11 +130,22 @@ export default function PromptManagementPage() {
         </CardContent>
       </Card>
 
-      <PromptSystemVersionManager systemId={selectedSystemId} onUpdate={fetchSystems} />
+      <PromptSystemVersionManager 
+        system={selectedSystem}
+        versions={versionsForSelectedSystem}
+        content={contentForSelectedSystem}
+        onUpdate={handleDataUpdate}
+        isLoading={loading}
+      />
 
       <Separator className="my-12" />
 
-      <PromptContentManager systemId={selectedSystemId} />
+      <PromptContentManager 
+        systemId={selectedSystemId} 
+        content={contentForSelectedSystem}
+        onUpdate={handleDataUpdate}
+        isLoading={loading}
+      />
 
     </div>
   );

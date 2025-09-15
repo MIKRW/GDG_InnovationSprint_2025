@@ -28,7 +28,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import type { PromptSystem, PromptContent, PromptVersion } from '@/lib/types';
-import { getPromptContentForSystem, publishNewPromptVersion, getPromptVersionsForSystem, setLivePromptSystemVersion, getPromptSystems } from '@/lib/actions';
+import { publishNewPromptVersion, setLivePromptSystemVersion } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
@@ -42,19 +42,15 @@ interface ContentSelection {
   [categoryId: string]: string; // e.g., { base_instruction: 'base_instruction_v2' }
 }
 
-interface SystemWithContent extends PromptSystem {
-  contentByCategory: Map<string, PromptContent[]>;
-  versions: PromptVersion[];
-}
-
 interface PromptSystemVersionManagerProps {
-    systemId: string | null;
+    system: PromptSystem | null;
+    versions: PromptVersion[];
+    content: PromptContent[];
     onUpdate: () => void;
+    isLoading: boolean;
 }
 
-export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemVersionManagerProps) {
-  const [selectedSystem, setSelectedSystem] = useState<SystemWithContent | null>(null);
-  const [loading, setLoading] = useState(true);
+export function PromptSystemVersionManager({ system, versions, content, onUpdate, isLoading }: PromptSystemVersionManagerProps) {
   const [selections, setSelections] = useState<ContentSelection>({});
   const { toast } = useToast();
   
@@ -63,64 +59,29 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
   const [viewingVersionId, setViewingVersionId] = useState<string>('compose-new');
   const [isRepublishing, setIsRepublishing] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    if (!systemId) {
-      setLoading(false);
-      setSelectedSystem(null);
-      return;
-    }
-    setLoading(true);
-    try {
-        const [allSystems, content, versions] = await Promise.all([
-            getPromptSystems(), // We still need this to get the system's name and active version
-            getPromptContentForSystem(systemId),
-            getPromptVersionsForSystem(systemId),
-        ]);
-
-        const currentSystem = allSystems.find(s => s.id === systemId);
-        if (!currentSystem) {
-            throw new Error(`System with ID ${systemId} not found.`);
+  // Group content by category for easy lookup
+  const contentByCategory = useMemo(() => {
+    const map = new Map<string, PromptContent[]>();
+    content.forEach(c => {
+        if (!map.has(c.categoryId)) {
+            map.set(c.categoryId, []);
         }
-        
-        const contentByCategory = new Map<string, PromptContent[]>();
-        content.forEach(c => {
-            if (!contentByCategory.has(c.categoryId)) {
-                contentByCategory.set(c.categoryId, []);
-            }
-            contentByCategory.get(c.categoryId)!.push(c);
-        });
+        map.get(c.categoryId)!.push(c);
+    });
+    return map;
+  }, [content]);
 
-        setSelectedSystem({ ...currentSystem, contentByCategory, versions });
-    } catch (error) {
-      console.error('Failed to fetch prompt system data:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not load prompt system data from Firestore.',
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [systemId, toast]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   // Reset selections when the system changes
   useEffect(() => {
     setSelections({});
     setViewingVersionId('compose-new');
     setIsRepublishing(false);
-  }, [systemId]);
-
-  const selectedSystemMemo = useMemo(() => {
-    return selectedSystem;
-  }, [selectedSystem]);
+  }, [system]);
 
   useEffect(() => {
-    if (viewingVersionId && viewingVersionId !== 'compose-new' && selectedSystemMemo) {
-        const version = selectedSystemMemo.versions.find(v => v.id === viewingVersionId);
+    if (viewingVersionId && viewingVersionId !== 'compose-new' && system) {
+        const version = versions.find(v => v.id === viewingVersionId);
         if (version) {
             setSelections(version.composedPrompts);
             setIsRepublishing(true); // Default to republish when viewing history
@@ -129,7 +90,7 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
         setSelections({});
         setIsRepublishing(false);
     }
-  }, [viewingVersionId, selectedSystemMemo]);
+  }, [viewingVersionId, versions, system]);
 
 
   const handleSelection = (categoryId: string, contentId: string) => {
@@ -137,7 +98,7 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
   };
 
   const handlePublish = async () => {
-    if (!selectedSystemMemo) {
+    if (!system) {
         toast({ variant: 'destructive', title: 'Error', description: 'No system selected.' });
         return;
     }
@@ -149,27 +110,26 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
                 toast({ variant: 'destructive', title: 'Action not allowed', description: 'Cannot re-publish a new, un-saved version.' });
                 return;
             }
-            const versionToRepublish = selectedSystemMemo.versions.find(v => v.id === viewingVersionId);
+            const versionToRepublish = versions.find(v => v.id === viewingVersionId);
             if (!versionToRepublish) return;
 
-            await setLivePromptSystemVersion(selectedSystemMemo.id, versionToRepublish.version);
+            await setLivePromptSystemVersion(system.id, versionToRepublish.version);
             
-            toast({ title: 'Success!', description: `Version ${versionToRepublish.version} is now the active version for ${selectedSystemMemo.name}.` });
+            toast({ title: 'Success!', description: `Version ${versionToRepublish.version} is now the active version for ${system.name}.` });
         } else {
              if (!nextVersionString) {
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not determine next version number.' });
                 return;
             }
-            if (Array.from(selectedSystemMemo.contentByCategory.keys()).some(key => !selections[key])) {
+            if (Array.from(contentByCategory.keys()).some(key => !selections[key])) {
                 toast({ variant: 'destructive', title: 'Incomplete Selection', description: 'Please select a prompt content version for every category.' });
                 return;
             }
             
-            const newVersion = await publishNewPromptVersion(selectedSystemMemo.id, nextVersionString, selections);
-            toast({ title: 'Published!', description: `Prompt System Version ${newVersion.version} for ${selectedSystemMemo.name} is now available.` });
+            await publishNewPromptVersion(system.id, nextVersionString, selections);
+            toast({ title: 'Published!', description: `Prompt System Version ${nextVersionString} for ${system.name} is now available.` });
         }
 
-        await fetchData(); // Refresh all data for this component
         onUpdate(); // Trigger parent page to refetch all systems data
         setSelections({});
         setViewingVersionId('compose-new');
@@ -187,18 +147,18 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
   };
 
   const nextVersionString = useMemo(() => {
-    if (!selectedSystemMemo) return "v1.0.0";
-    const latestVersion = selectedSystemMemo.versions[0]; // Assumes versions are sorted desc
+    if (!system) return "v1.0.0";
+    const latestVersion = versions[0]; // Assumes versions are sorted desc
     if (!latestVersion) return "v1.0.0";
 
     const [major, minor, patch] = latestVersion.version.replace('v', '').split('.').map(Number);
     if (saveType === 'major') return `v${major + 1}.0.0`;
     if (saveType === 'minor') return `v${major}.${minor + 1}.0`;
     return `v${major}.${minor}.${patch + 1}`;
-  }, [selectedSystemMemo, saveType]);
+  }, [system, versions, saveType]);
 
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Card>
         <CardHeader>
@@ -216,7 +176,7 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
     );
   }
   
-  if (!systemId || !selectedSystemMemo) {
+  if (!system) {
     return (
        <Card>
           <CardHeader>
@@ -239,7 +199,7 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
             <div className="flex-1 text-center">
               <CardTitle>AI type version control</CardTitle>
               <CardDescription className="pt-2">
-                Compose new versions of the <span className="font-semibold text-foreground">{selectedSystemMemo.name}</span> system by selecting which version of each prompt category to include.
+                Compose new versions of the <span className="font-semibold text-foreground">{system.name}</span> system by selecting which version of each prompt category to include.
               </CardDescription>
             </div>
           </AccordionTrigger>
@@ -255,9 +215,9 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
                             <SelectContent>
                                 <SelectItem value="compose-new">Compose New...</SelectItem>
                                 <Separator/>
-                                {selectedSystemMemo.versions.map(v => (
+                                {versions.map(v => (
                                     <SelectItem key={v.id} value={v.id}>
-                                      Version {v.version} {selectedSystemMemo.activeVersion === v.version && '(Active)'}
+                                      Version {v.version} {system.activeVersion === v.version && '(Active)'}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -275,8 +235,8 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Array.from(selectedSystemMemo.contentByCategory.keys()).map((category) => {
-                      const contents = selectedSystemMemo.contentByCategory.get(category) || [];
+                    {Array.from(contentByCategory.keys()).map((category) => {
+                      const contentsForCategory = contentByCategory.get(category) || [];
                       return (
                           <TableRow key={category}>
                             <TableCell className="font-medium capitalize">{category.replace(/_/g, ' ')}</TableCell>
@@ -290,7 +250,7 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
                                   <SelectValue placeholder="Select content version" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {contents.map(c => (
+                                  {contentsForCategory.map(c => (
                                     <SelectItem key={c.id} value={c.id}>
                                       {c.version} - {new Date(c.timestamp).toLocaleDateString()}
                                     </SelectItem>
@@ -299,7 +259,7 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
                               </Select>
                             </TableCell>
                             <TableCell className="text-right text-muted-foreground text-xs">
-                              {selectedSystemMemo.activeVersion}
+                              {system.activeVersion}
                             </TableCell>
                           </TableRow>
                       )
