@@ -2,6 +2,7 @@
 
 
 
+
 'use server';
 
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString, getMetadata, deleteObject } from 'firebase/storage';
@@ -240,4 +241,29 @@ export async function getAppAIVersions(): Promise<AppAIVersion[]> {
 export async function setLiveAppAIVersion(versionId: string): Promise<void> {
     const configRef = doc(db, 'app_ai_config', 'main');
     await setDoc(configRef, { activeAppAIVersion: versionId }, { merge: true });
+}
+
+/**
+ * Creates a new App AI Version document in Firestore and sets it as the live version.
+ * @param version The version string, e.g., "v1.2.3".
+ * @param systems A map of system IDs to their selected prompt version IDs.
+ * @returns The newly created AppAIVersion object.
+ */
+export async function publishNewAppAIVersion(
+    version: string,
+    systems: { [systemId: string]: string }
+): Promise<AppAIVersion> {
+    const newVersionId = version.replace('v', '').replace(/\./g, '-');
+    const versionRef = doc(db, 'app_ai_versions', newVersionId);
+
+    const newVersionData: Omit<AppAIVersion, 'id'> = {
+        version,
+        timestamp: new Date().toISOString(),
+        systems,
+    };
+
+    await setDoc(versionRef, newVersionData);
+    await setLiveAppAIVersion(newVersionId);
+
+    return { id: newVersionId, ...newVersionData };
 }

@@ -28,7 +28,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import type { PromptSystem, PromptVersion, AppAIVersion } from '@/lib/types';
-import { getPromptSystems, getPromptVersionsForSystem, getAppAIVersions, getAppAIConfig, setLiveAppAIVersion } from '@/lib/actions';
+import { getPromptSystems, getPromptVersionsForSystem, getAppAIVersions, getAppAIConfig, setLiveAppAIVersion, publishNewAppAIVersion } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { Separator } from '../ui/separator';
@@ -68,79 +68,80 @@ export function AppAIVersionManager() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRepublishing, setIsRepublishing] = useState(false);
 
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      try {
-        const [fetchedSystems, fetchedVersions, config] = await Promise.all([
-          getPromptSystems(),
-          getAppAIVersions(),
-          getAppAIConfig()
-        ]);
-        
-        setActiveVersionId(config?.activeAppAIVersion || null);
-        setPublishedVersions(fetchedVersions);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [fetchedSystems, fetchedVersions, config] = await Promise.all([
+        getPromptSystems(),
+        getAppAIVersions(),
+        getAppAIConfig()
+      ]);
+      
+      setActiveVersionId(config?.activeAppAIVersion || null);
+      setPublishedVersions(fetchedVersions);
 
-        const systemsWithVersions: SystemWithVersions[] = await Promise.all(
-          fetchedSystems.map(async (system) => {
-            const versions = await getPromptVersionsForSystem(system.id);
-            const versionParts = {
-              major: new Set<string>(),
-              minor: new Map<string, Set<string>>(),
-              patch: new Map<string, Set<string>>(),
-            };
+      const systemsWithVersions: SystemWithVersions[] = await Promise.all(
+        fetchedSystems.map(async (system) => {
+          const versions = await getPromptVersionsForSystem(system.id);
+          const versionParts = {
+            major: new Set<string>(),
+            minor: new Map<string, Set<string>>(),
+            patch: new Map<string, Set<string>>(),
+          };
 
-            versions.forEach((v) => {
-              const [maj, min, pat] = v.version.split('.');
-              versionParts.major.add(maj);
+          versions.forEach((v) => {
+            const [maj, min, pat] = v.version.split('.');
+            versionParts.major.add(maj);
 
-              if (!versionParts.minor.has(maj)) {
-                versionParts.minor.set(maj, new Set());
-              }
-              versionParts.minor.get(maj)!.add(min);
+            if (!versionParts.minor.has(maj)) {
+              versionParts.minor.set(maj, new Set());
+            }
+            versionParts.minor.get(maj)!.add(min);
 
-              const minorKey = `${maj}.${min}`;
-              if (!versionParts.patch.has(minorKey)) {
-                versionParts.patch.set(minorKey, new Set());
-              }
-              versionParts.patch.get(minorKey)!.add(pat);
-            });
+            const minorKey = `${maj}.${min}`;
+            if (!versionParts.patch.has(minorKey)) {
+              versionParts.patch.set(minorKey, new Set());
+            }
+            versionParts.patch.get(minorKey)!.add(pat);
+          });
 
-            return {
-              ...system,
-              versions,
-              versionParts: {
-                major: Array.from(versionParts.major).sort(),
-                minor: new Map(
-                  Array.from(versionParts.minor.entries()).map(([k, v]) => [
-                    k,
-                    Array.from(v).sort(),
-                  ])
-                ),
-                patch: new Map(
-                  Array.from(versionParts.patch.entries()).map(([k, v]) => [
-                    k,
-                    Array.from(v).sort(),
-                  ])
-                ),
-              },
-            };
-          })
-        );
-        setSystems(systemsWithVersions);
-      } catch (error) {
-        console.error('Failed to fetch AI systems:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Could not load AI systems from Firestore.',
-        });
-      } finally {
-        setLoading(false);
-      }
+          return {
+            ...system,
+            versions,
+            versionParts: {
+              major: Array.from(versionParts.major).sort((a,b) => b.localeCompare(a, undefined, { numeric: true })),
+              minor: new Map(
+                Array.from(versionParts.minor.entries()).map(([k, v]) => [
+                  k,
+                  Array.from(v).sort((a,b) => b.localeCompare(a, undefined, { numeric: true })),
+                ])
+              ),
+              patch: new Map(
+                Array.from(versionParts.patch.entries()).map(([k, v]) => [
+                  k,
+                  Array.from(v).sort((a,b) => b.localeCompare(a, undefined, { numeric: true })),
+                ])
+              ),
+            },
+          };
+        })
+      );
+      setSystems(systemsWithVersions);
+    } catch (error) {
+      console.error('Failed to fetch AI systems:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Could not load AI systems from Firestore.',
+      });
+    } finally {
+      setLoading(false);
     }
-    fetchData();
   }, [toast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   useEffect(() => {
     if (selectedDisplayVersion === 'new') {
@@ -205,18 +206,38 @@ export function AppAIVersionManager() {
                 description: `Version ${publishedVersions.find(v => v.id === selectedDisplayVersion)?.version} has been set as the live version.`
             });
         } else {
-            // Logic for publishing a new version will go here
+            // Validate that all systems have a full version selected
+            if (systems.length !== Object.keys(selections).length || Object.values(selections).some(s => !s.fullVersion)) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Incomplete Version',
+                    description: 'Please select a Major, Minor, and Patch version for every AI system.'
+                });
+                return;
+            }
+            
+            const systemsToPublish: { [systemId: string]: string } = {};
+            for(const systemId in selections) {
+                systemsToPublish[systemId] = selections[systemId].fullVersion;
+            }
+
+            const newVersion = await publishNewAppAIVersion(nextVersionString, systemsToPublish);
+            
             toast({
-                title: 'Publishing New Version (Not Implemented)',
-                description: `Would create version: ${nextVersionString}`
+                title: 'Published!',
+                description: `App AI Version ${newVersion.version} is now live.`
             });
+
+            // Refresh data to show new version
+            await fetchData();
+            setSelectedDisplayVersion(newVersion.id);
         }
     } catch(error) {
         console.error('Failed to set live version:', error);
         toast({
             variant: 'destructive',
             title: 'Update Failed',
-            description: 'Could not publish the version. Please try again.'
+            description: 'Could not publish the version. Please try again.',
         });
     } finally {
         setIsSubmitting(false);
