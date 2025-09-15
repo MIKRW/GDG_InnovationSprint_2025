@@ -35,6 +35,7 @@ import { Separator } from '../ui/separator';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
+import { Switch } from '../ui/switch';
 
 interface VersionSelection {
   [systemId: string]: {
@@ -65,6 +66,7 @@ export function AppAIVersionManager() {
   const [selectedDisplayVersion, setSelectedDisplayVersion] = useState('new');
   const [saveType, setSaveType] = useState<'major' | 'minor' | 'patch'>('patch');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRepublishing, setIsRepublishing] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -144,6 +146,7 @@ export function AppAIVersionManager() {
     if (selectedDisplayVersion === 'new') {
         // Clear selections when switching to compose a new version
         setSelections({});
+        setIsRepublishing(false); // Can't republish "new"
     } else {
         const versionToShow = publishedVersions.find(v => v.id === selectedDisplayVersion);
         if (versionToShow) {
@@ -187,22 +190,33 @@ export function AppAIVersionManager() {
     });
   };
 
-  const handleRepublish = async () => {
-    if (selectedDisplayVersion === 'new') return;
+  const handlePublish = async () => {
     setIsSubmitting(true);
     try {
-        await setLiveAppAIVersion(selectedDisplayVersion);
-        setActiveVersionId(selectedDisplayVersion);
-        toast({
-            title: 'Success!',
-            description: `Version ${publishedVersions.find(v => v.id === selectedDisplayVersion)?.version} is now live.`
-        });
+        if (isRepublishing) {
+            if (selectedDisplayVersion === 'new') {
+                toast({ variant: 'destructive', title: 'Action not allowed', description: 'Cannot re-publish a new, un-saved version.' });
+                return;
+            }
+            await setLiveAppAIVersion(selectedDisplayVersion);
+            setActiveVersionId(selectedDisplayVersion);
+            toast({
+                title: 'Success!',
+                description: `Version ${publishedVersions.find(v => v.id === selectedDisplayVersion)?.version} has been set as the live version.`
+            });
+        } else {
+            // Logic for publishing a new version will go here
+            toast({
+                title: 'Publishing New Version (Not Implemented)',
+                description: `Would create version: ${nextVersionString}`
+            });
+        }
     } catch(error) {
         console.error('Failed to set live version:', error);
         toast({
             variant: 'destructive',
             title: 'Update Failed',
-            description: 'Could not set the live version. Please try again.'
+            description: 'Could not publish the version. Please try again.'
         });
     } finally {
         setIsSubmitting(false);
@@ -250,7 +264,7 @@ export function AppAIVersionManager() {
             <div className="text-left">
                 <CardTitle>App AI Version Publisher</CardTitle>
                 <CardDescription className="pt-2">
-                    Compose a new App AI Version by selecting a specific version for each AI system. This combination will be published as a new global version for the application.
+                    Compose a new App AI Version by selecting a specific version for each AI system, or re-publish an existing version. This combination will be published as a new global version for the application.
                 </CardDescription>
             </div>
           </AccordionTrigger>
@@ -367,46 +381,47 @@ export function AppAIVersionManager() {
                 </TableBody>
               </Table>
             </CardContent>
-            <CardFooter className="flex-col items-start gap-4">
-               {isViewingHistory ? (
-                  <Button 
-                    onClick={handleRepublish} 
-                    disabled={isSubmitting || activeVersionId === selectedDisplayVersion}
-                  >
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {activeVersionId === selectedDisplayVersion ? 'Currently Live' : 'Set as Live Version'}
-                  </Button>
-               ) : (
-                 <>
-                    <div className="flex items-center gap-8">
+            <CardFooter className="border-t pt-6">
+                <div className="flex flex-wrap items-center gap-6">
+                    <div className="flex items-center space-x-2">
+                        <Switch id="republish-switch" checked={isRepublishing} onCheckedChange={setIsRepublishing} disabled={!isViewingHistory} />
+                        <Label htmlFor="republish-switch">Republish Selected</Label>
+                    </div>
+                    
+                    <div className="flex items-center gap-8" style={{ opacity: isRepublishing ? 0.5 : 1 }}>
                         <div className="space-y-2">
                             <Label>New Version Type</Label>
-                            <RadioGroup defaultValue="patch" className="flex gap-4" onValueChange={(v) => setSaveType(v as any)}>
+                            <RadioGroup 
+                                defaultValue="patch" 
+                                className="flex gap-4" 
+                                onValueChange={(v) => setSaveType(v as any)}
+                                disabled={isRepublishing}
+                            >
                                 <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="major" id="major" />
+                                    <RadioGroupItem value="major" id="major" disabled={isRepublishing} />
                                     <Label htmlFor="major">Major</Label>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="minor" id="minor" />
+                                    <RadioGroupItem value="minor" id="minor" disabled={isRepublishing}/>
                                     <Label htmlFor="minor">Minor</Label>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="patch" id="patch" />
+                                    <RadioGroupItem value="patch" id="patch" disabled={isRepublishing}/>
                                     <Label htmlFor="patch">Patch</Label>
                                 </div>
                             </RadioGroup>
                         </div>
-                        <div className="flex items-center gap-2">
+                         <div className="flex items-center gap-2">
                             <Label className="text-muted-foreground">Next Version:</Label>
                             <Badge variant="outline">{nextVersionString}</Badge>
                         </div>
                     </div>
-                    <Button disabled={isSubmitting}>
+                    
+                     <Button onClick={handlePublish} disabled={isSubmitting}>
                       {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Publish New App AI Version
+                      Publish
                     </Button>
-                 </>
-               )}
+                </div>
             </CardFooter>
           </AccordionContent>
         </AccordionItem>
