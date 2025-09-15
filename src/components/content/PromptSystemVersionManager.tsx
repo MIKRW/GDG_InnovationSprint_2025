@@ -293,7 +293,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                             <Badge variant="outline">{nextVersionString}</Badge>
                         </div>
                     </div>
-                    <Button onClick={handlePublish} disabled={isSubmitting || (isViewingHistory && !isRepublishing)}>
+                    <Button onClick={handlePublish} disabled={isSubmitting || (isViewingHistory && isRepublishing)}>
                         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Publish
                     </Button>
