@@ -63,12 +63,12 @@ export default function PromptManagementPage() {
 
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle>Select AI System</CardTitle>
-          <CardDescription>Choose the AI system you want to manage. The publisher below will update accordingly.</CardDescription>
+          <CardTitle className="text-3xl text-center">Select AI Type</CardTitle>
+          <CardDescription className="text-center">Choose the AI system you want to manage. The publisher below will update accordingly.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex justify-center">
           {loadingSystems ? (
-            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full max-w-xs" />
           ) : (
             <div className="flex items-center gap-4">
               <Label htmlFor="system-selector" className="font-semibold whitespace-nowrap">AI System</Label>
