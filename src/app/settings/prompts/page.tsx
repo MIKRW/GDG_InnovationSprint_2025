@@ -145,7 +145,7 @@ export default function PromptManagementPage() {
           <AppAIVersionManager />
         </CardHeader>
       </Card>
-
+      
       <Card className="mb-8 bg-card-header">
         <CardHeader>
           <CardTitle className="text-3xl text-center">AI System Editor</CardTitle>
