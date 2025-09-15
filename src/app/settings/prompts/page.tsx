@@ -146,7 +146,7 @@ export default function PromptManagementPage() {
 
       <Card className="mb-8">
         <CardHeader>
-            <CardTitle className="text-3xl text-center">AI System Editor</CardTitle>
+            <CardTitle className="text-6xl text-center">AI System Editor</CardTitle>
             <CardDescription className="text-center">Choose the AI system you want to manage. The publisher and editor below will update accordingly.</CardDescription>
             <div className="flex justify-center pt-4">
                 {loading && !selectedSystemId ? (
