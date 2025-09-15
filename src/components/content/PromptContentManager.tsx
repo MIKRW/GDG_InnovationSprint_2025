@@ -305,15 +305,13 @@ export function PromptContentManager({ systemId }: PromptContentManagerProps) {
 
               <div>
                   <Label htmlFor="prompt-editor">Prompt Text</Label>
-                  <ScrollArea className="h-72 w-full rounded-md border">
-                    <Textarea 
-                      id="prompt-editor"
-                      className="h-full min-h-[inherit] w-full resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                      value={editText}
-                      onChange={(e) => setEditText(e.target.value)}
-                      placeholder="Enter or load prompt text here..."
-                    />
-                  </ScrollArea>
+                  <Textarea 
+                    id="prompt-editor"
+                    className="h-72 w-full resize-y focus-visible:ring-offset-0"
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    placeholder="Enter or load prompt text here..."
+                  />
               </div>
             </CardContent>
             <CardFooter className="border-t pt-6">
