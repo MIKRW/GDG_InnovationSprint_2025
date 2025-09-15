@@ -193,6 +193,23 @@ export function AppAIVersionManager() {
       return publishedVersions.find(v => v.id === activeVersionId);
   }, [publishedVersions, activeVersionId]);
 
+  const nextVersionString = useMemo(() => {
+    const latestVersion = publishedVersions[0];
+    if (!latestVersion) return "v1.0.0"; // Default for the very first version
+
+    const [major, minor, patch] = latestVersion.version.replace('v', '').split('.').map(Number);
+
+    if (saveType === 'major') {
+      return `v${major + 1}.0.0`;
+    }
+    if (saveType === 'minor') {
+      return `v${major}.${minor + 1}.0`;
+    }
+    // Default to patch
+    return `v${major}.${minor}.${patch + 1}`;
+
+  }, [publishedVersions, saveType]);
+
 
   if (loading) {
     return (
@@ -330,22 +347,28 @@ export function AppAIVersionManager() {
             <CardFooter className="flex-col items-start gap-4">
                {!isViewingHistory && (
                  <>
-                    <div className="space-y-2">
-                        <Label>New Version Type</Label>
-                        <RadioGroup defaultValue="patch" className="flex gap-4" onValueChange={(v) => setSaveType(v as any)}>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="major" id="major" />
-                                <Label htmlFor="major">Major</Label>
-                            </div>
-                             <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="minor" id="minor" />
-                                <Label htmlFor="minor">Minor</Label>
-                            </div>
-                             <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="patch" id="patch" />
-                                <Label htmlFor="patch">Patch</Label>
-                            </div>
-                        </RadioGroup>
+                    <div className="flex items-center gap-8">
+                        <div className="space-y-2">
+                            <Label>New Version Type</Label>
+                            <RadioGroup defaultValue="patch" className="flex gap-4" onValueChange={(v) => setSaveType(v as any)}>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="major" id="major" />
+                                    <Label htmlFor="major">Major</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="minor" id="minor" />
+                                    <Label htmlFor="minor">Minor</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="patch" id="patch" />
+                                    <Label htmlFor="patch">Patch</Label>
+                                </div>
+                            </RadioGroup>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Label className="text-muted-foreground">Next Version:</Label>
+                            <Badge variant="outline">{nextVersionString}</Badge>
+                        </div>
                     </div>
                     <Button>Publish New App AI Version</Button>
                  </>
