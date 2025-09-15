@@ -46,9 +46,13 @@ export function SettingsPage() {
         {isDevMode && (
           <div className="pt-8 w-full max-w-sm">
               <h2 className="text-lg font-semibold mb-2">Developer Tools</h2>
-                <Button asChild variant="outline">
-                  <Link href="/settings/prompts"><FlaskConical className="mr-2 h-4 w-4" />Prompt Management</Link>
-                </Button>
+                <Card className="bg-hazard-stripes p-1 rounded-lg">
+                    <div className="bg-background rounded-sm">
+                        <Button asChild variant="outline" className="w-full justify-start">
+                            <Link href="/settings/prompts"><FlaskConical className="mr-2 h-4 w-4" />Prompt Management</Link>
+                        </Button>
+                    </div>
+                </Card>
           </div>
         )}
 
