@@ -5,6 +5,7 @@
 
 
 
+
 'use server';
 
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString, getMetadata, deleteObject } from 'firebase/storage';
@@ -207,6 +208,9 @@ export async function getPromptVersionsForSystem(systemId: string): Promise<Prom
     
     // Sort the versions by timestamp in descending order (newest first) in the server action.
     versions.sort((a, b) => {
+        if (typeof a.version !== 'string') return 1;
+        if (typeof b.version !== 'string') return -1;
+
         const versionA = a.version.replace('v', '').split('.').map(Number);
         const versionB = b.version.replace('v', '').split('.').map(Number);
     
@@ -232,16 +236,21 @@ export async function getPromptContentForSystem(systemId: string): Promise<Promp
 
     // Sort by version descending (e.g., v1.1.0, v1.0.0)
     contents.sort((a, b) => {
-        // Defensive check: if version is missing, treat it as the oldest.
-        if (!a.version) return 1;
-        if (!b.version) return -1;
+        // Add robust checks to prevent crashes from bad data.
+        if (typeof a.version !== 'string') return 1; // 'a' is invalid, move it to the end.
+        if (typeof b.version !== 'string') return -1; // 'b' is invalid, move it to the end.
+
+        try {
+            const versionA = a.version.replace('v', '').split('.').map(Number);
+            const versionB = b.version.replace('v', '').split('.').map(Number);
         
-        const versionA = a.version.replace('v', '').split('.').map(Number);
-        const versionB = b.version.replace('v', '').split('.').map(Number);
-    
-        if (versionA[0] !== versionB[0]) return versionB[0] - versionA[0];
-        if (versionA[1] !== versionB[1]) return versionB[1] - versionA[1];
-        return versionB[2] - versionA[2];
+            if (versionA[0] !== versionB[0]) return versionB[0] - versionA[0];
+            if (versionA[1] !== versionB[1]) return versionB[1] - versionA[1];
+            return versionB[2] - versionA[2];
+        } catch (e) {
+            console.error("Failed to parse versions for sorting:", a, b, e);
+            return 0; // Don't change order if parsing fails
+        }
     });
 
     return contents;
