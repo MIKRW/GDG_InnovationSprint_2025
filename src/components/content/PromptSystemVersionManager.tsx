@@ -79,18 +79,28 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
     setIsRepublishing(false);
   }, [system]);
 
+  const loadSelectionsFromVersion = useCallback((versionId: string) => {
+    const version = versions.find(v => v.id === versionId);
+    if (version) {
+        setSelections(version.composedPrompts);
+    }
+  }, [versions]);
+
   useEffect(() => {
-    if (viewingVersionId && viewingVersionId !== 'compose-new' && system) {
-        const version = versions.find(v => v.id === viewingVersionId);
-        if (version) {
-            setSelections(version.composedPrompts);
-            setIsRepublishing(true); // Default to republish when viewing history
-        }
+    if (viewingVersionId && viewingVersionId !== 'compose-new') {
+        loadSelectionsFromVersion(viewingVersionId);
+        setIsRepublishing(true); // Default to republish when viewing history
     } else {
         setSelections({});
         setIsRepublishing(false);
     }
-  }, [viewingVersionId, versions, system]);
+  }, [viewingVersionId, versions, loadSelectionsFromVersion]);
+  
+  useEffect(() => {
+    if (isRepublishing && viewingVersionId !== 'compose-new') {
+        loadSelectionsFromVersion(viewingVersionId);
+    }
+  }, [isRepublishing, viewingVersionId, loadSelectionsFromVersion]);
 
 
   const handleSelection = (categoryId: string, contentId: string) => {
@@ -306,5 +316,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
   );
 }
 
+
+    
 
     

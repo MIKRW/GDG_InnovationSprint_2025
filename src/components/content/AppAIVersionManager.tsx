@@ -144,25 +144,39 @@ export function AppAIVersionManager() {
     fetchData();
   }, [fetchData]);
 
+  const loadSelectionsFromVersion = useCallback((versionId: string) => {
+      const versionToShow = publishedVersions.find(v => v.id === versionId);
+      if (versionToShow) {
+          const newSelections: VersionSelection = {};
+          for (const systemId in versionToShow.systems) {
+              const fullVersionString = versionToShow.systems[systemId];
+              if (fullVersionString) {
+                const [majorWithV, minor, patch] = fullVersionString.split('.');
+                const major = majorWithV.replace('v', '');
+                newSelections[systemId] = { major, minor, patch, fullVersion: fullVersionString };
+              }
+          }
+          setSelections(newSelections);
+      }
+  }, [publishedVersions]);
+
   useEffect(() => {
     if (selectedDisplayVersion === 'new') {
         // Clear selections when switching to compose a new version
         setSelections({});
         setIsRepublishing(false);
     } else {
-        const versionToShow = publishedVersions.find(v => v.id === selectedDisplayVersion);
-        if (versionToShow) {
-            const newSelections: VersionSelection = {};
-            for (const systemId in versionToShow.systems) {
-                const [majorWithV, minor, patch] = versionToShow.systems[systemId].split('.');
-                const major = majorWithV.replace('v', '');
-                newSelections[systemId] = { major, minor, patch, fullVersion: versionToShow.systems[systemId] };
-            }
-            setSelections(newSelections);
-            setIsRepublishing(true); // Default to republish mode when viewing history
-        }
+        loadSelectionsFromVersion(selectedDisplayVersion);
+        setIsRepublishing(true); // Default to republish mode when viewing history
     }
-  }, [selectedDisplayVersion, publishedVersions]);
+  }, [selectedDisplayVersion, publishedVersions, loadSelectionsFromVersion]);
+  
+  useEffect(() => {
+    // If user toggles republish back on, reset selections to match the historical version
+    if (isRepublishing && selectedDisplayVersion !== 'new') {
+      loadSelectionsFromVersion(selectedDisplayVersion);
+    }
+  }, [isRepublishing, selectedDisplayVersion, loadSelectionsFromVersion]);
 
 
   const handleSelection = (
@@ -460,6 +474,8 @@ export function AppAIVersionManager() {
     </Card>
   );
 }
+
+    
 
     
 
