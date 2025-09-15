@@ -233,8 +233,8 @@ export function PromptSystemVersionManager({ systemId, onUpdate }: PromptSystemV
       <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
         <AccordionItem value="item-1" className="border-b-0">
           <AccordionTrigger className="p-6 hover:no-underline">
-            <div className="text-left">
-              <CardTitle>Prompt System Version Publisher</CardTitle>
+            <div className="flex-1 text-center">
+              <CardTitle>AI type version control</CardTitle>
               <CardDescription className="pt-2">
                 Compose new versions of the <span className="font-semibold text-foreground">{selectedSystemMemo.name}</span> system by selecting which version of each prompt category to include.
               </CardDescription>
