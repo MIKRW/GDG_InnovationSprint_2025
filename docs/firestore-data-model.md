@@ -81,7 +81,7 @@ This model provides a multi-tiered, version-controlled system for managing all A
     *   **Document (ID: `location_handling_v1`):**
         *   `systemId`: "bird-identifier-ai-newbie"
         *   `categoryId`: "location_handling"
-        *   `version`: 1
+        *   `version`: "v1.0.0"
         *   `promptText`: "If location is provided, use it as a primary factor..."
         *   `timestamp`: The time this version was saved.
         *   `previousVersionId`: (string, optional) ID of the previous version for history tracking.

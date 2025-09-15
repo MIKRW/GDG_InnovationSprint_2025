@@ -122,6 +122,7 @@ const identifyBirdFlow = ai.defineFlow(
   async (input) => {
     
     // Simplified: Always use the same prompt for now.
+    // This will be replaced with logic to fetch the correct prompt from Firestore.
     const promptTemplate = NEWBIE_PROMPT_TEMPLATE;
     
     const { output } = await ai.generate({

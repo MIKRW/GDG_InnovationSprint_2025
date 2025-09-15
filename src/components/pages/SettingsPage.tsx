@@ -43,6 +43,15 @@ export function SettingsPage() {
           <Link href="/settings/mode">App Mode</Link>
         </Button>
 
+        {isDevMode && (
+          <div className="pt-8 w-full max-w-sm">
+              <h2 className="text-lg font-semibold mb-2">Developer Tools</h2>
+                <Button asChild variant="outline">
+                  <Link href="/settings/prompts"><FlaskConical className="mr-2 h-4 w-4" />Prompt Management</Link>
+                </Button>
+          </div>
+        )}
+
         <div className="pt-8 w-full max-w-sm">
             <h2 className="text-lg font-semibold mb-2">Account</h2>
             {isAnonymous ? (

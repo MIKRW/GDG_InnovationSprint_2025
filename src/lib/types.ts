@@ -1,5 +1,4 @@
 
-
 // This file can be used to define shared types and interfaces.
 
 export type ThemeColor = {
@@ -154,3 +153,58 @@ export interface TestAudioMetadata {
   family: string;
   order: string;
 }
+
+// =================================================================
+// Three-Tiered Prompt Versioning System Types
+// =================================================================
+
+/**
+ * Level 1: The global configuration for the entire application's AI.
+ * Specifies which version of each overarching AI system is active.
+ */
+export type AppAIVersion = {
+    id: string; // e.g., 'v1.0'
+    version: string;
+    timestamp: string;
+    systems: {
+        [systemId: string]: string; // e.g., { 'bird-identifier-ai-newbie': 'v1.1' }
+    };
+};
+
+/**
+ * Level 2: An overarching AI system (e.g., "Bird Identifier").
+ * A manifest that composes multiple prompt categories.
+ */
+export type PromptSystem = {
+    id: string; // e.g., 'bird-identifier-ai-newbie'
+    name: string;
+    description: string;
+    activeVersion: string; // e.g., 'v1.1'
+};
+
+/**
+ * A specific, saved version of an overarching AI system.
+ */
+export type PromptVersion = {
+    id: string; // e.g., 'bird-identifier-ai-newbie-v1-1'
+    systemId: string;
+    version: string; // e.g., 'v1.1'
+    timestamp: string;
+    composedPrompts: {
+        [categoryId: string]: string; // e.g., { 'base_instruction': 'base_instruction_v2' }
+    };
+};
+
+/**
+ * Level 3: The actual text content for a single, versioned piece of a prompt.
+ * This is the most granular level.
+ */
+export type PromptContent = {
+    id: string; // e.g., 'location_handling_v1'
+    systemId: string;
+    categoryId: string; // e.g., 'location_handling'
+    version: string; // e.g., 'v1.0.0'
+    timestamp: string;
+    promptText: string;
+    previousVersionId?: string;
+};
