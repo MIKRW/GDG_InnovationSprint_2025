@@ -6,7 +6,7 @@ import { ref as storageRef, uploadBytes, getDownloadURL, uploadString, getMetada
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, addDoc, collection, serverTimestamp, query, where, getDocs, orderBy, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
-import type { TestAudioMetadata, BirdLog } from './types';
+import type { TestAudioMetadata, BirdLog, PromptSystem, PromptVersion } from './types';
 import { EmailAuthProvider, linkWithCredential, type User } from 'firebase/auth';
 import { kebabCase } from 'lodash';
 
@@ -170,4 +170,30 @@ export async function saveCanonicalImage(
     await setDoc(birdDocRef, updateData, { merge: true });
 
     return downloadURL;
+}
+
+/**
+ * Fetches all defined AI prompt systems from Firestore.
+ */
+export async function getPromptSystems(): Promise<PromptSystem[]> {
+    const systemsRef = collection(db, 'prompt_systems');
+    const q = query(systemsRef, orderBy('name'));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+        return [];
+    }
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
+}
+
+/**
+ * Fetches all saved versions for a specific prompt system.
+ */
+export async function getPromptVersionsForSystem(systemId: string): Promise<PromptVersion[]> {
+    const versionsRef = collection(db, 'prompt_versions');
+    const q = query(versionsRef, where('systemId', '==', systemId), orderBy('timestamp', 'desc'));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+        return [];
+    }
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptVersion));
 }
