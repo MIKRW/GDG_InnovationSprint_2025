@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,6 +9,8 @@
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
+    --card-header: 240 5.9% 95%;
+    --card-header-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
     --primary: 222.2 47.4% 11.2%;
@@ -48,6 +51,8 @@
     --foreground: 210 40% 98%;
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
+    --card-header: 222.2 84% 6.9%;
+    --card-header-foreground: 210 40% 98%;
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
     --primary: 210 40% 98%;
@@ -74,6 +79,8 @@
     --foreground: var(--custom-foreground-h) var(--custom-foreground-s) var(--custom-foreground-l);
     --card: var(--custom-background-h) var(--custom-background-s) var(--custom-background-l);
     --card-foreground: var(--custom-foreground-h) var(--custom-foreground-s) var(--custom-foreground-l);
+    --card-header: var(--custom-background-h) var(--custom-background-s) calc(var(--custom-background-l) + 2%);
+    --card-header-foreground: var(--custom-foreground-h) var(--custom-foreground-s) var(--custom-foreground-l);
     --popover: var(--custom-background-h) var(--custom-background-s) var(--custom-background-l);
     --popover-foreground: var(--custom-foreground-h) var(--custom-foreground-s) var(--custom-foreground-l);
     --primary: var(--custom-primary-h) var(--custom-primary-s) var(--custom-primary-l);
@@ -100,3 +107,5 @@
     @apply bg-background text-foreground;
   }
 }
+
+    
