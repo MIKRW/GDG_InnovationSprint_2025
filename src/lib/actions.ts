@@ -2,7 +2,7 @@
 'use server';
 
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString, getMetadata, deleteObject } from 'firebase/storage';
-import { doc, setDoc, getDoc, updateDoc, arrayUnion, addDoc, collection, serverTimestamp, query, where, getDocs, orderBy, writeBatch, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, arrayUnion, addDoc, collection, serverTimestamp, query, where, getDocs, orderBy, writeBatch, deleteDoc, runTransaction } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
 import type { TestAudioMetadata, BirdLog, PromptSystem, PromptVersion, AppAIVersion, AppAIConfig, PromptContent } from './types';
@@ -211,28 +211,43 @@ export async function createNewPromptSystem(data: { systemId: string, name: stri
         throw new Error('A system with this ID already exists.');
     }
 
-    // 1. Create default content
-    const defaultContent = await publishNewPromptContent({
-        systemId: systemId,
-        categoryId: 'base_instruction',
-        version: 'v1.0.0',
-        promptText: 'enter prompt here:'
-    });
-    
-    // 2. Create default version pointing to content
-    const defaultVersion = await publishNewPromptVersion(systemId, 'v1.0.0', {
-        base_instruction: defaultContent.id
-    }, false); // Set makeLive to false, as we are creating the system now.
-    
-    // 3. Create the system document
-    const newSystemData: Omit<PromptSystem, 'id'> = {
-        name,
-        description,
-        activeVersion: defaultVersion.version,
-    };
-    await setDoc(systemRef, newSystemData);
+    // Use a transaction to ensure all parts are created together
+    await runTransaction(db, async (transaction) => {
+        // 1. Create default content
+        const defaultContentId = `base_instruction_v1-0-0`;
+        const contentRef = doc(db, 'prompt_content', defaultContentId);
+        const contentData: Omit<PromptContent, 'id'> = {
+            systemId,
+            categoryId: 'base_instruction',
+            version: 'v1.0.0',
+            promptText: 'enter prompt here:',
+            timestamp: new Date().toISOString(),
+        };
+        transaction.set(contentRef, contentData);
 
-    return { id: systemId, ...newSystemData };
+        // 2. Create default version pointing to content
+        const defaultVersionId = `${systemId}-v1-0-0`;
+        const versionRef = doc(db, 'prompt_versions', defaultVersionId);
+        const versionData: Omit<PromptVersion, 'id'> = {
+            systemId,
+            version: 'v1.0.0',
+            timestamp: new Date().toISOString(),
+            composedPrompts: {
+                base_instruction: defaultContentId,
+            },
+        };
+        transaction.set(versionRef, versionData);
+
+        // 3. Create the system document
+        const newSystemData: Omit<PromptSystem, 'id'> = {
+            name,
+            description,
+            activeVersion: 'v1.0.0',
+        };
+        transaction.set(systemRef, newSystemData);
+    });
+
+    return { id: systemId, name, description, activeVersion: 'v1.0.0' };
 }
 
 /**
@@ -383,7 +398,6 @@ export async function publishNewPromptVersion(
     systemId: string,
     version: string,
     composedPrompts: { [categoryId: string]: string },
-    makeLive: boolean = true
 ): Promise<PromptVersion> {
     const newId = `${systemId}-${version.replace(/\./g, '-')}`;
     const versionRef = doc(db, 'prompt_versions', newId);
@@ -396,9 +410,7 @@ export async function publishNewPromptVersion(
     };
 
     await setDoc(versionRef, newVersionData);
-    if (makeLive) {
-        await setLivePromptSystemVersion(systemId, version);
-    }
+    await setLivePromptSystemVersion(systemId, version);
 
     return { id: newId, ...newVersionData };
 }
@@ -420,7 +432,7 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
     const newId = `${categoryId}_${version.replace(/\./g, '-')}`;
     const contentRef = doc(db, 'prompt_content', newId);
 
-    const newContentData: Omit<PromptContent, 'id'> & { previousVersionId?: string } = {
+    const newContentData: Omit<PromptContent, 'id'> = {
         systemId,
         categoryId,
         version,
@@ -429,10 +441,74 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
     };
 
     if (previousVersionId) {
-        newContentData.previousVersionId = previousVersionId;
+        (newContentData as PromptContent).previousVersionId = previousVersionId;
     }
 
     await setDoc(contentRef, newContentData);
 
     return { id: newId, ...newContentData };
+}
+
+
+/**
+ * Fetches the fully composed prompt text for a given AI system by following the versioning hierarchy.
+ * @param systemId The ID of the AI system (e.g., 'bird-identifier-ai-newbie').
+ * @returns The final, combined prompt string, or null if any part of the chain is missing.
+ */
+export async function getComposedPrompt(systemId: string): Promise<string | null> {
+    try {
+        // 1. Get the live app version config
+        const appConfig = await getAppAIConfig();
+        if (!appConfig?.activeAppAIVersion) {
+            throw new Error("No active App AI Version is configured.");
+        }
+
+        // 2. Get the specific app version document
+        const appVersionRef = doc(db, 'app_ai_versions', appConfig.activeAppAIVersion);
+        const appVersionSnap = await getDoc(appVersionRef);
+        if (!appVersionSnap.exists()) {
+            throw new Error(`App AI Version document '${appConfig.activeAppAIVersion}' not found.`);
+        }
+        const appVersion = appVersionSnap.data() as AppAIVersion;
+
+        // 3. Find the prompt system version for the requested systemId
+        const systemRef = doc(db, 'prompt_systems', systemId);
+        const systemSnap = await getDoc(systemRef);
+        if(!systemSnap.exists()) {
+            throw new Error(`Prompt system '${systemId}' does not exist.`);
+        }
+        const systemData = systemSnap.data() as PromptSystem;
+        const activeSystemVersion = systemData.activeVersion;
+
+        // 4. Get the prompt version document
+        const promptVersionId = `${systemId}-${activeSystemVersion.replace(/\./g, '-')}`;
+        const promptVersionRef = doc(db, 'prompt_versions', promptVersionId);
+        const promptVersionSnap = await getDoc(promptVersionRef);
+        if (!promptVersionSnap.exists()) {
+            throw new Error(`Prompt version document '${promptVersionId}' for system '${systemId}' not found.`);
+        }
+        const promptVersion = promptVersionSnap.data() as PromptVersion;
+
+        // 5. Fetch all the individual prompt content pieces
+        const contentIds = Object.values(promptVersion.composedPrompts);
+        const contentPromises = contentIds.map(id => getDoc(doc(db, 'prompt_content', id)));
+        const contentSnaps = await Promise.all(contentPromises);
+
+        const contentPieces: PromptContent[] = contentSnaps.map(snap => {
+            if (!snap.exists()) {
+                throw new Error(`Required prompt content document with ID '${snap.id}' is missing.`);
+            }
+            return snap.data() as PromptContent;
+        });
+        
+        // 6. Assemble the final prompt (for now, just join them with newlines)
+        // A more advanced system could use an 'order' field.
+        const composedText = contentPieces.map(p => p.promptText).join('\n\n');
+
+        return composedText;
+
+    } catch (error) {
+        console.error(`Failed to get composed prompt for '${systemId}':`, error);
+        return null;
+    }
 }
