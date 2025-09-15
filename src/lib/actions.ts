@@ -6,6 +6,7 @@
 
 
 
+
 'use server';
 
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString, getMetadata, deleteObject } from 'firebase/storage';
@@ -236,9 +237,8 @@ export async function getPromptContentForSystem(systemId: string): Promise<Promp
 
     // Sort by version descending (e.g., v1.1.0, v1.0.0)
     contents.sort((a, b) => {
-        // Add robust checks to prevent crashes from bad data.
-        if (typeof a.version !== 'string') return 1; // 'a' is invalid, move it to the end.
-        if (typeof b.version !== 'string') return -1; // 'b' is invalid, move it to the end.
+        if (typeof a.version !== 'string') return 1;
+        if (typeof b.version !== 'string') return -1;
 
         try {
             const versionA = a.version.replace('v', '').split('.').map(Number);
@@ -317,6 +317,16 @@ export async function publishNewAppAIVersion(
 }
 
 /**
+ * Sets the live (active) Prompt System Version for a specific AI system.
+ * @param systemId The ID of the PromptSystem document to update.
+ * @param version The version string (e.g., 'v1.2') to set as active.
+ */
+export async function setLivePromptSystemVersion(systemId: string, version: string): Promise<void> {
+    const systemRef = doc(db, 'prompt_systems', systemId);
+    await updateDoc(systemRef, { activeVersion: version });
+}
+
+/**
  * Publishes a new version of a specific Prompt System.
  * @param systemId The ID of the system this version belongs to.
  * @param version The new version string (e.g., "v1.2.3").
@@ -339,10 +349,7 @@ export async function publishNewPromptVersion(
     };
 
     await setDoc(versionRef, newVersionData);
-
-    // Also update the 'activeVersion' on the parent system document
-    const systemRef = doc(db, 'prompt_systems', systemId);
-    await updateDoc(systemRef, { activeVersion: version });
+    await setLivePromptSystemVersion(systemId, version);
 
     return { id: newId, ...newVersionData };
 }

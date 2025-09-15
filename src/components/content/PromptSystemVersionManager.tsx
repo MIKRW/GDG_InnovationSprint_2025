@@ -28,12 +28,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import type { PromptSystem, PromptContent, PromptVersion } from '@/lib/types';
-import { getPromptSystems, getPromptContentForSystem, publishNewPromptVersion, getPromptVersionsForSystem } from '@/lib/actions';
+import { getPromptSystems, getPromptContentForSystem, publishNewPromptVersion, getPromptVersionsForSystem, setLivePromptSystemVersion } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
+import { Switch } from '../ui/switch';
 
 interface ContentSelection {
   [categoryId: string]: string; // e.g., { base_instruction: 'base_instruction_v2' }
@@ -54,6 +55,8 @@ export function PromptSystemVersionManager() {
   const [saveType, setSaveType] = useState<'major' | 'minor' | 'patch'>('patch');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [viewingVersionId, setViewingVersionId] = useState<string | null>(null);
+  const [isRepublishing, setIsRepublishing] = useState(false);
+
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -74,11 +77,22 @@ export function PromptSystemVersionManager() {
             contentByCategory.get(c.categoryId)!.push(c);
           });
 
+          // Make sure versions are sorted correctly
+          versions.sort((a, b) => {
+            if (typeof a.version !== 'string' || typeof b.version !== 'string') return 0;
+            const verA = a.version.replace('v', '').split('.').map(Number);
+            const verB = b.version.replace('v', '').split('.').map(Number);
+            if (verA[0] !== verB[0]) return verB[0] - verA[0];
+            if (verA[1] !== verB[1]) return verB[1] - verA[1];
+            return verB[2] - verA[2];
+          });
+
+
           return { ...system, contentByCategory, versions };
         })
       );
       setSystems(systemsWithContent);
-      if (systemsWithContent.length > 0) {
+      if (systemsWithContent.length > 0 && !selectedSystemId) {
         setSelectedSystemId(systemsWithContent[0].id);
       }
     } catch (error) {
@@ -91,7 +105,7 @@ export function PromptSystemVersionManager() {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, selectedSystemId]);
 
   useEffect(() => {
     fetchData();
@@ -104,6 +118,7 @@ export function PromptSystemVersionManager() {
   useEffect(() => {
     setSelections({});
     setViewingVersionId(null);
+    setIsRepublishing(false);
   }, [selectedSystemId]);
 
   useEffect(() => {
@@ -114,6 +129,7 @@ export function PromptSystemVersionManager() {
         }
     } else {
         setSelections({});
+        setIsRepublishing(false); // Can't republish when composing new
     }
   }, [viewingVersionId, selectedSystem]);
 
@@ -123,25 +139,42 @@ export function PromptSystemVersionManager() {
   };
 
   const handlePublish = async () => {
-    if (!selectedSystem || !nextVersionString) {
-        toast({ variant: 'destructive', title: 'Error', description: 'No system or version selected.' });
-        return;
-    }
-
-    // Validate that all categories have a selection
-    if (Array.from(selectedSystem.contentByCategory.keys()).length !== Object.keys(selections).length) {
-        toast({ variant: 'destructive', title: 'Incomplete Selection', description: 'Please select a prompt content version for every category.' });
+    if (!selectedSystem) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No system selected.' });
         return;
     }
 
     setIsSubmitting(true);
     try {
-        const newVersion = await publishNewPromptVersion(selectedSystem.id, nextVersionString, selections);
-        toast({ title: 'Published!', description: `Prompt System Version ${newVersion.version} for ${selectedSystem.name} is now available.` });
-        
-        // Refresh data
-        await fetchData();
+        if (isRepublishing) {
+            if (!viewingVersionId) {
+                toast({ variant: 'destructive', title: 'Action not allowed', description: 'Cannot re-publish a new, un-saved version.' });
+                return;
+            }
+            const versionToRepublish = selectedSystem.versions.find(v => v.id === viewingVersionId);
+            if (!versionToRepublish) return;
+
+            await setLivePromptSystemVersion(selectedSystem.id, versionToRepublish.version);
+            
+            toast({ title: 'Success!', description: `Version ${versionToRepublish.version} is now the active version for ${selectedSystem.name}.` });
+        } else {
+             if (!nextVersionString) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not determine next version number.' });
+                return;
+            }
+            if (Array.from(selectedSystem.contentByCategory.keys()).length !== Object.keys(selections).length) {
+                toast({ variant: 'destructive', title: 'Incomplete Selection', description: 'Please select a prompt content version for every category.' });
+                return;
+            }
+            
+            const newVersion = await publishNewPromptVersion(selectedSystem.id, nextVersionString, selections);
+            toast({ title: 'Published!', description: `Prompt System Version ${newVersion.version} for ${selectedSystem.name} is now available.` });
+        }
+
+        await fetchData(); // Refresh all data
         setSelections({});
+        setViewingVersionId(null);
+
     } catch (error) {
         console.error('Failed to publish prompt version:', error);
         toast({ variant: 'destructive', title: 'Publish Failed', description: 'Could not save the new prompt version.' });
@@ -178,6 +211,8 @@ export function PromptSystemVersionManager() {
     );
   }
 
+  const isViewingHistory = viewingVersionId !== null;
+
   return (
     <Card className="mt-8">
       <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
@@ -207,7 +242,7 @@ export function PromptSystemVersionManager() {
                         </Select>
                     </div>
                      <div className="flex items-center gap-4">
-                        <Label htmlFor="version-viewer" className="font-semibold whitespace-nowrap">View Version</Label>
+                        <Label htmlFor="version-viewer" className="font-semibold whitespace-nowrap">View/Compose</Label>
                         <Select onValueChange={handleViewVersionChange} value={viewingVersionId || 'compose-new'}>
                             <SelectTrigger id="version-viewer" className="w-full sm:w-[250px]">
                                 <SelectValue placeholder="Compose New..." />
@@ -215,7 +250,9 @@ export function PromptSystemVersionManager() {
                             <SelectContent>
                                 <SelectItem value="compose-new">Compose New...</SelectItem>
                                 {selectedSystem?.versions.map(v => (
-                                    <SelectItem key={v.id} value={v.id}>Version {v.version}</SelectItem>
+                                    <SelectItem key={v.id} value={v.id}>
+                                      Version {v.version} {selectedSystem.activeVersion === v.version && '(Active)'}
+                                    </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -240,7 +277,7 @@ export function PromptSystemVersionManager() {
                           <Select 
                             value={selections[category] || ''} 
                             onValueChange={(value) => handleSelection(category, value)}
-                            disabled={!!viewingVersionId}
+                            disabled={isViewingHistory}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select content version" />
@@ -255,8 +292,7 @@ export function PromptSystemVersionManager() {
                           </Select>
                         </TableCell>
                         <TableCell className="text-right text-muted-foreground text-xs">
-                          {/* Future: Show which prompt versions use this content */}
-                          -
+                           {selectedSystem.activeVersion}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -270,14 +306,18 @@ export function PromptSystemVersionManager() {
             {selectedSystem && (
                 <CardFooter className="border-t pt-6">
                     <div className="flex flex-wrap items-center gap-6">
-                        <div className="flex items-center gap-8">
+                        <div className="flex items-center space-x-2">
+                           <Switch id="republish-switch" checked={isRepublishing} onCheckedChange={setIsRepublishing} disabled={!isViewingHistory} />
+                           <Label htmlFor="republish-switch">Republish Selected</Label>
+                        </div>
+                        <div className="flex items-center gap-8" style={{ opacity: isRepublishing ? 0.5 : 1 }}>
                             <div className="space-y-2">
                                 <Label>New Version Type</Label>
                                 <RadioGroup
                                     defaultValue="patch"
                                     className="flex gap-4"
                                     onValueChange={(v) => setSaveType(v as any)}
-                                    disabled={!!viewingVersionId}
+                                    disabled={isRepublishing || isViewingHistory}
                                 >
                                     <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="sys-major" /><Label htmlFor="sys-major">Major</Label></div>
                                     <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="sys-minor" /><Label htmlFor="sys-minor">Minor</Label></div>
@@ -289,9 +329,9 @@ export function PromptSystemVersionManager() {
                                 <Badge variant="outline">{nextVersionString}</Badge>
                             </div>
                         </div>
-                        <Button onClick={handlePublish} disabled={isSubmitting || !!viewingVersionId}>
+                        <Button onClick={handlePublish} disabled={isSubmitting || (isViewingHistory && !isRepublishing)}>
                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Publish New Prompt Version
+                            Publish
                         </Button>
                     </div>
                 </CardFooter>
