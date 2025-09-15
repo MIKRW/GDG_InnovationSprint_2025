@@ -3,13 +3,14 @@
 
 
 
+
 'use server';
 
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString, getMetadata, deleteObject } from 'firebase/storage';
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, addDoc, collection, serverTimestamp, query, where, getDocs, orderBy, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
-import type { TestAudioMetadata, BirdLog, PromptSystem, PromptVersion, AppAIVersion, AppAIConfig } from './types';
+import type { TestAudioMetadata, BirdLog, PromptSystem, PromptVersion, AppAIVersion, AppAIConfig, PromptContent } from './types';
 import { EmailAuthProvider, linkWithCredential, type User } from 'firebase/auth';
 import { kebabCase } from 'lodash';
 
@@ -204,10 +205,43 @@ export async function getPromptVersionsForSystem(systemId: string): Promise<Prom
     const versions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptVersion));
     
     // Sort the versions by timestamp in descending order (newest first) in the server action.
-    versions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    versions.sort((a, b) => {
+        const versionA = a.version.replace('v', '').split('.').map(Number);
+        const versionB = b.version.replace('v', '').split('.').map(Number);
+    
+        if (versionA[0] !== versionB[0]) return versionB[0] - versionA[0];
+        if (versionA[1] !== versionB[1]) return versionB[1] - versionA[1];
+        return versionB[2] - versionA[2];
+    });
     
     return versions;
 }
+
+
+/**
+ * Fetches all prompt content pieces for a given system, sorted by version.
+ */
+export async function getPromptContentForSystem(systemId: string): Promise<PromptContent[]> {
+    const contentRef = collection(db, 'prompt_content');
+    const q = query(contentRef, where('systemId', '==', systemId));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return [];
+    
+    const contents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptContent));
+
+    // Sort by version descending (e.g., v1.1.0, v1.0.0)
+    contents.sort((a, b) => {
+        const versionA = a.version.replace('v', '').split('.').map(Number);
+        const versionB = b.version.replace('v', '').split('.').map(Number);
+    
+        if (versionA[0] !== versionB[0]) return versionB[0] - versionA[0];
+        if (versionA[1] !== versionB[1]) return versionB[1] - versionA[1];
+        return versionB[2] - versionA[2];
+    });
+
+    return contents;
+}
+
 
 /**
  * Fetches the global AI configuration for the app.
@@ -266,4 +300,35 @@ export async function publishNewAppAIVersion(
     await setLiveAppAIVersion(newVersionId);
 
     return { id: newVersionId, ...newVersionData };
+}
+
+/**
+ * Publishes a new version of a specific Prompt System.
+ * @param systemId The ID of the system this version belongs to.
+ * @param version The new version string (e.g., "v1.2.3").
+ * @param composedPrompts A map of category IDs to content IDs.
+ * @returns The newly created PromptVersion object.
+ */
+export async function publishNewPromptVersion(
+    systemId: string,
+    version: string,
+    composedPrompts: { [categoryId: string]: string }
+): Promise<PromptVersion> {
+    const newId = `${systemId}-${version.replace('v', '').replace(/\./g, '-')}`;
+    const versionRef = doc(db, 'prompt_versions', newId);
+
+    const newVersionData: Omit<PromptVersion, 'id'> = {
+        systemId,
+        version,
+        timestamp: new Date().toISOString(),
+        composedPrompts,
+    };
+
+    await setDoc(versionRef, newVersionData);
+
+    // Also update the 'activeVersion' on the parent system document
+    const systemRef = doc(db, 'prompt_systems', systemId);
+    await updateDoc(systemRef, { activeVersion: version });
+
+    return { id: newId, ...newVersionData };
 }

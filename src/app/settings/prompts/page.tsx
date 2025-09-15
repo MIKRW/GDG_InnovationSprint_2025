@@ -1,8 +1,10 @@
 'use client';
 
 import { PageTitle } from '@/components/content/PageTitle';
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AppAIVersionManager } from '@/components/content/AppAIVersionManager';
+import { PromptSystemVersionManager } from '@/components/content/PromptSystemVersionManager';
+import { Separator } from '@/components/ui/separator';
+
 
 export default function PromptManagementPage() {
     const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
@@ -17,24 +19,17 @@ export default function PromptManagementPage() {
 
     return (
         <div className="container mx-auto">
-            <PageTitle>AI Systems</PageTitle>
+            <PageTitle>AI Systems Publisher</PageTitle>
             <p className="text-muted-foreground mb-6 max-w-3xl">
-                This is the central hub for managing the AI "brains" of the application. Each system below represents a major AI functionality. Select a system to edit its underlying prompts, create new versions, and manage which version is active.
+                This is the central hub for managing the AI "brains" of the application. Use the top-level publisher to set a combination of AI systems live. Use the system-level publisher to create new versions of a specific AI system from its underlying prompt components.
             </p>
 
             <AppAIVersionManager />
+            
+            <Separator className="my-12" />
 
-            <div className="space-y-4 mt-8">
-                {/* Existing systems will be listed here, this is a placeholder */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>No AI Systems Defined</CardTitle>
-                        <CardDescription>
-                            The AI systems for this application will be configured here.
-                        </CardDescription>
-                    </CardHeader>
-                </Card>
-            </div>
+            <PromptSystemVersionManager />
+
         </div>
     )
 }
