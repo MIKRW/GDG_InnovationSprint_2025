@@ -20,7 +20,7 @@ export function SecondaryPageFooterV2() {
     <footer className="border-t">
       <nav className="flex justify-around py-8 px-4">
         {navItems.map(({ href, label, icon: Icon }) => (
-          <Link key={href} href={href} asChild>
+          <Link key={href} href={href}>
             <Button
               variant={pathname === href ? 'secondary' : 'ghost'}
               size="sm"
