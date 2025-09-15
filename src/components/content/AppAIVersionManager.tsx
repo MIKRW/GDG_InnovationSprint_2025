@@ -30,6 +30,7 @@ import { Loader2 } from 'lucide-react';
 import type { PromptSystem, PromptVersion } from '@/lib/types';
 import { getPromptSystems, getPromptVersionsForSystem } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 
 interface VersionSelection {
   [systemId: string]: {
@@ -161,93 +162,101 @@ export function AppAIVersionManager() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>App AI Version Publisher</CardTitle>
-        <CardDescription>
-          Compose a new App AI Version by selecting a specific version for each AI system. This combination will be published as a new global version for the application.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[200px]">AI System</TableHead>
-              <TableHead>Major</TableHead>
-              <TableHead>Minor</TableHead>
-              <TableHead>Patch</TableHead>
-              <TableHead>Published In</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {systems.map((system) => (
-              <TableRow key={system.id}>
-                <TableCell className="font-medium">{system.name}</TableCell>
-                <TableCell>
-                  <Select
-                    onValueChange={(value) => handleSelection(system.id, 'major', value)}
-                    value={selectedSystem(system.id).major}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Major" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {system.versionParts.major.map((maj) => (
-                        <SelectItem key={maj} value={maj}>
-                          v{maj}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  <Select
-                    disabled={!selectedSystem(system.id).major}
-                    onValueChange={(value) => handleSelection(system.id, 'minor', value)}
-                     value={selectedSystem(system.id).minor}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Minor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {selectedSystem(system.id).major && system.versionParts.minor.get(selectedSystem(system.id).major)?.map((min) => (
-                        <SelectItem key={min} value={min}>
-                          {min}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  <Select
-                    disabled={!selectedSystem(system.id).minor}
-                    onValueChange={(value) => handleSelection(system.id, 'patch', value)}
-                    value={selectedSystem(system.id).patch}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Patch" />
-                    </SelectTrigger>
-                    <SelectContent>
-                       {selectedSystem(system.id).major && selectedSystem(system.id).minor &&
-                        system.versionParts.patch.get(`${selectedSystem(system.id).major}.${selectedSystem(system.id).minor}`)?.map((pat) => (
-                          <SelectItem key={pat} value={pat}>
-                            {pat}
-                          </SelectItem>
-                       ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell className="text-muted-foreground text-xs">
-                  {/* Logic to show published history will go here */}
-                  -
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-      <CardFooter>
-        <Button>Publish New App AI Version</Button>
-      </CardFooter>
+      <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
+        <AccordionItem value="item-1" className="border-b-0">
+          <AccordionTrigger className="p-6 hover:no-underline">
+            <div className="text-left">
+                <CardTitle>App AI Version Publisher</CardTitle>
+                <CardDescription className="pt-2">
+                    Compose a new App AI Version by selecting a specific version for each AI system. This combination will be published as a new global version for the application.
+                </CardDescription>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[200px]">AI System</TableHead>
+                    <TableHead>Major</TableHead>
+                    <TableHead>Minor</TableHead>
+                    <TableHead>Patch</TableHead>
+                    <TableHead>Published In</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {systems.map((system) => (
+                    <TableRow key={system.id}>
+                      <TableCell className="font-medium">{system.name}</TableCell>
+                      <TableCell>
+                        <Select
+                          onValueChange={(value) => handleSelection(system.id, 'major', value)}
+                          value={selectedSystem(system.id).major}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Major" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {system.versionParts.major.map((maj) => (
+                              <SelectItem key={maj} value={maj}>
+                                v{maj}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          disabled={!selectedSystem(system.id).major}
+                          onValueChange={(value) => handleSelection(system.id, 'minor', value)}
+                          value={selectedSystem(system.id).minor}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Minor" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {selectedSystem(system.id).major && system.versionParts.minor.get(selectedSystem(system.id).major)?.map((min) => (
+                              <SelectItem key={min} value={min}>
+                                {min}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          disabled={!selectedSystem(system.id).minor}
+                          onValueChange={(value) => handleSelection(system.id, 'patch', value)}
+                          value={selectedSystem(system.id).patch}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Patch" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {selectedSystem(system.id).major && selectedSystem(system.id).minor &&
+                              system.versionParts.patch.get(`${selectedSystem(system.id).major}.${selectedSystem(system.id).minor}`)?.map((pat) => (
+                                <SelectItem key={pat} value={pat}>
+                                  {pat}
+                                </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {/* Logic to show published history will go here */}
+                        -
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+            <CardFooter>
+              <Button>Publish New App AI Version</Button>
+            </CardFooter>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </Card>
   );
 }
