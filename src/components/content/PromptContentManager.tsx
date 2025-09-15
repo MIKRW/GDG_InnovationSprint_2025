@@ -309,7 +309,7 @@ export function PromptContentManager({ systemId, content, onUpdate, isLoading }:
                   </div>
                   <Button onClick={handlePublish} disabled={isSubmitting}>
                       {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Publish New Content Version
+                      Publish
                   </Button>
               </div>
             </CardFooter>
