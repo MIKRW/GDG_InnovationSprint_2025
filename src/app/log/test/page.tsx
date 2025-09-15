@@ -129,8 +129,8 @@ export default function MasterAudioTestLogPage() {
                   <TableCell className="text-right">{run.analysisTimings?.primaryIdentificationMs ? `${run.analysisTimings.primaryIdentificationMs}ms` : 'N/A'}</TableCell>
                   <TableCell className="text-right">{run.analysisMethod.split('-v').pop()}</TableCell>
                   <TableCell className="text-right">
-                    <Link href={`/record/confirm/${run.id}`} passHref asChild>
-                        <Button asChild variant="outline" size="sm">
+                    <Link href={`/record/confirm/${run.id}`} asChild>
+                        <Button variant="outline" size="sm">
                             <span>View</span>
                         </Button>
                     </Link>

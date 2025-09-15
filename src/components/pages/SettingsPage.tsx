@@ -33,17 +33,17 @@ export function SettingsPage() {
         <p className="text-muted-foreground">
           Customize the look, feel, and functionality of your application.
         </p>
-        <Link href="/theme" passHref asChild>
+        <Link href="/theme" asChild>
           <Button variant="outline">
             Customize Theme
           </Button>
         </Link>
-        <Link href="/settings/location" passHref asChild>
+        <Link href="/settings/location" asChild>
           <Button variant="outline">
             Location Settings
           </Button>
         </Link>
-         <Link href="/settings/mode" passHref asChild>
+         <Link href="/settings/mode" asChild>
           <Button variant="outline">
             App Mode
           </Button>
@@ -54,7 +54,7 @@ export function SettingsPage() {
               <h2 className="text-lg font-semibold mb-2">Developer Tools</h2>
                 <Card className="bg-hazard-stripes p-1 rounded-lg">
                     <div className="bg-background rounded-sm">
-                      <Link href="/settings/prompts" passHref asChild>
+                      <Link href="/settings/prompts" asChild>
                         <Button variant="outline" className="w-full justify-start">
                           <FlaskConical className="mr-2 h-4 w-4" />Prompt Management
                         </Button>
@@ -67,7 +67,7 @@ export function SettingsPage() {
         <div className="pt-8 w-full max-w-sm">
             <h2 className="text-lg font-semibold mb-2">Account</h2>
             {isAnonymous ? (
-                 <Link href="/settings/register" passHref asChild>
+                 <Link href="/settings/register" asChild>
                     <Button variant="outline">
                         Create Account
                     </Button>

@@ -47,8 +47,8 @@ export default function PromptManagementPage() {
 
             <div className="space-y-4">
                 {aiSystems.map(system => (
-                    <Link href={system.href} key={system.id} passHref>
-                        <Card className="hover:border-primary transition-colors cursor-pointer">
+                    <Link href={system.href} key={system.id} className="cursor-pointer">
+                        <Card className="hover:border-primary transition-colors">
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <div>
                                     <CardTitle>{system.name}</CardTitle>

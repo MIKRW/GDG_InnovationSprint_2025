@@ -133,7 +133,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                 Developer Tools
             </h2>
              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <Link href="/log/test" passHref>
+                <Link href="/log/test" asChild>
                   <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
                       <div className="bg-background h-full flex flex-col rounded-sm">
                           <CardContent className="p-0 flex-grow flex items-center justify-center">
@@ -150,7 +150,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                       </div>
                   </Card>
                 </Link>
-                <Link href="/log/test/live" passHref>
+                <Link href="/log/test/live" asChild>
                   <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
                       <div className="bg-background h-full flex flex-col rounded-sm">
                           <CardContent className="p-0 flex-grow flex items-center justify-center">
@@ -167,7 +167,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                       </div>
                   </Card>
                 </Link>
-                <Link href="/log/errors" passHref>
+                <Link href="/log/errors" asChild>
                   <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
                       <div className="bg-background h-full flex flex-col rounded-sm">
                           <CardContent className="p-0 flex-grow flex items-center justify-center">
@@ -202,7 +202,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                       Review
                   </h2>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      <Link href="/log/mystery" passHref>
+                      <Link href="/log/mystery" asChild>
                           <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-secondary cursor-pointer">
                           <CardContent className="p-0 flex-grow flex items-center justify-center">
                               <div className="aspect-square relative w-full flex items-center justify-center">
@@ -228,7 +228,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                     </h2>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {logs.map((log) => (
-                        <Link href={`/log/${log.id}`} key={log.id} passHref>
+                        <Link href={`/log/${log.id}`} key={log.id} asChild>
                         <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer">
                             <CardContent className="p-0 flex-grow">
                                 <div className="aspect-square relative w-full">
@@ -270,7 +270,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                  <div className="text-center py-16">
                     <PageTitle>Your Bird Book is Empty</PageTitle>
                     <p className="mt-4 text-muted-foreground">You haven't identified any birds yet.</p>
-                    <Link href="/record" passHref asChild>
+                    <Link href="/record" asChild>
                         <Button className="mt-4">
                             Start your collection!
                         </Button>
