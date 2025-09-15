@@ -1,12 +1,13 @@
 
 
+
 'use server';
 
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString, getMetadata, deleteObject } from 'firebase/storage';
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, addDoc, collection, serverTimestamp, query, where, getDocs, orderBy, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
-import type { TestAudioMetadata, BirdLog, PromptSystem, PromptVersion } from './types';
+import type { TestAudioMetadata, BirdLog, PromptSystem, PromptVersion, AppAIVersion, AppAIConfig } from './types';
 import { EmailAuthProvider, linkWithCredential, type User } from 'firebase/auth';
 import { kebabCase } from 'lodash';
 
@@ -204,4 +205,29 @@ export async function getPromptVersionsForSystem(systemId: string): Promise<Prom
     versions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     
     return versions;
+}
+
+/**
+ * Fetches the global AI configuration for the app.
+ */
+export async function getAppAIConfig(): Promise<AppAIConfig | null> {
+    const configRef = doc(db, 'app_ai_config', 'main');
+    const snapshot = await getDoc(configRef);
+    if (!snapshot.exists()) {
+        return null;
+    }
+    return snapshot.data() as AppAIConfig;
+}
+
+/**
+ * Fetches all published App AI Versions.
+ */
+export async function getAppAIVersions(): Promise<AppAIVersion[]> {
+    const versionsRef = collection(db, 'app_ai_versions');
+    const q = query(versionsRef, orderBy('timestamp', 'desc'));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+        return [];
+    }
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
 }

@@ -27,10 +27,13 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
-import type { PromptSystem, PromptVersion } from '@/lib/types';
-import { getPromptSystems, getPromptVersionsForSystem } from '@/lib/actions';
+import type { PromptSystem, PromptVersion, AppAIVersion } from '@/lib/types';
+import { getPromptSystems, getPromptVersionsForSystem, getAppAIVersions, getAppAIConfig } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
+import { Separator } from '../ui/separator';
+import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
+import { Label } from '../ui/label';
 
 interface VersionSelection {
   [systemId: string]: {
@@ -56,11 +59,24 @@ export function AppAIVersionManager() {
   const [selections, setSelections] = useState<VersionSelection>({});
   const { toast } = useToast();
 
+  const [publishedVersions, setPublishedVersions] = useState<AppAIVersion[]>([]);
+  const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
+  const [selectedDisplayVersion, setSelectedDisplayVersion] = useState('new');
+  const [saveType, setSaveType] = useState<'major' | 'minor' | 'patch'>('patch');
+
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
       try {
-        const fetchedSystems = await getPromptSystems();
+        const [fetchedSystems, fetchedVersions, config] = await Promise.all([
+          getPromptSystems(),
+          getAppAIVersions(),
+          getAppAIConfig()
+        ]);
+        
+        setActiveVersionId(config?.activeAppAIVersion || null);
+        setPublishedVersions(fetchedVersions);
+
         const systemsWithVersions: SystemWithVersions[] = await Promise.all(
           fetchedSystems.map(async (system) => {
             const versions = await getPromptVersionsForSystem(system.id);
@@ -122,6 +138,25 @@ export function AppAIVersionManager() {
     fetchData();
   }, [toast]);
 
+  useEffect(() => {
+    if (selectedDisplayVersion === 'new') {
+        // Clear selections when switching to compose a new version
+        setSelections({});
+    } else {
+        const versionToShow = publishedVersions.find(v => v.id === selectedDisplayVersion);
+        if (versionToShow) {
+            const newSelections: VersionSelection = {};
+            for (const systemId in versionToShow.systems) {
+                const fullVersion = versionToShow.systems[systemId];
+                const [major, minor, patch] = fullVersion.split('.');
+                newSelections[systemId] = { major, minor, patch, fullVersion };
+            }
+            setSelections(newSelections);
+        }
+    }
+  }, [selectedDisplayVersion, publishedVersions]);
+
+
   const handleSelection = (
     systemId: string,
     part: 'major' | 'minor' | 'patch',
@@ -151,6 +186,8 @@ export function AppAIVersionManager() {
   };
 
   const selectedSystem = (systemId: string) => selections[systemId] || {};
+  const isViewingHistory = selectedDisplayVersion !== 'new';
+
 
   if (loading) {
     return (
@@ -173,6 +210,25 @@ export function AppAIVersionManager() {
             </div>
           </AccordionTrigger>
           <AccordionContent>
+            <div className="px-6 pb-6">
+                 <div className="flex flex-col sm:flex-row items-center gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
+                    <Label htmlFor="version-selector" className="font-semibold">View Version</Label>
+                    <Select value={selectedDisplayVersion} onValueChange={setSelectedDisplayVersion}>
+                        <SelectTrigger id="version-selector" className="w-full sm:w-[350px]">
+                            <SelectValue placeholder="Select a version to view" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="new">Compose New Version</SelectItem>
+                            <Separator />
+                            {publishedVersions.map(v => (
+                                <SelectItem key={v.id} value={v.id}>
+                                    Version {v.version} {v.id === activeVersionId && '(Live)'}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                 </div>
+            </div>
             <CardContent>
               <Table>
                 <TableHeader>
@@ -192,6 +248,7 @@ export function AppAIVersionManager() {
                         <Select
                           onValueChange={(value) => handleSelection(system.id, 'major', value)}
                           value={selectedSystem(system.id).major}
+                          disabled={isViewingHistory}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select Major" />
@@ -207,7 +264,7 @@ export function AppAIVersionManager() {
                       </TableCell>
                       <TableCell>
                         <Select
-                          disabled={!selectedSystem(system.id).major}
+                          disabled={!selectedSystem(system.id).major || isViewingHistory}
                           onValueChange={(value) => handleSelection(system.id, 'minor', value)}
                           value={selectedSystem(system.id).minor}
                         >
@@ -225,7 +282,7 @@ export function AppAIVersionManager() {
                       </TableCell>
                       <TableCell>
                         <Select
-                          disabled={!selectedSystem(system.id).minor}
+                          disabled={!selectedSystem(system.id).minor || isViewingHistory}
                           onValueChange={(value) => handleSelection(system.id, 'patch', value)}
                           value={selectedSystem(system.id).patch}
                         >
@@ -251,8 +308,29 @@ export function AppAIVersionManager() {
                 </TableBody>
               </Table>
             </CardContent>
-            <CardFooter>
-              <Button>Publish New App AI Version</Button>
+            <CardFooter className="flex-col items-start gap-4">
+               {!isViewingHistory && (
+                 <>
+                    <div className="space-y-2">
+                        <Label>New Version Type</Label>
+                        <RadioGroup defaultValue="patch" className="flex gap-4" onValueChange={(v) => setSaveType(v as any)}>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="major" id="major" />
+                                <Label htmlFor="major">Major</Label>
+                            </div>
+                             <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="minor" id="minor" />
+                                <Label htmlFor="minor">Minor</Label>
+                            </div>
+                             <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="patch" id="patch" />
+                                <Label htmlFor="patch">Patch</Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
+                    <Button>Publish New App AI Version</Button>
+                 </>
+               )}
             </CardFooter>
           </AccordionContent>
         </AccordionItem>

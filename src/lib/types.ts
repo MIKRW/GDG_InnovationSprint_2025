@@ -159,6 +159,14 @@ export interface TestAudioMetadata {
 // =================================================================
 
 /**
+ * The global configuration singleton for the application's AI.
+ * Stored in `app_ai_config/main`.
+ */
+export type AppAIConfig = {
+    activeAppAIVersion: string; // The version string of the currently live App AI Version (e.g., "v1.0").
+}
+
+/**
  * Level 1: The global configuration for the entire application's AI.
  * Specifies which version of each overarching AI system is active.
  */
