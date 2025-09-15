@@ -1,4 +1,6 @@
 
+'use client';
+
 import { ContrastButton } from '@/components/content/ContrastButton';
 import { Home } from 'lucide-react';
 import Link from 'next/link';
