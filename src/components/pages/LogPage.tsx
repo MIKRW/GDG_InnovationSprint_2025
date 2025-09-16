@@ -133,7 +133,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                 Developer Tools
             </h2>
              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <Link href="/log/test" asChild>
+                <Link href="/log/test">
                   <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
                       <div className="bg-background h-full flex flex-col rounded-sm">
                           <CardContent className="p-0 flex-grow flex items-center justify-center">
@@ -150,7 +150,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                       </div>
                   </Card>
                 </Link>
-                <Link href="/log/test/live" asChild>
+                <Link href="/log/test/live">
                   <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
                       <div className="bg-background h-full flex flex-col rounded-sm">
                           <CardContent className="p-0 flex-grow flex items-center justify-center">
@@ -167,7 +167,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                       </div>
                   </Card>
                 </Link>
-                <Link href="/log/errors" asChild>
+                <Link href="/log/errors">
                   <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
                       <div className="bg-background h-full flex flex-col rounded-sm">
                           <CardContent className="p-0 flex-grow flex items-center justify-center">
