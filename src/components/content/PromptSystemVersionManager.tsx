@@ -276,122 +276,124 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
 
   return (
     <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
-        <AccordionItem value="item-1" className="border-b-0">
-            <AccordionTrigger className="hover:no-underline">
-                <div className="flex-1 flex flex-col justify-between text-center p-6 h-36">
-                    <h3 className="text-2xl font-bold">AI Type Version Control</h3>
-                    <p className="text-sm text-muted-foreground px-4">
-                        Compose new versions of the{' '}
-                        <span className="font-semibold text-foreground">{system.name}</span>{' '}
-                        system by selecting which version of each prompt category to include.
-                    </p>
-                </div>
-            </AccordionTrigger>
-            <AccordionContent>
-                <CardContent>
-                    <div className="pt-6">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
-                            <div className="flex items-center gap-4">
-                                <Label htmlFor="version-viewer" className="font-semibold whitespace-nowrap">View/Compose</Label>
-                                <Select onValueChange={handleViewVersionChange} value={viewingVersionId || 'compose-new'}>
-                                    <SelectTrigger id="version-viewer" className="w-full sm:w-[250px]">
-                                        <SelectValue placeholder="Compose New..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="compose-new">Compose New...</SelectItem>
-                                        <Separator/>
-                                        {versions.map(v => (
-                                            <SelectItem key={v.id} value={v.id}>
-                                            Version {v.version} {system.activeVersion === v.version && '(Active)'}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                    </div>
-                    <div>
-                        <Table>
-                        <TableHeader>
-                            <TableRow>
-                            <TableHead className="w-[200px]">Prompt Category</TableHead>
-                            <TableHead>Major</TableHead>
-                            <TableHead>Minor</TableHead>
-                            <TableHead>Patch</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {Array.from(contentByCategory.keys()).map((category) => {
-                            const selected = selections[category] || {};
-                            const parts = contentVersionParts.get(category);
+      <AccordionItem value="item-1" className="border-b-0">
+        <AccordionTrigger className="hover:no-underline p-0 h-36">
+            <div className="flex-1 flex flex-col justify-between text-center p-6 h-full">
+                <h3 className="text-2xl font-bold">AI Type Version Control</h3>
+                <p className="text-sm text-muted-foreground px-4">
+                    Compose new versions of the{' '}
+                    <span className="font-semibold text-foreground">{system.name}</span>{' '}
+                    system by selecting which version of each prompt category to include.
+                </p>
+            </div>
+        </AccordionTrigger>
+        <AccordionContent>
+          <div className="border-t">
+              <CardContent>
+                  <div className="pt-6">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
+                          <div className="flex items-center gap-4">
+                              <Label htmlFor="version-viewer" className="font-semibold whitespace-nowrap">View/Compose</Label>
+                              <Select onValueChange={handleViewVersionChange} value={viewingVersionId || 'compose-new'}>
+                                  <SelectTrigger id="version-viewer" className="w-full sm:w-[250px]">
+                                      <SelectValue placeholder="Compose New..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                      <SelectItem value="compose-new">Compose New...</SelectItem>
+                                      <Separator/>
+                                      {versions.map(v => (
+                                          <SelectItem key={v.id} value={v.id}>
+                                          Version {v.version} {system.activeVersion === v.version && '(Active)'}
+                                          </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                              </Select>
+                          </div>
+                      </div>
+                  </div>
+                  <div>
+                      <Table>
+                      <TableHeader>
+                          <TableRow>
+                          <TableHead className="w-[200px]">Prompt Category</TableHead>
+                          <TableHead>Major</TableHead>
+                          <TableHead>Minor</TableHead>
+                          <TableHead>Patch</TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {Array.from(contentByCategory.keys()).map((category) => {
+                          const selected = selections[category] || {};
+                          const parts = contentVersionParts.get(category);
 
-                            return (
-                                <TableRow key={category}>
-                                    <TableCell className="font-medium capitalize">{category.replace(/_/g, ' ')}</TableCell>
-                                    <TableCell>
-                                        <Select onValueChange={(value) => handleSelection(category, 'major', value)} value={selected.major} disabled={isCompositionDisabled}>
-                                        <SelectTrigger><SelectValue placeholder="Select Major" /></SelectTrigger>
-                                        <SelectContent>
-                                            {parts?.major.map(v => <SelectItem key={v} value={v}>v{v}</SelectItem>)}
-                                        </SelectContent>
-                                        </Select>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Select onValueChange={(value) => handleSelection(category, 'minor', value)} value={selected.minor} disabled={!selected.major || isCompositionDisabled}>
-                                        <SelectTrigger><SelectValue placeholder="Select Minor" /></SelectTrigger>
-                                        <SelectContent>
-                                            {selected.major && parts?.minor.get(selected.major)?.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
-                                        </SelectContent>
-                                        </Select>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Select onValueChange={(value) => handleSelection(category, 'patch', value)} value={selected.patch} disabled={!selected.minor || isCompositionDisabled}>
-                                        <SelectTrigger><SelectValue placeholder="Select Patch" /></SelectTrigger>
-                                        <SelectContent>
-                                            {selected.major && selected.minor && parts?.patch.get(`${selected.major}.${selected.minor}`)?.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
-                                        </SelectContent>
-                                        </Select>
-                                    </TableCell>
-                                </TableRow>
-                            )
-                            })}
-                        </TableBody>
-                        </Table>
-                    </div>
-                </CardContent>
-                <CardFooter className="border-t pt-6 mt-6">
-                    <div className="flex flex-wrap items-center gap-6">
-                        <div className="flex items-center space-x-2">
-                            <Switch id="sys-republish-switch" checked={isRepublishing} onCheckedChange={setIsRepublishing} disabled={!isViewingHistory} />
-                            <Label htmlFor="sys-republish-switch">Republish Selected</Label>
-                        </div>
-                        <div className="flex items-center gap-8" style={{ opacity: isRepublishing ? 0.5 : 1 }}>
-                            <div className="space-y-2">
-                                <Label>New Version Type</Label>
-                                <RadioGroup
-                                    defaultValue="patch"
-                                    className="flex gap-4"
-                                    onValueChange={(v) => setSaveType(v as any)}
-                                    disabled={isRepublishing}
-                                >
-                                    <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="sys-major" disabled={isRepublishing}/><Label htmlFor="sys-major">Major</Label></div>
-                                    <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="sys-minor" disabled={isRepublishing}/><Label htmlFor="sys-minor">Minor</Label></div>
-                                    <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id="sys-patch" disabled={isRepublishing}/><Label htmlFor="sys-patch">Patch</Label></div>
-                                </RadioGroup>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Label className="text-muted-foreground">Next Version:</Label>
-                                <Badge variant="outline">{nextVersionString}</Badge>
-                            </div>
-                        </div>
-                        <Button onClick={handlePublish} disabled={isSubmitting || (isViewingHistory && !isRepublishing)}>
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Publish
-                        </Button>
-                    </div>
-                </CardFooter>
-            </AccordionContent>
-        </AccordionItem>
+                          return (
+                              <TableRow key={category}>
+                                  <TableCell className="font-medium capitalize">{category.replace(/_/g, ' ')}</TableCell>
+                                  <TableCell>
+                                      <Select onValueChange={(value) => handleSelection(category, 'major', value)} value={selected.major} disabled={isCompositionDisabled}>
+                                      <SelectTrigger><SelectValue placeholder="Select Major" /></SelectTrigger>
+                                      <SelectContent>
+                                          {parts?.major.map(v => <SelectItem key={v} value={v}>v{v}</SelectItem>)}
+                                      </SelectContent>
+                                      </Select>
+                                  </TableCell>
+                                  <TableCell>
+                                      <Select onValueChange={(value) => handleSelection(category, 'minor', value)} value={selected.minor} disabled={!selected.major || isCompositionDisabled}>
+                                      <SelectTrigger><SelectValue placeholder="Select Minor" /></SelectTrigger>
+                                      <SelectContent>
+                                          {selected.major && parts?.minor.get(selected.major)?.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                                      </SelectContent>
+                                      </Select>
+                                  </TableCell>
+                                  <TableCell>
+                                      <Select onValueChange={(value) => handleSelection(category, 'patch', value)} value={selected.patch} disabled={!selected.minor || isCompositionDisabled}>
+                                      <SelectTrigger><SelectValue placeholder="Select Patch" /></SelectTrigger>
+                                      <SelectContent>
+                                          {selected.major && selected.minor && parts?.patch.get(`${selected.major}.${selected.minor}`)?.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                                      </SelectContent>
+                                      </Select>
+                                  </TableCell>
+                              </TableRow>
+                          )
+                          })}
+                      </TableBody>
+                      </Table>
+                  </div>
+              </CardContent>
+              <CardFooter className="border-t pt-6 mt-6">
+                  <div className="flex flex-wrap items-center gap-6">
+                      <div className="flex items-center space-x-2">
+                          <Switch id="sys-republish-switch" checked={isRepublishing} onCheckedChange={setIsRepublishing} disabled={!isViewingHistory} />
+                          <Label htmlFor="sys-republish-switch">Republish Selected</Label>
+                      </div>
+                      <div className="flex items-center gap-8" style={{ opacity: isRepublishing ? 0.5 : 1 }}>
+                          <div className="space-y-2">
+                              <Label>New Version Type</Label>
+                              <RadioGroup
+                                  defaultValue="patch"
+                                  className="flex gap-4"
+                                  onValueChange={(v) => setSaveType(v as any)}
+                                  disabled={isRepublishing}
+                              >
+                                  <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="sys-major" disabled={isRepublishing}/><Label htmlFor="sys-major">Major</Label></div>
+                                  <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="sys-minor" disabled={isRepublishing}/><Label htmlFor="sys-minor">Minor</Label></div>
+                                  <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id="sys-patch" disabled={isRepublishing}/><Label htmlFor="sys-patch">Patch</Label></div>
+                              </RadioGroup>
+                          </div>
+                          <div className="flex items-center gap-2">
+                              <Label className="text-muted-foreground">Next Version:</Label>
+                              <Badge variant="outline">{nextVersionString}</Badge>
+                          </div>
+                      </div>
+                      <Button onClick={handlePublish} disabled={isSubmitting || (isViewingHistory && !isRepublishing)}>
+                          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Publish
+                      </Button>
+                  </div>
+              </CardFooter>
+            </div>
+        </AccordionContent>
+      </AccordionItem>
     </Accordion>
   );
 }
