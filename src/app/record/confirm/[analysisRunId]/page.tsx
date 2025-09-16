@@ -42,30 +42,35 @@ export default function ConfirmIdentificationPage() {
   const [generatedImageDataUri, setGeneratedImageDataUri] = useState<string | null>(null);
 
 
-  // Effect to load the initial analysis run data
+  // Effect to load the initial analysis run data from either collection
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
+    if (authLoading || !user) {
       setPageState('loading');
       return;
     }
 
-    const analysisRunDocRef = doc(db, 'all_analysis_runs', analysisRunId);
-    
-    const unsubscribe = onSnapshot(analysisRunDocRef, (docSnap) => {
-      if (docSnap.exists() && docSnap.data().userId === user.uid) {
-        setAnalysisRun({ id: docSnap.id, ...docSnap.data() } as AnalysisRun);
-        setPageState('confirmingId');
-      } else {
-        setAnalysisRun(null); // Not found or access denied
-        setPageState('loading');
+    const fetchAnalysisRun = async () => {
+      const collectionsToTry = ['all_analysis_runs', 'all_test_runs'];
+      let foundRun: AnalysisRun | null = null;
+      
+      for (const collectionName of collectionsToTry) {
+        const docRef = doc(db, collectionName, analysisRunId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists() && docSnap.data().userId === user.uid) {
+          foundRun = { id: docSnap.id, ...docSnap.data() } as AnalysisRun;
+          break;
+        }
       }
-    }, (error) => {
+      
+      setAnalysisRun(foundRun);
+      setPageState(foundRun ? 'confirmingId' : 'loading');
+    };
+
+    fetchAnalysisRun().catch(error => {
       console.error("Error fetching analysis run:", error);
-       setPageState('loading');
+      setPageState('loading');
     });
 
-    return () => unsubscribe();
   }, [analysisRunId, user, authLoading]);
 
 
@@ -74,19 +79,15 @@ export default function ConfirmIdentificationPage() {
 
     setPageState('saving');
 
-    // First, update the analysis run with user feedback
-    const analysisRunRef = doc(db, 'all_analysis_runs', analysisRunId);
+    const collectionName = analysisRun.isDeveloperData ? 'all_test_runs' : 'all_analysis_runs';
+    const analysisRunRef = doc(db, collectionName, analysisRunId);
+    
     await updateDoc(analysisRunRef, { 
         'userFeedback.aiWasCorrect': wasCorrect,
         'userFeedback.timestamp': new Date().toISOString()
     });
     
     if (analysisRun.isDeveloperData) {
-        // Handle developer data separately
-        await addDoc(collection(db, 'all_test_runs'), {
-            ...analysisRun,
-            'userFeedback.aiWasCorrect': wasCorrect
-        });
         toast({ title: 'Test Feedback Recorded' });
         const redirectPath = analysisRun.birdId === 'live-test' ? '/log/test/live' : '/log/test';
         router.push(redirectPath);
@@ -183,7 +184,9 @@ export default function ConfirmIdentificationPage() {
     };
 
     await setDoc(logDocRef, finalLog);
-    await updateDoc(doc(db, 'all_analysis_runs', analysisRun.id), { wasSavedByUser: true });
+    
+    const collectionName = analysisRun.isDeveloperData ? 'all_test_runs' : 'all_analysis_runs';
+    await updateDoc(doc(db, collectionName, analysisRun.id), { wasSavedByUser: true });
     
     toast({ title: 'Log Saved!', description: `${aiResult.commonName} has been added to your Bird Book.` });
     router.push(`/log/${logId}`);
@@ -310,3 +313,5 @@ export default function ConfirmIdentificationPage() {
     </AppLayout>
   );
 }
+
+    

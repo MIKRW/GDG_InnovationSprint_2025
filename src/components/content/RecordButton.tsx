@@ -143,9 +143,10 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     await uploadString(fileRef, audioDataUri, 'data_url');
     const downloadURL = await getDownloadURL(fileRef);
 
-    // 2. Create the analysis document
+    // 2. Create the analysis document in the correct collection
     const analysisRunId = uuidv4();
-    const analysisRunRef = doc(db, 'all_analysis_runs', analysisRunId);
+    const collectionName = isDeveloperRun ? 'all_test_runs' : 'all_analysis_runs';
+    const analysisRunRef = doc(db, collectionName, analysisRunId);
 
     const docToCreate: Partial<AnalysisRun> = {
       id: analysisRunId,
@@ -193,8 +194,12 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     const logDocRef = doc(db, 'users', user.uid, 'identifications', logId);
 
     // Fetch the download URL from the analysis run document
-    const analysisRunRef = doc(db, 'all_analysis_runs', analysisRunId);
-    const analysisRunSnap = await getDoc(analysisRunRef);
+    // It could be in either collection, so we need to check both.
+    let analysisRunSnap = await getDoc(doc(db, 'all_analysis_runs', analysisRunId));
+    if (!analysisRunSnap.exists()) {
+        analysisRunSnap = await getDoc(doc(db, 'all_test_runs', analysisRunId));
+    }
+
     if (!analysisRunSnap.exists()) {
         console.error("Could not find analysis run to create mystery log.");
         return;
@@ -220,7 +225,8 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     };
     
     await setDoc(logDocRef, mysteryLogData);
-     await updateDoc(analysisRunRef, { wasSavedByUser: true });
+    const collectionName = analysisRunData.isDeveloperData ? 'all_test_runs' : 'all_analysis_runs';
+    await updateDoc(doc(db, collectionName, analysisRunId), { wasSavedByUser: true });
 
     setRecordingState('idle');
     setLastAnalysisRunId(null);
@@ -461,3 +467,5 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 RecordButton.displayName = "RecordButton";
 
 export { RecordButton };
+
+    
