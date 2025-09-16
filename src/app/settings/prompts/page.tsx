@@ -57,7 +57,7 @@ export default function PromptManagementPage() {
           getPromptContentForSystem(currentSystemId)
         ]);
         setVersionsForSelectedSystem(versions);
-        setContentForSelectedSystem(content);
+setContentForSelectedSystem(content);
       } else {
         setVersionsForSelectedSystem([]);
         setContentForSelectedSystem([]);
@@ -142,7 +142,15 @@ export default function PromptManagementPage() {
         </CardHeader>
       </Card>
 
-      <Card>
+      <Card className="mb-8">
+        <CardHeader>
+          <div className="flex-1 text-center">
+            <CardTitle>AI system version control</CardTitle>
+            <CardDescription className="pt-2">
+              Manage the current and previous AI system versions. You can selected which AI types and there versions you wish to publish. This will determine what prompts the AI receives and how well it operates.
+            </CardDescription>
+          </div>
+        </CardHeader>
         <CardContent>
           <AppAIVersionManager />
         </CardContent>

@@ -307,170 +307,154 @@ export function AppAIVersionManager() {
   }
 
   return (
-    <Card>
-      <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
-        <AccordionItem value="item-1" className="border-b-0">
-          <AccordionTrigger className="p-6 hover:no-underline">
-            <div className="flex-1 text-center">
-                <CardTitle>AI system version control</CardTitle>
-                <CardDescription className="pt-2">
-                    Manage the current and previous AI system versions. You can selected which AI types and there versions you wish to publish. This will determine what prompts the AI receives and how well it operates.
-                </CardDescription>
-            </div>
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="px-6 pb-6">
-                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
-                    <div className="flex items-center gap-4">
-                        <Label htmlFor="version-selector" className="font-semibold whitespace-nowrap">View Version</Label>
-                        <Select value={selectedDisplayVersion} onValueChange={setSelectedDisplayVersion}>
-                            <SelectTrigger id="version-selector" className="w-full sm:w-[250px]">
-                                <SelectValue placeholder="Select a version to view" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="new">Compose New Version</SelectItem>
-                                <Separator />
-                                {publishedVersions.map(v => (
-                                    <SelectItem key={v.id} value={v.id}>
-                                        Version {v.version} {v.id === activeVersionId && '(Live)'}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Label className="font-semibold whitespace-nowrap">Live Version:</Label>
-                        {activeVersion ? (
-                            <Badge variant="secondary" className="text-sm">
-                                {activeVersion.version}
-                            </Badge>
-                        ) : (
-                             <Badge variant="outline" className="text-sm">
-                                None
-                            </Badge>
-                        )}
-                    </div>
-                 </div>
-            </div>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[200px]">AI System</TableHead>
-                    <TableHead>Major</TableHead>
-                    <TableHead>Minor</TableHead>
-                    <TableHead>Patch</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {systems.map((system) => (
-                    <TableRow key={system.id}>
-                      <TableCell className="font-medium">{system.name}</TableCell>
-                      <TableCell>
-                        <Select
-                          onValueChange={(value) => handleSelection(system.id, 'major', value)}
-                          value={selectedSystem(system.id).major}
-                          disabled={isCompositionDisabled}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select Major" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {system.versionParts.major.map((maj) => (
-                              <SelectItem key={maj} value={maj}>
-                                v{maj}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          disabled={!selectedSystem(system.id).major || isCompositionDisabled}
-                          onValueChange={(value) => handleSelection(system.id, 'minor', value)}
-                          value={selectedSystem(system.id).minor}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select Minor" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {selectedSystem(system.id).major && system.versionParts.minor.get(selectedSystem(system.id).major)?.map((min) => (
-                              <SelectItem key={min} value={min}>
-                                {min}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          disabled={!selectedSystem(system.id).minor || isCompositionDisabled}
-                          onValueChange={(value) => handleSelection(system.id, 'patch', value)}
-                          value={selectedSystem(system.id).patch}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select Patch" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {selectedSystem(system.id).major && selectedSystem(system.id).minor &&
-                              system.versionParts.patch.get(`${selectedSystem(system.id).major}.${selectedSystem(system.id).minor}`)?.map((pat) => (
-                                <SelectItem key={pat} value={pat}>
-                                  {pat}
-                                </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-            <CardFooter className="border-t pt-6">
-                <div className="flex flex-wrap items-center gap-6">
-                    <div className="flex items-center space-x-2">
-                        <Switch id="republish-switch" checked={isRepublishing} onCheckedChange={setIsRepublishing} disabled={!isViewingHistory} />
-                        <Label htmlFor="republish-switch">Republish Selected</Label>
-                    </div>
-                    
-                    <div className="flex items-center gap-8" style={{ opacity: isRepublishing ? 0.5 : 1 }}>
-                        <div className="space-y-2">
-                            <Label>New Version Type</Label>
-                            <RadioGroup 
-                                defaultValue="patch" 
-                                className="flex gap-4" 
-                                onValueChange={(v) => setSaveType(v as any)}
-                                disabled={isRepublishing}
-                            >
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="major" id="major" disabled={isRepublishing} />
-                                    <Label htmlFor="major">Major</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="minor" id="minor" disabled={isRepublishing}/>
-                                    <Label htmlFor="minor">Minor</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="patch" id="patch" disabled={isRepublishing}/>
-                                    <Label htmlFor="patch">Patch</Label>
-                                </div>
-                            </RadioGroup>
-                        </div>
-                         <div className="flex items-center gap-2">
-                            <Label className="text-muted-foreground">Next Version:</Label>
-                            <Badge variant="outline">{nextVersionString}</Badge>
-                        </div>
-                    </div>
-                    
-                     <Button onClick={handlePublish} disabled={isSubmitting || (isViewingHistory && !isRepublishing)}>
-                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Publish
-                    </Button>
+    <>
+      <div className="px-6 pb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
+          <div className="flex items-center gap-4">
+            <Label htmlFor="version-selector" className="font-semibold whitespace-nowrap">View Version</Label>
+            <Select value={selectedDisplayVersion} onValueChange={setSelectedDisplayVersion}>
+              <SelectTrigger id="version-selector" className="w-full sm:w-[250px]">
+                <SelectValue placeholder="Select a version to view" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="new">Compose New Version</SelectItem>
+                <Separator />
+                {publishedVersions.map(v => (
+                  <SelectItem key={v.id} value={v.id}>
+                    Version {v.version} {v.id === activeVersionId && '(Live)'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="font-semibold whitespace-nowrap">Live Version:</Label>
+            {activeVersion ? (
+              <Badge variant="secondary" className="text-sm">
+                {activeVersion.version}
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-sm">
+                None
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[200px]">AI System</TableHead>
+              <TableHead>Major</TableHead>
+              <TableHead>Minor</TableHead>
+              <TableHead>Patch</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {systems.map((system) => (
+              <TableRow key={system.id}>
+                <TableCell className="font-medium">{system.name}</TableCell>
+                <TableCell>
+                  <Select
+                    onValueChange={(value) => handleSelection(system.id, 'major', value)}
+                    value={selectedSystem(system.id).major}
+                    disabled={isCompositionDisabled}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Major" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {system.versionParts.major.map((maj) => (
+                        <SelectItem key={maj} value={maj}>
+                          v{maj}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <Select
+                    disabled={!selectedSystem(system.id).major || isCompositionDisabled}
+                    onValueChange={(value) => handleSelection(system.id, 'minor', value)}
+                    value={selectedSystem(system.id).minor}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Minor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedSystem(system.id).major && system.versionParts.minor.get(selectedSystem(system.id).major)?.map((min) => (
+                        <SelectItem key={min} value={min}>
+                          {min}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <Select
+                    disabled={!selectedSystem(system.id).minor || isCompositionDisabled}
+                    onValueChange={(value) => handleSelection(system.id, 'patch', value)}
+                    value={selectedSystem(system.id).patch}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Patch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedSystem(system.id).major && selectedSystem(system.id).minor &&
+                        system.versionParts.patch.get(`${selectedSystem(system.id).major}.${selectedSystem(system.id).minor}`)?.map((pat) => (
+                          <SelectItem key={pat} value={pat}>
+                            {pat}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+      <CardFooter className="border-t pt-6">
+        <div className="flex flex-wrap items-center gap-6">
+          <div className="flex items-center space-x-2">
+            <Switch id="republish-switch" checked={isRepublishing} onCheckedChange={setIsRepublishing} disabled={!isViewingHistory} />
+            <Label htmlFor="republish-switch">Republish Selected</Label>
+          </div>
+          <div className="flex items-center gap-8" style={{ opacity: isRepublishing ? 0.5 : 1 }}>
+            <div className="space-y-2">
+              <Label>New Version Type</Label>
+              <RadioGroup
+                defaultValue="patch"
+                className="flex gap-4"
+                onValueChange={(v) => setSaveType(v as any)}
+                disabled={isRepublishing}
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="major" id="major" disabled={isRepublishing} />
+                  <Label htmlFor="major">Major</Label>
                 </div>
-            </CardFooter>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-    </Card>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="minor" id="minor" disabled={isRepublishing} />
+                  <Label htmlFor="minor">Minor</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="patch" id="patch" disabled={isRepublishing} />
+                  <Label htmlFor="patch">Patch</Label>
+                </div>
+              </RadioGroup>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label className="text-muted-foreground">Next Version:</Label>
+              <Badge variant="outline">{nextVersionString}</Badge>
+            </div>
+          </div>
+          <Button onClick={handlePublish} disabled={isSubmitting || (isViewingHistory && !isRepublishing)}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Publish
+          </Button>
+        </div>
+      </CardFooter>
+    </>
   );
 }
