@@ -134,8 +134,8 @@ setContentForSelectedSystem(content);
 
   return (
     <div className="container mx-auto">
-      <Card className="mb-8">
-        <CardHeader>
+      <Card className="mb-8 bg-card-header">
+        <CardHeader className="text-center">
             <PageTitle>AI Systems</PageTitle>
             <CardDescription className="text-muted-foreground mx-auto max-w-3xl">
             This is the central hub for managing the AI "brains" of the application. Use the top-level publisher to set a combination of AI systems live. Use the system-level publisher to create new versions of a specific AI system from its underlying prompt components.
