@@ -143,13 +143,15 @@ setContentForSelectedSystem(content);
       </Card>
       
       <Card className="mb-8">
-        <CardHeader>
-            <CardTitle className="text-center">AI system version control</CardTitle>
-            <CardDescription className="pt-2 text-center">
-                Manage the current and previous AI system versions. You can selected which AI types and there versions you wish to publish. This will determine what prompts the AI receives and how well it operates.
-            </CardDescription>
-        </CardHeader>
-        <AppAIVersionManager />
+          <CardHeader>
+              <CardTitle className="text-center">AI system version control</CardTitle>
+              <CardDescription className="pt-2 text-center">
+                  Manage the current and previous AI system versions. You can selected which AI types and there versions you wish to publish. This will determine what prompts the AI receives and how well it operates.
+              </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AppAIVersionManager />
+          </CardContent>
       </Card>
       
       <Card className="my-8 bg-card-header">
@@ -164,11 +166,11 @@ setContentForSelectedSystem(content);
             <CardTitle className="text-2xl font-bold">AI Type</CardTitle>
             <div className="flex justify-center items-center gap-4 pt-4">
                 {loading && !selectedSystemId ? (
-                    <Skeleton className="h-10 w-full max-w-xs" />
+                    <Skeleton className="h-12 w-full max-w-xs" />
                 ) : (
                     <>
                         <Select value={selectedSystemId || ''} onValueChange={handleSystemChange}>
-                            <SelectTrigger id="system-selector" className="w-full sm:w-[250px]">
+                            <SelectTrigger id="system-selector" className="w-full sm:w-[250px] h-12 text-base">
                             <SelectValue placeholder="Select a system" />
                             </SelectTrigger>
                             <SelectContent>
@@ -179,7 +181,7 @@ setContentForSelectedSystem(content);
                         </Select>
                         <Dialog open={isSystemDialogOpen} onOpenChange={setIsSystemDialogOpen}>
                             <DialogTrigger asChild>
-                                <Button variant="outline">Create New...</Button>
+                                <Button variant="outline" className="h-12">Create New...</Button>
                             </DialogTrigger>
                             <DialogContent>
                                 <DialogHeader>
