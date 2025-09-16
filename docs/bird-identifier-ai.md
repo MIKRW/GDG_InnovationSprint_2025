@@ -36,9 +36,9 @@ To significantly improve identification accuracy, the AI can use location data t
 
 A crucial aspect of the bird identifier is the distinction between analyzing new recordings and viewing past results:
 
-*   **Online Requirement for Analysis**: The AI model that analyzes the audio is a powerful cloud-based service. Each time a user submits a recording, the app sends the audio data to this service over the internet. Consequently, **an active internet connection is required to identify new bird songs.**
+*   **Online Requirement for Analysis**: The AI model that analyzes the audio is a powerful cloud-based service. Each time a user submits a new recording, the app sends the audio data to this service over the internet. Consequently, **an active internet connection is required to identify new bird songs.**
 
-*   **Offline Access to Logged Results**: Any identification result that is saved to the "Bird Book" will be stored locally in the browser. This means you will be able to view all your previously identified birds at any time, **even without an internet connection,** once they have been loaded onto your device.
+*   **Offline Access to Logged Results**: Any identification result that is saved to the "Bird Book" is stored on the user's device. This means you will be able to view all your previously identified birds at any time, **even without an internet connection,** once they have been loaded onto your device.
 
 ## Detailed Recommendation Version 1
 
