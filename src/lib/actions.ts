@@ -190,7 +190,7 @@ export async function getPromptSystems(): Promise<PromptSystem[]> {
         const defaultSystem: Omit<PromptSystem, 'id'> = {
             name: "Bird Identifier AI (Newbie)",
             description: "Manages prompts for identifying birds in Newbie mode.",
-            activeVersion: "v1.0.0"
+            activeVersion: "1.0.0"
         };
         const newSystem = await createNewPromptSystem({ systemId: 'bird-identifier-ai-newbie', ...defaultSystem });
         return [newSystem];
@@ -210,27 +210,39 @@ export async function createNewPromptSystem(data: { systemId: string, name: stri
     if (systemSnap.exists()) {
         throw new Error('A system with this ID already exists.');
     }
+    
+    const baseInstruction = `You are a world-class ornithologist AI. Your purpose is to identify bird species from audio recordings with the highest possible accuracy.
+
+You will receive an audio file and optional contextual data like location and time.
+
+Your primary goal is to determine if a bird song is present and, if so, identify the bird's common name, scientific name, taxonomic family, and order.
+
+If a bird song is present, you MUST set 'isBirdSong' to true and populate the identification fields.
+
+If no bird song is discernible, or if the audio contains other sounds, you MUST set 'isBirdSong' to false and leave the other fields empty.
+
+You must also generate a simple, descriptive prompt suitable for a text-to-image model to create a photorealistic image of the identified bird.`;
 
     // Use a transaction to ensure all parts are created together
     await runTransaction(db, async (transaction) => {
         // 1. Create default content
-        const defaultContentId = `base_instruction_v1-0-0`;
+        const defaultContentId = `base_instruction_1-0-0`;
         const contentRef = doc(db, 'prompt_content', defaultContentId);
         const contentData: Omit<PromptContent, 'id'> = {
             systemId,
             categoryId: 'base_instruction',
-            version: 'v1.0.0',
-            promptText: 'enter prompt here:',
+            version: '1.0.0',
+            promptText: baseInstruction,
             timestamp: new Date().toISOString(),
         };
         transaction.set(contentRef, contentData);
 
         // 2. Create default version pointing to content
-        const defaultVersionId = `${systemId}-v1-0-0`;
+        const defaultVersionId = `${systemId}-1-0-0`;
         const versionRef = doc(db, 'prompt_versions', defaultVersionId);
         const versionData: Omit<PromptVersion, 'id'> = {
             systemId,
-            version: 'v1.0.0',
+            version: '1.0.0',
             timestamp: new Date().toISOString(),
             composedPrompts: {
                 base_instruction: defaultContentId,
@@ -242,12 +254,12 @@ export async function createNewPromptSystem(data: { systemId: string, name: stri
         const newSystemData: Omit<PromptSystem, 'id'> = {
             name,
             description,
-            activeVersion: 'v1.0.0',
+            activeVersion: '1.0.0',
         };
         transaction.set(systemRef, newSystemData);
     });
 
-    return { id: systemId, name, description, activeVersion: 'v1.0.0' };
+    return { id: systemId, name, description, activeVersion: '1.0.0' };
 }
 
 /**
@@ -260,8 +272,8 @@ export async function getPromptVersionsForSystem(systemId: string): Promise<Prom
     const snapshot = await getDocs(q);
 
     if (snapshot.empty && systemId === 'bird-identifier-ai-newbie') {
-        const defaultVersion = await publishNewPromptVersion(systemId, 'v1.0.0', {
-            base_instruction: 'base_instruction_v1-0-0'
+        const defaultVersion = await publishNewPromptVersion(systemId, '1.0.0', {
+            base_instruction: 'base_instruction_1-0-0'
         });
         return [defaultVersion];
     }
@@ -269,10 +281,10 @@ export async function getPromptVersionsForSystem(systemId: string): Promise<Prom
     const versions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptVersion));
     
     versions.sort((a, b) => {
-        if (typeof a.version !== 'string' || !a.version.startsWith('v')) return 1;
-        if (typeof b.version !== 'string' || !b.version.startsWith('v')) return -1;
-        const verA = a.version.substring(1).split('.').map(Number);
-        const verB = b.version.substring(1).split('.').map(Number);
+        if (typeof a.version !== 'string') return 1;
+        if (typeof b.version !== 'string') return -1;
+        const verA = a.version.split('.').map(Number);
+        const verB = b.version.split('.').map(Number);
         if (verA[0] !== verB[0]) return verB[0] - verA[0];
         if (verA[1] !== verB[1]) return verB[1] - verA[1];
         return verB[2] - verA[2];
@@ -290,13 +302,25 @@ export async function getPromptContentForSystem(systemId: string): Promise<Promp
     const contentRef = collection(db, 'prompt_content');
     const q = query(contentRef, where('systemId', '==', systemId));
     const snapshot = await getDocs(q);
+    
+    const baseInstruction = `You are a world-class ornithologist AI. Your purpose is to identify bird species from audio recordings with the highest possible accuracy.
+
+You will receive an audio file and optional contextual data like location and time.
+
+Your primary goal is to determine if a bird song is present and, if so, identify the bird's common name, scientific name, taxonomic family, and order.
+
+If a bird song is present, you MUST set 'isBirdSong' to true and populate the identification fields.
+
+If no bird song is discernible, or if the audio contains other sounds, you MUST set 'isBirdSong' to false and leave the other fields empty.
+
+You must also generate a simple, descriptive prompt suitable for a text-to-image model to create a photorealistic image of the identified bird.`;
 
     if (snapshot.empty && systemId === 'bird-identifier-ai-newbie') {
         const defaultContent = await publishNewPromptContent({
             systemId,
             categoryId: 'base_instruction',
-            version: 'v1.0.0',
-            promptText: 'enter prompt here:'
+            version: '1.0.0',
+            promptText: baseInstruction
         });
         return [defaultContent];
     }
@@ -305,10 +329,10 @@ export async function getPromptContentForSystem(systemId: string): Promise<Promp
 
     contents.sort((a, b) => {
         try {
-            if (typeof a.version !== 'string' || !a.version.startsWith('v')) return 1;
-            if (typeof b.version !== 'string' || !b.version.startsWith('v')) return -1;
-            const versionA = a.version.substring(1).split('.').map(Number);
-            const versionB = b.version.substring(1).split('.').map(Number);
+            if (typeof a.version !== 'string') return 1;
+            if (typeof b.version !== 'string') return -1;
+            const versionA = a.version.split('.').map(Number);
+            const versionB = b.version.split('.').map(Number);
             if (versionA[0] !== versionB[0]) return versionB[0] - versionA[0];
             if (versionA[1] !== versionB[1]) return versionB[1] - versionA[1];
             return versionB[2] - versionA[2];
@@ -344,8 +368,8 @@ export async function getAppAIVersions(): Promise<AppAIVersion[]> {
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
-        const defaultVersion = await publishNewAppAIVersion('v1.0.0', {
-            'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-v1-0-0'
+        const defaultVersion = await publishNewAppAIVersion('1.0.0', {
+            'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-1-0-0'
         });
         return [defaultVersion];
     }

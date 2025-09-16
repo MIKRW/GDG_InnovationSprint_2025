@@ -3,7 +3,7 @@
 
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SearchableHeader } from '@/components/layout/SearchableHeader';
-import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
+import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 
 export default function PromptManagementLayout({
   children,
@@ -15,7 +15,7 @@ export default function PromptManagementLayout({
       <main className="flex-1 overflow-y-auto bg-muted p-4 md:p-6">
          {children}
       </main>
-      <SecondaryPageFooterV2 />
+      <SecondaryPageFooter />
     </AppLayout>
   );
 }

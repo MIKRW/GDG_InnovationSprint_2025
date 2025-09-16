@@ -3,7 +3,7 @@
 
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SearchableHeader } from '@/components/layout/SearchableHeader';
-import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
+import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 import type { SortOption } from '@/lib/types';
 import { usePathname } from 'next/navigation';
 import React, { useState, useMemo } from 'react';
@@ -61,7 +61,7 @@ export default function LogLayout({
       <main className="flex-1 overflow-y-auto bg-muted p-4 md:p-6">
          {childrenWithProps}
       </main>
-      <SecondaryPageFooterV2 />
+      <SecondaryPageFooter />
     </AppLayout>
   );
 }

@@ -12,7 +12,7 @@ import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 
 import { AppLayout } from '@/components/layout/AppLayout';
-import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
+import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -108,7 +108,7 @@ export default function LogDetailPage() {
           <Skeleton className="w-1/3 h-6 mt-2" />
           <Skeleton className="w-full h-24 mt-4" />
         </main>
-        <SecondaryPageFooterV2 />
+        <SecondaryPageFooter />
       </AppLayout>
     );
   }
@@ -220,7 +220,7 @@ export default function LogDetailPage() {
             </Card>
         </div>
       </main>
-      <SecondaryPageFooterV2 />
+      <SecondaryPageFooter />
     </AppLayout>
   );
 }

@@ -1,5 +1,6 @@
+
 import { ThemePage } from '@/components/pages/ThemePage';
-import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
+import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PrimaryHeader } from '@/components/layout/PrimaryHeader';
 
@@ -11,7 +12,7 @@ export default function Theme() {
           <ThemePage />
         </div>
       </main>
-      <SecondaryPageFooterV2 />
+      <SecondaryPageFooter />
     </AppLayout>
   );
 }

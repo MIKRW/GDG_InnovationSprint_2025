@@ -1,6 +1,6 @@
 
 import { SettingsPage } from '@/components/pages/SettingsPage';
-import { SecondaryPageFooterV2 } from '@/components/layout/SecondaryPageFooterV2';
+import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 
@@ -10,7 +10,7 @@ export default function Settings() {
       <main className="flex-1 overflow-y-auto">
         <SettingsPage />
       </main>
-      <SecondaryPageFooterV2 />
+      <SecondaryPageFooter />
     </AppLayout>
   );
 }

@@ -1,6 +1,6 @@
 
 import { AppLayout } from '@/components/layout/AppLayout';
-import { AppName } from '@/components/content/AppName';
+import { PageTitle } from '@/components/content/PageTitle';
 import { HomePageFooter } from '@/components/layout/HomePageFooter';
 import { Logo } from '@/components/content/Logo';
 import { PrimaryHeader } from '@/components/layout/PrimaryHeader';
@@ -29,7 +29,7 @@ export default function Home() {
         <div className="w-[31.2rem] h-[31.2rem]">
           <Logo />
         </div>
-        <AppName>the app name</AppName>
+        <PageTitle>the app name</PageTitle>
       </main>
       <HomePageFooter />
     </AppLayout>
