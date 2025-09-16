@@ -278,10 +278,12 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
     <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
         <AccordionItem value="item-1" className="border-b-0">
             <AccordionTrigger className="hover:no-underline">
-                <div className="flex-1 text-center pt-6">
-                    <h3 className="text-2xl font-bold mb-2">AI Type Version Control</h3>
+                <div className="flex-1 flex flex-col justify-between text-center p-6 h-36">
+                    <h3 className="text-2xl font-bold">AI Type Version Control</h3>
                     <p className="text-sm text-muted-foreground px-4">
-                        Compose new versions of the <span className="font-semibold text-foreground">{system.name}</span> system by selecting which version of each prompt category to include.
+                        Compose new versions of the{' '}
+                        <span className="font-semibold text-foreground">{system.name}</span>{' '}
+                        system by selecting which version of each prompt category to include.
                     </p>
                 </div>
             </AccordionTrigger>
