@@ -147,12 +147,12 @@ setContentForSelectedSystem(content);
       <Accordion type="single" collapsible className="w-full mb-8" defaultValue="item-1">
         <AccordionItem value="item-1" className="border rounded-lg bg-card text-card-foreground shadow-sm">
           <AccordionTrigger className="hover:no-underline p-0 h-36">
-              <div className="flex-1 flex flex-col justify-between text-center p-6 h-full">
-                  <h3 className="text-2xl font-bold">AI system version control</h3>
-                  <p className="text-sm text-muted-foreground px-4">
-                      Manage the current and previous AI system versions. You can selected which AI types and there versions you wish to publish. This will determine what prompts the AI receives and how well it operates.
-                  </p>
-              </div>
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 h-full gap-4">
+                <h3 className="text-2xl font-bold">AI system version control</h3>
+                <p className="text-sm text-muted-foreground px-4 max-w-xl">
+                    Manage the current and previous AI system versions. You can selected which AI types and there versions you wish to publish. This will determine what prompts the AI receives and how well it operates.
+                </p>
+            </div>
           </AccordionTrigger>
           <AccordionContent>
             <AppAIVersionManager />
@@ -161,7 +161,7 @@ setContentForSelectedSystem(content);
       </Accordion>
       
       <Card className="my-8 bg-card-header">
-        <CardHeader>
+        <CardHeader className="text-center border-b pb-6">
           <CardTitle className="text-6xl text-center my-4">AI Type Editor</CardTitle>
           <CardDescription className="text-center">Choose the AI system you want to manage. The publisher and editor below will update accordingly.</CardDescription>
         </CardHeader>
