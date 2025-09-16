@@ -134,22 +134,22 @@ setContentForSelectedSystem(content);
   return (
     <div className="container mx-auto">
       <Card className="mb-8 bg-card-header">
-        <CardHeader>
-          <div className="text-center mb-8">
-            <PageTitle>AI Systems</PageTitle>
-            <p className="text-muted-foreground mx-auto max-w-3xl">
-              This is the central hub for managing the AI "brains" of the application. Use the top-level publisher to set a combination of AI systems live. Use the system-level publisher to create new versions of a specific AI system from its underlying prompt components.
-            </p>
-          </div>
-        </CardHeader>
+          <CardHeader>
+            <div className="text-center mb-8">
+                <PageTitle>AI Systems</PageTitle>
+                <p className="text-muted-foreground mx-auto max-w-3xl">
+                This is the central hub for managing the AI "brains" of the application. Use the top-level publisher to set a combination of AI systems live. Use the system-level publisher to create new versions of a specific AI system from its underlying prompt components.
+                </p>
+            </div>
+          </CardHeader>
       </Card>
 
       <Card className="mb-8">
         <CardHeader>
-          <CardTitle className="text-center">AI system version control</CardTitle>
-          <CardDescription className="pt-2 text-center">
-            Manage the current and previous AI system versions. You can selected which AI types and there versions you wish to publish. This will determine what prompts the AI receives and how well it operates.
-          </CardDescription>
+            <CardTitle className="text-center">AI system version control</CardTitle>
+            <CardDescription className="pt-2 text-center">
+                Manage the current and previous AI system versions. You can selected which AI types and there versions you wish to publish. This will determine what prompts the AI receives and how well it operates.
+            </CardDescription>
         </CardHeader>
         <CardContent>
           <AppAIVersionManager />
