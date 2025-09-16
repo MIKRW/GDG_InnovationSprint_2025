@@ -1,4 +1,5 @@
 
+
 // This file can be used to define shared types and interfaces.
 
 export type ThemeColor = {
@@ -75,6 +76,7 @@ export type AnalysisRun = {
     weather?: string;
     season?: string;
     confidence?: number;
+    aiGeneratedHabitatTags?: string[];
   };
   wasSuccessful: boolean;
   wasSavedByUser: boolean;

@@ -36,3 +36,14 @@ To securely store the user-uploaded photos, a new top-level folder will be creat
 This structure allows us to use Firebase Storage Security Rules to ensure users can only access and upload media associated with their own user ID, maintaining data privacy.
 
 This approach integrates the new feature seamlessly into our existing architecture, enhancing data richness without compromising our commitment to a scalable and secure design.
+
+## AI Prompting Strategy
+
+To incorporate this new data, the prompt for the `identify-bird-flow` will be updated with the following logic:
+
+1.  **Evidence Hierarchy**: The AI will be instructed to prioritize habitat evidence in a specific order:
+    1.  The user-provided **Habitat Photo** is the highest-priority source of truth.
+    2.  The user's **Habitat Description** is the second-most important piece of evidence.
+    3.  Inferences from **GPS coordinates** and **weather data** should be used as a fallback or to supplement the user's direct input.
+2.  **Structured Tag Generation**: The AI will be explicitly instructed to analyze all available habitat information (photo, text, location, weather) and generate a list of structured `aiGeneratedHabitatTags`. This turns unstructured input into queryable data.
+    -   *Example Tags*: `["forest", "creek", "eucalyptus", "temperate", "summer"]`
