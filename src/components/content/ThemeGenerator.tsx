@@ -18,7 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { generateTheme } from '@/ai/flows/generate-theme-flow';
+import { generateTheme } from '@/ai/flows/contextual-generate-theme-flow';
 import type { Theme, ThemeColor } from '@/lib/types';
 import { Info, Loader2, RefreshCw, Save } from 'lucide-react';
 import { ThemeHistoryItem } from './ThemeHistoryItem';

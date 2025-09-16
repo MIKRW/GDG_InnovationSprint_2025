@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { doc, setDoc, collection, addDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
 
-import { identifyBirdBySound } from '@/ai/flows/identify-bird-flow';
+import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
 import { db, storage } from '@/lib/firebase';
 import type { BirdLog, LocationSettings, AppSettings, AppMode, AnalysisRun } from '@/lib/types';
 import { Button } from '@/components/ui/button';

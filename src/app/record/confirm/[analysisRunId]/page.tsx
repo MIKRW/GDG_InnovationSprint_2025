@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { ThumbsUp, ThumbsDown, Loader2, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { generateBirdImage } from '@/ai/flows/generate-bird-image-flow';
+import { generateBirdImage } from '@/ai/flows/instructional-generate-bird-image-flow';
 import { saveCanonicalImage } from '@/lib/actions';
 
 
