@@ -211,12 +211,12 @@ export function PromptContentManager({ systemId, content, onUpdate, isLoading }:
     <div>
       <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
         <AccordionItem value="item-1" className="border-b-0">
-          <AccordionTrigger className="hover:no-underline">
-            <div className="flex-1 text-center">
-              <CardTitle>Prompt Editor</CardTitle>
-              <CardDescription>
+          <AccordionTrigger className="hover:no-underline p-0 h-36">
+            <div className="flex-1 flex flex-col justify-between text-center p-6 h-full">
+              <h3 className="text-2xl font-bold">Prompt Editor</h3>
+              <p className="text-sm text-muted-foreground px-4">
                 Edit and version the raw text for each prompt component. A new version is saved each time you publish.
-              </CardDescription>
+              </p>
             </div>
           </AccordionTrigger>
           <AccordionContent>
