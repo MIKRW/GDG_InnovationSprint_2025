@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { kebabCase } from 'lodash';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 
 export default function PromptManagementPage() {
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
@@ -134,8 +135,8 @@ setContentForSelectedSystem(content);
 
   return (
     <div className="container mx-auto">
-      <Card className="mb-8 bg-card-header">
-        <CardHeader className="text-center">
+      <Card className="mb-8 bg-card-header text-center">
+        <CardHeader>
             <PageTitle>AI Systems</PageTitle>
             <CardDescription className="text-muted-foreground mx-auto max-w-3xl">
             This is the central hub for managing the AI "brains" of the application. Use the top-level publisher to set a combination of AI systems live. Use the system-level publisher to create new versions of a specific AI system from its underlying prompt components.
@@ -143,17 +144,21 @@ setContentForSelectedSystem(content);
         </CardHeader>
       </Card>
 
-      <Card className="mb-8">
-          <CardHeader>
-              <CardTitle className="text-center">AI system version control</CardTitle>
-              <CardDescription className="pt-2 text-center">
-                  Manage the current and previous AI system versions. You can selected which AI types and there versions you wish to publish. This will determine what prompts the AI receives and how well it operates.
-              </CardDescription>
-          </CardHeader>
-          <CardContent>
+      <Accordion type="single" collapsible className="w-full mb-8" defaultValue="item-1">
+        <AccordionItem value="item-1" className="border rounded-lg bg-card text-card-foreground shadow-sm">
+          <AccordionTrigger className="hover:no-underline p-0">
+              <div className="flex-1 text-center p-6">
+                  <CardTitle className="text-2xl font-bold">AI system version control</CardTitle>
+                  <CardDescription className="pt-2">
+                      Manage the current and previous AI system versions. You can selected which AI types and there versions you wish to publish. This will determine what prompts the AI receives and how well it operates.
+                  </CardDescription>
+              </div>
+          </AccordionTrigger>
+          <AccordionContent>
             <AppAIVersionManager />
-          </CardContent>
-      </Card>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
       
       <Card className="my-8 bg-card-header">
         <CardHeader>
