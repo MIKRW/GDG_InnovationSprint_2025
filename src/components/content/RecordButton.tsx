@@ -33,6 +33,7 @@ interface RecordButtonProps {
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
+const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 const PROMPT_VERSION = "1.8"; // This should be updated when the prompt text files change.
 
 const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps, ref) => {
@@ -122,6 +123,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         aiResult: any, 
         wasSuccessful: boolean, 
         locationData: any, 
+        hardware: string | null,
         mode: AppMode, 
         isDeveloperRun: boolean,
         testContext?: { birdId: string, testAudioId: string },
@@ -157,6 +159,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         longitude: locationData?.longitude ?? null,
         locationDescription: locationData?.locationDescription ?? null,
       },
+      hardware: hardware || undefined,
       analysisMethod: `gemini-pro-vision-prompt-v${PROMPT_VERSION}`,
       aiResult: aiResult,
       wasSuccessful: wasSuccessful,
@@ -311,6 +314,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       return;
     }
     const appSettings = getAppSettings();
+    const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
     
     const isDeveloperRun = !!testContext;
 
@@ -331,6 +335,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           result, 
           wasSuccessful, 
           locationData, 
+          hardware,
           appSettings.mode, 
           isDeveloperRun,
           testContext,
@@ -364,6 +369,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
            { error: (error as Error).message, isBirdSong: false }, 
            false, 
            locationData, 
+           hardware,
            appSettings.mode, 
            isDeveloperRun,
            testContext,

@@ -62,6 +62,7 @@ export type AnalysisRun = {
     longitude?: number;
     locationDescription?: string;
   };
+  hardware?: string; // User-specified recording hardware
   analysisMethod: string; // The specific AI system and version used, e.g., 'bird-identifier-newbie-v1.1'
   aiResult: {
     isBirdSong: boolean;
