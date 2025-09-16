@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2 } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
 import { kebabCase } from 'lodash';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 
@@ -146,13 +146,14 @@ setContentForSelectedSystem(content);
 
       <Accordion type="single" collapsible className="w-full mb-8" defaultValue="item-1">
         <AccordionItem value="item-1" className="border rounded-lg bg-card text-card-foreground shadow-sm">
-          <AccordionTrigger className="hover:no-underline p-0 h-36">
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 h-full gap-4">
-                <h3 className="text-2xl font-bold">AI system version control</h3>
+          <AccordionTrigger className="hover:no-underline p-0 h-36 flex justify-between items-center w-full">
+            <div className="flex-1 flex flex-col items-center justify-between text-center p-6 h-full gap-4">
+                <CardTitle>AI system version control</CardTitle>
                 <p className="text-sm text-muted-foreground px-4 max-w-xl">
-                    Manage the current and previous AI system versions. You can selected which AI types and there versions you wish to publish. This will determine what prompts the AI receives and how well it operates.
+                  Manage the current and previous AI system versions. You can selected which AI types and there versions you wish to publish. This will determine what prompts the AI receives and how well it operates.
                 </p>
             </div>
+            <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 mr-6" />
           </AccordionTrigger>
           <AccordionContent>
             <AppAIVersionManager />
@@ -160,14 +161,7 @@ setContentForSelectedSystem(content);
         </AccordionItem>
       </Accordion>
       
-      <Card className="my-8 bg-card-header">
-        <CardHeader className="text-center border-b pb-6">
-          <CardTitle className="text-6xl text-center my-4">AI Type Editor</CardTitle>
-          <CardDescription className="text-center">Choose the AI system you want to manage. The publisher and editor below will update accordingly.</CardDescription>
-        </CardHeader>
-      </Card>
-
-      <Card className="mb-8">
+      <Card className="my-8">
         <CardHeader className="text-center border-b pb-6">
           <CardTitle className="text-2xl font-bold mt-4">AI Type</CardTitle>
           <div className="flex justify-center items-center gap-4 pt-4">
