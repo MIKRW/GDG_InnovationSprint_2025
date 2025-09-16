@@ -275,7 +275,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
 
   return (
     <Card>
-      <CardHeader className="text-center">
+      <CardHeader className="text-center pt-6 pb-6">
         <CardTitle>AI Type Version Control</CardTitle>
         <CardDescription>
           Compose new versions of the <span className="font-semibold text-foreground">{system.name}</span> system by selecting which version of each prompt category to include.
@@ -386,5 +386,3 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
     </Card>
   );
 }
-
-    
