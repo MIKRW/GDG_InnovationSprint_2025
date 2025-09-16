@@ -133,20 +133,22 @@ export default function PromptManagementPage() {
 
   return (
     <div className="container mx-auto">
-      <div className="text-center mb-8">
-        <PageTitle>AI Systems</PageTitle>
-        <p className="text-muted-foreground mx-auto max-w-3xl">
-          This is the central hub for managing the AI "brains" of the application. Use the top-level publisher to set a combination of AI systems live. Use the system-level publisher to create new versions of a specific AI system from its underlying prompt components.
-        </p>
-      </div>
+      <Card className="mb-8 bg-card-header">
+        <CardHeader className="text-center">
+          <PageTitle>AI Systems</PageTitle>
+          <p className="text-muted-foreground mx-auto max-w-3xl">
+            This is the central hub for managing the AI "brains" of the application. Use the top-level publisher to set a combination of AI systems live. Use the system-level publisher to create new versions of a specific AI system from its underlying prompt components.
+          </p>
+        </CardHeader>
+      </Card>
 
-      <Card className="mb-8">
+      <Card>
         <CardContent>
           <AppAIVersionManager />
         </CardContent>
       </Card>
 
-      <Card className="mb-8 bg-card-header">
+      <Card className="my-8 bg-card-header">
         <CardHeader>
           <CardTitle className="text-6xl text-center my-4">AI System Editor</CardTitle>
           <CardDescription className="text-center">Choose the AI system you want to manage. The publisher and editor below will update accordingly.</CardDescription>
