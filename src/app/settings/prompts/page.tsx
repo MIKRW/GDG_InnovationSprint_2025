@@ -148,7 +148,7 @@ export default function PromptManagementPage() {
       
       <Card className="mb-8 bg-card-header">
         <CardHeader>
-          <CardTitle className="text-3xl text-center">AI System Editor</CardTitle>
+          <CardTitle className="text-6xl text-center my-4">AI System Editor</CardTitle>
           <CardDescription className="text-center">Choose the AI system you want to manage. The publisher and editor below will update accordingly.</CardDescription>
         </CardHeader>
       </Card>
