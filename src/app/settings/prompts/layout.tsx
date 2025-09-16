@@ -11,7 +11,7 @@ export default function PromptManagementLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AppLayout header={<SearchableHeader title="AI Publisher" showSearchAndSort={false} onSearchChange={() => {}} onSortChange={() => {}} />}>
+    <AppLayout header={<SearchableHeader title="" showSearchAndSort={false} onSearchChange={() => {}} onSortChange={() => {}} />}>
       <main className="flex-1 overflow-y-auto bg-muted p-4 md:p-6">
          {children}
       </main>
