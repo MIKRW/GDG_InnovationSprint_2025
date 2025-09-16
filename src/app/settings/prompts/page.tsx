@@ -140,12 +140,12 @@ export default function PromptManagementPage() {
         </p>
       </div>
 
-      <Card className="mb-8 bg-card-header">
+      <Card className="mb-8">
         <CardContent>
           <AppAIVersionManager />
         </CardContent>
       </Card>
-      
+
       <Card className="mb-8 bg-card-header">
         <CardHeader>
           <CardTitle className="text-6xl text-center my-4">AI System Editor</CardTitle>
