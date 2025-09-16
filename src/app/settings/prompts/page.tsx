@@ -133,17 +133,15 @@ setContentForSelectedSystem(content);
 
   return (
     <div className="container mx-auto">
-      <Card className="mb-8 bg-card-header">
-          <CardHeader>
-            <div className="text-center mb-8">
-                <PageTitle>AI Systems</PageTitle>
-                <p className="text-muted-foreground mx-auto max-w-3xl">
-                This is the central hub for managing the AI "brains" of the application. Use the top-level publisher to set a combination of AI systems live. Use the system-level publisher to create new versions of a specific AI system from its underlying prompt components.
-                </p>
-            </div>
-          </CardHeader>
+      <Card className="mb-8">
+        <CardHeader>
+            <PageTitle>AI Systems</PageTitle>
+            <CardDescription className="text-muted-foreground mx-auto max-w-3xl">
+            This is the central hub for managing the AI "brains" of the application. Use the top-level publisher to set a combination of AI systems live. Use the system-level publisher to create new versions of a specific AI system from its underlying prompt components.
+            </CardDescription>
+        </CardHeader>
       </Card>
-
+      
       <Card className="mb-8">
         <CardHeader>
             <CardTitle className="text-center">AI system version control</CardTitle>
@@ -151,11 +149,9 @@ setContentForSelectedSystem(content);
                 Manage the current and previous AI system versions. You can selected which AI types and there versions you wish to publish. This will determine what prompts the AI receives and how well it operates.
             </CardDescription>
         </CardHeader>
-        <CardContent>
-          <AppAIVersionManager />
-        </CardContent>
+        <AppAIVersionManager />
       </Card>
-
+      
       <Card className="my-8 bg-card-header">
         <CardHeader>
           <CardTitle className="text-6xl text-center my-4">AI Type Editor</CardTitle>
@@ -164,13 +160,13 @@ setContentForSelectedSystem(content);
       </Card>
 
       <Card className="mb-8">
-        <CardHeader>
-            <div className="flex flex-col items-center gap-4 pt-4">
-                <Label htmlFor="system-selector" className="text-2xl font-bold">AI Type</Label>
+        <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">AI Type</CardTitle>
+            <div className="flex justify-center items-center gap-4 pt-4">
                 {loading && !selectedSystemId ? (
                     <Skeleton className="h-10 w-full max-w-xs" />
                 ) : (
-                    <div className="flex items-center gap-4">
+                    <>
                         <Select value={selectedSystemId || ''} onValueChange={handleSystemChange}>
                             <SelectTrigger id="system-selector" className="w-full sm:w-[250px]">
                             <SelectValue placeholder="Select a system" />
@@ -211,7 +207,7 @@ setContentForSelectedSystem(content);
                                 </DialogFooter>
                             </DialogContent>
                         </Dialog>
-                    </div>
+                    </>
                 )}
             </div>
         </CardHeader>
