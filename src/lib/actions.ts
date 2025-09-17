@@ -1,6 +1,7 @@
 
 'use server';
 
+import { unstable_cache as cache } from 'next/cache';
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString, getMetadata, deleteObject } from 'firebase/storage';
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, addDoc, collection, serverTimestamp, query, where, getDocs, orderBy, writeBatch, deleteDoc, runTransaction } from 'firebase/firestore';
 import { db, storage } from './firebase';
@@ -476,63 +477,76 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
 
 /**
  * Fetches the fully composed prompt text for a given AI system by following the versioning hierarchy.
+ * This function is now wrapped with Next.js's `unstable_cache` to memoize the results on the server.
+ * This dramatically reduces Firestore lookups for repeated calls, improving performance.
  * @param systemId The ID of the AI system (e.g., 'bird-identifier-ai-newbie').
  * @returns The final, combined prompt string, or null if any part of the chain is missing.
  */
-export async function getComposedPrompt(systemId: string): Promise<string | null> {
-    try {
-        // 1. Get the live app version config
-        const appConfig = await getAppAIConfig();
-        if (!appConfig?.activeAppAIVersion) {
-            throw new Error("No active App AI Version is configured.");
-        }
-
-        // 2. Get the specific app version document
-        const appVersionRef = doc(db, 'app_ai_versions', appConfig.activeAppAIVersion);
-        const appVersionSnap = await getDoc(appVersionRef);
-        if (!appVersionSnap.exists()) {
-            throw new Error(`App AI Version document '${appConfig.activeAppAIVersion}' not found.`);
-        }
-        const appVersion = appVersionSnap.data() as AppAIVersion;
-
-        // 3. Find the prompt system version for the requested systemId
-        const systemRef = doc(db, 'prompt_systems', systemId);
-        const systemSnap = await getDoc(systemRef);
-        if(!systemSnap.exists()) {
-            throw new Error(`Prompt system '${systemId}' does not exist.`);
-        }
-        const systemData = systemSnap.data() as PromptSystem;
-        const activeSystemVersion = systemData.activeVersion;
-
-        // 4. Get the prompt version document
-        const promptVersionId = `${systemId}-${activeSystemVersion.replace(/\./g, '-')}`;
-        const promptVersionRef = doc(db, 'prompt_versions', promptVersionId);
-        const promptVersionSnap = await getDoc(promptVersionRef);
-        if (!promptVersionSnap.exists()) {
-            throw new Error(`Prompt version document '${promptVersionId}' for system '${systemId}' not found.`);
-        }
-        const promptVersion = promptVersionSnap.data() as PromptVersion;
-
-        // 5. Fetch all the individual prompt content pieces
-        const contentIds = Object.values(promptVersion.composedPrompts);
-        const contentPromises = contentIds.map(id => getDoc(doc(db, 'prompt_content', id)));
-        const contentSnaps = await Promise.all(contentPromises);
-
-        const contentPieces: PromptContent[] = contentSnaps.map(snap => {
-            if (!snap.exists()) {
-                throw new Error(`Required prompt content document with ID '${snap.id}' is missing.`);
+export const getComposedPrompt = cache(
+    async (systemId: string): Promise<string | null> => {
+        console.log(`CACHE MISS: Composing prompt for system '${systemId}' from Firestore.`);
+        try {
+            // 1. Get the live app version config
+            const appConfig = await getAppAIConfig();
+            if (!appConfig?.activeAppAIVersion) {
+                throw new Error("No active App AI Version is configured.");
             }
-            return snap.data() as PromptContent;
-        });
-        
-        // 6. Assemble the final prompt (for now, just join them with newlines)
-        // A more advanced system could use an 'order' field.
-        const composedText = contentPieces.map(p => p.promptText).join('\n\n');
 
-        return composedText;
+            // 2. Get the specific app version document
+            const appVersionRef = doc(db, 'app_ai_versions', appConfig.activeAppAIVersion);
+            const appVersionSnap = await getDoc(appVersionRef);
+            if (!appVersionSnap.exists()) {
+                throw new Error(`App AI Version document '${appConfig.activeAppAIVersion}' not found.`);
+            }
+            const appVersion = appVersionSnap.data() as AppAIVersion;
 
-    } catch (error) {
-        console.error(`Failed to get composed prompt for '${systemId}':`, error);
-        return null;
+            // 3. Find the prompt system version for the requested systemId
+            const systemRef = doc(db, 'prompt_systems', systemId);
+            const systemSnap = await getDoc(systemRef);
+            if(!systemSnap.exists()) {
+                throw new Error(`Prompt system '${systemId}' does not exist.`);
+            }
+            const systemData = systemSnap.data() as PromptSystem;
+            const activeSystemVersion = systemData.activeVersion;
+
+            // 4. Get the prompt version document
+            const promptVersionId = `${systemId}-${activeSystemVersion.replace(/\./g, '-')}`;
+            const promptVersionRef = doc(db, 'prompt_versions', promptVersionId);
+            const promptVersionSnap = await getDoc(promptVersionRef);
+            if (!promptVersionSnap.exists()) {
+                throw new Error(`Prompt version document '${promptVersionId}' for system '${systemId}' not found.`);
+            }
+            const promptVersion = promptVersionSnap.data() as PromptVersion;
+
+            // 5. Fetch all the individual prompt content pieces
+            const contentIds = Object.values(promptVersion.composedPrompts);
+            const contentPromises = contentIds.map(id => getDoc(doc(db, 'prompt_content', id)));
+            const contentSnaps = await Promise.all(contentPromises);
+
+            const contentPieces: PromptContent[] = contentSnaps.map(snap => {
+                if (!snap.exists()) {
+                    throw new Error(`Required prompt content document with ID '${snap.id}' is missing.`);
+                }
+                return snap.data() as PromptContent;
+            });
+            
+            // 6. Assemble the final prompt (for now, just join them with newlines)
+            // A more advanced system could use an 'order' field.
+            const composedText = contentPieces.map(p => p.promptText).join('\n\n');
+
+            return composedText;
+
+        } catch (error) {
+            console.error(`Failed to get composed prompt for '${systemId}':`, error);
+            // In case of error, we must return null, not throw, as cache expects a serializable return.
+            return null; 
+        }
+    },
+    ['composed-prompts'], // A unique key for this cached function
+    {
+        revalidate: 60, // Re-fetch from the database at most once every 60 seconds
+        tags: ['prompts'], // A tag for on-demand revalidation if we build that feature
     }
-}
+);
+
+    
