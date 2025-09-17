@@ -264,7 +264,7 @@ function VersionPublisher({
   }
 
   return (
-    <Card className="border-b rounded-none shadow-none">
+    <Card className="border-0 border-b shadow-none rounded-none">
         {Header}
         {Content}
     </Card>
