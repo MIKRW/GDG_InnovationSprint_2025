@@ -92,8 +92,7 @@ export default function ConfirmIdentificationPage() {
     
     if (analysisRun.isDeveloperData) {
         toast({ title: 'Test Feedback Recorded' });
-        const redirectPath = analysisRun.birdId === 'live-test' ? '/log/test/live' : '/log/test';
-        router.push(redirectPath);
+        router.push('/log/test');
         return;
     }
     
