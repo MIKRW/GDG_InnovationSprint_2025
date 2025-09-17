@@ -73,6 +73,18 @@ export function NewMasterAudioForm({ onUploadSuccess }: NewMasterAudioFormProps)
             return;
         };
 
+        const getDuration = (file: File): Promise<number> => {
+            return new Promise((resolve) => {
+                const audio = document.createElement('audio');
+                audio.src = URL.createObjectURL(file);
+                audio.addEventListener('loadedmetadata', () => {
+                    resolve(parseFloat(audio.duration.toFixed(2)));
+                });
+            });
+        };
+
+        const duration = await getDuration(file);
+
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onloadend = async () => {
@@ -93,6 +105,7 @@ export function NewMasterAudioForm({ onUploadSuccess }: NewMasterAudioFormProps)
                     audioFile: base64Audio,
                     audioFileName: file.name,
                     description: values.description,
+                    duration: duration,
                     sourceUrl: values.sourceUrl,
                     author: values.author,
                     license: values.license,
