@@ -2,7 +2,7 @@
 
 'use-client';
 
-import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useState, useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 import { doc, setDoc, updateDoc, getDoc } from 'firebase/firestore';
@@ -40,9 +40,11 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   const router = useRouter();
   const { user } = useAuth();
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
+  const [elapsedTime, setElapsedTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingStartTimeRef = useRef<number | null>(null);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const currentSessionId = useRef<string | null>(null);
   const currentTimestamp = useRef<string | null>(null);
   const currentTestContext = useRef<{ birdId: string, testAudioId: string } | undefined>(undefined);
@@ -71,6 +73,15 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
   }));
 
+  useEffect(() => {
+    return () => {
+      // Cleanup interval on component unmount
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
+  }, []);
+
 
   const handleStartRecording = async () => {
     onStartRecording?.();
@@ -83,6 +94,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     currentSessionId.current = uuidv4();
     currentTimestamp.current = new Date().toISOString();
     recordingStartTimeRef.current = Date.now();
+    setElapsedTime(0);
     
     // A live recording in dev mode is flagged as developer data
     if (process.env.NEXT_PUBLIC_DEV_MODE === 'true') {
@@ -108,6 +120,12 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 
       mediaRecorderRef.current.start();
       setRecordingState('recording');
+
+      // Start timer
+      timerIntervalRef.current = setInterval(() => {
+        setElapsedTime(prev => prev + 1);
+      }, 1000);
+
     } catch (err) {
       console.error('Permission denied or no microphone found:', err);
       setRecordingState('denied');
@@ -120,6 +138,12 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       mediaRecorderRef.current.stop();
       // Stop all audio tracks to turn off the microphone indicator
       mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+
+      // Stop timer
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
     }
   };
 
@@ -346,6 +370,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         return {
           icon: <Square className="w-40 h-40 text-background" />,
           label: 'Press to Stop',
+          timer: `${String(Math.floor(elapsedTime / 60)).padStart(2, '0')}:${String(elapsedTime % 60).padStart(2, '0')}`,
         };
       case 'processing':
         return {
@@ -365,7 +390,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
   };
 
-  const { icon, label } = getButtonContent();
+  const { icon, label, timer } = getButtonContent();
   const isDisabled = recordingState === 'processing' || !user;
 
 
@@ -381,6 +406,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       >
         <div className="text-background text-center text-2xl">
           <p className="text-xl">{label}</p>
+          {timer && <p className="text-4xl font-mono mt-2">{timer}</p>}
         </div>
         {icon}
       </Button>
@@ -405,5 +431,3 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 RecordButton.displayName = "RecordButton";
 
 export { RecordButton };
-
-    
