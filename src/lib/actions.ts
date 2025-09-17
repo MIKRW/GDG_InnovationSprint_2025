@@ -160,7 +160,7 @@ export async function saveCanonicalImage(
 
 export async function createAnalysisRun(
     userId: string,
-    audio: string, // Can be data URI for live recordings or storage path for test runs
+    audioStoragePath: string,
     aiResult: any,
     wasSuccessful: boolean,
     locationData: any,
@@ -178,30 +178,15 @@ export async function createAnalysisRun(
     const collectionName = isDeveloperRun ? 'all_test_runs' : 'all_analysis_runs';
     const analysisRunRef = doc(db, collectionName, analysisRunId);
 
-    let inputAudioUrl: string;
-    let inputAudioStoragePath: string;
-    
-    // Check if the audio is a data URI or a storage path
-    if (audio.startsWith('data:')) {
-        // It's a live recording, upload it to generate URL and path
-        const audioId = uuidv4();
-        inputAudioStoragePath = `users/${userId}/recordings/${audioId}.webm`;
-        const fileRef = storageRef(storage, inputAudioStoragePath);
-        await uploadString(fileRef, audio, 'data_url');
-        inputAudioUrl = await getDownloadURL(fileRef);
-    } else {
-        // It's a test run, the audio is already a storage path
-        inputAudioStoragePath = audio;
-        const fileRef = storageRef(storage, inputAudioStoragePath);
-        inputAudioUrl = await getDownloadURL(fileRef);
-    }
+    const fileRef = storageRef(storage, audioStoragePath);
+    const inputAudioUrl = await getDownloadURL(fileRef);
 
     const docToCreate: Omit<AnalysisRun, 'id'> = {
       timestamp: timestamp!,
       userId: userId,
       sessionId: sessionId!,
       inputAudioUrl: inputAudioUrl,
-      inputAudioStoragePath: inputAudioStoragePath,
+      inputAudioStoragePath: audioStoragePath,
       locationData: {
         latitude: locationData?.latitude ?? null,
         longitude: locationData?.longitude ?? null,
@@ -537,5 +522,3 @@ export const getComposedPrompt = cache(
         tags: ['prompts'],
     }
 );
-
-    

@@ -1,5 +1,4 @@
 
-
 'use-client';
 
 import { useState, useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
@@ -17,7 +16,7 @@ type RecordingState =
 interface RecordButtonProps {
     onPermissionDenied?: () => void;
     onStartRecording?: () => void;
-    onRecordingComplete: (audioDataUri: string, duration?: number) => void;
+    onRecordingComplete: (audioBlob: Blob, duration?: number) => void;
     isProcessing: boolean;
 }
 
@@ -57,7 +56,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
+      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       audioChunksRef.current = [];
 
       mediaRecorderRef.current.addEventListener('dataavailable', (event: BlobEvent) => {
@@ -67,13 +66,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
       mediaRecorderRef.current.addEventListener('stop', () => {
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
           const recordingLengthSeconds = recordingStartTimeRef.current ? parseFloat(((Date.now() - recordingStartTimeRef.current) / 1000).toFixed(2)) : undefined;
-
-          const reader = new FileReader();
-          reader.readAsDataURL(audioBlob);
-          reader.onloadend = async () => {
-              const base64Audio = reader.result as string;
-              onRecordingComplete(base64Audio, recordingLengthSeconds);
-          };
+          onRecordingComplete(audioBlob, recordingLengthSeconds);
       });
 
       mediaRecorderRef.current.start();
