@@ -445,7 +445,7 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
 
     if (versions.length === 0 && type !== 'dev') {
         // If there are no versions at all, create a default live one.
-        return [await publishNewAppAIVersion('v1.0.0', { 'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-v1-0-0' }, false)];
+        return [await publishNewAppAIVersion('v1.0.0', { 'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-v1-0-0', 'theme-generator-ai': 'theme-generator-ai-v1-0-0' }, false)];
     }
 
     return versions;
@@ -612,7 +612,7 @@ export const getComposedPrompt = cache(
             const contentSnaps = await Promise.all(contentPromises);
 
             const composedText = contentSnaps.map(snap => {
-                if (!snap.exists()) throw new Error(`Required prompt content document '${snap.id}' is missing.`);
+                if (!snap.exists()) throw new Error(`Required prompt content document with ID '${snap.ref.id}' is missing.`);
                 return (snap.data() as PromptContent).promptText;
             }).join('\n\n');
             
@@ -626,6 +626,7 @@ export const getComposedPrompt = cache(
     },
     ['composed-prompts-v4'], { revalidate: 30, tags: ['prompts'] }
 );
+
 
 
 
