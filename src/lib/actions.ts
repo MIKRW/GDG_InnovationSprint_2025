@@ -198,10 +198,13 @@ export async function createAnalysisRun(
       wasSavedByUser: false,
       mode: mode,
       isDeveloperData: isDeveloperRun,
-      recordingLengthSeconds: recordingLengthSeconds,
       analysisTimings: analysisTimings,
     };
-
+    
+    if (typeof recordingLengthSeconds === 'number') {
+        docToCreate.recordingLengthSeconds = recordingLengthSeconds;
+    }
+    
     if (hardware) {
         docToCreate.hardware = hardware;
     }
