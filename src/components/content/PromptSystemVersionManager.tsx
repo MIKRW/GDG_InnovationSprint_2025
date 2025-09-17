@@ -277,7 +277,9 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
     );
   }
 
-  const isCompositionDisabled = viewingVersionId !== 'compose-new';
+  // A major change requires composing a new version from scratch.
+  // Minor or patch changes allow editing from a loaded version.
+  const isCompositionDisabled = viewingVersionId !== 'compose-new' && saveType === 'major';
 
   return (
     <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
@@ -314,6 +316,11 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                                   </SelectContent>
                               </Select>
                           </div>
+                          {isCompositionDisabled && (
+                              <p className="text-xs text-amber-600">
+                                  Major version updates require starting from a new composition. Switch to Minor or Patch to edit this version.
+                              </p>
+                          )}
                       </div>
                   </div>
                   <div>
