@@ -574,7 +574,7 @@ revalidateTag('prompts');
 }
 
 export const getComposedPrompt = cache(
-    async (systemId: string): Promise<{ prompt: string, version: string } | null> => {
+    async (systemId: string): Promise<{ prompt: string; version: string } | null> => {
         const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
         console.log(`Composing prompt for AI Type '${systemId}' (Mode: ${isDevMode ? 'Development' : 'Live'}).`);
 
@@ -588,24 +588,24 @@ export const getComposedPrompt = cache(
                 : appAIConfig.activeAppAIVersion;
             
             if (!appAIVersionId) {
-                throw new Error(`No ${isDevMode ? 'development' : 'active'} AI System is set.`);
+                throw new Error(`No ${isDevMode ? 'development' : 'active'} App AI Version is set.`);
             }
 
-            // 2. Get the App AI System document.
+            // 2. Get the App AI System document (the manifest).
             const appAIVersionRef = doc(db, 'app_ai_versions', appAIVersionId);
             const appAIVersionSnap = await getDoc(appAIVersionRef);
             if (!appAIVersionSnap.exists()) {
-                throw new Error(`AI System document '${appAIVersionId}' not found.`);
+                throw new Error(`App AI Version document '${appAIVersionId}' not found.`);
             }
             const appAIVersion = appAIVersionSnap.data() as AppAIVersion;
 
             // 3. From that, find the ID of the AI Type Version for the requested systemId.
             const promptSystemVersionId = appAIVersion.systems[systemId];
             if (!promptSystemVersionId) {
-                throw new Error(`AI Type '${systemId}' is not defined in AI System '${appAIVersionId}'.`);
+                throw new Error(`AI Type '${systemId}' is not defined in App AI Version '${appAIVersionId}'.`);
             }
             
-            // 4. Get the AI Type Version document.
+            // 4. Get the AI Type Version document (the "recipe").
             const promptVersionRef = doc(db, 'prompt_versions', promptSystemVersionId);
             const promptVersionSnap = await getDoc(promptVersionRef);
             if (!promptVersionSnap.exists()) {
@@ -613,17 +613,21 @@ export const getComposedPrompt = cache(
             }
             const promptVersionData = promptVersionSnap.data() as PromptVersion;
 
-            // 5. Get all the individual Prompt Content documents.
+            // 5. Get all the individual Prompt Content documents from the recipe.
             const contentIds = Object.values(promptVersionData.composedPrompts);
+            if (contentIds.length === 0) {
+                 throw new Error(`AI Type Version '${promptSystemVersionId}' has no prompt content defined.`);
+            }
             const contentPromises = contentIds.map(id => getDoc(doc(db, 'prompt_content', id)));
             const contentSnaps = await Promise.all(contentPromises);
 
+            // 6. Assemble the final prompt text.
             const composedText = contentSnaps.map(snap => {
                 if (!snap.exists()) throw new Error(`Required prompt content document with ID '${snap.ref.id}' is missing.`);
                 return (snap.data() as PromptContent).promptText;
             }).join('\n\n');
             
-            // Return both the prompt and the version string for logging.
+            // Return both the prompt and the top-level version string for logging.
             return { prompt: composedText, version: appAIVersionId };
 
         } catch (error) {
@@ -631,8 +635,9 @@ export const getComposedPrompt = cache(
             return null; 
         }
     },
-    ['composed-prompts-v5'], { revalidate: 30, tags: ['prompts'] }
+    ['composed-prompts-v6'], { revalidate: 30, tags: ['prompts'] }
 );
+
 
 
 
