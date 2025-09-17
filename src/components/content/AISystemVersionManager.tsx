@@ -302,11 +302,22 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
 
   const nextDevVersionString = useMemo(() => {
     const latestVersion = devPublishedVersions[0]; // Assumes sorted desc
-    if (!latestVersion) return "v1-dev";
+    if (!latestVersion) return 'v1.0.0-dev';
 
-    const baseVersion = Number(latestVersion.version.replace('v','').split('-')[0]);
-    return `v${baseVersion + 1}-dev`;
-  }, [devPublishedVersions]);
+    const versionString = latestVersion.version.replace('-dev', '').replace('v', '');
+    const [major, minor, patch] = versionString.split('.').map(Number);
+    
+    let nextVersion: string;
+    if (saveType === 'major') {
+        nextVersion = `v${major + 1}.0.0-dev`;
+    } else if (saveType === 'minor') {
+        nextVersion = `v${major}.${minor + 1}.0-dev`;
+    } else { // patch
+        nextVersion = `v${major}.${minor}.${patch + 1}-dev`;
+    }
+    
+    return nextVersion;
+  }, [devPublishedVersions, saveType]);
 
 
   if (loading) {
@@ -354,5 +365,3 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
     </div>
   );
 }
-
-    
