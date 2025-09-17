@@ -359,25 +359,26 @@ export async function getAppAIConfig(): Promise<AppAIConfig | null> {
 
 export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Promise<AppAIVersion[]> {
     const versionsRef = collection(db, 'app_ai_versions');
-    // Query only by timestamp, which works with a default index.
-    const q = query(versionsRef, orderBy('timestamp', 'desc'));
+    let q = query(versionsRef);
+
+    if (type === 'dev') {
+        q = query(q, where('isDevelopment', '==', true));
+    } else if (type === 'live') {
+        q = query(q, where('isDevelopment', '==', false));
+    }
+    
+    // This query now requires a composite index: isDevelopment (asc), timestamp (desc)
+    q = query(q, orderBy('timestamp', 'desc'));
+
     const snapshot = await getDocs(q);
-
-    const allVersions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
-
-    if (allVersions.length === 0 && type !== 'dev') {
+    const versions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
+    
+    if (versions.length === 0 && type !== 'dev') {
         // If there are no versions at all, create a default live one.
         return [await publishNewAppAIVersion('v1.0.0', { 'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-v1-0-0' }, false)];
     }
     
-    // Filter in code instead of in the query.
-    if (type === 'all') {
-        return allVersions;
-    } else if (type === 'dev') {
-        return allVersions.filter(v => v.isDevelopment === true);
-    } else { // 'live'
-        return allVersions.filter(v => v.isDevelopment === false);
-    }
+    return versions;
 }
 
 
@@ -522,4 +523,5 @@ export const getComposedPrompt = cache(
     },
     ['composed-prompts-v3'], { revalidate: 30, tags: ['prompts'] }
 );
+
 
