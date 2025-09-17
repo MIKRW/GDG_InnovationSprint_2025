@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -74,6 +75,7 @@ export default function RecordPage() {
               scientificName: birdData.scientificName,
               family: birdData.family,
               order: birdData.order,
+              duration: audio.duration,
             });
           });
         }
@@ -131,8 +133,7 @@ export default function RecordPage() {
   const processAudio = (
     storagePath: string,
     isDeveloperRun: boolean,
-    testContext?: { birdId: string, testAudioId: string },
-    recordingLengthSeconds?: number
+    testContext?: { birdId: string; testAudioId: string }
   ) => {
       const processWithLocation = async (locationData?: { latitude?: number; longitude?: number, locationDescription?: string }) => {
         setIsProcessing(true);
@@ -158,7 +159,7 @@ export default function RecordPage() {
             analysisRunId = await createAnalysisRun(
                 user.uid, storagePath, result, wasSuccessful, locationData, hardware,
                 appSettings.mode, isDeveloperRun, testContext,
-                recordingLengthSeconds, { primaryIdentificationMs: analysisDurationMs },
+                { primaryIdentificationMs: analysisDurationMs },
                 currentSessionId.current!, currentTimestamp.current!
             );
 
@@ -172,7 +173,7 @@ export default function RecordPage() {
             analysisRunId = await createAnalysisRun(
                 user.uid, storagePath, { error: (error as Error).message, isBirdSong: false }, false,
                 locationData, hardware, appSettings.mode, isDeveloperRun, testContext,
-                recordingLengthSeconds, { primaryIdentificationMs: analysisDurationMs },
+                { primaryIdentificationMs: analysisDurationMs },
                 currentSessionId.current!, currentTimestamp.current!
             );
         } finally {
@@ -192,7 +193,7 @@ export default function RecordPage() {
     currentTimestamp.current = new Date().toISOString();
   }
 
-  const handleRecordingComplete = async (audioBlob: Blob, duration?: number) => {
+  const handleRecordingComplete = async (audioBlob: Blob) => {
     if (!user) return;
     setIsProcessing(true);
 
@@ -208,7 +209,7 @@ export default function RecordPage() {
         await uploadBytes(fileRef, audioBlob);
         
         // 2. Once uploaded, call processAudio with the storage path
-        processAudio(filePath, isDevTest, testContext, duration);
+        processAudio(filePath, isDevTest, testContext);
 
     } catch (error) {
         console.error("Failed to upload live recording:", error);
@@ -227,7 +228,7 @@ export default function RecordPage() {
     
     const testContext = { birdId: audio.birdId, testAudioId: audio.testAudioId };
 
-    processAudio(audio.storagePath, true, testContext, undefined);
+    processAudio(audio.storagePath, true, testContext);
   };
 
   const onNewAudioUploaded = async (metadata: TestAudioMetadata) => {

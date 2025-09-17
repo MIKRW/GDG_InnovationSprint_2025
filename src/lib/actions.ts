@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { unstable_cache as cache } from 'next/cache';
@@ -21,6 +22,7 @@ interface UploadMasterAudioInput {
     audioFile: string; // data URI
     audioFileName: string;
     description: string;
+    duration: number;
     sourceUrl?: string;
     author?: string;
     license?: string;
@@ -31,7 +33,7 @@ interface UploadMasterAudioInput {
 export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<TestAudioMetadata> {
     const { 
         birdId, commonName, scientificName, genus, species, family, order, 
-        audioFile, audioFileName, description,
+        audioFile, audioFileName, description, duration,
         sourceUrl = '', author = '', license = '', hardware = '', location = ''
     } = data;
 
@@ -55,6 +57,7 @@ export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<T
         audioId: audioId,
         storagePath: filePath,
         description: description,
+        duration: duration,
         sourceUrl: sourceUrl,
         author: author,
         license: license,
@@ -98,7 +101,7 @@ export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<T
         scientificName: scientificName,
         family: family,
         order: order,
-        duration: 0, // Placeholder, will be calculated on analysis
+        duration: duration,
     };
 }
 
@@ -198,7 +201,7 @@ export async function createAnalysisRun(
       wasSavedByUser: false,
       mode: mode,
       isDeveloperData: isDeveloperRun,
-      analysisTimings: analysisTimings,
+      analysisTimings: analysisTimings || {},
     };
     
     if (typeof aiResult.duration === 'number') {
