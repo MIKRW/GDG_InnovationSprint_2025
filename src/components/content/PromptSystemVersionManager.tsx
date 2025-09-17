@@ -278,7 +278,6 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
   }
 
   // A major change requires composing a new version from scratch.
-  // Minor or patch changes allow editing from a loaded version.
   const isCompositionDisabled = viewingVersionId !== 'compose-new' && saveType === 'major';
 
   return (
@@ -403,7 +402,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                       </div>
                       <Button onClick={handleSaveNewVersion} disabled={isSubmitting}>
                           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Save New Version
+                          Save
                       </Button>
                   </div>
               </CardFooter>
