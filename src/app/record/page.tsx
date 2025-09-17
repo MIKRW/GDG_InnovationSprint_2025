@@ -26,7 +26,6 @@ export default function RecordPage() {
   const [isTestAudioDialogOpen, setIsTestAudioDialogOpen] = useState(false);
   const [testAudioLibrary, setTestAudioLibrary] = useState<TestAudioMetadata[]>([]);
   const [isLibraryLoading, setIsLibraryLoading] = useState(false);
-  const [isProcessingFile, setIsProcessingFile] = useState(false);
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
   const fetchTestAudioLibrary = async () => {
@@ -74,7 +73,7 @@ export default function RecordPage() {
   }, [isTestAudioDialogOpen, isDevMode]);
 
   const handleSelectTestAudio = async (audio: TestAudioMetadata) => {
-    setIsProcessingFile(true);
+    setIsTestAudioDialogOpen(false);
     try {
         const fileRef = storageRef(storage, audio.storagePath);
         const blob = await getBlob(fileRef);
@@ -85,12 +84,10 @@ export default function RecordPage() {
         }
     } catch (error) {
         console.error("Error loading test audio from Firebase Storage:", error);
-        setIsProcessingFile(false);
     }
   };
-
+  
   const onNewAudioUploaded = (metadata: TestAudioMetadata) => {
-    setIsTestAudioDialogOpen(false);
     handleSelectTestAudio(metadata);
   }
 
@@ -135,10 +132,7 @@ export default function RecordPage() {
                                                 key={audio.id} 
                                                 variant="ghost" 
                                                 className="w-full justify-start h-auto text-left"
-                                                onClick={() => {
-                                                    setIsTestAudioDialogOpen(false);
-                                                    handleSelectTestAudio(audio);
-                                                }}
+                                                onClick={() => handleSelectTestAudio(audio)}
                                             >
                                             <Music className="mr-4 h-6 w-6 shrink-0" />
                                             <div>
@@ -171,7 +165,6 @@ export default function RecordPage() {
                 setShowPermissionError(false);
                 setShowIdentificationError(false);
               }}
-              isProcessingFile={isProcessingFile}
             />
 
             <div className="absolute left-full ml-16 w-96 space-y-4">

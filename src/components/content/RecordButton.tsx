@@ -2,10 +2,10 @@
 
 'use-client';
 
-import { useState, useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
+import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
-import { doc, setDoc, collection, addDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc } from 'firebase/firestore';
 import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
 
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
@@ -29,7 +29,6 @@ interface RecordButtonProps {
     onPermissionDenied?: () => void;
     onIdentificationFailed?: () => void;
     onStartRecording?: () => void;
-    isProcessingFile?: boolean; // New prop to control processing state externally
 }
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
@@ -37,7 +36,7 @@ const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 const PROMPT_VERSION = "1.8"; // This should be updated when the prompt text files change.
 
-const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, onStartRecording, isProcessingFile = false }: RecordButtonProps, ref) => {
+const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps, ref) => {
   const router = useRouter();
   const { user } = useAuth();
   const [recordingState, setRecordingState] =
@@ -49,18 +48,9 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   const currentSessionId = useRef<string | null>(null);
   const currentTimestamp = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (isProcessingFile) {
-        setRecordingState('processing');
-    } else if (recordingState === 'processing' && !mediaRecorderRef.current) {
-        // If we were processing a file and it's done, go back to idle
-        setRecordingState('idle');
-    }
-  }, [isProcessingFile, recordingState]);
-
-
   useImperativeHandle(ref, () => ({
     handleFileSelect: async (file: File, testContext?: { birdId: string, testAudioId: string }) => {
+      setRecordingState('processing');
       if (currentSessionId.current === null) {
         currentSessionId.current = uuidv4();
       }
