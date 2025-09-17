@@ -60,7 +60,7 @@ export default function RecordPage() {
           birdData.masterAudioFiles.forEach((audio: any) => {
             library.push({
               id: audio.audioId,
-              fileName: birdData.commonName || 'Unknown Filename',
+              fileName: birdData.commonName,
               storagePath: audio.storagePath,
               description: audio.description,
               sourceUrl: audio.sourceUrl || '',
@@ -145,8 +145,8 @@ export default function RecordPage() {
         const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
         let analysisRunId: string | null = null;
         
+        const analysisStartTime = Date.now();
         try {
-            const analysisStartTime = Date.now();
             const result = await identifyBirdBySound({
                 audioStoragePath: storagePath,
                 timestamp: currentTimestamp.current,
@@ -165,7 +165,6 @@ export default function RecordPage() {
             );
 
         } catch (error) {
-            const analysisStartTime = Date.now(); // Keep consistent reference point
             const analysisDurationMs = Date.now() - analysisStartTime;
             logErrorToFirestore(error as Error, 'ai-identification-failure', {
                 sessionId: currentSessionId.current, timestamp: currentTimestamp.current,
