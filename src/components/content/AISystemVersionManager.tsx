@@ -143,10 +143,10 @@ function VersionPublisher({
      <>
         <CardContent>
             {isLive ? (
-                <div className="space-y-2">
+                <div className="flex flex-col items-center space-y-2">
                     <Label htmlFor="dev-version-select">Development Version to Promote</Label>
                     <Select value={devVersionToPromote} onValueChange={setDevVersionToPromote}>
-                        <SelectTrigger id="dev-version-select">
+                        <SelectTrigger id="dev-version-select" className="w-full max-w-xs">
                             <SelectValue placeholder="Select a dev version..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -215,7 +215,7 @@ function VersionPublisher({
             )}
         </CardContent>
         <CardFooter className="pt-6">
-            <div className="flex w-full flex-wrap items-center justify-between gap-6">
+             <div className="flex w-full flex-wrap items-center justify-between gap-6">
                 <div className="flex items-center gap-8">
                 <div className="space-y-2">
                     <Label>Release Type</Label>
@@ -264,7 +264,7 @@ function VersionPublisher({
   }
 
   return (
-    <Card className="border-0 border-b rounded-none shadow-none">
+    <Card className="border-b rounded-none shadow-none">
         {Header}
         {Content}
     </Card>
@@ -418,7 +418,7 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
 
   return (
     <div className="space-y-8">
-        <div className="pt-6">
+        <Card className="pt-6">
             <VersionPublisher
                 title="Live Version"
                 description={`The AI system bundle currently live is ${activeVersionId || 'None'}. Select a Development Version below to promote it.`}
@@ -433,9 +433,9 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
                 isLive={true}
                 onPromote={handlePromoteToLive}
             />
-        </div>
+        </Card>
       
-        <div className="pt-6">
+        <Card className="pt-6">
             <VersionPublisher
                 title="Development Versions"
                 description="Compose a new development version by selecting a version for each AI Type below. This version will only be used in developer mode."
@@ -449,7 +449,7 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
                 isLoading={isSubmitting}
                 isCollapsible={true}
             />
-        </div>
+        </Card>
     </div>
   );
 }
