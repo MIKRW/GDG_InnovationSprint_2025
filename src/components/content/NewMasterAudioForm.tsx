@@ -231,7 +231,7 @@ export function NewMasterAudioForm({ onUploadSuccess }: NewMasterAudioFormProps)
                                 <FormItem>
                                     <FormLabel>Recording Description</FormLabel>
                                     <FormControl>
-                                        <Textarea placeholder="Describe the recording context, e.g., 'Clear warbling call in a forest setting.'" {...field} />
+                                        <Textarea placeholder="Please describe the audio. Is it a warning call, a melody, a single bird, or multiple?" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
