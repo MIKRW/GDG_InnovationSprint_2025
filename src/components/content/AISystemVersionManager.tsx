@@ -147,8 +147,8 @@ function VersionPublisher({
      <>
         <CardContent>
             {isLive ? (
-                <div className="flex flex-col items-center space-y-4 pt-4">
-                    <Label htmlFor="dev-version-select">Development Version to Promote</Label>
+                <div className="flex flex-col items-center space-y-4 pt-8">
+                    <Label htmlFor="dev-version-select" className="mb-2">Development Version to Promote</Label>
                     <Select value={devVersionToPromote} onValueChange={setDevVersionToPromote}>
                         <SelectTrigger id="dev-version-select" className="w-full max-w-xs">
                             <SelectValue placeholder="Select a dev version..." />
@@ -252,7 +252,6 @@ function VersionPublisher({
 
   if (isCollapsible) {
     return (
-      <Card className="border-0 border-b shadow-none rounded-none">
         <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
           <AccordionItem value="item-1" className="border-b-0">
             <AccordionTrigger className="hover:no-underline p-0">
@@ -263,15 +262,14 @@ function VersionPublisher({
             </AccordionContent>
           </AccordionItem>
         </Accordion>
-      </Card>
     );
   }
 
   return (
-    <Card className="border-0 border-b shadow-none rounded-none">
+    <>
         {Header}
         {Content}
-    </Card>
+    </>
   )
 }
 
@@ -457,5 +455,3 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
     </div>
   );
 }
-
-    
