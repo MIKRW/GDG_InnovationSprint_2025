@@ -53,9 +53,8 @@ const RecordButton = forwardRef<RecordButtonRef, RecordButtonProps>(({ onPermiss
   const currentTestContext = useRef<{ birdId: string, testAudioId: string } | undefined>(undefined);
 
   useImperativeHandle(ref, () => ({
-    handleFileSelect: (file: File, testContext?: { birdId: string, testAudioId: string }) => {
-      if (!testContext) return;
-      
+    handleFileSelect: (file: File, testContext: { birdId: string, testAudioId: string }) => {
+      onStartRecording?.();
       currentSessionId.current = uuidv4();
       currentTimestamp.current = new Date().toISOString();
       currentTestContext.current = testContext;
@@ -75,6 +74,10 @@ const RecordButton = forwardRef<RecordButtonRef, RecordButtonProps>(({ onPermiss
               setRecordingState('idle');
           }
       };
+      audio.onerror = () => {
+        console.error("Failed to load audio file metadata.");
+        setRecordingState('idle');
+      }
     }
   }));
 

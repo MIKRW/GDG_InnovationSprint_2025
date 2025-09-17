@@ -75,25 +75,37 @@ export default function RecordPage() {
     }
   }, [isTestAudioDialogOpen, isDevMode]);
 
+  const runAnalysisForTestFile = async (file: File, testContext: { birdId: string; testAudioId: string }) => {
+    if (recordButtonRef.current) {
+        recordButtonRef.current.handleFileSelect(file, testContext);
+    }
+  };
+
+
   const handleSelectTestAudio = async (audio: TestAudioMetadata) => {
     try {
         const fileRef = storageRef(storage, audio.storagePath);
         const blob = await getBlob(fileRef);
         const file = new File([blob], audio.fileName, { type: blob.type || 'audio/wav' });
 
-        if (recordButtonRef.current) {
-            recordButtonRef.current.handleFileSelect(file, { birdId: audio.birdId, testAudioId: audio.testAudioId });
-        }
+        await runAnalysisForTestFile(file, { birdId: audio.birdId, testAudioId: audio.testAudioId });
+
     } catch (error) {
         console.error("Error loading test audio from Firebase Storage:", error);
     }
   };
   
-  const onNewAudioUploaded = (metadata: TestAudioMetadata) => {
-    // This function is the callback after a new master audio is uploaded.
-    // It now correctly triggers the analysis flow.
-    setIsTestAudioDialogOpen(false); // Close the dialog
-    handleSelectTestAudio(metadata); // Start the analysis
+  const onNewAudioUploaded = async (metadata: TestAudioMetadata) => {
+    setIsTestAudioDialogOpen(false); // Close the dialog first
+    try {
+        const fileRef = storageRef(storage, metadata.storagePath);
+        const blob = await getBlob(fileRef);
+        const file = new File([blob], metadata.fileName, { type: blob.type || 'audio/wav' });
+
+        await runAnalysisForTestFile(file, { birdId: metadata.birdId, testAudioId: metadata.testAudioId });
+    } catch (error) {
+        console.error("Error running analysis on newly uploaded file:", error);
+    }
   }
 
   return (
