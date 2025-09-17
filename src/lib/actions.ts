@@ -56,7 +56,7 @@ export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<T
 
     const newMasterAudioFile = {
         audioId: audioId,
-        fileName: audioFileName, // Storing the original, clean file name
+        fileName: commonName,
         storagePath: filePath,
         description: description,
         duration: duration,
@@ -88,7 +88,7 @@ export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<T
     // 3. Return the metadata for immediate use
     return {
         id: audioId,
-        fileName: audioFileName,
+        fileName: commonName,
         storagePath: filePath,
         description: description,
         sourceUrl: sourceUrl,
@@ -198,7 +198,7 @@ export async function createAnalysisRun(
         longitude: locationData?.longitude ?? null,
         locationDescription: locationData?.locationDescription ?? null,
       },
-      analysisMethod: `gemini-pro-vision-prompt-v1.8`,
+      analysisMethod: aiResult.promptVersion || 'unknown',
       aiResult: aiResult,
       wasSuccessful: wasSuccessful,
       wasSavedByUser: false,
@@ -248,6 +248,15 @@ export async function getPromptSystems(): Promise<PromptSystem[]> {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
 }
 
+export async function getPromptSystem(systemId: string): Promise<PromptSystem | null> {
+    const systemRef = doc(db, 'prompt_systems', systemId);
+    const snapshot = await getDoc(systemRef);
+    if (!snapshot.exists()) {
+        return null;
+    }
+    return { id: snapshot.id, ...snapshot.data() } as PromptSystem;
+}
+
 export async function createNewPromptSystem(data: { systemId: string, name: string, description: string }): Promise<PromptSystem> {
     const { systemId, name, description } = data;
 
@@ -261,7 +270,7 @@ export async function createNewPromptSystem(data: { systemId: string, name: stri
 
 You will receive an audio file and optional contextual data like location and time.
 
-Your primary goal is to determine if a bird song is present and, if so, identify the bird's common name, scientific name, taxonomic family, and order.
+Your primary goal is to determine if a bird song is present and, if so, identify the bird's common name, scientificName, taxonomic family, and order.
 
 If a bird song is present, you MUST set 'isBirdSong' to true and populate the identification fields.
 
@@ -341,7 +350,7 @@ export async function getPromptContentForSystem(systemId: string): Promise<Promp
 
 You will receive an audio file and optional contextual data like location and time.
 
-Your primary goal is to determine if a bird song is present and, if so, identify the bird's common name, scientific name, taxonomic family, and order.
+Your primary goal is to determine if a bird song is present and, if so, identify the bird's common name, scientificName, taxonomic family, and order.
 
 If a bird song is present, you MUST set 'isBirdSong' to true and populate the identification fields.
 
