@@ -233,18 +233,19 @@ export async function getPromptSystems(): Promise<PromptSystem[]> {
     const initialSnapshot = await getDocs(query(systemsRef, orderBy('name')));
     let systems = initialSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
 
-    const needsUpdate = !systems.some(s => s.id === 'bird-identifier-ai-newbie') || !systems.some(s => s.id === 'theme-generator-ai');
+    const needsBirdIdentifier = !systems.some(s => s.id === 'bird-identifier-ai-newbie');
+    const needsThemeGenerator = !systems.some(s => s.id === 'theme-generator-ai');
 
-    if (needsUpdate) {
+    if (needsBirdIdentifier || needsThemeGenerator) {
         console.log("One or more default AI Types are missing. Creating them now...");
-        if (!systems.some(s => s.id === 'bird-identifier-ai-newbie')) {
+        if (needsBirdIdentifier) {
             await createNewPromptSystem({ 
                 systemId: 'bird-identifier-ai-newbie', 
                 name: "Bird Identifier AI (Newbie)",
                 description: "Manages prompts for identifying birds in Newbie mode.",
             });
         }
-        if (!systems.some(s => s.id === 'theme-generator-ai')) {
+        if (needsThemeGenerator) {
             await createNewPromptSystem({ 
                 systemId: 'theme-generator-ai', 
                 name: "AI Theme Generator",
@@ -635,10 +636,3 @@ export const getComposedPrompt = cache(
     },
     ['composed-prompts-v4'], { revalidate: 30, tags: ['prompts'] }
 );
-
-
-
-
-
-
-
