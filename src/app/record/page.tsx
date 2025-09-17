@@ -2,8 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { getBlob, ref as storageRef } from 'firebase/storage';
-import { collection, getDocs, doc, setDoc } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { useRouter } from 'next/navigation';
 
@@ -12,11 +11,11 @@ import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Bird, Music, Upload, Loader2, Library, PlusSquare } from 'lucide-react';
+import { AlertTriangle, Library, Loader2, Music, PlusSquare, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import type { AnalysisRun, AppMode, AppSettings, LocationSettings, TestAudioMetadata } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NewMasterAudioForm } from '@/components/content/NewMasterAudioForm';
@@ -134,7 +133,7 @@ export default function RecordPage() {
 
 
   const processAudio = (
-      base64Audio: string, 
+      audio: { dataUri?: string, storagePath?: string }, 
       isDeveloperRun: boolean,
       testContext?: { birdId: string, testAudioId: string },
       recordingLengthSeconds?: number
@@ -152,16 +151,21 @@ export default function RecordPage() {
 
         try {
             const result = await identifyBirdBySound({
-                audioDataUri: base64Audio,
+                audioDataUri: audio.dataUri,
+                audioStoragePath: audio.storagePath,
                 timestamp: currentTimestamp.current,
                 mode: appSettings.mode,
                 ...locationData
             });
             const analysisDurationMs = Date.now() - analysisStartTime;
             const wasSuccessful = result && result.isBirdSong && !!result.commonName;
+            
+            // For developer test runs using storagePath, the audio isn't in a data URI on the client.
+            // We'll pass the storagePath instead for logging purposes.
+            const audioForLogging = audio.dataUri || audio.storagePath!;
 
             analysisRunId = await createAnalysisRun(
-                user.uid, base64Audio, result, wasSuccessful, locationData, hardware,
+                user.uid, audioForLogging, result, wasSuccessful, locationData, hardware,
                 appSettings.mode, isDeveloperRun, testContext,
                 recordingLengthSeconds, { primaryIdentificationMs: analysisDurationMs },
                 currentSessionId.current!, currentTimestamp.current!
@@ -173,9 +177,11 @@ export default function RecordPage() {
                 sessionId: currentSessionId.current, timestamp: currentTimestamp.current,
                 locationData: locationData, appMode: appSettings.mode, userId: user?.uid
             });
+            
+             const audioForLogging = audio.dataUri || audio.storagePath!;
 
             analysisRunId = await createAnalysisRun(
-                user.uid, base64Audio, { error: (error as Error).message, isBirdSong: false }, false,
+                user.uid, audioForLogging, { error: (error as Error).message, isBirdSong: false }, false,
                 locationData, hardware, appSettings.mode, isDeveloperRun, testContext,
                 recordingLengthSeconds, { primaryIdentificationMs: analysisDurationMs },
                 currentSessionId.current!, currentTimestamp.current!
@@ -204,46 +210,19 @@ export default function RecordPage() {
   const handleRecordingComplete = (audioDataUri: string, duration?: number) => {
     const isDevTest = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
     const testContext = isDevTest ? { birdId: 'live-test', testAudioId: uuidv4() } : undefined;
-    processAudio(audioDataUri, isDevTest, testContext, duration);
+    processAudio({ dataUri: audioDataUri }, isDevTest, testContext, duration);
   }
 
   const handleSelectTestAudio = async (audio: TestAudioMetadata) => {
     setIsTestAudioDialogOpen(false);
-    setIsProcessing(true); // Show spinner immediately
     currentSessionId.current = uuidv4();
     currentTimestamp.current = new Date().toISOString();
     
-    try {
-        const fileRef = storageRef(storage, audio.storagePath);
-        const blob = await getBlob(fileRef);
-        
-        const testContext = { birdId: audio.birdId, testAudioId: audio.testAudioId };
+    const testContext = { birdId: audio.birdId, testAudioId: audio.testAudioId };
 
-        const reader = new FileReader();
-        reader.readAsDataURL(blob);
-        
-        reader.onloadend = () => {
-            const base64Audio = reader.result as string;
-            // We can't easily get duration from a blob without loading it, so we'll skip it for test runs.
-            processAudio(base64Audio, true, testContext, undefined);
-        };
-        
-        reader.onerror = (error) => {
-            console.error("FileReader error:", error);
-            logErrorToFirestore(new Error('Failed to read test audio file'), 'filereader-failure', {
-                fileName: audio.fileName,
-                storagePath: audio.storagePath
-            });
-            setIsProcessing(false);
-        };
-
-    } catch (error) {
-        console.error("Error loading test audio from Firebase Storage:", error);
-         logErrorToFirestore(error as Error, 'firebase-storage-read-failure', {
-            storagePath: audio.storagePath
-        });
-        setIsProcessing(false);
-    }
+    // Instead of downloading, just pass the storage path to the processing function.
+    // The duration is unknown on the client, which is acceptable for test runs.
+    processAudio({ storagePath: audio.storagePath }, true, testContext, undefined);
   };
 
   const onNewAudioUploaded = async (metadata: TestAudioMetadata) => {
@@ -340,3 +319,5 @@ export default function RecordPage() {
     </AppLayout>
   );
 }
+
+    

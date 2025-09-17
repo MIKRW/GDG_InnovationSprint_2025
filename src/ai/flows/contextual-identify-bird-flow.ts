@@ -11,13 +11,17 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { getComposedPrompt } from '@/lib/actions';
+import { getStorage } from 'firebase-admin/storage';
+import { Readable } from 'stream';
 
 const IdentifyBirdInputSchema = z.object({
   audioDataUri: z
     .string()
+    .optional()
     .describe(
       "A recording of a bird song, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
+    audioStoragePath: z.string().optional().describe('The path to an audio file in Firebase Storage. If provided, this is used instead of audioDataUri.'),
     timestamp: z.string().describe('The UTC timestamp of when the recording was made, in ISO 8601 format.'),
     latitude: z.number().optional().describe('The latitude of where the recording was made.'),
     longitude: z.number().optional().describe('The longitude of where the recording was made.'),
@@ -88,9 +92,44 @@ const getCurrentWeather = ai.defineTool(
   );
 
 
+/**
+ * Downloads a file from Firebase Storage and converts it to a Base64 data URI.
+ * This runs on the server.
+ */
+async function fileToDataUri(storagePath: string): Promise<string> {
+    const bucket = getStorage().bucket();
+    const file = bucket.file(storagePath);
+    const [metadata] = await file.getMetadata();
+    const mimeType = metadata.contentType || 'application/octet-stream';
+
+    // Create a readable stream from the file
+    const stream = file.createReadStream();
+
+    // Read the stream into a buffer
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+        chunks.push(chunk);
+    }
+    const buffer = Buffer.concat(chunks);
+
+    // Convert buffer to Base64 and format as a data URI
+    const base64 = buffer.toString('base64');
+    return `data:${mimeType};base64,${base64}`;
+}
+
+
 export async function identifyBirdBySound(
   input: IdentifyBirdInput
 ): Promise<IdentifyBirdOutput> {
+  // If a storage path is provided, download the file from the server and convert it to a data URI.
+  if (input.audioStoragePath && !input.audioDataUri) {
+      input.audioDataUri = await fileToDataUri(input.audioStoragePath);
+  }
+  
+  if (!input.audioDataUri) {
+      throw new Error("No audio data provided. Please provide either 'audioDataUri' or 'audioStoragePath'.");
+  }
+  
   return await identifyBirdFlow(input);
 }
 
@@ -145,3 +184,5 @@ const identifyBirdFlow = ai.defineFlow(
     return output;
   }
 );
+
+    
