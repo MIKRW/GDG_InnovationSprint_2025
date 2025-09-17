@@ -43,7 +43,6 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingStartTimeRef = useRef<number | null>(null);
-  const [lastAnalysisRunId, setLastAnalysisRunId] = useState<string | null>(null);
   const currentSessionId = useRef<string | null>(null);
   const currentTimestamp = useRef<string | null>(null);
 
@@ -176,72 +175,6 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 
     return analysisRunId;
   }
-
-  const saveMysteryLog = async (analysisRunId: string, locationData?: { latitude?: number; longitude?: number; locationDescription?: string; }) => {
-     if (!user) {
-      console.error("Cannot save mystery log: user is not authenticated.");
-      logErrorToFirestore(new Error("Save attempt failed: No user."), 'firestore-write-failure', { detail: 'User was not authenticated during saveMysteryLog call.'});
-      setRecordingState('idle');
-      return;
-    }
-    
-    // Create the user-facing log entry
-    const logId = uuidv4();
-    const logDocRef = doc(db, 'users', user.uid, 'identifications', logId);
-
-    // Fetch the download URL from the analysis run document
-    // It could be in either collection, so we need to check both.
-    let analysisRunSnap = await getDoc(doc(db, 'all_analysis_runs', analysisRunId));
-    if (!analysisRunSnap.exists()) {
-        analysisRunSnap = await getDoc(doc(db, 'all_test_runs', analysisRunId));
-    }
-
-    if (!analysisRunSnap.exists()) {
-        console.error("Could not find analysis run to create mystery log.");
-        return;
-    }
-    const analysisRunData = analysisRunSnap.data();
-    const audioUrl = analysisRunData.inputAudioUrl;
-
-    const mysteryLogData: Omit<BirdLog, 'id'> = {
-      sessionId: currentSessionId.current!,
-      analysisRunId: analysisRunId,
-      userId: user.uid,
-      timestamp: currentTimestamp.current!,
-      commonName: 'Mystery Bird',
-      scientificName: 'Unknown',
-      description: 'This is a recording that could not be identified by the AI. You can listen to it here and try to identify it yourself!',
-      imagePrompt: 'question mark',
-      imageUrl: '', // No image for mystery logs initially
-      audioUrl: audioUrl,
-      isMystery: true,
-      status: 'active',
-      mode: getAppSettings().mode,
-      ...locationData,
-    };
-    
-    await setDoc(logDocRef, mysteryLogData);
-    const collectionName = analysisRunData.isDeveloperData ? 'all_test_runs' : 'all_analysis_runs';
-    await updateDoc(doc(db, collectionName, analysisRunId), { wasSavedByUser: true });
-
-    setRecordingState('idle');
-    setLastAnalysisRunId(null);
-    router.push(`/log/${logId}`);
-  };
-
-  const handleSaveConfirmation = () => {
-    if (lastAnalysisRunId) {
-        // Re-fetch location based on settings when user confirms save
-        getLocationForAIShot(locationData => saveMysteryLog(lastAnalysisRunId, locationData));
-    }
-  };
-
-  const handleCancelSave = async () => {
-    setRecordingState('idle');
-    setLastAnalysisRunId(null);
-    onIdentificationFailed?.();
-    router.push('/log');
-  };
 
   const handleStop = async () => {
     const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
@@ -449,7 +382,8 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         {icon}
       </Button>
 
-      <AlertDialog open={recordingState === 'confirming'}>
+      {/* This dialog is no longer used for confirmation but kept for potential future use */}
+      <AlertDialog open={false}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>No bird identified</AlertDialogTitle>
@@ -458,8 +392,8 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelSave}>Discard</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSaveConfirmation}>Save Recording</AlertDialogAction>
+            <AlertDialogCancel>Discard</AlertDialogCancel>
+            <AlertDialogAction>Save Recording</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

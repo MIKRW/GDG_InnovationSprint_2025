@@ -76,7 +76,6 @@ export default function RecordPage() {
   }, [isTestAudioDialogOpen, isDevMode]);
 
   const handleSelectTestAudio = async (audio: TestAudioMetadata) => {
-    setIsTestAudioDialogOpen(false);
     try {
         const fileRef = storageRef(storage, audio.storagePath);
         const blob = await getBlob(fileRef);
@@ -91,7 +90,10 @@ export default function RecordPage() {
   };
   
   const onNewAudioUploaded = (metadata: TestAudioMetadata) => {
-    handleSelectTestAudio(metadata);
+    // This function is the callback after a new master audio is uploaded.
+    // It now correctly triggers the analysis flow.
+    setIsTestAudioDialogOpen(false); // Close the dialog
+    handleSelectTestAudio(metadata); // Start the analysis
   }
 
   return (
@@ -136,6 +138,7 @@ export default function RecordPage() {
                                                 variant="ghost" 
                                                 className="w-full justify-start h-auto text-left"
                                                 onClick={() => {
+                                                  setIsTestAudioDialogOpen(false);
                                                   handleSelectTestAudio(audio);
                                                 }}
                                             >
