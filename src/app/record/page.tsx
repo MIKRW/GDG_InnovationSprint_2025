@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -199,9 +198,8 @@ export default function RecordPage() {
       testContext?: { birdId: string, testAudioId: string },
       recordingLengthSeconds?: number
   ) => {
-      setIsProcessing(true);
-      
       const processWithLocation = async (locationData?: { latitude?: number; longitude?: number, locationDescription?: string }) => {
+        setIsProcessing(true);
         if (!currentTimestamp.current) {
             setIsProcessing(false);
             return;
@@ -240,10 +238,10 @@ export default function RecordPage() {
                 recordingLengthSeconds, { primaryIdentificationMs: analysisDurationMs }
             );
         } finally {
-            setIsProcessing(false);
             if (analysisRunId) {
                 router.push(`/record/confirm/${analysisRunId}`);
             }
+            setIsProcessing(false);
         }
       };
 
@@ -261,7 +259,6 @@ export default function RecordPage() {
   }
 
   const handleRecordingComplete = (audioDataUri: string, duration?: number) => {
-    // A live recording in dev mode is flagged as developer data for testing
     const isDevTest = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
     const testContext = isDevTest ? { birdId: 'live-test', testAudioId: uuidv4() } : undefined;
     processAudio(audioDataUri, isDevTest, testContext, duration);
@@ -272,8 +269,6 @@ export default function RecordPage() {
     currentSessionId.current = uuidv4();
     currentTimestamp.current = new Date().toISOString();
     
-    setIsProcessing(true); // Show processing state on the main button
-    
     try {
         const fileRef = storageRef(storage, audio.storagePath);
         const blob = await getBlob(fileRef);
@@ -281,38 +276,61 @@ export default function RecordPage() {
 
         const testContext = { birdId: audio.birdId, testAudioId: audio.testAudioId };
 
-        // Get duration from file
         const audioEl = new Audio();
         audioEl.src = URL.createObjectURL(file);
         audioEl.onloadedmetadata = () => {
             const duration = audioEl.duration;
-            // Convert file to data URI and process
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onloadend = () => {
                 const base64Audio = reader.result as string;
                 processAudio(base64Audio, true, testContext, duration);
-                URL.revokeObjectURL(audioEl.src); // Clean up
+                URL.revokeObjectURL(audioEl.src); 
             };
             reader.onerror = () => {
                 console.error("Failed to read file for test run.");
-                setIsProcessing(false);
-                URL.revokeObjectURL(audioEl.src); // Clean up
+                URL.revokeObjectURL(audioEl.src);
             }
         };
          audioEl.onerror = () => {
             console.error("Failed to load audio metadata for test run.");
-            setIsProcessing(false);
         }
 
     } catch (error) {
         console.error("Error loading test audio from Firebase Storage:", error);
-        setIsProcessing(false);
     }
   };
 
   const onNewAudioUploaded = async (metadata: TestAudioMetadata) => {
-    await handleSelectTestAudio(metadata);
+    try {
+        const fileRef = storageRef(storage, metadata.storagePath);
+        const blob = await getBlob(fileRef);
+        const file = new File([blob], metadata.fileName, { type: blob.type });
+
+        const testContext = { birdId: metadata.birdId, testAudioId: metadata.testAudioId };
+
+        const audioEl = new Audio();
+        audioEl.src = URL.createObjectURL(file);
+        audioEl.onloadedmetadata = () => {
+            const duration = audioEl.duration;
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onloadend = () => {
+                const base64Audio = reader.result as string;
+                processAudio(base64Audio, true, testContext, duration);
+                URL.revokeObjectURL(audioEl.src);
+            };
+            reader.onerror = () => {
+                console.error("Failed to read file for test run.");
+                URL.revokeObjectURL(audioEl.src);
+            }
+        };
+        audioEl.onerror = () => {
+            console.error("Failed to load audio metadata for test run.");
+        }
+    } catch (error) {
+        console.error("Error processing newly uploaded test audio:", error);
+    }
   }
 
   return (
