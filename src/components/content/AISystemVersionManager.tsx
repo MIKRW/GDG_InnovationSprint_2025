@@ -417,10 +417,6 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
 
   return (
     <div className="space-y-8">
-      <p className="text-sm text-muted-foreground">
-        The top card shows the version currently being served to live users. The bottom card is for composing and testing new development versions. Once a development version is ready, you can 'Promote' it from the top card to make it live.
-      </p>
-
       <VersionPublisher
         title="Live Version"
         description={`The AI system bundle currently live is ${activeVersionId || 'None'}. Select a Development Version below to promote it.`}
