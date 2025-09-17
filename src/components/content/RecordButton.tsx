@@ -253,7 +253,6 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     const appSettings = getAppSettings();
     const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
     
-    // A run is a "developer run" if it has test context (from a file upload) or if it's a live recording in dev mode.
     const isDeveloperRun = !!testContext || process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
     try {
@@ -281,14 +280,11 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           { primaryIdentificationMs: analysisDurationMs }
       );
       
-      setRecordingState('idle'); // Reset state after processing
+      setRecordingState('idle');
 
       if (analysisRunId) {
-          // ALWAYS go to confirmation page now. The page itself will handle
-          // the logic for dev vs user data.
           router.push(`/record/confirm/${analysisRunId}`);
       } else {
-        // If analysisRunId failed to create for some reason.
         onIdentificationFailed?.();
       }
 
@@ -303,7 +299,6 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         userId: user?.uid
       });
 
-      // Handle API failure for all runs
        const analysisRunId = await createAnalysisRun(
            base64Audio, 
            { error: (error as Error).message, isBirdSong: false }, 
@@ -317,10 +312,9 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
            analysisDurationMs ? { primaryIdentificationMs: analysisDurationMs } : undefined
         );
         
-      setRecordingState('idle'); // Reset state after processing
+      setRecordingState('idle');
       
       if (analysisRunId) {
-          // ALWAYS go to confirmation page, even on failure.
           router.push(`/record/confirm/${analysisRunId}`);
       } else {
           onIdentificationFailed?.();
@@ -382,7 +376,6 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         {icon}
       </Button>
 
-      {/* This dialog is no longer used for confirmation but kept for potential future use */}
       <AlertDialog open={false}>
         <AlertDialogContent>
           <AlertDialogHeader>
