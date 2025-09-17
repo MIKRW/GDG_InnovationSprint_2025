@@ -111,13 +111,15 @@ const identifyBirdFlow = ai.defineFlow(
         throw new Error("Could not retrieve a valid prompt from the AI configuration system. Please check the 'prompt_systems' configuration in Firestore.");
     }
     
-    const { output } = await ai.generate({
-      prompt: promptTemplate,
-      input: input,
-      model: 'googleai/gemini-2.5-flash',
-      output: { schema: IdentifyBirdOutputSchema },
-      tools: [getCurrentWeather],
+    const prompt = ai.definePrompt({
+        name: 'identifyBirdPrompt',
+        prompt: promptTemplate,
+        input: { schema: IdentifyBirdInputSchema },
+        output: { schema: IdentifyBirdOutputSchema },
+        tools: [getCurrentWeather],
     });
+
+    const { output } = await prompt(input);
 
     if (!output) {
       throw new Error('The model failed to return a valid analysis.');
