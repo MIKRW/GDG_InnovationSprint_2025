@@ -67,7 +67,6 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [viewingVersionId, setViewingVersionId] = useState<string>('compose-new');
   const [enabledCategories, setEnabledCategories] = useState<EnabledCategories>({});
-  const [isDevVersion, setIsDevVersion] = useState(true);
 
   // Group content by category for easy lookup
   const { contentByCategory, contentVersionParts } = useMemo(() => {
@@ -151,7 +150,6 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
         }
         setSelections(newSelections);
         setEnabledCategories(newEnabled);
-        setIsDevVersion(version.isDevelopment || false);
     }
   }, [versions, content, contentByCategory]);
 
@@ -191,7 +189,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
     });
   };
 
-  const handlePublish = async () => {
+  const handleSaveNewVersion = async () => {
     if (!system) {
         toast({ variant: 'destructive', title: 'Error', description: 'No system selected.' });
         return;
@@ -216,8 +214,8 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
             finalComposedPrompts[categoryId] = selections[categoryId].contentId!;
         }
         
-        await publishNewPromptVersion(system.id, nextVersionString, finalComposedPrompts, isDevVersion);
-        toast({ title: 'Published!', description: `Prompt System Version ${nextVersionString} for ${system.name} is now available.` });
+        await publishNewPromptVersion(system.id, nextVersionString, finalComposedPrompts);
+        toast({ title: 'Version Saved!', description: `Prompt System Version ${nextVersionString} for ${system.name} is now available to be included in a development build.` });
 
         onUpdate(); // Trigger parent page to refetch all systems data
         setSelections({});
@@ -225,7 +223,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
 
     } catch (error) {
         console.error('Failed to publish prompt version:', error);
-        toast({ variant: 'destructive', title: 'Publish Failed', description: 'Could not save the new prompt version.' });
+        toast({ variant: 'destructive', title: 'Save Failed', description: 'Could not save the new prompt version.' });
     } finally {
         setIsSubmitting(false);
     }
@@ -237,10 +235,10 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
 
   const nextVersionString = useMemo(() => {
     if (!system) return "v1.0.0";
-    const relevantVersions = versions.filter(v => v.isDevelopment === isDevVersion);
+    const relevantVersions = versions;
 
     const latestVersion = relevantVersions[0]; // Assumes versions are sorted desc
-    if (!latestVersion) return isDevVersion ? "v1.0.0-dev" : "v1.0.0";
+    if (!latestVersion) return "v1.0.0";
 
     const versionParts = latestVersion.version.replace('v', '').split('-')[0];
     const [major, minor, patch] = versionParts.split('.').map(Number);
@@ -250,8 +248,8 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
     else if (saveType === 'minor') newVersion = `v${major}.${minor + 1}.0`;
     else newVersion = `v${major}.${minor}.${patch + 1}`;
 
-    return isDevVersion ? `${newVersion}-dev` : newVersion;
-  }, [system, versions, saveType, isDevVersion]);
+    return newVersion;
+  }, [system, versions, saveType]);
 
 
   if (isLoading) {
@@ -309,7 +307,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                                       <Separator/>
                                       {versions.map(v => (
                                           <SelectItem key={v.id} value={v.id}>
-                                          Version {v.version} {v.isDevelopment ? '(Dev)' : ''}
+                                          Version {v.version}
                                           </SelectItem>
                                       ))}
                                   </SelectContent>
@@ -361,7 +359,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                                       </Select>
                                   </TableCell>
                                   <TableCell>
-                                      <Select onValueChange={(value) => handleSelection(category, 'patch', value)} value={selected.patch} disabled={!selected.minor || isCompositionDisabled || !isEnabled}>
+                                      <Select onValueChange={(value) => handleSelection(category, 'patch', value)} value={selected.minor} disabled={!selected.minor || isCompositionDisabled || !isEnabled}>
                                       <SelectTrigger><SelectValue placeholder="Select Patch" /></SelectTrigger>
                                       <SelectContent>
                                           {selected.major && selected.minor && parts?.patch.get(`${selected.major}.${selected.minor}`)?.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
@@ -395,14 +393,10 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                               <Label className="text-muted-foreground">Next Version:</Label>
                               <Badge variant="outline">{nextVersionString}</Badge>
                           </div>
-                           <div className="flex items-center space-x-2">
-                                <Switch id="is-dev-switch" checked={isDevVersion} onCheckedChange={setIsDevVersion} disabled={isCompositionDisabled} />
-                                <Label htmlFor="is-dev-switch">Mark as Dev</Label>
-                            </div>
                       </div>
-                      <Button onClick={handlePublish} disabled={isSubmitting || isCompositionDisabled}>
+                      <Button onClick={handleSaveNewVersion} disabled={isSubmitting || isCompositionDisabled}>
                           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Publish New Version
+                          Save New Version
                       </Button>
                   </div>
               </CardFooter>

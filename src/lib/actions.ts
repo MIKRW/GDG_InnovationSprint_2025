@@ -284,7 +284,6 @@ export async function createNewPromptSystem(data: { systemId: string, name: stri
             systemId,
             version: 'v1.0.0',
             timestamp: new Date().toISOString(),
-            isDevelopment: false,
             composedPrompts: { base_instruction: defaultContentId },
         });
 
@@ -308,7 +307,7 @@ export async function getPromptVersionsForSystem(systemId: string, type: 'dev' |
     if (type === 'dev') {
         q = query(q, where('isDevelopment', '==', true));
     } else if (type === 'live') {
-        q = query(q, where('isDevelopment', '==', false));
+        q = query(q, where('isDevelopment', '!=', true));
     }
     
     const snapshot = await getDocs(q);
@@ -360,13 +359,12 @@ export async function getAppAIConfig(): Promise<AppAIConfig | null> {
 export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Promise<AppAIVersion[]> {
     const versionsRef = collection(db, 'app_ai_versions');
     let q: Query = query(versionsRef);
-
-    if (type === 'dev') {
-        q = query(q, where('isDevelopment', '==', true), orderBy('timestamp', 'desc'));
-    } else if (type === 'live') {
-        q = query(q, where('isDevelopment', '==', false), orderBy('timestamp', 'desc'));
+    
+    if (type === 'all') {
+         q = query(versionsRef, orderBy('timestamp', 'desc'));
     } else {
-        q = query(q, orderBy('timestamp', 'desc'));
+        const isDev = type === 'dev';
+        q = query(versionsRef, where('isDevelopment', '==', isDev), orderBy('timestamp', 'desc'));
     }
 
     const snapshot = await getDocs(q);
@@ -433,27 +431,23 @@ export async function promoteDevelopmentVersionToLive(devVersionId: string): Pro
 }
 
 
-export async function setLivePromptSystemVersion(systemId: string, version: string, isDev: boolean): Promise<void> {
+export async function setLivePromptSystemVersion(systemId: string, version: string): Promise<void> {
     const systemRef = doc(db, 'prompt_systems', systemId);
-    if (isDev) {
-        await updateDoc(systemRef, { developmentVersion: version });
-    } else {
-        await updateDoc(systemRef, { activeVersion: version });
-    }
+    await updateDoc(systemRef, { activeVersion: version });
     revalidateTag('prompts');
 }
 
-export async function publishNewPromptVersion(systemId: string, version: string, composedPrompts: { [categoryId: string]: string }, isDevelopment: boolean): Promise<PromptVersion> {
+export async function publishNewPromptVersion(systemId: string, version: string, composedPrompts: { [categoryId: string]: string }): Promise<PromptVersion> {
     const newId = `${systemId}-${version.replace(/\./g, '-')}`;
     const versionRef = doc(db, 'prompt_versions', newId);
     const newVersionData: Omit<PromptVersion, 'id'> = {
-        systemId, version, composedPrompts, isDevelopment,
+        systemId, version, composedPrompts,
         timestamp: new Date().toISOString(),
     };
     await setDoc(versionRef, newVersionData);
     
     // When publishing a new AI Type Version, automatically set it as the active one for that type.
-    await setLivePromptSystemVersion(systemId, version, isDevelopment);
+    await setLivePromptSystemVersion(systemId, version);
     
     revalidateTag('prompts');
     return { id: newId, ...newVersionData };
@@ -524,6 +518,7 @@ export const getComposedPrompt = cache(
     },
     ['composed-prompts-v3'], { revalidate: 30, tags: ['prompts'] }
 );
+
 
 
 
