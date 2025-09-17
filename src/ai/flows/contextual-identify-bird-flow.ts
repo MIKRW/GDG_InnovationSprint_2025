@@ -229,6 +229,7 @@ const identifyBirdFlow = ai.defineFlow(
             weather: output.weather || "Unknown",
             aiGeneratedHabitatTags: [],
             duration: output.duration,
+            promptVersion: output.promptVersion, // Ensure the version is carried over
         };
     }
     
