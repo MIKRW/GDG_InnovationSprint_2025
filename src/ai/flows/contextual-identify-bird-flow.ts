@@ -10,7 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { getComposedPrompt, getPromptSystem } from '@/lib/actions';
+import { getComposedPrompt } from '@/lib/actions';
 import { getStorage } from 'firebase-admin/storage';
 import { Readable } from 'stream';
 import wavDecoder from 'wav-decoder';
@@ -173,25 +173,15 @@ const identifyBirdFlow = ai.defineFlow(
   },
   async (input) => {
     
-    let promptTemplate: string | null;
-    let promptVersion: string;
+    const composedPrompt = await getComposedPrompt('bird-identifier-ai-newbie');
     
-    const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
-
-    console.log("Using live prompt from Firestore.");
-    const system = await getPromptSystem('bird-identifier-ai-newbie');
-    if (!system) throw new Error("Could not find the 'bird-identifier-ai-newbie' system in Firestore.");
-    
-    promptTemplate = await getComposedPrompt('bird-identifier-ai-newbie');
-    promptVersion = isDevMode ? (system.developmentVersion || system.activeVersion) : system.activeVersion;
-
-    if (!promptTemplate) {
+    if (!composedPrompt || !composedPrompt.prompt) {
         throw new Error("Could not retrieve a valid prompt. Check the AI configuration in Firestore.");
     }
     
     const prompt = ai.definePrompt({
         name: 'identifyBirdPrompt',
-        prompt: promptTemplate,
+        prompt: composedPrompt.prompt,
         input: { schema: IdentifyBirdInputSchema },
         output: { schema: IdentifyBirdOutputSchema },
         tools: [getCurrentWeather],
@@ -203,8 +193,8 @@ const identifyBirdFlow = ai.defineFlow(
       throw new Error('The model failed to return a valid analysis.');
     }
     
-    // Attach the prompt version to the output
-    output.promptVersion = promptVersion;
+    // Attach the prompt version from the composed prompt to the output
+    output.promptVersion = composedPrompt.version;
 
     // If no bird song was detected, fill in placeholder text.
     if (output.isBirdSong === false) {

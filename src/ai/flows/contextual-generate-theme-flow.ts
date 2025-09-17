@@ -26,6 +26,7 @@ const GenerateThemeOutputSchema = z.object({
   foreground: ThemeColorSchema.describe('The primary text/content color, ensuring high contrast with the background.'),
   primary: ThemeColorSchema.describe('The main accent color for buttons and highlights, ensuring high contrast with the background.'),
   ring: ThemeColorSchema.describe("A color for UI highlights like selections. It should be a shade of the 'primary' color, with a lightness value that is at least 10-15% lighter or darker to ensure it is always visible as a selection state."),
+  promptVersion: z.string().optional().describe('The version of the AI system used for this generation.'),
 });
 export type GenerateThemeOutput = z.infer<typeof GenerateThemeOutputSchema>;
 
@@ -52,14 +53,14 @@ const generateThemeFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      let promptTemplate = await getComposedPrompt('theme-generator-ai');
+      const composedPrompt = await getComposedPrompt('theme-generator-ai');
 
-      if (!promptTemplate) {
+      if (!composedPrompt || !composedPrompt.prompt) {
         throw new Error('Failed to retrieve a valid prompt for theme generation.');
       }
 
       const { output } = await ai.generate({
-          prompt: promptTemplate,
+          prompt: composedPrompt.prompt,
           input: input,
           model: 'googleai/gemini-2.5-flash',
           output: {
@@ -70,6 +71,8 @@ const generateThemeFlow = ai.defineFlow(
       if (!output) {
         throw new Error('Failed to generate theme from the model.');
       }
+
+      output.promptVersion = composedPrompt.version;
       return output;
 
     } catch (error) {

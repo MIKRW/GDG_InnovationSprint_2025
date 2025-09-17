@@ -349,7 +349,7 @@ export async function getAppAIConfig(): Promise<AppAIConfig | null> {
     const configRef = doc(db, 'app_ai_config', 'main');
     const snapshot = await getDoc(configRef);
     if (!snapshot.exists()) {
-        const defaultConfig = { activeAppAIVersion: 'v1.0.0', developmentAppAIVersion: 'v1.0.0' };
+        const defaultConfig = { activeAppAIVersion: 'v1.0.0', developmentAppAIVersion: 'v1.0.0-dev' };
         await setDoc(configRef, defaultConfig);
         return defaultConfig;
     }
@@ -358,7 +358,7 @@ export async function getAppAIConfig(): Promise<AppAIConfig | null> {
 
 export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Promise<AppAIVersion[]> {
     const versionsRef = collection(db, 'app_ai_versions');
-    let q = query(versionsRef);
+    let q: Query;
     
     // Efficiently query based on the index: (isDevelopment, timestamp DESC)
     if (type === 'dev') {
@@ -496,31 +496,47 @@ revalidateTag('prompts');
 }
 
 export const getComposedPrompt = cache(
-    async (systemId: string): Promise<string | null> => {
+    async (systemId: string): Promise<{ prompt: string, version: string } | null> => {
         const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
         console.log(`Composing prompt for system '${systemId}' (Mode: ${isDevMode ? 'Development' : 'Live'}).`);
 
         try {
-            const systemRef = doc(db, 'prompt_systems', systemId);
-            const systemSnap = await getDoc(systemRef);
-            if (!systemSnap.exists()) throw new Error(`Prompt system '${systemId}' does not exist.`);
-            
-            const systemData = systemSnap.data() as PromptSystem;
-            const versionToFetch = isDevMode ? systemData.developmentVersion : systemData.activeVersion;
+            // 1. Get the global AI config to find which top-level version to use.
+            const appAIConfig = await getAppAIConfig();
+            if (!appAIConfig) throw new Error("App AI config not found.");
 
-            if (!versionToFetch) {
-                throw new Error(`No ${isDevMode ? 'development' : 'active'} version set for system '${systemId}'.`);
+            const appAIVersionId = isDevMode 
+                ? appAIConfig.developmentAppAIVersion 
+                : appAIConfig.activeAppAIVersion;
+            
+            if (!appAIVersionId) {
+                throw new Error(`No ${isDevMode ? 'development' : 'active'} App AI Version is set.`);
             }
 
-            const promptVersionId = `${systemId}-${versionToFetch.replace(/\./g, '-')}`;
-            const promptVersionRef = doc(db, 'prompt_versions', promptVersionId);
+            // 2. Get the App AI Version document.
+            const appAIVersionRef = doc(db, 'app_ai_versions', appAIVersionId);
+            const appAIVersionSnap = await getDoc(appAIVersionRef);
+            if (!appAIVersionSnap.exists()) {
+                throw new Error(`App AI Version document '${appAIVersionId}' not found.`);
+            }
+            const appAIVersion = appAIVersionSnap.data() as AppAIVersion;
+
+            // 3. From that, find the ID of the Prompt System Version for the requested systemId.
+            const promptSystemVersionId = appAIVersion.systems[systemId];
+            if (!promptSystemVersionId) {
+                throw new Error(`System '${systemId}' is not defined in App AI Version '${appAIVersionId}'.`);
+            }
+            
+            // 4. Get the Prompt System Version document.
+            const promptVersionRef = doc(db, 'prompt_versions', promptSystemVersionId);
             const promptVersionSnap = await getDoc(promptVersionRef);
             if (!promptVersionSnap.exists()) {
-                throw new Error(`Prompt version document '${promptVersionId}' not found.`);
+                throw new Error(`Prompt Version document '${promptSystemVersionId}' not found.`);
             }
+            const promptVersionData = promptVersionSnap.data() as PromptVersion;
 
-            const promptVersion = promptVersionSnap.data() as PromptVersion;
-            const contentIds = Object.values(promptVersion.composedPrompts);
+            // 5. Get all the individual Prompt Content documents.
+            const contentIds = Object.values(promptVersionData.composedPrompts);
             const contentPromises = contentIds.map(id => getDoc(doc(db, 'prompt_content', id)));
             const contentSnaps = await Promise.all(contentPromises);
 
@@ -528,19 +544,15 @@ export const getComposedPrompt = cache(
                 if (!snap.exists()) throw new Error(`Required prompt content document '${snap.id}' is missing.`);
                 return (snap.data() as PromptContent).promptText;
             }).join('\n\n');
-
-            return composedText;
+            
+            // Return both the prompt and the version string for logging.
+            return { prompt: composedText, version: appAIVersionId };
 
         } catch (error) {
             console.error(`Failed to get composed prompt for '${systemId}':`, error);
             return null; 
         }
     },
-    ['composed-prompts-v3'], { revalidate: 30, tags: ['prompts'] }
+    ['composed-prompts-v4'], { revalidate: 30, tags: ['prompts'] }
 );
-
-
-
-
-
 
