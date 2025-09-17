@@ -107,9 +107,9 @@ function MasterAudioTestLog() {
                 <TableCell>{new Date(run.timestamp).toLocaleString()}</TableCell>
                 <TableCell className="text-right">{run.aiResult.confidence ? `${(run.aiResult.confidence * 100).toFixed(0)}%` : 'N/A'}</TableCell>
                 <TableCell className="text-right">{run.analysisTimings?.primaryIdentificationMs ? `${run.analysisTimings.primaryIdentificationMs}ms` : 'N/A'}</TableCell>
-                <TableCell className="text-right">{run.analysisMethod.split('-v').pop()}</TableCell>
+                <TableCell className="text-right">{run.analysisMethod ? run.analysisMethod.split('-v').pop() : 'N/A'}</TableCell>
                 <TableCell className="text-right">
-                  <Link href={`/record/confirm/${run.id}`} passHref>
+                  <Link href={`/record/confirm/${run.id}`}>
                     <Button variant="outline" size="sm">
                       View
                     </Button>
@@ -192,9 +192,9 @@ function LiveRecordingTestLog() {
                                 <TableCell>{new Date(run.timestamp).toLocaleString()}</TableCell>
                                 <TableCell className="text-right">{run.aiResult.confidence ? `${(run.aiResult.confidence * 100).toFixed(0)}%` : 'N/A'}</TableCell>
                                 <TableCell className="text-right">{run.analysisTimings?.primaryIdentificationMs ? `${run.analysisTimings.primaryIdentificationMs}ms` : 'N/A'}</TableCell>
-                                <TableCell className="text-right">{run.analysisMethod.split('-v').pop()}</TableCell>
+                                <TableCell className="text-right">{run.analysisMethod ? run.analysisMethod.split('-v').pop() : 'N/A'}</TableCell>
                                 <TableCell className="text-right">
-                                    <Link href={`/record/confirm/${run.id}`} passHref>
+                                    <Link href={`/record/confirm/${run.id}`}>
                                         <Button variant="outline" size="sm">
                                             View
                                         </Button>
