@@ -2,11 +2,11 @@
 'use server';
 
 import { unstable_cache as cache } from 'next/cache';
-import { ref as storageRef, uploadBytes, getDownloadURL, uploadString, getMetadata, deleteObject } from 'firebase/storage';
-import { doc, setDoc, getDoc, updateDoc, arrayUnion, addDoc, collection, serverTimestamp, query, where, getDocs, orderBy, writeBatch, deleteDoc, runTransaction } from 'firebase/firestore';
+import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
+import { doc, setDoc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, orderBy, runTransaction } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
-import type { TestAudioMetadata, BirdLog, PromptSystem, PromptVersion, AppAIVersion, AppAIConfig, PromptContent } from './types';
+import type { TestAudioMetadata, BirdLog, PromptSystem, PromptVersion, AppAIVersion, AppAIConfig, PromptContent, AnalysisRun, AppMode } from './types';
 import { EmailAuthProvider, linkWithCredential, type User } from 'firebase/auth';
 import { kebabCase } from 'lodash';
 
@@ -106,9 +106,6 @@ interface RegisterUserInput {
     pass: string;
 }
 
-// This server action cannot be called from the client directly because it needs the `currentUser` object,
-// which is only available on the client. It must be called from another client-aware component or hook.
-// This is a common pattern in Next.js with Firebase.
 export async function upgradeAnonymousUser(currentUser: User, { email, pass }: RegisterUserInput) {
     if (!currentUser || !currentUser.isAnonymous) {
         throw new Error("No anonymous user is currently signed in.");
@@ -125,11 +122,6 @@ export async function upgradeAnonymousUser(currentUser: User, { email, pass }: R
 }
 
 
-/**
- * Moves a log entry to the 'trashed' state.
- * This action sets a flag `status` to 'trashed', which will prevent it from being displayed
- * in the main log views. A future UI will allow users to view and restore trashed items.
- */
 export async function trashLog(log: BirdLog) {
     const userLogRef = doc(db, 'users', log.userId, 'identifications', log.id);
     await updateDoc(userLogRef, { status: 'trashed' });
@@ -138,10 +130,6 @@ export async function trashLog(log: BirdLog) {
 }
 
 
-/**
- * Saves a new canonical image for a bird species.
- * It uploads the image to a dedicated path in Storage and updates the 'birds' collection.
- */
 export async function saveCanonicalImage(
     commonName: string,
     scientificName: string,
@@ -152,11 +140,9 @@ export async function saveCanonicalImage(
     const imagePath = `canonical-images/${birdId}/${imageType}-${uuidv4()}.jpg`;
     const imageFileRef = storageRef(storage, imagePath);
 
-    // Upload the new image from data URI
     await uploadString(imageFileRef, imageDataUri, 'data_url');
     const downloadURL = await getDownloadURL(imageFileRef);
 
-    // Update the 'birds' document with the new canonical URL, nested under the imageType
     const birdDocRef = doc(db, 'birds', birdId);
     
     const updateData = {
@@ -172,15 +158,70 @@ export async function saveCanonicalImage(
     return downloadURL;
 }
 
+export async function createAnalysisRun(
+    userId: string,
+    audioDataUri: string,
+    aiResult: any,
+    wasSuccessful: boolean,
+    locationData: any,
+    hardware: string | null,
+    mode: AppMode,
+    isDeveloperRun: boolean,
+    testContext?: { birdId: string; testAudioId: string },
+    recordingLengthSeconds?: number,
+    analysisTimings?: AnalysisRun['analysisTimings'],
+    sessionId?: string,
+    timestamp?: string,
+  ) {
+    
+    const audioId = uuidv4();
+    const filePath = `users/${userId}/recordings/${audioId}.webm`;
+    const fileRef = storageRef(storage, filePath);
+    await uploadString(fileRef, audioDataUri, 'data_url');
+    const downloadURL = await getDownloadURL(fileRef);
+
+    const analysisRunId = uuidv4();
+    const collectionName = isDeveloperRun ? 'all_test_runs' : 'all_analysis_runs';
+    const analysisRunRef = doc(db, collectionName, analysisRunId);
+
+    const docToCreate: Omit<AnalysisRun, 'id'> = {
+      timestamp: timestamp!,
+      userId: userId,
+      sessionId: sessionId!,
+      inputAudioUrl: downloadURL,
+      inputAudioStoragePath: filePath,
+      locationData: {
+        latitude: locationData?.latitude ?? null,
+        longitude: locationData?.longitude ?? null,
+        locationDescription: locationData?.locationDescription ?? null,
+      },
+      analysisMethod: `gemini-pro-vision-prompt-v1.8`,
+      aiResult: aiResult,
+      wasSuccessful: wasSuccessful,
+      wasSavedByUser: false,
+      mode: mode,
+      isDeveloperData: isDeveloperRun,
+      recordingLengthSeconds: recordingLengthSeconds,
+      analysisTimings: analysisTimings,
+    };
+
+    if (hardware) {
+        docToCreate.hardware = hardware;
+    }
+    if (isDeveloperRun && testContext) {
+      docToCreate.birdId = testContext.birdId;
+      docToCreate.testAudioId = testContext.testAudioId;
+    }
+
+    await setDoc(analysisRunRef, docToCreate);
+    return analysisRunId;
+  }
+
 // =================================================================
 // Three-Tiered Prompt Versioning System Actions
 // =================================================================
 
 
-/**
- * Fetches all defined AI prompt systems from Firestore.
- * If none exist, it creates a default one.
- */
 export async function getPromptSystems(): Promise<PromptSystem[]> {
     const systemsRef = collection(db, 'prompt_systems');
     const q = query(systemsRef, orderBy('name'));
@@ -200,9 +241,6 @@ export async function getPromptSystems(): Promise<PromptSystem[]> {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
 }
 
-/**
- * Creates a new AI Prompt System, its default first version, and its default first content piece.
- */
 export async function createNewPromptSystem(data: { systemId: string, name: string, description: string }): Promise<PromptSystem> {
     const { systemId, name, description } = data;
 
@@ -224,26 +262,23 @@ If no bird song is discernible, or if the audio contains other sounds, you MUST 
 
 You must also generate a simple, descriptive prompt suitable for a text-to-image model to create a photorealistic image of the identified bird.`;
 
-    // Use a transaction to ensure all parts are created together
     await runTransaction(db, async (transaction) => {
-        // 1. Create default content
-        const defaultContentId = `base_instruction_1-0-0`;
+        const defaultContentId = `base_instruction_v1-0-0`;
         const contentRef = doc(db, 'prompt_content', defaultContentId);
         const contentData: Omit<PromptContent, 'id'> = {
             systemId,
             categoryId: 'base_instruction',
-            version: '1.0.0',
+            version: 'v1.0.0',
             promptText: baseInstruction,
             timestamp: new Date().toISOString(),
         };
         transaction.set(contentRef, contentData);
 
-        // 2. Create default version pointing to content
-        const defaultVersionId = `${systemId}-1-0-0`;
+        const defaultVersionId = `${systemId}-v1-0-0`;
         const versionRef = doc(db, 'prompt_versions', defaultVersionId);
         const versionData: Omit<PromptVersion, 'id'> = {
             systemId,
-            version: '1.0.0',
+            version: 'v1.0.0',
             timestamp: new Date().toISOString(),
             composedPrompts: {
                 base_instruction: defaultContentId,
@@ -251,30 +286,25 @@ You must also generate a simple, descriptive prompt suitable for a text-to-image
         };
         transaction.set(versionRef, versionData);
 
-        // 3. Create the system document
         const newSystemData: Omit<PromptSystem, 'id'> = {
             name,
             description,
-            activeVersion: '1.0.0',
+            activeVersion: 'v1.0.0',
         };
         transaction.set(systemRef, newSystemData);
     });
 
-    return { id: systemId, name, description, activeVersion: '1.0.0' };
+    return { id: systemId, name, description, activeVersion: 'v1.0.0' };
 }
 
-/**
- * Fetches all saved versions for a specific prompt system.
- * If none exist, it creates a default one.
- */
 export async function getPromptVersionsForSystem(systemId: string): Promise<PromptVersion[]> {
     const versionsRef = collection(db, 'prompt_versions');
     const q = query(versionsRef, where('systemId', '==', systemId));
     const snapshot = await getDocs(q);
 
     if (snapshot.empty && systemId === 'bird-identifier-ai-newbie') {
-        const defaultVersion = await publishNewPromptVersion(systemId, '1.0.0', {
-            base_instruction: 'base_instruction_1-0-0'
+        const defaultVersion = await publishNewPromptVersion(systemId, 'v1.0.0', {
+            base_instruction: 'base_instruction_v1-0-0'
         });
         return [defaultVersion];
     }
@@ -284,8 +314,8 @@ export async function getPromptVersionsForSystem(systemId: string): Promise<Prom
     versions.sort((a, b) => {
         if (typeof a.version !== 'string') return 1;
         if (typeof b.version !== 'string') return -1;
-        const verA = a.version.split('.').map(Number);
-        const verB = b.version.split('.').map(Number);
+        const verA = a.version.replace('v','').split('.').map(Number);
+        const verB = b.version.replace('v','').split('.').map(Number);
         if (verA[0] !== verB[0]) return verB[0] - verA[0];
         if (verA[1] !== verB[1]) return verB[1] - verA[1];
         return verB[2] - verA[2];
@@ -295,10 +325,6 @@ export async function getPromptVersionsForSystem(systemId: string): Promise<Prom
 }
 
 
-/**
- * Fetches all prompt content pieces for a given system, sorted by version.
- * If none exist, it creates a default one.
- */
 export async function getPromptContentForSystem(systemId: string): Promise<PromptContent[]> {
     const contentRef = collection(db, 'prompt_content');
     const q = query(contentRef, where('systemId', '==', systemId));
@@ -320,7 +346,7 @@ You must also generate a simple, descriptive prompt suitable for a text-to-image
         const defaultContent = await publishNewPromptContent({
             systemId,
             categoryId: 'base_instruction',
-            version: '1.0.0',
+            version: 'v1.0.0',
             promptText: baseInstruction
         });
         return [defaultContent];
@@ -332,8 +358,8 @@ You must also generate a simple, descriptive prompt suitable for a text-to-image
         try {
             if (typeof a.version !== 'string') return 1;
             if (typeof b.version !== 'string') return -1;
-            const versionA = a.version.split('.').map(Number);
-            const versionB = b.version.split('.').map(Number);
+            const versionA = a.version.replace('v','').split('.').map(Number);
+            const versionB = b.version.replace('v','').split('.').map(Number);
             if (versionA[0] !== versionB[0]) return versionB[0] - versionA[0];
             if (versionA[1] !== versionB[1]) return versionB[1] - versionA[1];
             return versionB[2] - versionA[2];
@@ -347,9 +373,6 @@ You must also generate a simple, descriptive prompt suitable for a text-to-image
 }
 
 
-/**
- * Fetches the global AI configuration for the app.
- */
 export async function getAppAIConfig(): Promise<AppAIConfig | null> {
     const configRef = doc(db, 'app_ai_config', 'main');
     const snapshot = await getDoc(configRef);
@@ -359,18 +382,14 @@ export async function getAppAIConfig(): Promise<AppAIConfig | null> {
     return snapshot.data() as AppAIConfig;
 }
 
-/**
- * Fetches all published App AI Versions.
- * If none exist, it creates a default one.
- */
 export async function getAppAIVersions(): Promise<AppAIVersion[]> {
     const versionsRef = collection(db, 'app_ai_versions');
     const q = query(versionsRef, orderBy('timestamp', 'desc'));
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
-        const defaultVersion = await publishNewAppAIVersion('1.0.0', {
-            'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-1-0-0'
+        const defaultVersion = await publishNewAppAIVersion('v1.0.0', {
+            'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-v1.0.0'
         });
         return [defaultVersion];
     }
@@ -378,22 +397,16 @@ export async function getAppAIVersions(): Promise<AppAIVersion[]> {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
 }
 
-/**
- * Sets the live (active) App AI Version for the entire application.
- */
 export async function setLiveAppAIVersion(versionId: string): Promise<void> {
     const configRef = doc(db, 'app_ai_config', 'main');
     await setDoc(configRef, { activeAppAIVersion: versionId }, { merge: true });
 }
 
-/**
- * Creates a new App AI Version document in Firestore and sets it as the live version.
- */
 export async function publishNewAppAIVersion(
     version: string,
     systems: { [systemId: string]: string }
 ): Promise<AppAIVersion> {
-    const newVersionId = version.replace(/\./g, '-');
+    const newVersionId = version;
     const versionRef = doc(db, 'app_ai_versions', newVersionId);
 
     const newVersionData: Omit<AppAIVersion, 'id'> = {
@@ -408,23 +421,17 @@ export async function publishNewAppAIVersion(
     return { id: newVersionId, ...newVersionData };
 }
 
-/**
- * Sets the live (active) Prompt System Version for a specific AI system.
- */
 export async function setLivePromptSystemVersion(systemId: string, version: string): Promise<void> {
     const systemRef = doc(db, 'prompt_systems', systemId);
     await updateDoc(systemRef, { activeVersion: version });
 }
 
-/**
- * Publishes a new version of a specific Prompt System.
- */
 export async function publishNewPromptVersion(
     systemId: string,
     version: string,
     composedPrompts: { [categoryId: string]: string },
 ): Promise<PromptVersion> {
-    const newId = `${systemId}-${version.replace(/\./g, '-')}`;
+    const newId = `${systemId}-${version}`;
     const versionRef = doc(db, 'prompt_versions', newId);
 
     const newVersionData: Omit<PromptVersion, 'id'> = {
@@ -448,13 +455,10 @@ interface PublishNewPromptContentInput {
     previousVersionId?: string;
 }
 
-/**
- * Publishes a new version of a single prompt content piece.
- */
 export async function publishNewPromptContent(input: PublishNewPromptContentInput): Promise<PromptContent> {
     const { systemId, categoryId, version, promptText, previousVersionId } = input;
     
-    const newId = `${categoryId}_${version.replace(/\./g, '-')}`;
+    const newId = `${categoryId}_${version}`;
     const contentRef = doc(db, 'prompt_content', newId);
 
     const newContentData: Omit<PromptContent, 'id'> = {
@@ -475,17 +479,10 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
 }
 
 
-/**
- * Fetches the fully composed prompt text for a given AI system using a more direct lookup path.
- * This function is cached to reduce Firestore lookups for repeated calls.
- * @param systemId The ID of the AI system (e.g., 'bird-identifier-ai-newbie').
- * @returns The final, combined prompt string, or null if any part of the chain is missing.
- */
 export const getComposedPrompt = cache(
     async (systemId: string): Promise<string | null> => {
         console.log(`CACHE MISS: Composing prompt for system '${systemId}' from Firestore.`);
         try {
-            // 1. Get the prompt system to find its active version.
             const systemRef = doc(db, 'prompt_systems', systemId);
             const systemSnap = await getDoc(systemRef);
             if (!systemSnap.exists()) {
@@ -494,8 +491,7 @@ export const getComposedPrompt = cache(
             const systemData = systemSnap.data() as PromptSystem;
             const activeSystemVersion = systemData.activeVersion;
 
-            // 2. Get the specific prompt version document.
-            const promptVersionId = `${systemId}-${activeSystemVersion.replace(/\./g, '-')}`;
+            const promptVersionId = `${systemId}-${activeSystemVersion}`;
             const promptVersionRef = doc(db, 'prompt_versions', promptVersionId);
             const promptVersionSnap = await getDoc(promptVersionRef);
             if (!promptVersionSnap.exists()) {
@@ -503,35 +499,31 @@ export const getComposedPrompt = cache(
             }
             const promptVersion = promptVersionSnap.data() as PromptVersion;
 
-            // 3. Fetch all the individual prompt content pieces in parallel.
             const contentIds = Object.values(promptVersion.composedPrompts);
             const contentPromises = contentIds.map(id => getDoc(doc(db, 'prompt_content', id)));
             const contentSnaps = await Promise.all(contentPromises);
 
             const contentPieces: PromptContent[] = contentSnaps.map(snap => {
                 if (!snap.exists()) {
-                    // This can happen if a version references a content piece that was deleted.
                     throw new Error(`Required prompt content document with ID '${snap.id}' is missing.`);
                 }
                 return snap.data() as PromptContent;
             });
             
-            // 4. Assemble the final prompt. For now, simple concatenation is sufficient.
-            // A more advanced system might use an 'order' field in the `composedPrompts` map.
             const composedText = contentPieces.map(p => p.promptText).join('\n\n');
 
             return composedText;
 
         } catch (error) {
             console.error(`Failed to get composed prompt for '${systemId}':`, error);
-            // Must return null on error as cache expects a serializable return value.
             return null; 
         }
     },
-    ['composed-prompts-v2'], // Use a new key for the new logic
+    ['composed-prompts-v2'],
     {
-        revalidate: 60, // Re-fetch from the database at most once every 60 seconds
-        tags: ['prompts'], // Tag for on-demand revalidation
+        revalidate: 60,
+        tags: ['prompts'],
     }
 );
+
     

@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { getBlob, ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
+import { getBlob, ref as storageRef } from 'firebase/storage';
 import { collection, getDocs, doc, setDoc } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { useRouter } from 'next/navigation';
@@ -23,6 +23,7 @@ import { NewMasterAudioForm } from '@/components/content/NewMasterAudioForm';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { logErrorToFirestore } from '@/lib/error-logging';
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
+import { createAnalysisRun } from '@/lib/actions';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
@@ -131,66 +132,6 @@ export default function RecordPage() {
     }
   };
 
-  const createAnalysisRun = async (
-    audioDataUri: string,
-    aiResult: any,
-    wasSuccessful: boolean,
-    locationData: any,
-    hardware: string | null,
-    mode: AppMode,
-    isDeveloperRun: boolean,
-    testContext?: { birdId: string; testAudioId: string },
-    recordingLengthSeconds?: number,
-    analysisTimings?: AnalysisRun['analysisTimings']
-  ) => {
-    if (!user) {
-      console.error("Cannot create analysis run: user is not authenticated.");
-      logErrorToFirestore(new Error("Analysis run failed: No user."), 'firestore-write-failure', { detail: 'User not authenticated during createAnalysisRun.' });
-      return null;
-    }
-
-    const audioId = uuidv4();
-    const filePath = `users/${user.uid}/recordings/${audioId}.webm`;
-    const fileRef = storageRef(storage, filePath);
-    await uploadString(fileRef, audioDataUri, 'data_url');
-    const downloadURL = await getDownloadURL(fileRef);
-
-    const analysisRunId = uuidv4();
-    const collectionName = isDeveloperRun ? 'all_test_runs' : 'all_analysis_runs';
-    const analysisRunRef = doc(db, collectionName, analysisRunId);
-
-    const docToCreate: Omit<AnalysisRun, 'id'> = {
-      timestamp: currentTimestamp.current!,
-      userId: user.uid,
-      sessionId: currentSessionId.current!,
-      inputAudioUrl: downloadURL,
-      inputAudioStoragePath: filePath,
-      locationData: {
-        latitude: locationData?.latitude ?? null,
-        longitude: locationData?.longitude ?? null,
-        locationDescription: locationData?.locationDescription ?? null,
-      },
-      analysisMethod: `gemini-pro-vision-prompt-v1.8`,
-      aiResult: aiResult,
-      wasSuccessful: wasSuccessful,
-      wasSavedByUser: false,
-      mode: mode,
-      isDeveloperData: isDeveloperRun,
-      recordingLengthSeconds: recordingLengthSeconds,
-      analysisTimings: analysisTimings,
-    };
-
-    if (hardware) {
-        docToCreate.hardware = hardware;
-    }
-    if (isDeveloperRun && testContext) {
-      docToCreate.birdId = testContext.birdId;
-      docToCreate.testAudioId = testContext.testAudioId;
-    }
-
-    await setDoc(analysisRunRef, docToCreate);
-    return analysisRunId;
-  }
 
   const processAudio = async (
       base64Audio: string, 
@@ -200,7 +141,7 @@ export default function RecordPage() {
   ) => {
       const processWithLocation = async (locationData?: { latitude?: number; longitude?: number, locationDescription?: string }) => {
         setIsProcessing(true);
-        if (!currentTimestamp.current) {
+        if (!currentTimestamp.current || !user) {
             setIsProcessing(false);
             return;
         }
@@ -220,9 +161,10 @@ export default function RecordPage() {
             const wasSuccessful = result && result.isBirdSong && !!result.commonName;
 
             analysisRunId = await createAnalysisRun(
-                base64Audio, result, wasSuccessful, locationData, hardware,
+                user.uid, base64Audio, result, wasSuccessful, locationData, hardware,
                 appSettings.mode, isDeveloperRun, testContext,
-                recordingLengthSeconds, { primaryIdentificationMs: analysisDurationMs }
+                recordingLengthSeconds, { primaryIdentificationMs: analysisDurationMs },
+                currentSessionId.current!, currentTimestamp.current!
             );
 
         } catch (error) {
@@ -233,9 +175,10 @@ export default function RecordPage() {
             });
 
             analysisRunId = await createAnalysisRun(
-                base64Audio, { error: (error as Error).message, isBirdSong: false }, false,
+                user.uid, base64Audio, { error: (error as Error).message, isBirdSong: false }, false,
                 locationData, hardware, appSettings.mode, isDeveloperRun, testContext,
-                recordingLengthSeconds, { primaryIdentificationMs: analysisDurationMs }
+                recordingLengthSeconds, { primaryIdentificationMs: analysisDurationMs },
+                currentSessionId.current!, currentTimestamp.current!
             );
         } finally {
             if (analysisRunId) {
@@ -272,12 +215,22 @@ export default function RecordPage() {
     try {
         const fileRef = storageRef(storage, audio.storagePath);
         const blob = await getBlob(fileRef);
-        const file = new File([blob], audio.fileName, { type: blob.type || 'audio/wav' });
-
+        
+        let mimeType = blob.type;
+        if (!mimeType) {
+            if (audio.fileName.endsWith('.wav')) {
+                mimeType = 'audio/wav';
+            } else if (audio.fileName.endsWith('.mp3')) {
+                mimeType = 'audio/mpeg';
+            }
+        }
+        
+        const file = new File([blob], audio.fileName, { type: mimeType });
         const testContext = { birdId: audio.birdId, testAudioId: audio.testAudioId };
 
         const audioEl = new Audio();
         audioEl.src = URL.createObjectURL(file);
+
         audioEl.onloadedmetadata = () => {
             const duration = audioEl.duration;
             const reader = new FileReader();
@@ -292,45 +245,25 @@ export default function RecordPage() {
                 URL.revokeObjectURL(audioEl.src);
             }
         };
-         audioEl.onerror = () => {
-            console.error("Failed to load audio metadata for test run.");
-        }
+         audioEl.onerror = (e) => {
+            console.error("Failed to load audio metadata for test run.", e);
+            logErrorToFirestore(new Error('Failed to load audio metadata for test run'), 'audio-metadata-load-failure', {
+                fileName: audio.fileName,
+                storagePath: audio.storagePath,
+                mimeType: mimeType
+            });
+         }
 
     } catch (error) {
         console.error("Error loading test audio from Firebase Storage:", error);
+         logErrorToFirestore(error as Error, 'firebase-storage-read-failure', {
+            storagePath: audio.storagePath
+        });
     }
   };
 
   const onNewAudioUploaded = async (metadata: TestAudioMetadata) => {
-    try {
-        const fileRef = storageRef(storage, metadata.storagePath);
-        const blob = await getBlob(fileRef);
-        const file = new File([blob], metadata.fileName, { type: blob.type });
-
-        const testContext = { birdId: metadata.birdId, testAudioId: metadata.testAudioId };
-
-        const audioEl = new Audio();
-        audioEl.src = URL.createObjectURL(file);
-        audioEl.onloadedmetadata = () => {
-            const duration = audioEl.duration;
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onloadend = () => {
-                const base64Audio = reader.result as string;
-                processAudio(base64Audio, true, testContext, duration);
-                URL.revokeObjectURL(audioEl.src);
-            };
-            reader.onerror = () => {
-                console.error("Failed to read file for test run.");
-                URL.revokeObjectURL(audioEl.src);
-            }
-        };
-        audioEl.onerror = () => {
-            console.error("Failed to load audio metadata for test run.");
-        }
-    } catch (error) {
-        console.error("Error processing newly uploaded test audio:", error);
-    }
+    await handleSelectTestAudio(metadata);
   }
 
   return (
@@ -423,3 +356,5 @@ export default function RecordPage() {
     </AppLayout>
   );
 }
+
+    
