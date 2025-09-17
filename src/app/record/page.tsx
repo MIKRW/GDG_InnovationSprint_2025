@@ -75,20 +75,18 @@ export default function RecordPage() {
     }
   }, [isTestAudioDialogOpen, isDevMode]);
 
-  const runAnalysisForTestFile = async (file: File, testContext: { birdId: string; testAudioId: string }) => {
-    if (recordButtonRef.current) {
-        recordButtonRef.current.handleFileSelect(file, testContext);
-    }
-  };
-
 
   const handleSelectTestAudio = async (audio: TestAudioMetadata) => {
+    if (!recordButtonRef.current) return;
+    setIsTestAudioDialogOpen(false); // Close dialog immediately
+
     try {
         const fileRef = storageRef(storage, audio.storagePath);
         const blob = await getBlob(fileRef);
         const file = new File([blob], audio.fileName, { type: blob.type || 'audio/wav' });
 
-        await runAnalysisForTestFile(file, { birdId: audio.birdId, testAudioId: audio.testAudioId });
+        const testContext = { birdId: audio.birdId, testAudioId: audio.testAudioId };
+        recordButtonRef.current.handleFileSelect(file, testContext);
 
     } catch (error) {
         console.error("Error loading test audio from Firebase Storage:", error);
@@ -96,13 +94,17 @@ export default function RecordPage() {
   };
   
   const onNewAudioUploaded = async (metadata: TestAudioMetadata) => {
-    setIsTestAudioDialogOpen(false); // Close the dialog first
+    if (!recordButtonRef.current) return;
+    setIsTestAudioDialogOpen(false); // Close dialog
+
     try {
         const fileRef = storageRef(storage, metadata.storagePath);
         const blob = await getBlob(fileRef);
         const file = new File([blob], metadata.fileName, { type: blob.type || 'audio/wav' });
+        
+        const testContext = { birdId: metadata.birdId, testAudioId: metadata.testAudioId };
+        recordButtonRef.current.handleFileSelect(file, testContext);
 
-        await runAnalysisForTestFile(file, { birdId: metadata.birdId, testAudioId: metadata.testAudioId });
     } catch (error) {
         console.error("Error running analysis on newly uploaded file:", error);
     }
@@ -149,10 +151,7 @@ export default function RecordPage() {
                                                 key={audio.id} 
                                                 variant="ghost" 
                                                 className="w-full justify-start h-auto text-left"
-                                                onClick={() => {
-                                                  setIsTestAudioDialogOpen(false);
-                                                  handleSelectTestAudio(audio);
-                                                }}
+                                                onClick={() => handleSelectTestAudio(audio)}
                                             >
                                             <Music className="mr-4 h-6 w-6 shrink-0" />
                                             <div>

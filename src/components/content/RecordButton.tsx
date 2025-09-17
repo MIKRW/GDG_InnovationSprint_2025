@@ -60,24 +60,25 @@ const RecordButton = forwardRef<RecordButtonRef, RecordButtonProps>(({ onPermiss
       currentTestContext.current = testContext;
       setRecordingState('processing');
 
-      const audio = new Audio(URL.createObjectURL(file));
+      const audio = new Audio();
+      audio.src = URL.createObjectURL(file);
       audio.onloadedmetadata = () => {
-        const duration = audio.duration;
-         const reader = new FileReader();
+          const duration = audio.duration;
+          const reader = new FileReader();
           reader.readAsDataURL(file);
-          reader.onloadend = async () => {
+          reader.onloadend = () => {
               const base64Audio = reader.result as string;
               getLocationForAIShot(locationData => processAudio(base64Audio, duration, locationData));
           };
-          reader.onerror = () => {
-              console.error("Failed to read file for test run.");
+          reader.onerror = (error) => {
+              console.error("Failed to read file for test run:", error);
               setRecordingState('idle');
-          }
+          };
       };
-      audio.onerror = () => {
-        console.error("Failed to load audio file metadata.");
-        setRecordingState('idle');
-      }
+      audio.onerror = (error) => {
+          console.error("Failed to load audio file metadata:", error);
+          setRecordingState('idle');
+      };
     }
   }));
 
