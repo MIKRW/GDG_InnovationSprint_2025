@@ -168,7 +168,8 @@ export interface TestAudioMetadata {
  * Stored in `app_ai_config/main`.
  */
 export type AppAIConfig = {
-    activeAppAIVersion: string; // The version string of the currently live App AI Version (e.g., "v1.0").
+    activeAppAIVersion: string; // The ID of the currently live App AI Version.
+    developmentAppAIVersion: string; // The ID of the current dev/staging App AI Version.
 }
 
 /**
@@ -176,9 +177,10 @@ export type AppAIConfig = {
  * Specifies which version of each overarching AI system is active.
  */
 export type AppAIVersion = {
-    id: string; // e.g., 'v1.0'
+    id: string; // e.g., 'v1-0'
     version: string;
     timestamp: string;
+    isDevelopment: boolean; // Flag to distinguish dev versions from live-promotable versions
     systems: {
         [systemId: string]: string; // e.g., { 'bird-identifier-ai-newbie': 'v1.1' }
     };
@@ -192,7 +194,8 @@ export type PromptSystem = {
     id: string; // e.g., 'bird-identifier-ai-newbie'
     name: string;
     description: string;
-    activeVersion: string; // e.g., 'v1.1'
+    activeVersion: string; // The live version, e.g., 'v1.1.0'
+    developmentVersion?: string; // The dev/staging version, e.g., 'v1.2.0-dev'
 };
 
 /**
@@ -203,6 +206,7 @@ export type PromptVersion = {
     systemId: string;
     version: string; // e.g., 'v1.1'
     timestamp: string;
+    isDevelopment?: boolean; // Flag to distinguish dev versions
     composedPrompts: {
         [categoryId: string]: string; // e.g., { 'base_instruction': 'base_instruction_v2' }
     };

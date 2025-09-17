@@ -14,7 +14,6 @@ import { getComposedPrompt, getPromptSystem } from '@/lib/actions';
 import { getStorage } from 'firebase-admin/storage';
 import { Readable } from 'stream';
 import wavDecoder from 'wav-decoder';
-import { devTestPrompt } from '@/ai/prompts/dev-test-prompt';
 
 const IdentifyBirdInputSchema = z.object({
   audioDataUri: z
@@ -31,7 +30,6 @@ const IdentifyBirdInputSchema = z.object({
     mode: z.enum(['newbie', 'twitcher']).describe('The application mode selected by the user, which may determine the expected audio quality and analysis depth.'),
     habitatPhotoDataUri: z.string().optional().describe("An optional photo of the bird's habitat, as a data URI."),
     habitatDescription: z.string().optional().describe("A user-provided text description of the habitat."),
-    isDeveloperData: z.boolean().optional().describe("A flag to indicate if this is a developer test run, which may trigger different processing logic."),
 });
 export type IdentifyBirdInput = z.infer<typeof IdentifyBirdInputSchema>;
 
@@ -177,23 +175,18 @@ const identifyBirdFlow = ai.defineFlow(
     
     let promptTemplate: string | null;
     let promptVersion: string;
-
-    // Use the developer test prompt if this is a developer run, otherwise get the live prompt.
-    if (input.isDeveloperData) {
-        console.log("Using developer test prompt.");
-        promptTemplate = devTestPrompt;
-        promptVersion = "dev-test";
-    } else {
-        console.log("Using live prompt from Firestore.");
-        const system = await getPromptSystem('bird-identifier-ai-newbie');
-        if (!system) throw new Error("Could not find the 'bird-identifier-ai-newbie' system in Firestore.");
-        
-        promptTemplate = await getComposedPrompt('bird-identifier-ai-newbie');
-        promptVersion = system.activeVersion; // Get the live version string
-    }
     
+    const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+
+    console.log("Using live prompt from Firestore.");
+    const system = await getPromptSystem('bird-identifier-ai-newbie');
+    if (!system) throw new Error("Could not find the 'bird-identifier-ai-newbie' system in Firestore.");
+    
+    promptTemplate = await getComposedPrompt('bird-identifier-ai-newbie');
+    promptVersion = isDevMode ? (system.developmentVersion || system.activeVersion) : system.activeVersion;
+
     if (!promptTemplate) {
-        throw new Error("Could not retrieve a valid prompt. For dev runs, check 'src/ai/prompts/dev-test-prompt.ts'. For live runs, check the AI configuration in Firestore.");
+        throw new Error("Could not retrieve a valid prompt. Check the AI configuration in Firestore.");
     }
     
     const prompt = ai.definePrompt({

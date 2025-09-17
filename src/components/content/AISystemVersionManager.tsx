@@ -27,114 +27,194 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
-import type { PromptSystem, PromptVersion, AppAIVersion } from '@/lib/types';
-import { getPromptSystems, getPromptVersionsForSystem, getAppAIVersions, getAppAIConfig, setLiveAppAIVersion, publishNewAppAIVersion } from '@/lib/actions';
+import type { PromptSystem, AppAIVersion } from '@/lib/types';
+import { getPromptSystems, getPromptVersionsForSystem, getAppAIVersions, getAppAIConfig, publishNewAppAIVersion, promoteDevelopmentVersionToLive } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
-import { Separator } from '../ui/separator';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
-import { Switch } from '../ui/switch';
 import { Skeleton } from '../ui/skeleton';
+import { Separator } from '../ui/separator';
 
 interface VersionSelection {
-  [systemId: string]: {
-    major: string;
-    minor: string;
-    patch: string;
-    fullVersion: string;
-  };
+  [systemId: string]: string; // e.g., { 'bird-identifier-ai-newbie': 'v1.1.0' }
 }
 
-interface SystemWithVersions extends PromptSystem {
-  versions: PromptVersion[];
-  versionParts: {
-    major: string[];
-    minor: Map<string, string[]>;
-    patch: Map<string, string[]>;
-  };
+interface SystemWithVersion extends PromptSystem {
+  liveVersions: string[];
+  devVersions: string[];
 }
 
-export function AISystemVersionManager() {
-  const [systems, setSystems] = useState<SystemWithVersions[]>([]);
-  const [loading, setLoading] = useState(true);
+function VersionPublisher({
+  title,
+  description,
+  systems,
+  publishedVersions,
+  activeVersionId,
+  saveType,
+  onSaveTypeChange,
+  nextVersionString,
+  onPublish,
+  isLoading,
+  isLive,
+  onPromote,
+}: {
+  title: string;
+  description: string;
+  systems: SystemWithVersion[];
+  publishedVersions: AppAIVersion[];
+  activeVersionId: string | null;
+  saveType: 'major' | 'minor' | 'patch';
+  onSaveTypeChange: (type: 'major' | 'minor' | 'patch') => void;
+  nextVersionString: string;
+  onPublish: (selections: VersionSelection, version: string) => void;
+  isLoading: boolean;
+  isLive?: boolean;
+  onPromote?: (versionId: string) => void;
+}) {
   const [selections, setSelections] = useState<VersionSelection>({});
+
+  const handlePublish = () => {
+    if (systems.some(s => !selections[s.id])) {
+      alert('Please select a version for all systems.');
+      return;
+    }
+    onPublish(selections, nextVersionString);
+  };
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[200px]">AI System</TableHead>
+              <TableHead>Version</TableHead>
+              {isLive && <TableHead className="text-right">Action</TableHead>}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {systems.map((system) => (
+              <TableRow key={system.id}>
+                <TableCell className="font-medium">{system.name}</TableCell>
+                <TableCell>
+                  <Select
+                    onValueChange={(value) => setSelections(prev => ({...prev, [system.id]: value}))}
+                    value={selections[system.id]}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select Version" /></SelectTrigger>
+                    <SelectContent>
+                        {isLive ? (
+                             publishedVersions.map(v => (
+                                <SelectItem key={v.id} value={v.id}>
+                                    {v.version} - {new Date(v.timestamp).toLocaleDateString()}
+                                </SelectItem>
+                            ))
+                        ) : (
+                            <>
+                                {system.liveVersions.map(v => <SelectItem key={v} value={v}>Live: {v}</SelectItem>)}
+                                {system.devVersions.length > 0 && <Separator />}
+                                {system.devVersions.map(v => <SelectItem key={v} value={v}>Dev: {v}</SelectItem>)}
+                            </>
+                        )}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                 {isLive && onPromote && (
+                    <TableCell className="text-right">
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => selections[system.id] && onPromote(selections[system.id])}
+                            disabled={isLoading || !selections[system.id]}
+                        >
+                            Promote to Live
+                        </Button>
+                    </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+      {!isLive && (
+        <CardFooter className="border-t pt-6 flex-wrap justify-between gap-4">
+            <div className="flex items-center gap-8">
+                <div className="space-y-2">
+                <Label>New Version Type</Label>
+                <RadioGroup
+                    value={saveType}
+                    className="flex gap-4"
+                    onValueChange={(v) => onSaveTypeChange(v as any)}
+                >
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="major" /><Label htmlFor="major">Major</Label></div>
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="minor" /><Label htmlFor="minor">Minor</Label></div>
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id="patch" /><Label htmlFor="patch">Patch</Label></div>
+                </RadioGroup>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Label className="text-muted-foreground">Next Dev Version:</Label>
+                    <Badge variant="outline">{nextVersionString}</Badge>
+                </div>
+            </div>
+            <Button onClick={handlePublish} disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Publish to Dev
+            </Button>
+        </CardFooter>
+      )}
+    </Card>
+  )
+}
+
+
+export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
+  const [systems, setSystems] = useState<SystemWithVersion[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const [publishedVersions, setPublishedVersions] = useState<AppAIVersion[]>([]);
+  const [livePublishedVersions, setLivePublishedVersions] = useState<AppAIVersion[]>([]);
+  const [devPublishedVersions, setDevPublishedVersions] = useState<AppAIVersion[]>([]);
+  
   const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
-  const [selectedDisplayVersion, setSelectedDisplayVersion] = useState('new');
+  const [developmentVersionId, setDevelopmentVersionId] = useState<string | null>(null);
+  
   const [saveType, setSaveType] = useState<'major' | 'minor' | 'patch'>('patch');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRepublishing, setIsRepublishing] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [fetchedSystems, fetchedVersions, config] = await Promise.all([
+      const [fetchedSystems, liveVersions, devVersions, config] = await Promise.all([
         getPromptSystems(),
-        getAppAIVersions(),
+        getAppAIVersions('live'),
+        getAppAIVersions('dev'),
         getAppAIConfig()
       ]);
       
       setActiveVersionId(config?.activeAppAIVersion || null);
-      setPublishedVersions(fetchedVersions);
+      setDevelopmentVersionId(config?.developmentAppAIVersion || null);
+      setLivePublishedVersions(liveVersions);
+      setDevPublishedVersions(devVersions);
 
-      const systemsWithVersions: SystemWithVersions[] = await Promise.all(
+      const systemsWithVersions: SystemWithVersion[] = await Promise.all(
         fetchedSystems.map(async (system) => {
-          const versions = await getPromptVersionsForSystem(system.id);
-          const versionParts = {
-            major: new Set<string>(),
-            minor: new Map<string, Set<string>>(),
-            patch: new Map<string, Set<string>>(),
-          };
-
-          versions.forEach((v) => {
-            const [maj, min, pat] = v.version.split('.').map(part => part.replace('v', ''));
-            versionParts.major.add(maj);
-
-            if (!versionParts.minor.has(maj)) {
-              versionParts.minor.set(maj, new Set());
-            }
-            versionParts.minor.get(maj)!.add(min);
-
-            const minorKey = `${maj}.${min}`;
-            if (!versionParts.patch.has(minorKey)) {
-              versionParts.patch.set(minorKey, new Set());
-            }
-            versionParts.patch.get(minorKey)!.add(pat);
-          });
-
+          const allSystemVersions = await getPromptVersionsForSystem(system.id, 'all');
           return {
             ...system,
-            versions,
-            versionParts: {
-              major: Array.from(versionParts.major).sort((a,b) => b.localeCompare(a, undefined, { numeric: true })),
-              minor: new Map(
-                Array.from(versionParts.minor.entries()).map(([k, v]) => [
-                  k,
-                  Array.from(v).sort((a,b) => b.localeCompare(a, undefined, { numeric: true })),
-                ])
-              ),
-              patch: new Map(
-                Array.from(versionParts.patch.entries()).map(([k, v]) => [
-                  k,
-                  Array.from(v).sort((a,b) => b.localeCompare(a, undefined, { numeric: true })),
-                ])
-              ),
-            },
+            liveVersions: allSystemVersions.filter(v => !v.isDevelopment).map(v => v.version),
+            devVersions: allSystemVersions.filter(v => v.isDevelopment).map(v => v.version),
           };
         })
       );
       setSystems(systemsWithVersions);
     } catch (error) {
       console.error('Failed to fetch AI systems:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not load AI systems from Firestore.',
-      });
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not load AI systems from Firestore.' });
     } finally {
       setLoading(false);
     }
@@ -144,317 +224,88 @@ export function AISystemVersionManager() {
     fetchData();
   }, [fetchData]);
 
-  const loadSelectionsFromVersion = useCallback((versionId: string) => {
-      const versionToShow = publishedVersions.find(v => v.id === versionId);
-      if (versionToShow) {
-          const newSelections: VersionSelection = {};
-          for (const systemId in versionToShow.systems) {
-              const fullVersionString = versionToShow.systems[systemId];
-              if (fullVersionString) {
-                const [majorWithV, minor, patch] = fullVersionString.split('.');
-                const major = majorWithV.replace('v', '');
-                newSelections[systemId] = { major, minor, patch, fullVersion: fullVersionString };
-              }
-          }
-          setSelections(newSelections);
-      }
-  }, [publishedVersions]);
-
-  useEffect(() => {
-    if (selectedDisplayVersion === 'new') {
-        // Clear selections when switching to compose a new version
-        setSelections({});
-        setIsRepublishing(false);
-    } else {
-        loadSelectionsFromVersion(selectedDisplayVersion);
-        setIsRepublishing(true); // Default to republish mode when viewing history
-    }
-  }, [selectedDisplayVersion, publishedVersions, loadSelectionsFromVersion]);
-  
-  useEffect(() => {
-    // If user toggles republish back on, reset selections to match the historical version
-    if (isRepublishing && selectedDisplayVersion !== 'new') {
-      loadSelectionsFromVersion(selectedDisplayVersion);
-    }
-  }, [isRepublishing, selectedDisplayVersion, loadSelectionsFromVersion]);
-
-
-  const handleSelection = (
-    systemId: string,
-    part: 'major' | 'minor' | 'patch',
-    value: string
-  ) => {
-    setSelections((prev) => {
-      const newSelection = { ...(prev[systemId] || {}) };
-      if (part === 'major') {
-        newSelection.major = value;
-        delete newSelection.minor;
-        delete newSelection.patch;
-      } else if (part === 'minor') {
-        newSelection.minor = value;
-        delete newSelection.patch;
-      } else {
-        newSelection.patch = value;
-      }
-
-      if (newSelection.major && newSelection.minor && newSelection.patch) {
-          newSelection.fullVersion = `v${newSelection.major}.${newSelection.minor}.${newSelection.patch}`;
-      } else {
-          delete newSelection.fullVersion;
-      }
-
-      return { ...prev, [systemId]: newSelection };
-    });
-  };
-
-  const handlePublish = async () => {
+  const handlePublishToDev = async (selections: VersionSelection, version: string) => {
     setIsSubmitting(true);
     try {
-        if (isRepublishing) {
-            if (selectedDisplayVersion === 'new') {
-                toast({ variant: 'destructive', title: 'Action not allowed', description: 'Cannot re-publish a new, un-saved version.' });
-                return;
-            }
-            await setLiveAppAIVersion(selectedDisplayVersion);
-            setActiveVersionId(selectedDisplayVersion);
-            toast({
-                title: 'Success!',
-                description: `Version ${publishedVersions.find(v => v.id === selectedDisplayVersion)?.version} has been set as the live version.`
-            });
-        } else {
-            // Validate that all systems have a full version selected
-            if (systems.some(s => !selections[s.id]?.fullVersion)) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Incomplete Version',
-                    description: 'Please select a Major, Minor, and Patch version for every AI system.'
-                });
-                return;
-            }
-            
-            const systemsToPublish: { [systemId: string]: string } = {};
-            for(const systemId in selections) {
-                systemsToPublish[systemId] = selections[systemId].fullVersion;
-            }
-
-            const newVersion = await publishNewAppAIVersion(nextVersionString, systemsToPublish);
-            
-            toast({
-                title: 'Published!',
-                description: `App AI Version ${newVersion.version} is now live.`
-            });
-
-            // Refresh data to show new version
-            await fetchData();
-            setSelectedDisplayVersion(newVersion.id);
-        }
-    } catch(error) {
-        console.error('Failed to set live version:', error);
-        toast({
-            variant: 'destructive',
-            title: 'Update Failed',
-            description: 'Could not publish the version. Please try again.',
-        });
+        await publishNewAppAIVersion(version, selections, true);
+        toast({ title: 'Published to Dev!', description: `Version ${version} is now available for testing.` });
+        onUpdate();
+        fetchData();
+    } catch (error) {
+        console.error('Failed to publish to dev:', error);
+        toast({ variant: 'destructive', title: 'Publish Failed' });
     } finally {
         setIsSubmitting(false);
     }
   };
 
-  const selectedSystem = (systemId: string) => selections[systemId] || {};
-  const isViewingHistory = selectedDisplayVersion !== 'new';
-  const isCompositionDisabled = isViewingHistory && isRepublishing;
+  const handlePromoteToLive = async (devVersionId: string) => {
+      setIsSubmitting(true);
+      try {
+          const newLiveVersion = await promoteDevelopmentVersionToLive(devVersionId);
+          toast({ title: 'Promoted to Live!', description: `Version ${newLiveVersion.version} is now live.` });
+          onUpdate();
+          fetchData();
+      } catch (error) {
+          console.error('Failed to promote to live:', error);
+          toast({ variant: 'destructive', title: 'Promotion Failed', description: (error as Error).message });
+      } finally {
+          setIsSubmitting(false);
+      }
+  };
 
-  const activeVersion = useMemo(() => {
-      return publishedVersions.find(v => v.id === activeVersionId);
-  }, [publishedVersions, activeVersionId]);
 
-  const nextVersionString = useMemo(() => {
-    const latestVersion = publishedVersions[0];
-    if (!latestVersion) return "v1.0.0"; // Default for the very first version
+  const nextDevVersionString = useMemo(() => {
+    const latestVersion = devPublishedVersions[0]; // Assumes sorted desc
+    if (!latestVersion) return "v1-dev";
 
-    const [major, minor, patch] = latestVersion.version.replace('v', '').split('.').map(Number);
-
-    if (saveType === 'major') {
-      return `v${major + 1}.0.0`;
-    }
-    if (saveType === 'minor') {
-      return `v${major}.${minor + 1}.0`;
-    }
-    // Default to patch
-    return `v${major}.${minor}.${patch + 1}`;
-
-  }, [publishedVersions, saveType]);
+    const baseVersion = Number(latestVersion.version.replace('v','').split('-')[0]);
+    return `v${baseVersion + 1}-dev`;
+  }, [devPublishedVersions]);
 
 
   if (loading) {
     return (
-        <Card>
-            <CardHeader>
-                <Skeleton className="h-8 w-2/3" />
-                <Skeleton className="h-4 w-1/2 mt-2" />
-            </CardHeader>
-            <CardContent>
-                <div className="space-y-4">
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-32 w-full" />
-                </div>
-            </CardContent>
-            <CardFooter>
-                 <Skeleton className="h-10 w-full" />
-            </CardFooter>
-        </Card>
+      <div className="space-y-6">
+        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
     );
   }
 
   return (
-    <>
-      <div className="px-6 pb-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6 p-4 border rounded-lg bg-muted/50">
-          <div className="flex items-center gap-4">
-            <Label htmlFor="version-selector" className="font-semibold whitespace-nowrap">View Version</Label>
-            <Select value={selectedDisplayVersion} onValueChange={setSelectedDisplayVersion}>
-              <SelectTrigger id="version-selector" className="w-full sm:w-[250px]">
-                <SelectValue placeholder="Select a version to view" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="new">Compose New Version</SelectItem>
-                <Separator />
-                {publishedVersions.map(v => (
-                  <SelectItem key={v.id} value={v.id}>
-                    Version {v.version} {v.id === activeVersionId && '(Live)'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-2">
-            <Label className="font-semibold whitespace-nowrap">Live Version:</Label>
-            {activeVersion ? (
-              <Badge variant="secondary" className="text-sm">
-                {activeVersion.version}
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="text-sm">
-                None
-              </Badge>
-            )}
-          </div>
-        </div>
-      </div>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[200px]">AI System</TableHead>
-              <TableHead>Major</TableHead>
-              <TableHead>Minor</TableHead>
-              <TableHead>Patch</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {systems.map((system) => (
-              <TableRow key={system.id}>
-                <TableCell className="font-medium">{system.name}</TableCell>
-                <TableCell>
-                  <Select
-                    onValueChange={(value) => handleSelection(system.id, 'major', value)}
-                    value={selectedSystem(system.id).major}
-                    disabled={isCompositionDisabled}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Major" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {system.versionParts.major.map((maj) => (
-                        <SelectItem key={maj} value={maj}>
-                          v{maj}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  <Select
-                    disabled={!selectedSystem(system.id).major || isCompositionDisabled}
-                    onValueChange={(value) => handleSelection(system.id, 'minor', value)}
-                    value={selectedSystem(system.id).minor}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Minor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {selectedSystem(system.id).major && system.versionParts.minor.get(selectedSystem(system.id).major)?.map((min) => (
-                        <SelectItem key={min} value={min}>
-                          {min}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  <Select
-                    disabled={!selectedSystem(system.id).minor || isCompositionDisabled}
-                    onValueChange={(value) => handleSelection(system.id, 'patch', value)}
-                    value={selectedSystem(system.id).patch}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Patch" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {selectedSystem(system.id).major && selectedSystem(system.id).minor &&
-                        system.versionParts.patch.get(`${selectedSystem(system.id).major}.${selectedSystem(system.id).minor}`)?.map((pat) => (
-                          <SelectItem key={pat} value={pat}>
-                            {pat}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-      <CardFooter className="border-t pt-6">
-        <div className="flex flex-wrap items-center gap-6">
-          <div className="flex items-center space-x-2">
-            <Switch id="republish-switch" checked={isRepublishing} onCheckedChange={setIsRepublishing} disabled={!isViewingHistory} />
-            <Label htmlFor="republish-switch">Republish Selected</Label>
-          </div>
-          <div className="flex items-center gap-8" style={{ opacity: isRepublishing ? 0.5 : 1 }}>
-            <div className="space-y-2">
-              <Label>New Version Type</Label>
-              <RadioGroup
-                defaultValue="patch"
-                className="flex gap-4"
-                onValueChange={(v) => setSaveType(v as any)}
-                disabled={isRepublishing}
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="major" id="major" disabled={isRepublishing} />
-                  <Label htmlFor="major">Major</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="minor" id="minor" disabled={isRepublishing} />
-                  <Label htmlFor="minor">Minor</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="patch" id="patch" disabled={isRepublishing} />
-                  <Label htmlFor="patch">Patch</Label>
-                </div>
-              </RadioGroup>
-            </div>
-            <div className="flex items-center gap-2">
-              <Label className="text-muted-foreground">Next Version:</Label>
-              <Badge variant="outline">{nextVersionString}</Badge>
-            </div>
-          </div>
-          <Button onClick={handlePublish} disabled={isSubmitting || (isViewingHistory && !isRepublishing)}>
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Publish
-          </Button>
-        </div>
-      </CardFooter>
-    </>
+    <div className="space-y-8">
+      <p className="text-sm text-muted-foreground">
+        The top card shows the version currently being served to live users. The bottom card is for composing and testing new development versions. Once a development version is ready, you can 'Promote' it from the top card to make it live.
+      </p>
+
+      <VersionPublisher
+        title="Live Version"
+        description={`The AI system bundle currently live is ${activeVersionId || 'None'}. Select a Development Version below to promote it.`}
+        systems={systems}
+        publishedVersions={devPublishedVersions}
+        activeVersionId={activeVersionId}
+        saveType={saveType}
+        onSaveTypeChange={setSaveType}
+        nextVersionString=""
+        onPublish={() => {}}
+        isLoading={isSubmitting}
+        isLive={true}
+        onPromote={handlePromoteToLive}
+      />
+      
+      <VersionPublisher
+        title="Development Versions"
+        description="Compose a new development version by selecting a version for each AI Type below. This version will only be used in developer mode."
+        systems={systems}
+        publishedVersions={[]}
+        activeVersionId={developmentVersionId}
+        saveType={saveType}
+        onSaveTypeChange={setSaveType}
+        nextVersionString={nextDevVersionString}
+        onPublish={handlePublishToDev}
+        isLoading={isSubmitting}
+      />
+    </div>
   );
 }

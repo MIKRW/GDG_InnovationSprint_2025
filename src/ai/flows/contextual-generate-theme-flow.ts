@@ -14,8 +14,6 @@ import { z } from 'zod';
 import type { ThemeColor } from '@/lib/types';
 import { logErrorToFirestore } from '@/lib/error-logging';
 import { getComposedPrompt } from '@/lib/actions';
-import { devThemePrompt } from '@/ai/prompts/dev-theme-prompt';
-
 
 const ThemeColorSchema = z.object({
   h: z.number().describe('The hue value (0-360).'),
@@ -36,7 +34,6 @@ const GenerateThemeInputSchema = z.object({
   word2: z.string().optional().describe('A second word to inspire a color.'),
   word3: z.string().optional().describe('A third word to inspire a color.'),
   mood: z.string().describe('A keyword that defines the desired aesthetic and accessibility constraints (e.g., "High Contrast", "Tritanopia-Friendly", "Vibrant", "Dark").'),
-  isDeveloperRequest: z.boolean().optional().describe('A flag to indicate if this is a developer test request.'),
 });
 export type GenerateThemeInput = z.infer<typeof GenerateThemeInputSchema>;
 
@@ -44,11 +41,7 @@ export type GenerateThemeInput = z.infer<typeof GenerateThemeInputSchema>;
 export async function generateTheme(
   words: GenerateThemeInput
 ): Promise<GenerateThemeOutput> {
-  // Determine if this is a developer request based on the environment variable.
-  const isDeveloper = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
-  const inputWithDevFlag = { ...words, isDeveloperRequest: isDeveloper };
-  
-  return await generateThemeFlow(inputWithDevFlag);
+  return await generateThemeFlow(words);
 }
 
 const generateThemeFlow = ai.defineFlow(
@@ -59,15 +52,7 @@ const generateThemeFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      let promptTemplate: string | null;
-
-      if (input.isDeveloperRequest) {
-        console.log("Using developer theme prompt.");
-        promptTemplate = devThemePrompt;
-      } else {
-        console.log("Using live theme prompt from Firestore.");
-        promptTemplate = await getComposedPrompt('theme-generator-ai');
-      }
+      let promptTemplate = await getComposedPrompt('theme-generator-ai');
 
       if (!promptTemplate) {
         throw new Error('Failed to retrieve a valid prompt for theme generation.');

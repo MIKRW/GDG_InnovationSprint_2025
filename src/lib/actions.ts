@@ -2,9 +2,9 @@
 
 'use server';
 
-import { unstable_cache as cache } from 'next/cache';
+import { unstable_cache as cache, revalidateTag } from 'next/cache';
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
-import { doc, setDoc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, orderBy, runTransaction } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, orderBy, runTransaction, writeBatch } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
 import type { TestAudioMetadata, BirdLog, PromptSystem, PromptVersion, AppAIVersion, AppAIConfig, PromptContent, AnalysisRun, AppMode } from './types';
@@ -228,18 +228,17 @@ export async function createAnalysisRun(
 // Three-Tiered Prompt Versioning System Actions
 // =================================================================
 
-
 export async function getPromptSystems(): Promise<PromptSystem[]> {
     const systemsRef = collection(db, 'prompt_systems');
     const q = query(systemsRef, orderBy('name'));
     const snapshot = await getDocs(q);
 
     if (snapshot.empty) {
-        // Create a default system
-        const defaultSystem: Omit<PromptSystem, 'id'> = {
+        const defaultSystem = {
             name: "Bird Identifier AI (Newbie)",
             description: "Manages prompts for identifying birds in Newbie mode.",
-            activeVersion: "1.0.0"
+            activeVersion: "v1.0.0",
+            developmentVersion: "v1.0.0",
         };
         const newSystem = await createNewPromptSystem({ systemId: 'bird-identifier-ai-newbie', ...defaultSystem });
         return [newSystem];
@@ -259,72 +258,60 @@ export async function getPromptSystem(systemId: string): Promise<PromptSystem | 
 
 export async function createNewPromptSystem(data: { systemId: string, name: string, description: string }): Promise<PromptSystem> {
     const { systemId, name, description } = data;
-
     const systemRef = doc(db, 'prompt_systems', systemId);
     const systemSnap = await getDoc(systemRef);
+
     if (systemSnap.exists()) {
         throw new Error('A system with this ID already exists.');
     }
+
+    const baseInstruction = `You are a world-class ornithologist AI. Your purpose is to identify bird species from audio recordings with the highest possible accuracy...`;
     
-    const baseInstruction = `You are a world-class ornithologist AI. Your purpose is to identify bird species from audio recordings with the highest possible accuracy.
-
-You will receive an audio file and optional contextual data like location and time.
-
-Your primary goal is to determine if a bird song is present and, if so, identify the bird's common name, scientificName, taxonomic family, and order.
-
-If a bird song is present, you MUST set 'isBirdSong' to true and populate the identification fields.
-
-If no bird song is discernible, or if the audio contains other sounds, you MUST set 'isBirdSong' to false and leave the other fields empty.
-
-You must also generate a simple, descriptive prompt suitable for a text-to-image model to create a photorealistic image of the identified bird.`;
-
     await runTransaction(db, async (transaction) => {
         const defaultContentId = `base_instruction_v1-0-0`;
         const contentRef = doc(db, 'prompt_content', defaultContentId);
-        const contentData: Omit<PromptContent, 'id'> = {
+        transaction.set(contentRef, {
             systemId,
             categoryId: 'base_instruction',
             version: 'v1.0.0',
             promptText: baseInstruction,
             timestamp: new Date().toISOString(),
-        };
-        transaction.set(contentRef, contentData);
+        });
 
         const defaultVersionId = `${systemId}-v1-0-0`;
         const versionRef = doc(db, 'prompt_versions', defaultVersionId);
-        const versionData: Omit<PromptVersion, 'id'> = {
+        transaction.set(versionRef, {
             systemId,
             version: 'v1.0.0',
             timestamp: new Date().toISOString(),
-            composedPrompts: {
-                base_instruction: defaultContentId,
-            },
-        };
-        transaction.set(versionRef, versionData);
+            isDevelopment: false,
+            composedPrompts: { base_instruction: defaultContentId },
+        });
 
         const newSystemData: Omit<PromptSystem, 'id'> = {
             name,
             description,
             activeVersion: 'v1.0.0',
+            developmentVersion: 'v1.0.0',
         };
         transaction.set(systemRef, newSystemData);
     });
 
-    return { id: systemId, name, description, activeVersion: 'v1.0.0' };
+    revalidateTag('prompts');
+    return { id: systemId, name, description, activeVersion: 'v1.0.0', developmentVersion: 'v1.0.0' };
 }
 
-export async function getPromptVersionsForSystem(systemId: string): Promise<PromptVersion[]> {
+export async function getPromptVersionsForSystem(systemId: string, type: 'dev' | 'live' | 'all' = 'all'): Promise<PromptVersion[]> {
     const versionsRef = collection(db, 'prompt_versions');
-    const q = query(versionsRef, where('systemId', '==', systemId));
-    const snapshot = await getDocs(q);
+    let q = query(versionsRef, where('systemId', '==', systemId));
 
-    if (snapshot.empty && systemId === 'bird-identifier-ai-newbie') {
-        const defaultVersion = await publishNewPromptVersion(systemId, 'v1.0.0', {
-            base_instruction: 'base_instruction_v1-0-0'
-        });
-        return [defaultVersion];
+    if (type === 'dev') {
+        q = query(q, where('isDevelopment', '==', true));
+    } else if (type === 'live') {
+        q = query(q, where('isDevelopment', '==', false));
     }
     
+    const snapshot = await getDocs(q);
     const versions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptVersion));
     
     versions.sort((a, b) => {
@@ -346,45 +333,15 @@ export async function getPromptContentForSystem(systemId: string): Promise<Promp
     const q = query(contentRef, where('systemId', '==', systemId));
     const snapshot = await getDocs(q);
     
-    const baseInstruction = `You are a world-class ornithologist AI. Your purpose is to identify bird species from audio recordings with the highest possible accuracy.
-
-You will receive an audio file and optional contextual data like location and time.
-
-Your primary goal is to determine if a bird song is present and, if so, identify the bird's common name, scientificName, taxonomic family, and order.
-
-If a bird song is present, you MUST set 'isBirdSong' to true and populate the identification fields.
-
-If no bird song is discernible, or if the audio contains other sounds, you MUST set 'isBirdSong' to false and leave the other fields empty.
-
-You must also generate a simple, descriptive prompt suitable for a text-to-image model to create a photorealistic image of the identified bird.`;
-
-    if (snapshot.empty && systemId === 'bird-identifier-ai-newbie') {
-        const defaultContent = await publishNewPromptContent({
-            systemId,
-            categoryId: 'base_instruction',
-            version: 'v1.0.0',
-            promptText: baseInstruction
-        });
-        return [defaultContent];
-    }
-    
     const contents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptContent));
-
     contents.sort((a, b) => {
-        try {
-            if (typeof a.version !== 'string') return 1;
-            if (typeof b.version !== 'string') return -1;
-            const versionA = a.version.replace('v','').split('.').map(Number);
-            const versionB = b.version.replace('v','').split('.').map(Number);
-            if (versionA[0] !== versionB[0]) return versionB[0] - versionA[0];
-            if (versionA[1] !== versionB[1]) return versionB[1] - versionA[1];
-            return versionB[2] - versionA[2];
-        } catch (e) {
-            console.error("Failed to parse versions for sorting:", a, b, e);
-            return 0;
-        }
+        if (typeof a.version !== 'string' || typeof b.version !== 'string') return 0;
+        const [majA, minA, patchA] = a.version.replace('v','').split('.').map(Number);
+        const [majB, minB, patchB] = b.version.replace('v','').split('.').map(Number);
+        if (majA !== majB) return majB - majA;
+        if (minA !== minB) return minB - minA;
+        return patchB - patchA;
     });
-
     return contents;
 }
 
@@ -393,73 +350,105 @@ export async function getAppAIConfig(): Promise<AppAIConfig | null> {
     const configRef = doc(db, 'app_ai_config', 'main');
     const snapshot = await getDoc(configRef);
     if (!snapshot.exists()) {
-        return null;
+        const defaultConfig = { activeAppAIVersion: 'v1.0.0', developmentAppAIVersion: 'v1.0.0' };
+        await setDoc(configRef, defaultConfig);
+        return defaultConfig;
     }
     return snapshot.data() as AppAIConfig;
 }
 
-export async function getAppAIVersions(): Promise<AppAIVersion[]> {
+export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Promise<AppAIVersion[]> {
     const versionsRef = collection(db, 'app_ai_versions');
-    const q = query(versionsRef, orderBy('timestamp', 'desc'));
+    let q = query(versionsRef, orderBy('timestamp', 'desc'));
+
+    if (type === 'dev') {
+        q = query(q, where('isDevelopment', '==', true));
+    } else if (type === 'live') {
+        q = query(q, where('isDevelopment', '==', false));
+    }
     const snapshot = await getDocs(q);
 
-    if (snapshot.empty) {
-        const defaultVersion = await publishNewAppAIVersion('v1.0.0', {
-            'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-v1.0.0'
-        });
-        return [defaultVersion];
+    if (snapshot.empty && type !== 'dev') {
+        return [await publishNewAppAIVersion('v1.0.0', { 'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-v1-0-0' }, false)];
     }
     
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
 }
 
-export async function setLiveAppAIVersion(versionId: string): Promise<void> {
-    const configRef = doc(db, 'app_ai_config', 'main');
-    await setDoc(configRef, { activeAppAIVersion: versionId }, { merge: true });
-}
 
-export async function publishNewAppAIVersion(
-    version: string,
-    systems: { [systemId: string]: string }
-): Promise<AppAIVersion> {
+export async function publishNewAppAIVersion(version: string, systems: { [systemId: string]: string }, isDevelopment: boolean): Promise<AppAIVersion> {
     const newVersionId = version;
     const versionRef = doc(db, 'app_ai_versions', newVersionId);
-
     const newVersionData: Omit<AppAIVersion, 'id'> = {
         version,
         timestamp: new Date().toISOString(),
+        isDevelopment,
         systems,
     };
-
     await setDoc(versionRef, newVersionData);
-    await setLiveAppAIVersion(newVersionId);
 
+    const configRef = doc(db, 'app_ai_config', 'main');
+    if (isDevelopment) {
+        await setDoc(configRef, { developmentAppAIVersion: newVersionId }, { merge: true });
+    } else {
+        await setDoc(configRef, { activeAppAIVersion: newVersionId }, { merge: true });
+    }
+    
+    revalidateTag('prompts');
     return { id: newVersionId, ...newVersionData };
 }
 
-export async function setLivePromptSystemVersion(systemId: string, version: string): Promise<void> {
-    const systemRef = doc(db, 'prompt_systems', systemId);
-    await updateDoc(systemRef, { activeVersion: version });
-}
+export async function promoteDevelopmentVersionToLive(devVersionId: string): Promise<AppAIVersion> {
+    const devVersionRef = doc(db, 'app_ai_versions', devVersionId);
+    const devVersionSnap = await getDoc(devVersionRef);
+    if (!devVersionSnap.exists() || !devVersionSnap.data().isDevelopment) {
+        throw new Error("The specified version is not a valid development version.");
+    }
 
-export async function publishNewPromptVersion(
-    systemId: string,
-    version: string,
-    composedPrompts: { [categoryId: string]: string },
-): Promise<PromptVersion> {
-    const newId = `${systemId}-${version}`;
-    const versionRef = doc(db, 'prompt_versions', newId);
-
-    const newVersionData: Omit<PromptVersion, 'id'> = {
-        systemId,
-        version,
+    const devVersionData = devVersionSnap.data() as AppAIVersion;
+    const newLiveVersionString = `v${Number(devVersionData.version.replace('v','').split('-')[0]) + 1}`;
+    
+    const newLiveVersion: Omit<AppAIVersion, 'id'> = {
+        ...devVersionData,
+        version: newLiveVersionString,
+        isDevelopment: false,
         timestamp: new Date().toISOString(),
-        composedPrompts,
     };
 
-    await setDoc(versionRef, newVersionData);
-    await setLivePromptSystemVersion(systemId, version);
+    const newLiveVersionId = newLiveVersionString;
+    const liveVersionRef = doc(db, 'app_ai_versions', newLiveVersionId);
+    
+    const batch = writeBatch(db);
+    batch.set(liveVersionRef, newLiveVersion);
+    batch.update(doc(db, 'app_ai_config', 'main'), { activeAppAIVersion: newLiveVersionId });
+    await batch.commit();
+    
+    revalidateTag('prompts');
+    return { id: newLiveVersionId, ...newLiveVersion };
+}
 
+
+export async function setLivePromptSystemVersion(systemId: string, version: string, isDev: boolean): Promise<void> {
+    const systemRef = doc(db, 'prompt_systems', systemId);
+    if (isDev) {
+        await updateDoc(systemRef, { developmentVersion: version });
+    } else {
+        await updateDoc(systemRef, { activeVersion: version });
+    }
+    revalidateTag('prompts');
+}
+
+export async function publishNewPromptVersion(systemId: string, version: string, composedPrompts: { [categoryId: string]: string }, isDevelopment: boolean): Promise<PromptVersion> {
+    const newId = `${systemId}-${version.replace(/\./g, '-')}`;
+    const versionRef = doc(db, 'prompt_versions', newId);
+    const newVersionData: Omit<PromptVersion, 'id'> = {
+        systemId, version, composedPrompts, isDevelopment,
+        timestamp: new Date().toISOString(),
+    };
+    await setDoc(versionRef, newVersionData);
+    await setLivePromptSystemVersion(systemId, version, isDevelopment);
+    
+    revalidateTag('prompts');
     return { id: newId, ...newVersionData };
 }
 
@@ -473,60 +462,51 @@ interface PublishNewPromptContentInput {
 
 export async function publishNewPromptContent(input: PublishNewPromptContentInput): Promise<PromptContent> {
     const { systemId, categoryId, version, promptText, previousVersionId } = input;
-    
     const newId = `${categoryId}_${version}`;
     const contentRef = doc(db, 'prompt_content', newId);
-
     const newContentData: Omit<PromptContent, 'id'> = {
-        systemId,
-        categoryId,
-        version,
-        promptText,
+        systemId, categoryId, version, promptText,
         timestamp: new Date().toISOString(),
     };
-
-    if (previousVersionId) {
-        (newContentData as PromptContent).previousVersionId = previousVersionId;
-    }
-
+    if (previousVersionId) (newContentData as PromptContent).previousVersionId = previousVersionId;
     await setDoc(contentRef, newContentData);
-
+    revalidateTag('prompts');
     return { id: newId, ...newContentData };
 }
 
-
 export const getComposedPrompt = cache(
     async (systemId: string): Promise<string | null> => {
-        console.log(`CACHE MISS: Composing prompt for system '${systemId}' from Firestore.`);
+        const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+        console.log(`Composing prompt for system '${systemId}' (Mode: ${isDevMode ? 'Development' : 'Live'}).`);
+
         try {
             const systemRef = doc(db, 'prompt_systems', systemId);
             const systemSnap = await getDoc(systemRef);
-            if (!systemSnap.exists()) {
-                throw new Error(`Prompt system '${systemId}' does not exist.`);
-            }
+            if (!systemSnap.exists()) throw new Error(`Prompt system '${systemId}' does not exist.`);
+            
             const systemData = systemSnap.data() as PromptSystem;
-            const activeSystemVersion = systemData.activeVersion;
+            const versionToFetch = isDevMode ? systemData.developmentVersion : systemData.activeVersion;
 
-            const promptVersionId = `${systemId}-${activeSystemVersion}`;
+            if (!versionToFetch) {
+                throw new Error(`No ${isDevMode ? 'development' : 'active'} version set for system '${systemId}'.`);
+            }
+
+            const promptVersionId = `${systemId}-${versionToFetch.replace(/\./g, '-')}`;
             const promptVersionRef = doc(db, 'prompt_versions', promptVersionId);
             const promptVersionSnap = await getDoc(promptVersionRef);
             if (!promptVersionSnap.exists()) {
-                throw new Error(`Active prompt version document '${promptVersionId}' for system '${systemId}' not found.`);
+                throw new Error(`Prompt version document '${promptVersionId}' not found.`);
             }
-            const promptVersion = promptVersionSnap.data() as PromptVersion;
 
+            const promptVersion = promptVersionSnap.data() as PromptVersion;
             const contentIds = Object.values(promptVersion.composedPrompts);
             const contentPromises = contentIds.map(id => getDoc(doc(db, 'prompt_content', id)));
             const contentSnaps = await Promise.all(contentPromises);
 
-            const contentPieces: PromptContent[] = contentSnaps.map(snap => {
-                if (!snap.exists()) {
-                    throw new Error(`Required prompt content document with ID '${snap.id}' is missing.`);
-                }
-                return snap.data() as PromptContent;
-            });
-            
-            const composedText = contentPieces.map(p => p.promptText).join('\n\n');
+            const composedText = contentSnaps.map(snap => {
+                if (!snap.exists()) throw new Error(`Required prompt content document '${snap.id}' is missing.`);
+                return (snap.data() as PromptContent).promptText;
+            }).join('\n\n');
 
             return composedText;
 
@@ -535,9 +515,5 @@ export const getComposedPrompt = cache(
             return null; 
         }
     },
-    ['composed-prompts-v2'],
-    {
-        revalidate: 60,
-        tags: ['prompts'],
-    }
+    ['composed-prompts-v3'], { revalidate: 30, tags: ['prompts'] }
 );

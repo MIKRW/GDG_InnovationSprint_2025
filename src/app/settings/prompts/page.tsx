@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -149,11 +148,8 @@ setContentForSelectedSystem(content);
           <AccordionTrigger className="hover:no-underline p-6 text-xl font-bold">
               AI system version control
           </AccordionTrigger>
-          <AccordionContent className="p-0">
-            <p className="text-sm text-muted-foreground px-6 pb-6 max-w-2xl">
-              Manage the current and previous AI system versions. You can selected which AI types and there versions you wish to publish. This will determine what prompts the AI receives and how well it operates.
-            </p>
-            <AISystemVersionManager />
+          <AccordionContent className="p-6 pt-0">
+             <AISystemVersionManager onUpdate={handleDataUpdate} />
           </AccordionContent>
         </AccordionItem>
       </Accordion>
