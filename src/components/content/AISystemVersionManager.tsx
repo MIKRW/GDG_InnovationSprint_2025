@@ -135,7 +135,11 @@ function VersionPublisher({
   const Header = (
     <CardHeader className="flex-1 flex flex-col justify-between text-center p-6 h-36">
         <h3 className="text-2xl font-bold">{title}</h3>
-        <p className="text-sm text-muted-foreground px-4">{description}</p>
+        {isLive ? (
+            <p className="text-xl text-foreground font-semibold">{activeVersionId || 'None'}</p>
+        ) : (
+            <p className="text-sm text-muted-foreground px-4">{description}</p>
+        )}
     </CardHeader>
   );
 
