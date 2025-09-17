@@ -143,16 +143,9 @@ setContentForSelectedSystem(content);
         </CardHeader>
       </Card>
 
-      <Accordion type="single" collapsible className="w-full mb-8" defaultValue="item-1">
-        <AccordionItem value="item-1" className="border rounded-lg bg-card text-card-foreground shadow-sm">
-          <AccordionTrigger className="hover:no-underline p-6 text-xl font-bold justify-center">
-              AI system version control
-          </AccordionTrigger>
-          <AccordionContent className="p-6 pt-0">
-             <AISystemVersionManager onUpdate={handleDataUpdate} />
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+      <div className="mb-8 p-6 pt-0 border rounded-lg bg-card text-card-foreground shadow-sm">
+        <AISystemVersionManager onUpdate={handleDataUpdate} />
+      </div>
       
       <Card className="my-8">
         <CardHeader className="text-center border-b pb-6">
