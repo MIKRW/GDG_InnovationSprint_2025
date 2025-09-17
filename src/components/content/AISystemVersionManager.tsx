@@ -130,8 +130,8 @@ function VersionPublisher({
 
   if (isLive) {
     return (
-        <Card className="pt-6">
-            <CardHeader className="flex-1 flex flex-col justify-between text-center h-36">
+        <Card className="border-0 border-b rounded-none shadow-none">
+            <CardHeader className="flex-1 flex flex-col justify-between text-center p-6 h-36">
               <h3 className="text-2xl font-bold">{title}</h3>
               <p className="text-sm text-muted-foreground px-4">{description}</p>
             </CardHeader>
@@ -152,9 +152,9 @@ function VersionPublisher({
                     </Select>
                 </div>
             </CardContent>
-            <CardFooter className="border-t pt-6">
-                <div className="flex flex-1 justify-between items-center gap-8">
-                    <div className="flex items-center gap-8">
+            <CardFooter className="pt-6">
+                 <div className="flex w-full flex-wrap items-center justify-between gap-6">
+                     <div className="flex items-center gap-8">
                         <div className="space-y-2">
                             <Label>Release Type</Label>
                             <RadioGroup
@@ -186,8 +186,8 @@ function VersionPublisher({
   }
 
   return (
-    <Card className="pt-6">
-      <CardHeader className="flex-1 flex flex-col justify-between text-center h-36">
+    <Card className="border-0 border-b rounded-none shadow-none">
+      <CardHeader className="flex-1 flex flex-col justify-between text-center p-6 h-36">
         <h3 className="text-2xl font-bold">{title}</h3>
         <p className="text-sm text-muted-foreground px-4">{description}</p>
       </CardHeader>
@@ -244,7 +244,7 @@ function VersionPublisher({
           </TableBody>
         </Table>
       </CardContent>
-        <CardFooter className="border-t pt-6">
+        <CardFooter className="pt-6">
             <div className="flex flex-1 justify-between items-center gap-8">
                 <div className="flex items-center gap-8">
                     <div className="space-y-2">
