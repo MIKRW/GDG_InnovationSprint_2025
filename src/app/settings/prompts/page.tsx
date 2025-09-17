@@ -145,7 +145,7 @@ setContentForSelectedSystem(content);
 
       <Accordion type="single" collapsible className="w-full mb-8" defaultValue="item-1">
         <AccordionItem value="item-1" className="border rounded-lg bg-card text-card-foreground shadow-sm">
-          <AccordionTrigger className="hover:no-underline p-6 text-xl font-bold">
+          <AccordionTrigger className="hover:no-underline p-6 text-xl font-bold justify-center">
               AI system version control
           </AccordionTrigger>
           <AccordionContent className="p-6 pt-0">
