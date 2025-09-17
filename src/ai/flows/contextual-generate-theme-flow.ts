@@ -83,7 +83,7 @@ const generateThemeFlow = ai.defineFlow(
 
     } catch (error) {
         console.error("Error in generateThemeFlow:", error);
-        // Log the error to Firestore for debugging.
+        // Log the specific error to Firestore for better debugging.
         await logErrorToFirestore(error as Error, 'theme-generation-failure', {
             input: input,
             flow: 'generateThemeFlow',
