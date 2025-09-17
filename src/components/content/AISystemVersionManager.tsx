@@ -131,10 +131,10 @@ function VersionPublisher({
   if (isLive) {
     return (
         <Card>
-            <CardHeader>
-                <CardTitle>{title}</CardTitle>
-                <CardDescription>{description}</CardDescription>
-            </CardHeader>
+             <div className="flex-1 flex flex-col justify-between text-center p-6 h-36">
+              <h3 className="text-2xl font-bold">{title}</h3>
+              <p className="text-sm text-muted-foreground px-4">{description}</p>
+            </div>
             <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                     <div className="space-y-2">
@@ -185,10 +185,10 @@ function VersionPublisher({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
+      <div className="flex-1 flex flex-col justify-between text-center p-6 h-36">
+        <h3 className="text-2xl font-bold">{title}</h3>
+        <p className="text-sm text-muted-foreground px-4">{description}</p>
+      </div>
       <CardContent>
         <div className="mb-6 p-4 border rounded-lg bg-muted/50">
             <Label htmlFor="dev-version-viewer" className="font-semibold">View/Compose Dev Version</Label>
