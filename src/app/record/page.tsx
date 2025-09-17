@@ -74,27 +74,25 @@ export default function RecordPage() {
 
   const handleSelectTestAudio = async (audio: TestAudioMetadata) => {
     try {
+        // Immediately close the dialog
+        setIsTestAudioDialogOpen(false);
         const fileRef = storageRef(storage, audio.storagePath);
-        // Use getBlob to download the file directly, avoiding CORS issues.
         const blob = await getBlob(fileRef);
-        
         const file = new File([blob], audio.fileName, { type: blob.type || 'audio/wav' });
 
         if (recordButtonRef.current) {
             recordButtonRef.current.handleFileSelect(file, { birdId: audio.birdId, testAudioId: audio.testAudioId });
         }
-        setIsTestAudioDialogOpen(false);
     } catch (error) {
         console.error("Error loading test audio from Firebase Storage:", error);
     }
   };
 
   const onNewAudioUploaded = (metadata: TestAudioMetadata) => {
-    // This function is now called after a successful upload.
-    // It immediately triggers the test run with the new audio.
-    handleSelectTestAudio(metadata);
-    // And closes the dialog.
+    // This function is called after a successful upload.
+    // It closes the dialog and immediately triggers the test run.
     setIsTestAudioDialogOpen(false);
+    handleSelectTestAudio(metadata);
   }
 
   return (

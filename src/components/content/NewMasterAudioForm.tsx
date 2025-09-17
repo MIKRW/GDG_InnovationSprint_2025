@@ -100,14 +100,12 @@ export function NewMasterAudioForm({ onUploadSuccess }: NewMasterAudioFormProps)
                     location: values.location,
                 });
 
-                // This toast is correct. The file has been uploaded to the library.
-                // The next step is to run the test.
                 toast({
                     title: "Upload Successful",
-                    description: "New master audio has been added. Now running test...",
+                    description: "New master audio has been added to the library.",
                 });
 
-                // This callback will trigger the test run and close the dialog.
+                // This callback will trigger the test run and close the dialog in the parent component.
                 onUploadSuccess(newMetadata);
 
             } catch (error) {
@@ -118,7 +116,7 @@ export function NewMasterAudioForm({ onUploadSuccess }: NewMasterAudioFormProps)
                     description: "Could not add the new master audio file. Please try again.",
                 });
             } finally {
-                // Let the parent component handle the loading state after this point
+                // The parent component will handle closing the dialog, so we just need to stop the loader here.
                 setIsLoading(false);
             }
         };
@@ -308,7 +306,7 @@ export function NewMasterAudioForm({ onUploadSuccess }: NewMasterAudioFormProps)
                 </ScrollArea>
                 <Button type="submit" className="w-full mt-6" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Upload and Run Test
+                    Upload and Add to Library
                 </Button>
             </form>
         </Form>
