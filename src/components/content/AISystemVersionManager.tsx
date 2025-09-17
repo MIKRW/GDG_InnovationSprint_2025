@@ -66,6 +66,7 @@ function VersionPublisher({
   isLive,
   isCollapsible,
   onPromote,
+  idPrefix,
 }: {
   title: string;
   description?: string;
@@ -80,6 +81,7 @@ function VersionPublisher({
   isLive?: boolean;
   isCollapsible?: boolean;
   onPromote?: (versionId: string, type: 'major' | 'minor' | 'patch') => void;
+  idPrefix: string;
 }) {
   const [selections, setSelections] = useState<VersionSelection>({});
   const [enabledSystems, setEnabledSystems] = useState<EnabledSystems>({});
@@ -241,9 +243,9 @@ function VersionPublisher({
                         className="flex gap-4"
                         onValueChange={(v) => onSaveTypeChange(v as any)}
                     >
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="major" id={`${isLive ? 'live-' : 'dev-'}major`} /><Label htmlFor={`${isLive ? 'live-' : 'dev-'}major`}>Major</Label></div>
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id={`${isLive ? 'live-' : 'dev-'}minor`} /><Label htmlFor={`${isLive ? 'live-' : 'dev-'}minor`}>Minor</Label></div>
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id={`${isLive ? 'live-' : 'dev-'}patch`} /><Label htmlFor={`${isLive ? 'live-' : 'dev-'}patch`}>Patch</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="major" id={`${idPrefix}-major`} /><Label htmlFor={`${idPrefix}-major`}>Major</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id={`${idPrefix}-minor`} /><Label htmlFor={`${idPrefix}-minor`}>Minor</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id={`${idPrefix}-patch`} /><Label htmlFor={`${idPrefix}-patch`}>Patch</Label></div>
                     </RadioGroup>
                 </div>
                 <div className="flex items-center gap-2">
@@ -433,6 +435,7 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
     <div className="space-y-8">
         <Card>
             <VersionPublisher
+                idPrefix="live"
                 title="Live Version"
                 currentVersionId={activeVersionId}
                 systems={systems}
@@ -448,6 +451,7 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
         </Card>
         <Card>
             <VersionPublisher
+                idPrefix="dev"
                 title="Development Versions"
                 description="Compose a new development version by selecting a version for each AI Type below. This version will only be used in developer mode."
                 systems={systems}
