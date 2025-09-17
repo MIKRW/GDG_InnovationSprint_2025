@@ -288,8 +288,8 @@ You will be given a JSON object containing the audio, location, and other metada
 **Evidence Hierarchy:**
 You MUST prioritize evidence in this order:
 1.  **Habitat Photo (\`habitatPhotoDataUri\`):** This is the primary source of truth for the habitat.
-2.  **Habitat Description (\`habitatDescription\`):** The user\\'s text description is the second most important piece of evidence.
-3.  **GPS Coordinates & Weather:** Use latitude/longitude and weather data (retrieved via the \`getCurrentWeather\` tool) as a fallback or to supplement the user\\'s direct input.
+2.  **Habitat Description (\`habitatDescription\`):** The user's text description is the second most important piece of evidence.
+3.  **GPS Coordinates & Weather:** Use latitude/longitude and weather data (retrieved via the \`getCurrentWeather\` tool) as a fallback or to supplement the user's direct input.
 
 **Tool Usage:**
 - If latitude and longitude are provided, you SHOULD use the \`getCurrentWeather\` tool to get historical weather data for that location and date. This will help you determine the season and conditions, which can be crucial for identification.
@@ -339,7 +339,7 @@ Your response should be a single, raw JSON object and nothing else.`;
     }
     
     await runTransaction(db, async (transaction) => {
-        const defaultContentId = `base_instruction_v1-0-0`;
+        const defaultContentId = `${systemId}_base_instruction_v1-0-0`;
         const contentRef = doc(db, 'prompt_content', defaultContentId);
         transaction.set(contentRef, {
             systemId,
@@ -636,3 +636,4 @@ export const getComposedPrompt = cache(
     },
     ['composed-prompts-v4'], { revalidate: 30, tags: ['prompts'] }
 );
+
