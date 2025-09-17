@@ -60,7 +60,7 @@ export default function RecordPage() {
           birdData.masterAudioFiles.forEach((audio: any) => {
             library.push({
               id: audio.audioId,
-              fileName: audio.fileName || 'Unknown Filename',
+              fileName: birdData.commonName || 'Unknown Filename',
               storagePath: audio.storagePath,
               description: audio.description,
               sourceUrl: audio.sourceUrl || '',
