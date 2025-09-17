@@ -231,19 +231,57 @@ export async function createAnalysisRun(
 export async function getPromptSystems(): Promise<PromptSystem[]> {
     const systemsRef = collection(db, 'prompt_systems');
     const initialSnapshot = await getDocs(query(systemsRef, orderBy('name')));
-    const initialSystems = initialSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
+    const systems = initialSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
 
-    const hasBirdId = initialSystems.some(s => s.id === 'bird-identifier-ai-newbie');
-    const hasThemeGen = initialSystems.some(s => s.id === 'theme-generator-ai');
-    let madeChanges = false;
+    const hasBirdId = systems.some(s => s.id === 'bird-identifier-ai-newbie');
+    const hasThemeGen = systems.some(s => s.id === 'theme-generator-ai');
 
     if (!hasBirdId) {
-        madeChanges = true;
         await createNewPromptSystem({ 
             systemId: 'bird-identifier-ai-newbie', 
             name: "Bird Identifier AI (Newbie)",
             description: "Manages prompts for identifying birds in Newbie mode.",
-            initialPromptText: `You are an expert ornithologist AI. Your purpose is to identify bird species from audio recordings and contextual data with the highest possible accuracy.
+        });
+    }
+    if (!hasThemeGen) {
+        await createNewPromptSystem({ 
+            systemId: 'theme-generator-ai', 
+            name: "AI Theme Generator",
+            description: "Manages prompts for generating UI color themes. (KEEP THIS ONE)",
+        });
+    }
+
+    if (!hasBirdId || !hasThemeGen) {
+        // If we created a system, refetch the whole list to ensure correctness and sorting.
+        const finalSnapshot = await getDocs(query(systemsRef, orderBy('name')));
+        return finalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
+    }
+    
+    return systems;
+}
+
+
+export async function getPromptSystem(systemId: string): Promise<PromptSystem | null> {
+    const systemRef = doc(db, 'prompt_systems', systemId);
+    const snapshot = await getDoc(systemRef);
+    if (!snapshot.exists()) {
+        return null;
+    }
+    return { id: snapshot.id, ...snapshot.data() } as PromptSystem;
+}
+
+export async function createNewPromptSystem(data: { systemId: string, name: string, description: string }): Promise<PromptSystem> {
+    const { systemId, name, description } = data;
+    const systemRef = doc(db, 'prompt_systems', systemId);
+    const systemSnap = await getDoc(systemRef);
+
+    if (systemSnap.exists()) {
+        throw new Error('A system with this ID already exists.');
+    }
+
+    let initialPromptText = `You are a world-class AI. Your purpose is to provide accurate and helpful responses.`;
+    if (systemId === 'bird-identifier-ai-newbie') {
+        initialPromptText = `You are an expert ornithologist AI. Your purpose is to identify bird species from audio recordings and contextual data with the highest possible accuracy.
 
 You will be given a JSON object containing the audio, location, and other metadata. You MUST analyze this data to determine if a bird song is present and, if so, identify the species.
 
@@ -272,16 +310,9 @@ Your response MUST be a single, valid JSON object that strictly follows this str
 -   \`aiGeneratedHabitatTags\` (array of strings, optional): Generate structured tags describing the habitat based on your analysis of all available evidence (photo, text, location). Example: \`["forest", "creek", "eucalyptus", "temperate", "summer"]\`.
 
 **Error Handling:**
-- If you cannot discern a bird song, you MUST set \`isBirdSong\` to \`false\` and omit the other optional fields.`
-        });
-    }
-    if (!hasThemeGen) {
-        madeChanges = true;
-        await createNewPromptSystem({ 
-            systemId: 'theme-generator-ai', 
-            name: "AI Theme Generator",
-            description: "Manages prompts for generating UI color themes.",
-            initialPromptText: `You are an expert UI/UX designer and color theorist with a deep understanding of web accessibility standards (WCAG).
+- If you cannot discern a bird song, you MUST set \`isBirdSong\` to \`false\` and omit the other optional fields.`;
+    } else if (systemId === 'theme-generator-ai') {
+        initialPromptText = `You are an expert UI/UX designer and color theorist with a deep understanding of web accessibility standards (WCAG).
 
 Your task is to create a well-balanced and aesthetically pleasing four-color theme palette for a web application, based on user-provided inputs. The output MUST be a valid JSON object.
 
@@ -304,39 +335,8 @@ CORE RULES & CONSTRAINTS:
 5.  **Derived Colors:** Be aware that the application's CSS will automatically generate secondary, muted, and accent colors by adjusting the lightness of your chosen primary and background colors. Your choices must result in a harmonious and readable palette even after these automatic adjustments.
 
 Example Input: { "word1": "ocean", "word2": "sand", "word3": "sun", "mood": "Vibrant" }
-Your response should be a single, raw JSON object and nothing else.`
-        });
+Your response should be a single, raw JSON object and nothing else.`;
     }
-
-    if (madeChanges) {
-        // If we created a system, refetch the whole list to ensure correctness and sorting.
-        const finalSnapshot = await getDocs(query(systemsRef, orderBy('name')));
-        return finalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
-    }
-    
-    return initialSystems;
-}
-
-
-export async function getPromptSystem(systemId: string): Promise<PromptSystem | null> {
-    const systemRef = doc(db, 'prompt_systems', systemId);
-    const snapshot = await getDoc(systemRef);
-    if (!snapshot.exists()) {
-        return null;
-    }
-    return { id: snapshot.id, ...snapshot.data() } as PromptSystem;
-}
-
-export async function createNewPromptSystem(data: { systemId: string, name: string, description: string, initialPromptText?: string }): Promise<PromptSystem> {
-    const { systemId, name, description, initialPromptText } = data;
-    const systemRef = doc(db, 'prompt_systems', systemId);
-    const systemSnap = await getDoc(systemRef);
-
-    if (systemSnap.exists()) {
-        throw new Error('A system with this ID already exists.');
-    }
-
-    const baseInstruction = initialPromptText || `You are a world-class AI. Your purpose is to provide accurate and helpful responses.`;
     
     await runTransaction(db, async (transaction) => {
         const defaultContentId = `base_instruction_v1-0-0`;
@@ -345,7 +345,7 @@ export async function createNewPromptSystem(data: { systemId: string, name: stri
             systemId,
             categoryId: 'base_instruction',
             version: 'v1.0.0',
-            promptText: baseInstruction,
+            promptText: initialPromptText,
             timestamp: new Date().toISOString(),
         });
 
@@ -626,6 +626,7 @@ export const getComposedPrompt = cache(
     },
     ['composed-prompts-v4'], { revalidate: 30, tags: ['prompts'] }
 );
+
 
 
 
