@@ -253,27 +253,9 @@ export async function createNewPromptSystem(data: { systemId: string, name: stri
         throw new Error(`An AI system with the ID "${systemId}" already exists.`);
     }
 
-    // Create a dummy first content and version to ensure the system is fully configured
-    const batch = writeBatch(db);
-
-    const defaultContentId = `${systemId}_base_instruction_v1-0-0`;
-    const contentRef = doc(db, 'prompt_content', defaultContentId);
-    batch.set(contentRef, {
-        systemId, categoryId: 'base_instruction', version: 'v1.0.0',
-        promptText: `This is the initial prompt for ${name}. Please edit it.`, 
-        timestamp: new Date().toISOString(),
-    });
-
-    const defaultVersionId = `${systemId}-v1-0-0`;
-    const versionRef = doc(db, 'prompt_versions', defaultVersionId);
-    batch.set(versionRef, {
-        systemId, version: 'v1.0.0', composedPrompts: { base_instruction: defaultContentId },
-        timestamp: new Date().toISOString(),
-    });
-
-    batch.set(systemRef, { name, description, activeVersion: 'v1.0.0' });
-    
-    await batch.commit();
+    // This function now only creates the main system document.
+    // The creation of default content and versions is handled atomically by `getAppAIVersions`.
+    await setDoc(systemRef, { name, description, activeVersion: 'v1.0.0' });
 }
 
 export async function getPromptVersionsForSystem(systemId: string, type: 'dev' | 'live' | 'all' = 'all'): Promise<PromptVersion[]> {
@@ -336,9 +318,8 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
 
     const snapshot = await getDocs(q);
     
-    // If the entire collection is empty, this is a first run. Create all default data atomically.
-    if (snapshot.empty && type === 'all') {
-        console.log("No App AI Systems found. Creating complete default configuration.");
+    if (snapshot.empty && (type === 'all' || type === 'dev')) {
+        console.log("No App AI Systems found. Creating complete default configuration atomically.");
         
         await runTransaction(db, async (transaction) => {
             const birdSystemId = 'bird-identifier-ai-newbie';
@@ -347,24 +328,24 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
             // Create bird identifier system
             transaction.set(doc(db, 'prompt_systems', birdSystemId), { name: "Bird Identifier AI (Newbie)", description: "Manages prompts for identifying birds in Newbie mode.", activeVersion: 'v1.0.0' });
             const birdContentId = `${birdSystemId}_base_instruction_v1-0-0`;
-            transaction.set(doc(db, 'prompt_content', birdContentId), { systemId: birdSystemId, categoryId: 'base_instruction', version: 'v1.0.0', promptText: `You are an expert ornithologist AI...`, timestamp: new Date().toISOString() });
+            transaction.set(doc(db, 'prompt_content', birdContentId), { systemId: birdSystemId, categoryId: 'base_instruction', version: 'v1.0.0', promptText: `This is the default prompt for the bird identifier.`, timestamp: new Date().toISOString() });
             const birdVersionId = `${birdSystemId}-v1-0-0`;
             transaction.set(doc(db, 'prompt_versions', birdVersionId), { systemId: birdSystemId, version: 'v1.0.0', composedPrompts: { base_instruction: birdContentId }, timestamp: new Date().toISOString() });
             
             // Create theme generator system
             transaction.set(doc(db, 'prompt_systems', themeSystemId), { name: "AI Theme Generator", description: "Manages prompts for generating UI color themes.", activeVersion: 'v1.0.0' });
             const themeContentId = `${themeSystemId}_base_instruction_v1-0-0`;
-            transaction.set(doc(db, 'prompt_content', themeContentId), { systemId: themeSystemId, categoryId: 'base_instruction', version: 'v1.0.0', promptText: `You are an expert UI/UX designer and color theorist...`, timestamp: new Date().toISOString() });
+            transaction.set(doc(db, 'prompt_content', themeContentId), { systemId: themeSystemId, categoryId: 'base_instruction', version: 'v1.0.0', promptText: `This is the default prompt for the theme generator.`, timestamp: new Date().toISOString() });
             const themeVersionId = `${themeSystemId}-v1-0-0`;
             transaction.set(doc(db, 'prompt_versions', themeVersionId), { systemId: themeSystemId, version: 'v1.0.0', composedPrompts: { base_instruction: themeContentId }, timestamp: new Date().toISOString() });
 
-            // Create top-level App AI Versions
+            // Create top-level App AI Versions with links to the new systems
             const defaultSystems = { [birdSystemId]: birdVersionId, [themeSystemId]: themeVersionId };
             
             transaction.set(doc(db, 'app_ai_versions', 'v1.0.0'), { version: 'v1.0.0', isDevelopment: false, timestamp: new Date().toISOString(), systems: defaultSystems });
             transaction.set(doc(db, 'app_ai_versions', 'v1.0.0-dev'), { version: 'v1.0.0-dev', isDevelopment: true, timestamp: new Date().toISOString(), systems: defaultSystems });
             
-            // Create the main config
+            // Create the main config to point to these new versions
             transaction.set(doc(db, 'app_ai_config', 'main'), { activeAppAIVersion: 'v1.0.0', developmentAppAIVersion: 'v1.0.0-dev' });
         });
 
@@ -570,3 +551,6 @@ export const getComposedPrompt = cache(
     },
     ['composed-prompts-v7'], { revalidate: 30, tags: ['prompts-v7'] }
 );
+
+
+    
