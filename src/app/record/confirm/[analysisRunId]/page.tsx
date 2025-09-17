@@ -206,7 +206,7 @@ export default function ConfirmIdentificationPage() {
   const renderContent = () => {
     if (!analysisRun) return notFound();
 
-    const { aiResult } = analysisRun;
+    const { aiResult, inputAudioUrl } = analysisRun;
 
     if (pageState === 'confirmingId') {
         const title = aiResult.isBirdSong ? "Is this identification correct?" : "The AI found no bird song. Is that correct?";
@@ -225,6 +225,14 @@ export default function ConfirmIdentificationPage() {
                 )}
                  <CardContent className="space-y-4">
                     {aiResult.isBirdSong && <p className="text-base">{aiResult.description}</p>}
+                     {inputAudioUrl && (
+                      <div className="pt-4">
+                        <h3 className="font-semibold mb-2">Analyzed Recording</h3>
+                        <audio controls src={inputAudioUrl} className="w-full">
+                          Your browser does not support the audio element.
+                        </audio>
+                      </div>
+                    )}
                     <Alert>
                         <AlertTitle className="text-xl">{title}</AlertTitle>
                         <AlertDescription>{description}</AlertDescription>
