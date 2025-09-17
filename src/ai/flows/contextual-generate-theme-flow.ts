@@ -57,7 +57,6 @@ const generateThemeFlow = ai.defineFlow(
       const composedPrompt = await getComposedPrompt('theme-generator-ai');
       
       if (!composedPrompt || !composedPrompt.prompt) {
-        // This error is now protected by the robust database initialization.
         throw new Error('Failed to retrieve a valid prompt for theme generation.');
       }
 

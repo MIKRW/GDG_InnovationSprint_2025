@@ -44,7 +44,7 @@ interface ContentSelection {
       major?: string;
       minor?: string;
       patch?: string;
-      contentId?: string; // e.g., base_instruction_v1-0-0
+      contentVersion?: string; // e.g., v1.0.0
     };
 }
 
@@ -145,7 +145,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
             if (contentItem) {
                 const [major, minor, patch] = contentItem.version.replace('v','').split('.');
                 newSelections[categoryId] = {
-                    major, minor, patch, contentId
+                    major, minor, patch, contentVersion: contentItem.version
                 }
             }
         }
@@ -180,10 +180,9 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
         
         if (newCatSelection.major && newCatSelection.minor && newCatSelection.patch) {
             const versionString = `v${newCatSelection.major}.${newCatSelection.minor}.${newCatSelection.patch}`;
-            const contentId = `${categoryId}_${versionString.replace(/\./g, '-')}`;
-            newCatSelection.contentId = contentId;
+            newCatSelection.contentVersion = versionString;
         } else {
-            delete newCatSelection.contentId;
+            delete newCatSelection.contentVersion;
         }
 
         return { ...prev, [categoryId]: newCatSelection };
@@ -205,14 +204,14 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
 
         const enabledCategoryIds = Array.from(contentByCategory.keys()).filter(key => enabledCategories[key]);
         
-        if (enabledCategoryIds.some(key => !selections[key]?.contentId)) {
+        if (enabledCategoryIds.some(key => !selections[key]?.contentVersion)) {
             toast({ variant: 'destructive', title: 'Incomplete Selection', description: 'Please select a prompt content version for every enabled category.' });
             return;
         }
 
         const finalComposedPrompts: { [categoryId: string]: string } = {};
         for(const categoryId of enabledCategoryIds) {
-            finalComposedPrompts[categoryId] = selections[categoryId].contentId!;
+            finalComposedPrompts[categoryId] = selections[categoryId].contentVersion!;
         }
         
         await publishNewPromptVersion(system.id, nextVersionString, finalComposedPrompts);
@@ -366,7 +365,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                                       </Select>
                                   </TableCell>
                                   <TableCell>
-                                      <Select onValueChange={(value) => handleSelection(category, 'patch', value)} value={selected.minor} disabled={!selected.minor || isCompositionDisabled || !isEnabled}>
+                                      <Select onValueChange={(value) => handleSelection(category, 'patch', value)} value={selected.patch} disabled={!selected.minor || isCompositionDisabled || !isEnabled}>
                                       <SelectTrigger><SelectValue placeholder="Select Patch" /></SelectTrigger>
                                       <SelectContent>
                                           {selected.major && selected.minor && parts?.patch.get(`${selected.major}.${selected.minor}`)?.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
