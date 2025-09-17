@@ -54,21 +54,15 @@ export function SettingsPage() {
         <p className="text-muted-foreground">
           Customize the look, feel, and functionality of your application.
         </p>
-        <Link href="/theme" passHref>
-          <Button asChild variant="outline">
-            <span>Customize Theme</span>
-          </Button>
-        </Link>
-        <Link href="/settings/location" passHref>
-          <Button asChild variant="outline">
-            <span>Location Settings</span>
-          </Button>
-        </Link>
-         <Link href="/settings/mode" passHref>
-          <Button asChild variant="outline">
-            <span>App Mode</span>
-          </Button>
-        </Link>
+        <Button asChild variant="outline">
+          <Link href="/theme">Customize Theme</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/settings/location">Location Settings</Link>
+        </Button>
+         <Button asChild variant="outline">
+          <Link href="/settings/mode">App Mode</Link>
+        </Button>
 
         <div className="pt-8 w-full max-w-sm">
             <h2 className="text-lg font-semibold mb-2">Recording</h2>
@@ -94,27 +88,23 @@ export function SettingsPage() {
         {isDevMode && (
           <div className="pt-8 w-full max-w-sm">
               <h2 className="text-lg font-semibold mb-2">Developer Tools</h2>
-              <Link href="/settings/prompts" passHref>
-                <Card asChild className="bg-hazard-stripes p-1 rounded-lg cursor-pointer">
-                    <a>
-                        <div className="bg-background rounded-sm p-4 flex items-center">
+                <Card className="bg-hazard-stripes p-1 rounded-lg">
+                    <Button asChild variant="outline" className="w-full">
+                        <Link href="/settings/prompts" className="bg-background rounded-sm p-4 flex items-center justify-center w-full">
                             <FlaskConical className="mr-2 h-4 w-4" />
                             <span>Prompt Management</span>
-                        </div>
-                    </a>
+                        </Link>
+                    </Button>
                 </Card>
-              </Link>
           </div>
         )}
 
         <div className="pt-8 w-full max-w-sm">
             <h2 className="text-lg font-semibold mb-2">Account</h2>
             {isAnonymous ? (
-                 <Link href="/settings/register" passHref>
-                    <Button asChild variant="outline">
-                        <a>Create Account</a>
-                    </Button>
-                </Link>
+                 <Button asChild variant="outline">
+                    <Link href="/settings/register">Create Account</Link>
+                </Button>
             ) : (
                 <div className="space-y-4">
                     <p className="text-muted-foreground">You are signed in as {user?.email}.</p>
