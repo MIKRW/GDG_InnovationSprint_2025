@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { PageTitle } from '@/components/content/PageTitle';
-import { AppAIVersionManager } from '@/components/content/AppAIVersionManager';
+import { AISystemVersionManager } from '@/components/content/AISystemVersionManager';
 import { PromptSystemVersionManager } from '@/components/content/PromptSystemVersionManager';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -146,16 +146,14 @@ setContentForSelectedSystem(content);
 
       <Accordion type="single" collapsible className="w-full mb-8" defaultValue="item-1">
         <AccordionItem value="item-1" className="border rounded-lg bg-card text-card-foreground shadow-sm">
-          <AccordionTrigger className="hover:no-underline p-0 h-36 justify-center gap-4">
-              <div className="flex-1 flex flex-col justify-between text-center p-6 h-full">
-                  <CardTitle>AI system version control</CardTitle>
-                  <p className="text-sm text-muted-foreground px-4 max-w-xl mx-auto">
-                  Manage the current and previous AI system versions. You can selected which AI types and there versions you wish to publish. This will determine what prompts the AI receives and how well it operates.
-                  </p>
-              </div>
+          <AccordionTrigger className="hover:no-underline p-6 text-xl font-bold">
+              AI system version control
           </AccordionTrigger>
-          <AccordionContent>
-            <AppAIVersionManager />
+          <AccordionContent className="p-0">
+            <p className="text-sm text-muted-foreground px-6 pb-6 max-w-2xl">
+              Manage the current and previous AI system versions. You can selected which AI types and there versions you wish to publish. This will determine what prompts the AI receives and how well it operates.
+            </p>
+            <AISystemVersionManager />
           </AccordionContent>
         </AccordionItem>
       </Accordion>
