@@ -58,15 +58,15 @@ const generateThemeFlow = ai.defineFlow(
       if (!composedPrompt || !composedPrompt.prompt) {
         throw new Error('Failed to retrieve a valid prompt for theme generation.');
       }
-
-      const { output } = await ai.generate({
+      
+      const themePrompt = ai.definePrompt({
+          name: 'themePrompt',
           prompt: composedPrompt.prompt,
-          input: input,
-          model: 'googleai/gemini-2.5-flash',
-          output: {
-              schema: GenerateThemeOutputSchema
-          }
+          input: { schema: GenerateThemeInputSchema },
+          output: { schema: GenerateThemeOutputSchema },
       });
+
+      const { output } = await themePrompt(input);
 
       if (!output) {
         throw new Error('Failed to generate theme from the model.');

@@ -179,7 +179,7 @@ const identifyBirdFlow = ai.defineFlow(
         throw new Error("Could not retrieve a valid prompt. Check the AI configuration in Firestore.");
     }
     
-    const prompt = ai.definePrompt({
+    const identifyBirdPrompt = ai.definePrompt({
         name: 'identifyBirdPrompt',
         prompt: composedPrompt.prompt,
         input: { schema: IdentifyBirdInputSchema },
@@ -187,7 +187,7 @@ const identifyBirdFlow = ai.defineFlow(
         tools: [getCurrentWeather],
     });
 
-    const { output } = await prompt(input);
+    const { output } = await identifyBirdPrompt(input);
 
     if (!output) {
       throw new Error('The model failed to return a valid analysis.');
