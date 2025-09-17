@@ -39,7 +39,8 @@ export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<T
 
     // 1. Upload audio file to Firebase Storage
     const audioId = uuidv4();
-    const filePath = `master-audio/${birdId}/${audioId}-${audioFileName}`;
+    const uniqueFileName = `${audioId}-${audioFileName}`;
+    const filePath = `master-audio/${birdId}/${uniqueFileName}`;
     const fileRef = storageRef(storage, filePath);
 
     // Convert data URI to blob
@@ -55,6 +56,7 @@ export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<T
 
     const newMasterAudioFile = {
         audioId: audioId,
+        fileName: audioFileName, // Storing the original, clean file name
         storagePath: filePath,
         description: description,
         duration: duration,
@@ -172,7 +174,7 @@ export async function createAnalysisRun(
     mode: AppMode,
     isDeveloperRun: boolean,
     testContext?: { birdId: string; testAudioId: string },
-    analysisTimings?: AnalysisRun['analysisTimings'],
+    analysisTimings: AnalysisRun['analysisTimings'] = {},
     sessionId?: string,
     timestamp?: string,
   ) {
@@ -202,9 +204,10 @@ export async function createAnalysisRun(
       wasSavedByUser: false,
       mode: mode,
       isDeveloperData: isDeveloperRun,
-      analysisTimings: analysisTimings || {},
+      analysisTimings: analysisTimings,
     };
     
+    // Only add recordingLengthSeconds if it's a valid number
     if (typeof aiResult.duration === 'number') {
         docToCreate.recordingLengthSeconds = aiResult.duration;
     }

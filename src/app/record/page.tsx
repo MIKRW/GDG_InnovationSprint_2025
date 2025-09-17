@@ -60,7 +60,7 @@ export default function RecordPage() {
           birdData.masterAudioFiles.forEach((audio: any) => {
             library.push({
               id: audio.audioId,
-              fileName: audio.storagePath.split('/').pop() || 'Unknown Filename',
+              fileName: audio.fileName || audio.storagePath.split('/').pop() || 'Unknown Filename',
               storagePath: audio.storagePath,
               description: audio.description,
               sourceUrl: audio.sourceUrl || '',
@@ -165,7 +165,8 @@ export default function RecordPage() {
             );
 
         } catch (error) {
-            const analysisDurationMs = Date.now() - (currentTimestamp.current ? new Date(currentTimestamp.current).getTime() : Date.now());
+            const analysisStartTime = Date.now(); // Keep consistent reference point
+            const analysisDurationMs = Date.now() - analysisStartTime;
             logErrorToFirestore(error as Error, 'ai-identification-failure', {
                 sessionId: currentSessionId.current, timestamp: currentTimestamp.current,
                 locationData: locationData, appMode: appSettings.mode, userId: user?.uid
