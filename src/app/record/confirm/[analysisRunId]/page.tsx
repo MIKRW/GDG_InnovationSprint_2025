@@ -99,7 +99,7 @@ export default function ConfirmIdentificationPage() {
     if (!wasCorrect) {
         // User said AI was wrong, no image needed. Just give thanks.
         toast({ title: "Feedback Recorded", description: "Thank you for helping improve the AI!" });
-        router.push('/log');
+        router.push('/record');
         return;
     }
 
@@ -191,7 +191,7 @@ export default function ConfirmIdentificationPage() {
     await updateDoc(doc(db, collectionName, analysisRun.id), { wasSavedByUser: true });
     
     toast({ title: 'Log Saved!', description: `${aiResult.commonName} has been added to your Bird Book.` });
-    router.push(`/log/${logId}`);
+    router.push('/record');
   };
 
 
