@@ -131,11 +131,7 @@ export function ThemeGenerator() {
 
     // Load themes from Firestore
     useEffect(() => {
-        if (authLoading) return;
-        if (!user) {
-            setIsFirestoreLoading(false);
-            return;
-        }
+        if (authLoading || !user) return;
 
         const fetchThemes = async () => {
             setIsFirestoreLoading(true);
@@ -146,6 +142,7 @@ export function ThemeGenerator() {
                 
                 const themesFromFirestore: (Theme | null)[] = Array(MAX_SAVED_THEMES).fill(null);
                 let themesFound = false;
+                let activeIndex = -1;
 
                 querySnapshot.forEach((doc) => {
                     const theme = doc.data() as Theme;
@@ -153,35 +150,24 @@ export function ThemeGenerator() {
                     if (index >= 0 && index < MAX_SAVED_THEMES) {
                         themesFromFirestore[index] = theme;
                         themesFound = true;
+                        if (theme.isActive) {
+                            activeIndex = index;
+                        }
                     }
                 });
 
-                let finalThemes = themesFromFirestore;
-                let activeIndex = finalThemes.findIndex(t => t?.isActive);
-
                 if (!themesFound) {
-                    // Only create defaults if there are absolutely no themes saved
                     const defaultThemeWithActive = { ...DEFAULTS, id: '0', isActive: true };
-                    finalThemes = [defaultThemeWithActive, null, null, null, null, null];
+                    themesFromFirestore[0] = defaultThemeWithActive;
                     activeIndex = 0;
                 } else if (activeIndex === -1) {
-                    // Themes exist, but none is marked active. Make the first available one active.
-                    activeIndex = finalThemes.findIndex(t => t !== null);
-                    if (activeIndex !== -1 && finalThemes[activeIndex]) {
-                        finalThemes[activeIndex]!.isActive = true;
-                    } else {
-                        // This case should be rare, means there are docs but they are all null somehow
-                        activeIndex = 0;
+                    activeIndex = themesFromFirestore.findIndex(t => t !== null);
+                    if (activeIndex !== -1 && themesFromFirestore[activeIndex]) {
+                        themesFromFirestore[activeIndex]!.isActive = true;
                     }
                 }
                 
-                // Ensure all other themes are marked as inactive
-                finalThemes = finalThemes.map((theme, i) => {
-                    if (theme) {
-                        return { ...theme, isActive: i === activeIndex };
-                    }
-                    return null;
-                });
+                const finalThemes = themesFromFirestore.map((theme, i) => theme ? { ...theme, isActive: i === activeIndex } : null);
 
                 setSelectedSlot(activeIndex);
                 setSavedThemes(finalThemes);
@@ -350,7 +336,7 @@ export function ThemeGenerator() {
         toast({
             variant: 'destructive',
             title: 'Generation Failed',
-            description: 'Could not generate the theme. This error has been logged.',
+            description: (error as Error).message || 'Could not generate the theme. This error has been logged.',
         });
       }
     } finally {
@@ -649,5 +635,6 @@ localStorage.setItem('manual-theme', JSON.stringify(newTheme));
     </>
   );
 }
+
 
 

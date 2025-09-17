@@ -69,18 +69,22 @@ const generateThemeFlow = ai.defineFlow(
       const { output } = await themePrompt(input);
 
       if (!output) {
-        throw new Error('Failed to generate theme from the model.');
+        throw new Error('The AI model failed to return a valid theme. This has been logged.');
       }
 
+      // Add the version of the AI System used to the output for tracking.
       output.promptVersion = composedPrompt.version;
       return output;
 
     } catch (error) {
         console.error("Error in generateThemeFlow:", error);
+        // Log the error to Firestore for debugging.
         await logErrorToFirestore(error as Error, 'theme-generation-failure', {
             input: input,
+            flow: 'generateThemeFlow',
         });
         // Re-throw the error to be caught by the calling client component
+        // so it can display a message to the user.
         throw error;
     }
   }

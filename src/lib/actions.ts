@@ -234,9 +234,7 @@ export async function getPromptSystems(): Promise<PromptSystem[]> {
     let systems = initialSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
 
     let createdNewSystem = false;
-    const needsBirdIdentifier = !systems.some(s => s.id === 'bird-identifier-ai-newbie');
-    if (needsBirdIdentifier) {
-        console.log("Default 'Bird Identifier' AI Type is missing. Creating it now...");
+    if (!systems.some(s => s.id === 'bird-identifier-ai-newbie')) {
         await createNewPromptSystem({ 
             systemId: 'bird-identifier-ai-newbie', 
             name: "Bird Identifier AI (Newbie)",
@@ -245,9 +243,7 @@ export async function getPromptSystems(): Promise<PromptSystem[]> {
         createdNewSystem = true;
     }
     
-    const needsThemeGenerator = !systems.some(s => s.id === 'theme-generator-ai');
-    if (needsThemeGenerator) {
-        console.log("Default 'AI Theme Generator' AI Type is missing. Creating it now...");
+    if (!systems.some(s => s.id === 'theme-generator-ai')) {
         await createNewPromptSystem({ 
             systemId: 'theme-generator-ai', 
             name: "AI Theme Generator",
@@ -257,7 +253,7 @@ export async function getPromptSystems(): Promise<PromptSystem[]> {
     }
 
     if (createdNewSystem) {
-        // Refetch the whole list to ensure correctness and sorting if we created anything.
+        // Refetch if we created anything to ensure the list is current.
         const finalSnapshot = await getDocs(query(systemsRef, orderBy('name')));
         systems = finalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
     }
@@ -434,20 +430,18 @@ export async function getAppAIConfig(): Promise<AppAIConfig | null> {
 
 export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Promise<AppAIVersion[]> {
     const versionsRef = collection(db, 'app_ai_versions');
-    let q: Query;
-    
+    let q = query(versionsRef, orderBy('timestamp', 'desc'));
+
     if (type === 'dev') {
-        q = query(versionsRef, where('isDevelopment', '==', true), orderBy('timestamp', 'desc'));
+        q = query(q, where('isDevelopment', '==', true));
     } else if (type === 'live') {
-        q = query(versionsRef, where('isDevelopment', '==', false), orderBy('timestamp', 'desc'));
-    } else {
-        q = query(versionsRef, orderBy('timestamp', 'desc'));
+        q = query(q, where('isDevelopment', '==', false));
     }
 
     const snapshot = await getDocs(q);
     
-    if (snapshot.empty) {
-        console.log("No App AI Versions found. Creating defaults for live and dev.");
+    if (snapshot.empty && type === 'all') { // Only seed if the entire collection is empty
+        console.log("No App AI Systems found. Creating defaults for live and dev.");
         const defaultSystems = { 
             'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-v1-0-0', 
             'theme-generator-ai': 'theme-generator-ai-v1-0-0' 
@@ -459,13 +453,11 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
         ]);
         
         // After creating, refetch everything to return the correct data.
-        const finalSnapshot = await getDocs(q);
-        const versions = finalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
-        return versions;
+        const finalSnapshot = await getDocs(query(versionsRef, orderBy('timestamp', 'desc')));
+        return finalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
     }
 
-    const versions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
-    return versions;
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
 }
 
 
@@ -586,40 +578,40 @@ revalidateTag('prompts');
 export const getComposedPrompt = cache(
     async (systemId: string): Promise<{ prompt: string, version: string } | null> => {
         const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
-        console.log(`Composing prompt for system '${systemId}' (Mode: ${isDevMode ? 'Development' : 'Live'}).`);
+        console.log(`Composing prompt for AI Type '${systemId}' (Mode: ${isDevMode ? 'Development' : 'Live'}).`);
 
         try {
             // 1. Get the global AI config to find which top-level version to use.
             const appAIConfig = await getAppAIConfig();
-            if (!appAIConfig) throw new Error("App AI config not found.");
+            if (!appAIConfig) throw new Error("App AI Systems config not found.");
 
             const appAIVersionId = isDevMode 
                 ? appAIConfig.developmentAppAIVersion 
                 : appAIConfig.activeAppAIVersion;
             
             if (!appAIVersionId) {
-                throw new Error(`No ${isDevMode ? 'development' : 'active'} App AI Version is set.`);
+                throw new Error(`No ${isDevMode ? 'development' : 'active'} AI System is set.`);
             }
 
-            // 2. Get the App AI Version document.
+            // 2. Get the App AI System document.
             const appAIVersionRef = doc(db, 'app_ai_versions', appAIVersionId);
             const appAIVersionSnap = await getDoc(appAIVersionRef);
             if (!appAIVersionSnap.exists()) {
-                throw new Error(`App AI Version document '${appAIVersionId}' not found.`);
+                throw new Error(`AI System document '${appAIVersionId}' not found.`);
             }
             const appAIVersion = appAIVersionSnap.data() as AppAIVersion;
 
-            // 3. From that, find the ID of the Prompt System Version for the requested systemId.
+            // 3. From that, find the ID of the AI Type Version for the requested systemId.
             const promptSystemVersionId = appAIVersion.systems[systemId];
             if (!promptSystemVersionId) {
-                throw new Error(`System '${systemId}' is not defined in App AI Version '${appAIVersionId}'.`);
+                throw new Error(`AI Type '${systemId}' is not defined in AI System '${appAIVersionId}'.`);
             }
             
-            // 4. Get the Prompt System Version document.
+            // 4. Get the AI Type Version document.
             const promptVersionRef = doc(db, 'prompt_versions', promptSystemVersionId);
             const promptVersionSnap = await getDoc(promptVersionRef);
             if (!promptVersionSnap.exists()) {
-                throw new Error(`Prompt Version document '${promptSystemVersionId}' not found.`);
+                throw new Error(`AI Type Version document '${promptSystemVersionId}' not found.`);
             }
             const promptVersionData = promptVersionSnap.data() as PromptVersion;
 
@@ -641,7 +633,8 @@ export const getComposedPrompt = cache(
             return null; 
         }
     },
-    ['composed-prompts-v4'], { revalidate: 30, tags: ['prompts'] }
+    ['composed-prompts-v5'], { revalidate: 30, tags: ['prompts'] }
 );
+
 
 
