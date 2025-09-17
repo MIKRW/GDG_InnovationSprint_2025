@@ -383,9 +383,8 @@ export async function getAppAIConfig(): Promise<AppAIConfig | null> {
     const configRef = doc(db, 'app_ai_config', 'main');
     const snapshot = await getDoc(configRef);
     if (!snapshot.exists()) {
-        const defaultConfig = { activeAppAIVersion: 'v1.0.0', developmentAppAIVersion: 'v1.0.0-dev' };
-        await setDoc(configRef, defaultConfig);
-        return defaultConfig;
+        // Return null instead of creating, as getAppAIVersions will handle creation.
+        return null;
     }
     return snapshot.data() as AppAIConfig;
 }
@@ -402,11 +401,12 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
 
     const snapshot = await getDocs(q);
     
-    if (snapshot.empty && type === 'all') { // Only seed if the entire collection is empty
-        console.log("No App AI Systems found. Creating defaults for live and dev.");
+    // If the entire collection is empty, this is a first run. Create all default data atomically.
+    if (snapshot.empty && type === 'all') {
+        console.log("No App AI Systems found. Creating complete default configuration.");
         
         await runTransaction(db, async (transaction) => {
-            // Create default AI Types if they don't exist
+            // 1. Create the default AI Types (which also creates their child versions and content)
             await createNewPromptSystem(transaction, { 
                 systemId: 'bird-identifier-ai-newbie', 
                 name: "Bird Identifier AI (Newbie)",
@@ -418,13 +418,13 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
                 description: "Manages prompts for generating UI color themes.",
             });
             
-            // Define the default system compositions
+            // 2. Define the default system compositions for the top-level publisher
             const defaultSystems = { 
                 'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-v1-0-0', 
                 'theme-generator-ai': 'theme-generator-ai-v1-0-0' 
             };
             
-            // Create default live App AI Version
+            // 3. Create default live App AI Version (v1.0.0)
             const liveVersionRef = doc(db, 'app_ai_versions', 'v1.0.0');
             transaction.set(liveVersionRef, {
                 version: 'v1.0.0',
@@ -433,7 +433,7 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
                 systems: defaultSystems,
             });
 
-            // Create default dev App AI Version
+            // 4. Create default dev App AI Version (v1.0.0-dev)
             const devVersionRef = doc(db, 'app_ai_versions', 'v1.0.0-dev');
             transaction.set(devVersionRef, {
                 version: 'v1.0.0-dev',
@@ -442,7 +442,7 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
                 systems: defaultSystems,
             });
 
-            // Set the main config to point to these new defaults
+            // 5. Set the main config to point to these new defaults
             const configRef = doc(db, 'app_ai_config', 'main');
             transaction.set(configRef, {
                 activeAppAIVersion: 'v1.0.0',
@@ -581,7 +581,13 @@ export const getComposedPrompt = cache(
         try {
             // 1. Get the global AI config to find which top-level version to use.
             const appAIConfig = await getAppAIConfig();
-            if (!appAIConfig) throw new Error("App AI Systems config not found.");
+            if (!appAIConfig) {
+                // If it's null, it means the DB is likely empty. Trigger creation and retry.
+                await getAppAIVersions('all');
+                const refreshedConfig = await getAppAIConfig();
+                if (!refreshedConfig) throw new Error("App AI Systems config not found even after refresh.");
+                return getComposedPrompt(systemId); // Recurse once after creation
+            }
 
             const appAIVersionId = isDevMode 
                 ? appAIConfig.developmentAppAIVersion 
@@ -635,13 +641,8 @@ export const getComposedPrompt = cache(
             return null; 
         }
     },
-    ['composed-prompts-v6'], { revalidate: 30, tags: ['prompts'] }
+    ['composed-prompts-v7'], { revalidate: 30, tags: ['prompts'] }
 );
 
 
-
-
-
-
-
-
+      
