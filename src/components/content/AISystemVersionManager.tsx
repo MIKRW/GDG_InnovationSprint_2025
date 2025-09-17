@@ -130,8 +130,8 @@ function VersionPublisher({
 
   if (isLive) {
     return (
-        <Card>
-            <CardHeader className="flex-1 flex flex-col justify-between text-center p-6 h-36">
+        <Card className="pt-6">
+            <CardHeader className="flex-1 flex flex-col justify-between text-center h-36">
               <h3 className="text-2xl font-bold">{title}</h3>
               <p className="text-sm text-muted-foreground px-4">{description}</p>
             </CardHeader>
@@ -152,8 +152,8 @@ function VersionPublisher({
                     </Select>
                 </div>
             </CardContent>
-            <CardFooter className="border-t pt-6 flex flex-wrap justify-between items-center gap-4">
-                 <div className="flex flex-1 justify-between items-center gap-8">
+            <CardFooter className="border-t pt-6">
+                <div className="flex flex-1 justify-between items-center gap-8">
                     <div className="flex items-center gap-8">
                         <div className="space-y-2">
                             <Label>Release Type</Label>
@@ -186,8 +186,8 @@ function VersionPublisher({
   }
 
   return (
-    <Card>
-      <CardHeader className="flex-1 flex flex-col justify-between text-center p-6 h-36">
+    <Card className="pt-6">
+      <CardHeader className="flex-1 flex flex-col justify-between text-center h-36">
         <h3 className="text-2xl font-bold">{title}</h3>
         <p className="text-sm text-muted-foreground px-4">{description}</p>
       </CardHeader>
@@ -244,29 +244,31 @@ function VersionPublisher({
           </TableBody>
         </Table>
       </CardContent>
-        <CardFooter className="border-t pt-6 flex-wrap justify-between gap-4">
-            <div className="flex items-center gap-8">
-                <div className="space-y-2">
-                <Label>New Version Type</Label>
-                <RadioGroup
-                    value={saveType}
-                    className="flex gap-4"
-                    onValueChange={onSaveTypeChange}
-                >
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="major" /><Label htmlFor="major">Major</Label></div>
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="minor" /><Label htmlFor="minor">Minor</Label></div>
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id="patch" /><Label htmlFor="patch">Patch</Label></div>
-                </RadioGroup>
+        <CardFooter className="border-t pt-6">
+            <div className="flex flex-1 justify-between items-center gap-8">
+                <div className="flex items-center gap-8">
+                    <div className="space-y-2">
+                    <Label>New Version Type</Label>
+                    <RadioGroup
+                        value={saveType}
+                        className="flex gap-4"
+                        onValueChange={(v) => onSaveTypeChange(v as any)}
+                    >
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="major" /><Label htmlFor="major">Major</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="minor" /><Label htmlFor="minor">Minor</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id="patch" /><Label htmlFor="patch">Patch</Label></div>
+                    </RadioGroup>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Label className="text-muted-foreground">Next Dev Version:</Label>
+                        <Badge variant="outline">{nextVersionString}</Badge>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Label className="text-muted-foreground">Next Dev Version:</Label>
-                    <Badge variant="outline">{nextVersionString}</Badge>
-                </div>
+                <Button onClick={handlePublish} disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Publish to Dev
+                </Button>
             </div>
-            <Button onClick={handlePublish} disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Publish to Dev
-            </Button>
         </CardFooter>
     </Card>
   )
@@ -449,5 +451,3 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
     </div>
   );
 }
-
-    
