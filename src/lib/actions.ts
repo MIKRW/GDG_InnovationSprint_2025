@@ -248,15 +248,12 @@ export async function getPromptSystem(systemId: string): Promise<PromptSystem | 
 export async function createNewPromptSystem(data: { systemId: string, name: string, description: string }): Promise<void> {
     const { systemId, name, description } = data;
     const systemRef = doc(db, 'prompt_systems', systemId);
-    
-    // This is now a simple creation. The complex default generation is handled elsewhere.
-    const newSystemData: Omit<PromptSystem, 'id'> = {
-        name,
-        description,
-        activeVersion: 'v1.0.0', // A placeholder, will be properly set by other flows.
-        developmentVersion: 'v1.0.0',
-    };
-    await setDoc(systemRef, newSystemData);
+    const systemSnap = await getDoc(systemRef);
+    if (systemSnap.exists()) {
+        throw new Error(`An AI system with the ID "${systemId}" already exists.`);
+    }
+
+    await setDoc(systemRef, { name, description });
 }
 
 export async function getPromptVersionsForSystem(systemId: string, type: 'dev' | 'live' | 'all' = 'all'): Promise<PromptVersion[]> {
@@ -440,7 +437,7 @@ export async function promoteDevelopmentVersionToLive(
     
     const devVersionData = devVersionSnap.data() as AppAIVersion;
     const newLiveVersion: Omit<AppAIVersion, 'id'> = {
-        ...devVersionData,
+        ...devVersionData, // This correctly carries over the 'systems' object
         version: newLiveVersionString,
         isDevelopment: false,
         timestamp: new Date().toISOString(),
@@ -516,7 +513,7 @@ export const getComposedPrompt = cache(
                 await getAppAIVersions('all'); // This function contains the transactional creation logic.
                 appAIConfig = await getAppAIConfig(); // Retry fetching after creation.
                 if (!appAIConfig) {
-                    throw new Error("App AI Systems config not found even after refresh.");
+                    throw new Error("Fatal: App AI Systems config not found even after atomic creation.");
                 }
             }
 
@@ -526,7 +523,7 @@ export const getComposedPrompt = cache(
                 : appAIConfig.activeAppAIVersion;
             
             if (!appAIVersionId) {
-                throw new Error(`No ${isDevMode ? 'development' : 'active'} App AI Version is set.`);
+                throw new Error(`No ${isDevMode ? 'development' : 'active'} App AI Version is set in the config.`);
             }
 
             // 3. Get the App AI System document (the manifest).
@@ -540,7 +537,7 @@ export const getComposedPrompt = cache(
             // 4. From that, find the ID of the AI Type Version for the requested systemId.
             const promptSystemVersionId = appAIVersion.systems[systemId];
             if (!promptSystemVersionId) {
-                throw new Error(`AI Type '${systemId}' is not defined in App AI Version '${appAIVersionId}'.`);
+                throw new Error(`AI Type '${systemId}' is not defined in App AI Version '${appAIVersionId}'. Check the 'systems' map in that document.`);
             }
             
             // 5. Get the AI Type Version document (the "recipe").
