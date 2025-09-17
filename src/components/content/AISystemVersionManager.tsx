@@ -79,22 +79,55 @@ function VersionPublisher({
 }) {
   const [selections, setSelections] = useState<VersionSelection>({});
   const [enabledSystems, setEnabledSystems] = useState<EnabledSystems>({});
-  const [devVersionToPromote, setDevVersionToPromote] = useState<string>('');
+  const [viewingDevVersionId, setViewingDevVersionId] = useState<string>('compose-new');
+
+
+  const loadSelectionsFromDevVersion = useCallback((versionId: string) => {
+    const version = publishedVersions.find(v => v.id === versionId);
+    if (version) {
+        const newSelections: VersionSelection = {};
+        const newEnabled: EnabledSystems = {};
+        // First, assume all systems are disabled
+        systems.forEach(s => newEnabled[s.id] = false);
+
+        // Then, enable and populate for systems present in the version
+        for(const systemId in version.systems) {
+            newEnabled[systemId] = true;
+            newSelections[systemId] = version.systems[systemId];
+        }
+        setSelections(newSelections);
+        setEnabledSystems(newEnabled);
+    }
+  }, [publishedVersions, systems]);
 
 
   useEffect(() => {
-    // Initialize all systems as enabled
+    // Initialize all systems as enabled when composing new
     const initialEnabledState = systems.reduce((acc, system) => {
         acc[system.id] = true;
         return acc;
     }, {} as EnabledSystems);
     setEnabledSystems(initialEnabledState);
   }, [systems]);
+  
+  useEffect(() => {
+    if (viewingDevVersionId === 'compose-new') {
+        setSelections({});
+        // Re-enable all systems when switching back to compose new
+        const allEnabled = systems.reduce((acc, system) => ({ ...acc, [system.id]: true }), {});
+        setEnabledSystems(allEnabled);
+    } else {
+        loadSelectionsFromDevVersion(viewingDevVersionId);
+    }
+  }, [viewingDevVersionId, systems, loadSelectionsFromDevVersion]);
 
   const handlePublish = () => {
     onPublish(selections, nextVersionString, enabledSystems);
   };
   
+  const [devVersionToPromote, setDevVersionToPromote] = useState<string>('');
+
+
   if (isLive) {
     return (
         <Card>
@@ -139,6 +172,23 @@ function VersionPublisher({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
+        <div className="mb-6 p-4 border rounded-lg bg-muted/50">
+            <Label htmlFor="dev-version-viewer" className="font-semibold">View/Compose Dev Version</Label>
+            <Select onValueChange={setViewingDevVersionId} value={viewingDevVersionId}>
+                <SelectTrigger id="dev-version-viewer" className="mt-2">
+                    <SelectValue placeholder="Compose New Dev Version..." />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="compose-new">Compose New Dev Version...</SelectItem>
+                    <Separator/>
+                    {publishedVersions.map(v => (
+                        <SelectItem key={v.id} value={v.id}>
+                        Version {v.version}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
         <Table>
           <TableHeader>
             <TableRow>
@@ -149,7 +199,7 @@ function VersionPublisher({
           </TableHeader>
           <TableBody>
             {systems.map((system) => (
-              <TableRow key={system.id}>
+              <TableRow key={system.id} className={ !(enabledSystems[system.id] ?? true) ? 'opacity-40' : ''}>
                 <TableCell className="font-medium">{system.name}</TableCell>
                 <TableCell>
                     <Switch
@@ -161,6 +211,7 @@ function VersionPublisher({
                   <Select
                     onValueChange={(value) => setSelections(prev => ({...prev, [system.id]: value}))}
                     value={selections[system.id]}
+                    disabled={!(enabledSystems[system.id] ?? true)}
                   >
                     <SelectTrigger><SelectValue placeholder="Select Version" /></SelectTrigger>
                     <SelectContent>
@@ -354,7 +405,7 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
         title="Development Versions"
         description="Compose a new development version by selecting a version for each AI Type below. This version will only be used in developer mode."
         systems={systems}
-        publishedVersions={[]}
+        publishedVersions={devPublishedVersions}
         activeVersionId={developmentVersionId}
         saveType={saveType}
         onSaveTypeChange={setSaveType}
@@ -365,3 +416,5 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
     </div>
   );
 }
+
+    
