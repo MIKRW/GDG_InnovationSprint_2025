@@ -230,25 +230,54 @@ export async function createAnalysisRun(
 
 export async function getPromptSystems(): Promise<PromptSystem[]> {
     const systemsRef = collection(db, 'prompt_systems');
-    const q = query(systemsRef, orderBy('name'));
-    const snapshot = await getDocs(q);
+    const initialSnapshot = await getDocs(query(systemsRef, orderBy('name')));
+    const initialSystems = initialSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
 
-    const systems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
-    
-    // Check if the default systems exist, if not, create them.
-    const hasBirdId = systems.some(s => s.id === 'bird-identifier-ai-newbie');
-    const hasThemeGen = systems.some(s => s.id === 'theme-generator-ai');
+    const hasBirdId = initialSystems.some(s => s.id === 'bird-identifier-ai-newbie');
+    const hasThemeGen = initialSystems.some(s => s.id === 'theme-generator-ai');
+    let madeChanges = false;
 
     if (!hasBirdId) {
-        const newSystem = await createNewPromptSystem({ 
+        madeChanges = true;
+        await createNewPromptSystem({ 
             systemId: 'bird-identifier-ai-newbie', 
             name: "Bird Identifier AI (Newbie)",
             description: "Manages prompts for identifying birds in Newbie mode.",
+            initialPromptText: `You are an expert ornithologist AI. Your purpose is to identify bird species from audio recordings and contextual data with the highest possible accuracy.
+
+You will be given a JSON object containing the audio, location, and other metadata. You MUST analyze this data to determine if a bird song is present and, if so, identify the species.
+
+**Evidence Hierarchy:**
+You MUST prioritize evidence in this order:
+1.  **Habitat Photo (\`habitatPhotoDataUri\`):** This is the primary source of truth for the habitat.
+2.  **Habitat Description (\`habitatDescription\`):** The user's text description is the second most important piece of evidence.
+3.  **GPS Coordinates & Weather:** Use latitude/longitude and weather data (retrieved via the \`getCurrentWeather\` tool) as a fallback or to supplement the user's direct input.
+
+**Tool Usage:**
+- If latitude and longitude are provided, you SHOULD use the \`getCurrentWeather\` tool to get historical weather data for that location and date. This will help you determine the season and conditions, which can be crucial for identification.
+
+**Output Requirements:**
+Your response MUST be a single, valid JSON object that strictly follows this structure:
+
+-   \`isBirdSong\` (boolean): Set to \`true\` if a bird song is detected, otherwise \`false\`.
+-   \`commonName\` (string, optional): The common name of the bird (e.g., 'American Robin'). Required if \`isBirdSong\` is true.
+-   \`scientificName\` (string, optional): The scientific name (e.g., 'Turdus migratorius'). Required if \`isBirdSong\` is true.
+-   \`family\` (string, optional): The taxonomic family (e.g., 'Turdidae').
+-   \`order\` (string, optional): The taxonomic order (e.g., 'Passeriformes').
+-   \`description\` (string, optional): A brief, interesting fact about the bird.
+-   \`imagePrompt\` (string, optional): A simple, descriptive prompt for a text-to-image model (e.g., "photo of an American Robin on a branch").
+-   \`confidence\` (number, optional): Your confidence in the identification, from 0 to 1.
+-   \`season\` (string, optional): The season at the recording location.
+-   \`weather\` (string, optional): A brief summary of weather conditions.
+-   \`aiGeneratedHabitatTags\` (array of strings, optional): Generate structured tags describing the habitat based on your analysis of all available evidence (photo, text, location). Example: \`["forest", "creek", "eucalyptus", "temperate", "summer"]\`.
+
+**Error Handling:**
+- If you cannot discern a bird song, you MUST set \`isBirdSong\` to \`false\` and omit the other optional fields.`
         });
-        systems.push(newSystem);
     }
     if (!hasThemeGen) {
-        const newSystem = await createNewPromptSystem({ 
+        madeChanges = true;
+        await createNewPromptSystem({ 
             systemId: 'theme-generator-ai', 
             name: "AI Theme Generator",
             description: "Manages prompts for generating UI color themes.",
@@ -277,13 +306,15 @@ CORE RULES & CONSTRAINTS:
 Example Input: { "word1": "ocean", "word2": "sand", "word3": "sun", "mood": "Vibrant" }
 Your response should be a single, raw JSON object and nothing else.`
         });
-        systems.push(newSystem);
+    }
+
+    if (madeChanges) {
+        // If we created a system, refetch the whole list to ensure correctness and sorting.
+        const finalSnapshot = await getDocs(query(systemsRef, orderBy('name')));
+        return finalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
     }
     
-    // Re-sort if new systems were added
-    systems.sort((a,b) => a.name.localeCompare(b.name));
-
-    return systems;
+    return initialSystems;
 }
 
 
@@ -595,5 +626,7 @@ export const getComposedPrompt = cache(
     },
     ['composed-prompts-v4'], { revalidate: 30, tags: ['prompts'] }
 );
+
+
 
 
