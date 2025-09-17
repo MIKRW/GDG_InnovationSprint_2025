@@ -59,7 +59,11 @@ const themePrompt = ai.definePrompt({
             prompt: composedPrompt.prompt,
             context: [
                 { role: 'user', content: `{{{json input}}}` }
-            ]
+            ],
+            // Pass the version along so the flow can access it
+            metadata: {
+                promptVersion: composedPrompt.version,
+            }
         };
     },
 });
@@ -75,16 +79,16 @@ const generateThemeFlow = ai.defineFlow(
     try {
       // Call the pre-defined prompt.
       // Genkit will invoke the dynamic prompt function we provided above.
-      const { output } = await themePrompt(input);
+      const response = await themePrompt(input);
+      const output = response.output;
 
       if (!output) {
         throw new Error('The AI model failed to return a valid theme. This has been logged.');
       }
       
-      // Since the prompt function is now self-contained, we need to get the version again to pass it along.
-      // A more advanced implementation might inject this into the prompt's return.
-      const composedPrompt = await getComposedPrompt('theme-generator-ai');
-      output.promptVersion = composedPrompt?.version;
+      // Get the prompt version from the response metadata.
+      const promptVersion = response.request.metadata?.promptVersion as string | undefined;
+      output.promptVersion = promptVersion;
 
       return output;
 
