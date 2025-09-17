@@ -143,9 +143,7 @@ setContentForSelectedSystem(content);
         </CardHeader>
       </Card>
 
-      <div className="mb-8 p-6 pt-0 border rounded-lg bg-card text-card-foreground shadow-sm">
-        <AISystemVersionManager onUpdate={handleDataUpdate} />
-      </div>
+      <AISystemVersionManager onUpdate={handleDataUpdate} />
       
       <Card className="my-8">
         <CardHeader className="text-center border-b pb-6">
