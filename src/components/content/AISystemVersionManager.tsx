@@ -249,7 +249,7 @@ function VersionPublisher({
                 <RadioGroup
                     value={saveType}
                     className="flex gap-4"
-                    onValueChange={(v) => onSaveTypeChange(v as any)}
+                    onValueChange={(v) => onSaveTypeChange(v as 'major' | 'minor' | 'patch')}
                 >
                     <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="major" /><Label htmlFor="major">Major</Label></div>
                     <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="minor" /><Label htmlFor="minor">Minor</Label></div>
