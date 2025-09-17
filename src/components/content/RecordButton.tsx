@@ -45,13 +45,15 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   const recordingStartTimeRef = useRef<number | null>(null);
   const currentSessionId = useRef<string | null>(null);
   const currentTimestamp = useRef<string | null>(null);
+  const currentTestContext = useRef<{ birdId: string, testAudioId: string } | undefined>(undefined);
 
   useImperativeHandle(ref, () => ({
-    handleFileSelect: (file: File, testContext?: { birdId: string, testAudioId: string }) => {
-      // This is now a unified entry point for processing an audio file
+    handleFileSelect: (file: File, testContext: { birdId: string, testAudioId: string }) => {
       currentSessionId.current = uuidv4();
       currentTimestamp.current = new Date().toISOString();
-      setRecordingState('processing'); // Set state to show "Analyzing..."
+      currentTestContext.current = testContext;
+      setRecordingState('processing');
+
       const audio = new Audio(URL.createObjectURL(file));
       audio.onloadedmetadata = () => {
         const duration = audio.duration;
@@ -59,7 +61,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           reader.readAsDataURL(file);
           reader.onloadend = async () => {
               const base64Audio = reader.result as string;
-              getLocationForAIShot(locationData => processAudio(base64Audio, duration, locationData, testContext));
+              getLocationForAIShot(locationData => processAudio(base64Audio, duration, locationData));
           };
           reader.onerror = () => {
               console.error("Failed to read file for test run.");
@@ -81,6 +83,14 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     currentSessionId.current = uuidv4();
     currentTimestamp.current = new Date().toISOString();
     recordingStartTimeRef.current = Date.now();
+    
+    // A live recording in dev mode is flagged as developer data
+    if (process.env.NEXT_PUBLIC_DEV_MODE === 'true') {
+        currentTestContext.current = { birdId: 'live-test', testAudioId: uuidv4() };
+    } else {
+        currentTestContext.current = undefined;
+    }
+
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -155,7 +165,6 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         longitude: locationData?.longitude ?? null,
         locationDescription: locationData?.locationDescription ?? null,
       },
-      hardware: hardware || undefined,
       analysisMethod: `gemini-pro-vision-prompt-v${PROMPT_VERSION}`,
       aiResult: aiResult,
       wasSuccessful: wasSuccessful,
@@ -165,6 +174,11 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       recordingLengthSeconds: recordingLengthSeconds,
       analysisTimings: analysisTimings,
     };
+    
+    // Only add hardware field if it has a value, to prevent Firestore errors with `undefined`.
+    if (hardware) {
+        docToCreate.hardware = hardware;
+    }
 
     if (isDeveloperRun && testContext) {
       docToCreate.birdId = testContext.birdId;
@@ -182,15 +196,11 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 
     setRecordingState('processing');
     
-    // A live recording in dev mode is flagged as developer data
-    const isDeveloperRun = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
-    const testContext = isDeveloperRun ? { birdId: 'live-test', testAudioId: uuidv4() } : undefined;
-    
     const reader = new FileReader();
     reader.readAsDataURL(audioBlob);
     reader.onloadend = async () => {
         const base64Audio = reader.result as string;
-        getLocationForAIShot(locationData => processAudio(base64Audio, recordingLengthSeconds, locationData, testContext));
+        getLocationForAIShot(locationData => processAudio(base64Audio, recordingLengthSeconds, locationData));
     };
   };
 
@@ -245,15 +255,14 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     }
   };
 
-  const processAudio = async (base64Audio: string, recordingLengthSeconds?: number, locationData?: { latitude?: number, longitude?: number, locationDescription?: string }, testContext?: { birdId: string, testAudioId: string }) => {
+  const processAudio = async (base64Audio: string, recordingLengthSeconds?: number, locationData?: { latitude?: number, longitude?: number, locationDescription?: string }) => {
     if (!currentTimestamp.current) {
       setRecordingState('idle');
       return;
     }
     const appSettings = getAppSettings();
     const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
-    
-    const isDeveloperRun = !!testContext || process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+    const isDeveloperRun = !!currentTestContext.current;
 
     try {
       const analysisStartTime = Date.now();
@@ -275,7 +284,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           hardware,
           appSettings.mode, 
           isDeveloperRun,
-          testContext,
+          currentTestContext.current,
           recordingLengthSeconds,
           { primaryIdentificationMs: analysisDurationMs }
       );
@@ -307,7 +316,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
            hardware,
            appSettings.mode, 
            isDeveloperRun,
-           testContext,
+           currentTestContext.current,
            recordingLengthSeconds,
            analysisDurationMs ? { primaryIdentificationMs: analysisDurationMs } : undefined
         );
@@ -396,3 +405,5 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 RecordButton.displayName = "RecordButton";
 
 export { RecordButton };
+
+    
