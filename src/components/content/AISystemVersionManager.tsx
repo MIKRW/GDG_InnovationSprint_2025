@@ -75,7 +75,7 @@ function VersionPublisher({
   onPublish: (selections: VersionSelection, version: string, enabledSystems: EnabledSystems) => void;
   isLoading: boolean;
   isLive?: boolean;
-  onPromote?: (versionId: string) => void;
+  onPromote?: (versionId: string, type: 'major' | 'minor' | 'patch') => void;
 }) {
   const [selections, setSelections] = useState<VersionSelection>({});
   const [enabledSystems, setEnabledSystems] = useState<EnabledSystems>({});
@@ -136,25 +136,43 @@ function VersionPublisher({
                 <CardDescription>{description}</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="flex flex-col sm:flex-row items-center gap-4">
-                    <Label htmlFor="dev-version-select" className="flex-shrink-0">Development Version to Promote</Label>
-                    <Select value={devVersionToPromote} onValueChange={setDevVersionToPromote}>
-                        <SelectTrigger id="dev-version-select" className="w-full sm:w-[250px]">
-                            <SelectValue placeholder="Select a dev version..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {publishedVersions.map(v => (
-                                <SelectItem key={v.id} value={v.id}>
-                                    {v.version} - {new Date(v.timestamp).toLocaleDateString()}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div className="space-y-2">
+                        <Label htmlFor="dev-version-select">Development Version to Promote</Label>
+                        <Select value={devVersionToPromote} onValueChange={setDevVersionToPromote}>
+                            <SelectTrigger id="dev-version-select">
+                                <SelectValue placeholder="Select a dev version..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {publishedVersions.map(v => (
+                                    <SelectItem key={v.id} value={v.id}>
+                                        {v.version} - {new Date(v.timestamp).toLocaleDateString()}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Release Type</Label>
+                        <RadioGroup
+                            value={saveType}
+                            className="flex gap-4"
+                            onValueChange={(v) => onSaveTypeChange(v as any)}
+                        >
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="live-major" /><Label htmlFor="live-major">Major</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="live-minor" /><Label htmlFor="live-minor">Minor</Label></div>
+                            <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id="live-patch" /><Label htmlFor="live-patch">Patch</Label></div>
+                        </RadioGroup>
+                    </div>
+                </div>
+                 <div className="mt-4 flex items-center gap-2">
+                    <Label className="text-muted-foreground">New Live Version:</Label>
+                    <Badge variant="secondary">{nextVersionString}</Badge>
                 </div>
             </CardContent>
             <CardFooter className="border-t pt-6 flex justify-end">
                  <Button
-                    onClick={() => devVersionToPromote && onPromote?.(devVersionToPromote)}
+                    onClick={() => devVersionToPromote && onPromote?.(devVersionToPromote, saveType)}
                     disabled={isLoading || !devVersionToPromote}
                 >
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -264,7 +282,8 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
   const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
   const [developmentVersionId, setDevelopmentVersionId] = useState<string | null>(null);
   
-  const [saveType, setSaveType] = useState<'major' | 'minor' | 'patch'>('patch');
+  const [devSaveType, setDevSaveType] = useState<'major' | 'minor' | 'patch'>('patch');
+  const [liveSaveType, setLiveSaveType] = useState<'major' | 'minor' | 'patch'>('patch');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -335,10 +354,10 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
     }
   };
 
-  const handlePromoteToLive = async (devVersionId: string) => {
+  const handlePromoteToLive = async (devVersionId: string, type: 'major' | 'minor' | 'patch') => {
       setIsSubmitting(true);
       try {
-          const newLiveVersion = await promoteDevelopmentVersionToLive(devVersionId);
+          const newLiveVersion = await promoteDevelopmentVersionToLive(devVersionId, type);
           toast({ title: 'Promoted to Live!', description: `Version ${newLiveVersion.version} is now live.` });
           onUpdate();
           fetchData();
@@ -359,16 +378,32 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
     const [major, minor, patch] = versionString.split('.').map(Number);
     
     let nextVersion: string;
-    if (saveType === 'major') {
+    if (devSaveType === 'major') {
         nextVersion = `v${major + 1}.0.0-dev`;
-    } else if (saveType === 'minor') {
+    } else if (devSaveType === 'minor') {
         nextVersion = `v${major}.${minor + 1}.0-dev`;
     } else { // patch
         nextVersion = `v${major}.${minor}.${patch + 1}-dev`;
     }
     
     return nextVersion;
-  }, [devPublishedVersions, saveType]);
+  }, [devPublishedVersions, devSaveType]);
+  
+  const nextLiveVersionString = useMemo(() => {
+    const latestVersion = livePublishedVersions[0]; // Assumes sorted desc
+    if (!latestVersion) return 'v1.0.0';
+
+    const versionString = latestVersion.version.replace('v', '');
+    const [major, minor, patch] = versionString.split('.').map(Number);
+    
+    if (liveSaveType === 'major') {
+        return `v${major + 1}.0.0`;
+    } else if (liveSaveType === 'minor') {
+        return `v${major}.${minor + 1}.0`;
+    } else { // patch
+        return `v${major}.${minor}.${patch + 1}`;
+    }
+  }, [livePublishedVersions, liveSaveType]);
 
 
   if (loading) {
@@ -392,9 +427,9 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
         systems={systems}
         publishedVersions={devPublishedVersions}
         activeVersionId={activeVersionId}
-        saveType={saveType}
-        onSaveTypeChange={setSaveType}
-        nextVersionString=""
+        saveType={liveSaveType}
+        onSaveTypeChange={setLiveSaveType}
+        nextVersionString={nextLiveVersionString}
         onPublish={() => {}}
         isLoading={isSubmitting}
         isLive={true}
@@ -407,8 +442,8 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
         systems={systems}
         publishedVersions={devPublishedVersions}
         activeVersionId={developmentVersionId}
-        saveType={saveType}
-        onSaveTypeChange={setSaveType}
+        saveType={devSaveType}
+        onSaveTypeChange={setDevSaveType}
         nextVersionString={nextDevVersionString}
         onPublish={handlePublishToDev}
         isLoading={isSubmitting}
@@ -416,5 +451,3 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
     </div>
   );
 }
-
-    

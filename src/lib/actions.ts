@@ -358,13 +358,15 @@ export async function getAppAIConfig(): Promise<AppAIConfig | null> {
 
 export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Promise<AppAIVersion[]> {
     const versionsRef = collection(db, 'app_ai_versions');
-    let q: Query = query(versionsRef);
+    let q = query(versionsRef);
     
-    if (type === 'all') {
-         q = query(versionsRef, orderBy('timestamp', 'desc'));
-    } else {
-        const isDev = type === 'dev';
-        q = query(versionsRef, where('isDevelopment', '==', isDev), orderBy('timestamp', 'desc'));
+    // Efficiently query based on the index: (isDevelopment, timestamp DESC)
+    if (type === 'dev') {
+        q = query(versionsRef, where('isDevelopment', '==', true), orderBy('timestamp', 'desc'));
+    } else if (type === 'live') {
+        q = query(versionsRef, where('isDevelopment', '==', false), orderBy('timestamp', 'desc'));
+    } else { // 'all'
+        q = query(versionsRef, orderBy('timestamp', 'desc'));
     }
 
     const snapshot = await getDocs(q);
@@ -401,16 +403,34 @@ export async function publishNewAppAIVersion(version: string, systems: { [system
     return { id: newVersionId, ...newVersionData };
 }
 
-export async function promoteDevelopmentVersionToLive(devVersionId: string): Promise<AppAIVersion> {
+export async function promoteDevelopmentVersionToLive(
+  devVersionId: string,
+  type: 'major' | 'minor' | 'patch'
+): Promise<AppAIVersion> {
     const devVersionRef = doc(db, 'app_ai_versions', devVersionId);
     const devVersionSnap = await getDoc(devVersionRef);
     if (!devVersionSnap.exists() || !devVersionSnap.data().isDevelopment) {
         throw new Error("The specified version is not a valid development version.");
     }
 
-    const devVersionData = devVersionSnap.data() as AppAIVersion;
-    const newLiveVersionString = `v${Number(devVersionData.version.replace('v','').split('-')[0]) + 1}`;
+    const allLiveVersions = await getAppAIVersions('live');
+    const latestLiveVersion = allLiveVersions[0]; // They are sorted descending
+    let newLiveVersionString: string;
+
+    if (!latestLiveVersion) {
+        newLiveVersionString = 'v1.0.0';
+    } else {
+        const [major, minor, patch] = latestLiveVersion.version.replace('v','').split('.').map(Number);
+        if (type === 'major') {
+            newLiveVersionString = `v${major + 1}.0.0`;
+        } else if (type === 'minor') {
+            newLiveVersionString = `v${major}.${minor + 1}.0`;
+        } else { // patch
+            newLiveVersionString = `v${major}.${minor}.${patch + 1}`;
+        }
+    }
     
+    const devVersionData = devVersionSnap.data() as AppAIVersion;
     const newLiveVersion: Omit<AppAIVersion, 'id'> = {
         ...devVersionData,
         version: newLiveVersionString,
@@ -518,6 +538,7 @@ export const getComposedPrompt = cache(
     },
     ['composed-prompts-v3'], { revalidate: 30, tags: ['prompts'] }
 );
+
 
 
 
