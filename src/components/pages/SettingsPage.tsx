@@ -56,17 +56,17 @@ export function SettingsPage() {
         </p>
         <Link href="/theme" passHref>
           <Button asChild variant="outline">
-            <a>Customize Theme</a>
+            <span>Customize Theme</span>
           </Button>
         </Link>
         <Link href="/settings/location" passHref>
           <Button asChild variant="outline">
-            <a>Location Settings</a>
+            <span>Location Settings</span>
           </Button>
         </Link>
          <Link href="/settings/mode" passHref>
           <Button asChild variant="outline">
-            <a>App Mode</a>
+            <span>App Mode</span>
           </Button>
         </Link>
 
