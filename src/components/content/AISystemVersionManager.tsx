@@ -57,7 +57,7 @@ function VersionPublisher({
   description,
   systems,
   publishedVersions,
-  activeVersionId,
+  currentVersionId,
   saveType,
   onSaveTypeChange,
   nextVersionString,
@@ -68,10 +68,10 @@ function VersionPublisher({
   onPromote,
 }: {
   title: string;
-  description: string;
+  description?: string;
   systems: SystemWithVersion[];
   publishedVersions: AppAIVersion[];
-  activeVersionId: string | null;
+  currentVersionId: string | null;
   saveType: 'major' | 'minor' | 'patch';
   onSaveTypeChange: (type: 'major' | 'minor' | 'patch') => void;
   nextVersionString: string;
@@ -135,7 +135,11 @@ function VersionPublisher({
   const Header = (
      <CardHeader className="flex-1 flex flex-col justify-between text-center p-6 h-36">
         <h3 className="text-2xl font-bold">{title}</h3>
-        <p className="text-xl text-foreground font-semibold">{activeVersionId || 'None'}</p>
+        {description ? (
+            <p className="text-sm text-muted-foreground px-4">{description}</p>
+        ) : (
+             <p className="text-xl text-foreground font-semibold">{currentVersionId || 'None'}</p>
+        )}
     </CardHeader>
   );
 
@@ -143,7 +147,11 @@ function VersionPublisher({
      <AccordionTrigger className="hover:no-underline p-0 flex-1">
         <CardHeader className="flex-1 flex flex-col justify-between text-center p-6 h-36">
             <h3 className="text-2xl font-bold">{title}</h3>
-            <p className="text-xl text-foreground font-semibold">{activeVersionId || 'None'}</p>
+             {description ? (
+                <p className="text-sm text-muted-foreground px-4">{description}</p>
+            ) : (
+                <p className="text-xl text-foreground font-semibold">{currentVersionId || 'None'}</p>
+            )}
         </CardHeader>
     </AccordionTrigger>
   );
@@ -423,38 +431,36 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
 
   return (
     <div className="space-y-8">
-      <Card>
-        <VersionPublisher
-            title="Live Version"
-            description={`The AI system bundle currently live is ${activeVersionId || 'None'}. Select a Development Version below to promote it.`}
-            systems={systems}
-            publishedVersions={devPublishedVersions}
-            activeVersionId={activeVersionId}
-            saveType={liveSaveType}
-            onSaveTypeChange={setLiveSaveType}
-            nextVersionString={nextLiveVersionString}
-            onPublish={() => {}}
-            isLoading={isSubmitting}
-            isLive={true}
-            onPromote={handlePromoteToLive}
-        />
-      </Card>
-      
-      <Card>
-        <VersionPublisher
-            title="Development Versions"
-            description="Compose a new development version by selecting a version for each AI Type below. This version will only be used in developer mode."
-            systems={systems}
-            publishedVersions={devPublishedVersions}
-            activeVersionId={developmentVersionId}
-            saveType={devSaveType}
-            onSaveTypeChange={setDevSaveType}
-            nextVersionString={nextDevVersionString}
-            onPublish={handlePublishToDev}
-            isLoading={isSubmitting}
-            isCollapsible={true}
-        />
-      </Card>
+        <Card>
+            <VersionPublisher
+                title="Live Version"
+                currentVersionId={activeVersionId}
+                systems={systems}
+                publishedVersions={devPublishedVersions}
+                saveType={liveSaveType}
+                onSaveTypeChange={setLiveSaveType}
+                nextVersionString={nextLiveVersionString}
+                onPublish={() => {}}
+                isLoading={isSubmitting}
+                isLive={true}
+                onPromote={handlePromoteToLive}
+            />
+        </Card>
+        <Card>
+            <VersionPublisher
+                title="Development Versions"
+                description="Compose a new development version by selecting a version for each AI Type below. This version will only be used in developer mode."
+                systems={systems}
+                publishedVersions={devPublishedVersions}
+                currentVersionId={developmentVersionId}
+                saveType={devSaveType}
+                onSaveTypeChange={setDevSaveType}
+                nextVersionString={nextDevVersionString}
+                onPublish={handlePublishToDev}
+                isLoading={isSubmitting}
+                isCollapsible={true}
+            />
+        </Card>
     </div>
   );
 }
