@@ -160,8 +160,7 @@ export default function RecordPage() {
     const collectionName = isDeveloperRun ? 'all_test_runs' : 'all_analysis_runs';
     const analysisRunRef = doc(db, collectionName, analysisRunId);
 
-    const docToCreate: Partial<AnalysisRun> = {
-      id: analysisRunId,
+    const docToCreate: Omit<AnalysisRun, 'id'> = {
       timestamp: currentTimestamp.current!,
       userId: user.uid,
       sessionId: currentSessionId.current!,
@@ -293,10 +292,12 @@ export default function RecordPage() {
             reader.onloadend = () => {
                 const base64Audio = reader.result as string;
                 processAudio(base64Audio, true, testContext, duration);
+                URL.revokeObjectURL(audioEl.src); // Clean up
             };
             reader.onerror = () => {
                 console.error("Failed to read file for test run.");
                 setIsProcessing(false);
+                URL.revokeObjectURL(audioEl.src); // Clean up
             }
         };
          audioEl.onerror = () => {
@@ -311,7 +312,6 @@ export default function RecordPage() {
   };
 
   const onNewAudioUploaded = async (metadata: TestAudioMetadata) => {
-    setIsTestAudioDialogOpen(false);
     await handleSelectTestAudio(metadata);
   }
 
