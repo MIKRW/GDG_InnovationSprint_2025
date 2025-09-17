@@ -99,8 +99,7 @@ export function NewMasterAudioForm({ onUploadSuccess }: NewMasterAudioFormProps)
                     hardware: values.hardware,
                     location: values.location,
                 });
-
-                // The parent component will trigger the test run and close the dialog.
+                
                 onUploadSuccess(newMetadata);
 
             } catch (error) {
@@ -110,7 +109,8 @@ export function NewMasterAudioForm({ onUploadSuccess }: NewMasterAudioFormProps)
                     title: "Upload Failed",
                     description: "Could not add the new master audio file. Please try again.",
                 });
-                setIsLoading(false); // Stop loading on failure
+            } finally {
+                setIsLoading(false);
             }
         };
         reader.onerror = () => {
