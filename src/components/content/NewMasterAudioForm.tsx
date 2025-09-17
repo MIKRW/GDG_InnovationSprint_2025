@@ -100,12 +100,7 @@ export function NewMasterAudioForm({ onUploadSuccess }: NewMasterAudioFormProps)
                     location: values.location,
                 });
 
-                toast({
-                    title: "Upload Successful",
-                    description: "New master audio has been added to the library.",
-                });
-
-                // This callback will trigger the test run and close the dialog in the parent component.
+                // The parent component will trigger the test run and close the dialog.
                 onUploadSuccess(newMetadata);
 
             } catch (error) {
@@ -115,9 +110,7 @@ export function NewMasterAudioForm({ onUploadSuccess }: NewMasterAudioFormProps)
                     title: "Upload Failed",
                     description: "Could not add the new master audio file. Please try again.",
                 });
-            } finally {
-                // The parent component will handle closing the dialog, so we just need to stop the loader here.
-                setIsLoading(false);
+                setIsLoading(false); // Stop loading on failure
             }
         };
         reader.onerror = () => {

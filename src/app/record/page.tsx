@@ -74,8 +74,7 @@ export default function RecordPage() {
 
   const handleSelectTestAudio = async (audio: TestAudioMetadata) => {
     try {
-        // Immediately close the dialog
-        setIsTestAudioDialogOpen(false);
+        setIsTestAudioDialogOpen(false); // Immediately close the dialog
         const fileRef = storageRef(storage, audio.storagePath);
         const blob = await getBlob(fileRef);
         const file = new File([blob], audio.fileName, { type: blob.type || 'audio/wav' });
@@ -91,7 +90,6 @@ export default function RecordPage() {
   const onNewAudioUploaded = (metadata: TestAudioMetadata) => {
     // This function is called after a successful upload.
     // It closes the dialog and immediately triggers the test run.
-    setIsTestAudioDialogOpen(false);
     handleSelectTestAudio(metadata);
   }
 
