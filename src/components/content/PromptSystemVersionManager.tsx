@@ -66,8 +66,8 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
   const [saveType, setSaveType] = useState<'major' | 'minor' | 'patch'>('patch');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [viewingVersionId, setViewingVersionId] = useState<string>('compose-new');
-  const [isRepublishing, setIsRepublishing] = useState(false);
   const [enabledCategories, setEnabledCategories] = useState<EnabledCategories>({});
+  const [isDevVersion, setIsDevVersion] = useState(true);
 
   // Group content by category for easy lookup
   const { contentByCategory, contentVersionParts } = useMemo(() => {
@@ -119,7 +119,6 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
   useEffect(() => {
     setSelections({});
     setViewingVersionId('compose-new');
-    setIsRepublishing(false);
     
     // Default all categories to enabled
     const initialEnabled: EnabledCategories = {};
@@ -152,26 +151,18 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
         }
         setSelections(newSelections);
         setEnabledCategories(newEnabled);
+        setIsDevVersion(version.isDevelopment || false);
     }
   }, [versions, content, contentByCategory]);
 
   useEffect(() => {
     if (viewingVersionId && viewingVersionId !== 'compose-new') {
         loadSelectionsFromVersion(viewingVersionId);
-        setIsRepublishing(true); // Default to republish when viewing history
     } else {
         setSelections({});
-        setIsRepublishing(false);
     }
   }, [viewingVersionId, versions, loadSelectionsFromVersion]);
   
-  useEffect(() => {
-    // When user toggles republish back ON, reset any temporary changes
-    if (isRepublishing && viewingVersionId !== 'compose-new') {
-        loadSelectionsFromVersion(viewingVersionId);
-    }
-  }, [isRepublishing, viewingVersionId, loadSelectionsFromVersion]);
-
 
   const handleSelection = (categoryId: string, part: 'major' | 'minor' | 'patch', value: string) => {
     setSelections(prev => {
@@ -208,38 +199,25 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
 
     setIsSubmitting(true);
     try {
-        if (isRepublishing) {
-            if (!viewingVersionId || viewingVersionId === 'compose-new') {
-                toast({ variant: 'destructive', title: 'Action not allowed', description: 'Cannot re-publish a new, un-saved version.' });
-                return;
-            }
-            const versionToRepublish = versions.find(v => v.id === viewingVersionId);
-            if (!versionToRepublish) return;
-
-            await setLivePromptSystemVersion(system.id, versionToRepublish.version, true); // Assuming this is for dev
-            
-            toast({ title: 'Success!', description: `Version ${versionToRepublish.version} is now the active DEV version for ${system.name}.` });
-        } else {
-             if (!nextVersionString) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not determine next version number.' });
-                return;
-            }
-
-            const enabledCategoryIds = Array.from(contentByCategory.keys()).filter(key => enabledCategories[key]);
-            
-            if (enabledCategoryIds.some(key => !selections[key]?.contentId)) {
-                toast({ variant: 'destructive', title: 'Incomplete Selection', description: 'Please select a prompt content version for every enabled category.' });
-                return;
-            }
-
-            const finalComposedPrompts: { [categoryId: string]: string } = {};
-            for(const categoryId of enabledCategoryIds) {
-                finalComposedPrompts[categoryId] = selections[categoryId].contentId!;
-            }
-            
-            await publishNewPromptVersion(system.id, nextVersionString, finalComposedPrompts, true); // Always publish as dev
-            toast({ title: 'Published!', description: `Prompt System Version ${nextVersionString} for ${system.name} is now available.` });
+        if (!nextVersionString) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not determine next version number.' });
+            return;
         }
+
+        const enabledCategoryIds = Array.from(contentByCategory.keys()).filter(key => enabledCategories[key]);
+        
+        if (enabledCategoryIds.some(key => !selections[key]?.contentId)) {
+            toast({ variant: 'destructive', title: 'Incomplete Selection', description: 'Please select a prompt content version for every enabled category.' });
+            return;
+        }
+
+        const finalComposedPrompts: { [categoryId: string]: string } = {};
+        for(const categoryId of enabledCategoryIds) {
+            finalComposedPrompts[categoryId] = selections[categoryId].contentId!;
+        }
+        
+        await publishNewPromptVersion(system.id, nextVersionString, finalComposedPrompts, isDevVersion);
+        toast({ title: 'Published!', description: `Prompt System Version ${nextVersionString} for ${system.name} is now available.` });
 
         onUpdate(); // Trigger parent page to refetch all systems data
         setSelections({});
@@ -258,16 +236,22 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
   };
 
   const nextVersionString = useMemo(() => {
-    const devVersions = versions.filter(v => v.isDevelopment);
-    if (!system) return "v1.0.0-dev";
-    const latestVersion = devVersions[0]; // Assumes versions are sorted desc
-    if (!latestVersion) return "v1.0.0-dev";
+    if (!system) return "v1.0.0";
+    const relevantVersions = versions.filter(v => v.isDevelopment === isDevVersion);
 
-    const [major, minor, patch] = latestVersion.version.replace('v', '').split('-')[0].split('.').map(Number);
-    if (saveType === 'major') return `v${major + 1}.0.0-dev`;
-    if (saveType === 'minor') return `v${major}.${minor + 1}.0-dev`;
-    return `v${major}.${minor}.${patch + 1}-dev`;
-  }, [system, versions, saveType]);
+    const latestVersion = relevantVersions[0]; // Assumes versions are sorted desc
+    if (!latestVersion) return isDevVersion ? "v1.0.0-dev" : "v1.0.0";
+
+    const versionParts = latestVersion.version.replace('v', '').split('-')[0];
+    const [major, minor, patch] = versionParts.split('.').map(Number);
+    
+    let newVersion: string;
+    if (saveType === 'major') newVersion = `v${major + 1}.0.0`;
+    else if (saveType === 'minor') newVersion = `v${major}.${minor + 1}.0`;
+    else newVersion = `v${major}.${minor}.${patch + 1}`;
+
+    return isDevVersion ? `${newVersion}-dev` : newVersion;
+  }, [system, versions, saveType, isDevVersion]);
 
 
   if (isLoading) {
@@ -294,9 +278,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
     );
   }
 
-  const isViewingHistory = viewingVersionId !== 'compose-new';
-  const isCompositionDisabled = isViewingHistory && isRepublishing;
-
+  const isCompositionDisabled = viewingVersionId !== 'compose-new';
 
   return (
     <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
@@ -323,11 +305,11 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                                       <SelectValue placeholder="Compose New..." />
                                   </SelectTrigger>
                                   <SelectContent>
-                                      <SelectItem value="compose-new">Compose New Dev Version...</SelectItem>
+                                      <SelectItem value="compose-new">Compose New Version...</SelectItem>
                                       <Separator/>
                                       {versions.map(v => (
                                           <SelectItem key={v.id} value={v.id}>
-                                          Version {v.version} {v.isDevelopment ? '(Dev)' : '(Live)'}
+                                          Version {v.version} {v.isDevelopment ? '(Dev)' : ''}
                                           </SelectItem>
                                       ))}
                                   </SelectContent>
@@ -394,33 +376,33 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                   </div>
               </CardContent>
               <CardFooter className="border-t pt-6 mt-6">
-                  <div className="flex flex-wrap items-center gap-6">
-                      <div className="flex items-center space-x-2">
-                          <Switch id="sys-republish-switch" checked={isRepublishing} onCheckedChange={setIsRepublishing} disabled={!isViewingHistory} />
-                          <Label htmlFor="sys-republish-switch">Set as Active Dev Version</Label>
-                      </div>
-                      <div className="flex items-center gap-8" style={{ opacity: isRepublishing ? 0.5 : 1 }}>
+                  <div className="flex flex-wrap items-center justify-between gap-6">
+                      <div className="flex items-center gap-8">
                           <div className="space-y-2">
                               <Label>New Version Type</Label>
                               <RadioGroup
                                   defaultValue="patch"
                                   className="flex gap-4"
                                   onValueChange={(v) => setSaveType(v as any)}
-                                  disabled={isRepublishing}
+                                  disabled={isCompositionDisabled}
                               >
-                                  <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="sys-major" disabled={isRepublishing}/><Label htmlFor="sys-major">Major</Label></div>
-                                  <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="sys-minor" disabled={isRepublishing}/><Label htmlFor="sys-minor">Minor</Label></div>
-                                  <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id="sys-patch" disabled={isRepublishing}/><Label htmlFor="sys-patch">Patch</Label></div>
+                                  <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="sys-major" disabled={isCompositionDisabled}/><Label htmlFor="sys-major">Major</Label></div>
+                                  <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="sys-minor" disabled={isCompositionDisabled}/><Label htmlFor="sys-minor">Minor</Label></div>
+                                  <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id="sys-patch" disabled={isCompositionDisabled}/><Label htmlFor="sys-patch">Patch</Label></div>
                               </RadioGroup>
                           </div>
                           <div className="flex items-center gap-2">
-                              <Label className="text-muted-foreground">Next Dev Version:</Label>
+                              <Label className="text-muted-foreground">Next Version:</Label>
                               <Badge variant="outline">{nextVersionString}</Badge>
                           </div>
+                           <div className="flex items-center space-x-2">
+                                <Switch id="is-dev-switch" checked={isDevVersion} onCheckedChange={setIsDevVersion} disabled={isCompositionDisabled} />
+                                <Label htmlFor="is-dev-switch">Mark as Dev</Label>
+                            </div>
                       </div>
-                      <Button onClick={handlePublish} disabled={isSubmitting || (isViewingHistory && !isRepublishing)}>
+                      <Button onClick={handlePublish} disabled={isSubmitting || isCompositionDisabled}>
                           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          {isRepublishing ? 'Set Active Dev' : 'Publish New Dev Version'}
+                          Publish New Version
                       </Button>
                   </div>
               </CardFooter>

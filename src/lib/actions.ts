@@ -359,7 +359,7 @@ export async function getAppAIConfig(): Promise<AppAIConfig | null> {
 
 export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Promise<AppAIVersion[]> {
     const versionsRef = collection(db, 'app_ai_versions');
-    let q = query(versionsRef);
+    let q: Query = query(versionsRef);
 
     if (type === 'dev') {
         q = query(q, where('isDevelopment', '==', true), orderBy('timestamp', 'desc'));
@@ -368,15 +368,15 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
     } else {
         q = query(q, orderBy('timestamp', 'desc'));
     }
-    
+
     const snapshot = await getDocs(q);
     const versions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
-    
+
     if (versions.length === 0 && type !== 'dev') {
         // If there are no versions at all, create a default live one.
         return [await publishNewAppAIVersion('v1.0.0', { 'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-v1-0-0' }, false)];
     }
-    
+
     return versions;
 }
 
@@ -451,6 +451,8 @@ export async function publishNewPromptVersion(systemId: string, version: string,
         timestamp: new Date().toISOString(),
     };
     await setDoc(versionRef, newVersionData);
+    
+    // When publishing a new AI Type Version, automatically set it as the active one for that type.
     await setLivePromptSystemVersion(systemId, version, isDevelopment);
     
     revalidateTag('prompts');
@@ -475,7 +477,7 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
     };
     if (previousVersionId) (newContentData as PromptContent).previousVersionId = previousVersionId;
     await setDoc(contentRef, newContentData);
-    revalidateTag('prompts');
+revalidateTag('prompts');
     return { id: newId, ...newContentData };
 }
 
@@ -522,6 +524,7 @@ export const getComposedPrompt = cache(
     },
     ['composed-prompts-v3'], { revalidate: 30, tags: ['prompts'] }
 );
+
 
 
 
