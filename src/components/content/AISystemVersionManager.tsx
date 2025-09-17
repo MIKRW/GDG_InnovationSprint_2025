@@ -249,13 +249,10 @@ function VersionPublisher({
   if (isCollapsible) {
     return (
       <Card className="border-0 border-b shadow-none rounded-none">
-        <Accordion type="single" collapsible>
+        <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
           <AccordionItem value="item-1" className="border-b-0">
             <AccordionTrigger className="hover:no-underline p-0">
-              <div className="flex-1 flex flex-col justify-between text-center p-6 h-36">
-                  <h3 className="text-2xl font-bold">{title}</h3>
-                  <p className="text-sm text-muted-foreground px-4">{description}</p>
-              </div>
+              {Header}
             </AccordionTrigger>
             <AccordionContent>
               {Content}
@@ -421,7 +418,7 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
 
   return (
     <div className="space-y-8">
-        <Card className="pt-6">
+        <div className="pt-6">
             <VersionPublisher
                 title="Live Version"
                 description={`The AI system bundle currently live is ${activeVersionId || 'None'}. Select a Development Version below to promote it.`}
@@ -436,9 +433,9 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
                 isLive={true}
                 onPromote={handlePromoteToLive}
             />
-        </Card>
+        </div>
       
-        <Card className="pt-6">
+        <div className="pt-6">
             <VersionPublisher
                 title="Development Versions"
                 description="Compose a new development version by selecting a version for each AI Type below. This version will only be used in developer mode."
@@ -452,7 +449,7 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
                 isLoading={isSubmitting}
                 isCollapsible={true}
             />
-        </Card>
+        </div>
     </div>
   );
 }
