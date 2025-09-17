@@ -253,7 +253,27 @@ export async function createNewPromptSystem(data: { systemId: string, name: stri
         throw new Error(`An AI system with the ID "${systemId}" already exists.`);
     }
 
-    await setDoc(systemRef, { name, description });
+    // Create a dummy first content and version to ensure the system is fully configured
+    const batch = writeBatch(db);
+
+    const defaultContentId = `${systemId}_base_instruction_v1-0-0`;
+    const contentRef = doc(db, 'prompt_content', defaultContentId);
+    batch.set(contentRef, {
+        systemId, categoryId: 'base_instruction', version: 'v1.0.0',
+        promptText: `This is the initial prompt for ${name}. Please edit it.`, 
+        timestamp: new Date().toISOString(),
+    });
+
+    const defaultVersionId = `${systemId}-v1-0-0`;
+    const versionRef = doc(db, 'prompt_versions', defaultVersionId);
+    batch.set(versionRef, {
+        systemId, version: 'v1.0.0', composedPrompts: { base_instruction: defaultContentId },
+        timestamp: new Date().toISOString(),
+    });
+
+    batch.set(systemRef, { name, description, activeVersion: 'v1.0.0' });
+    
+    await batch.commit();
 }
 
 export async function getPromptVersionsForSystem(systemId: string, type: 'dev' | 'live' | 'all' = 'all'): Promise<PromptVersion[]> {
@@ -314,12 +334,6 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
     const versionsRef = collection(db, 'app_ai_versions');
     let q = query(versionsRef, orderBy('timestamp', 'desc'));
 
-    if (type === 'dev') {
-        q = query(q, where('isDevelopment', '==', true));
-    } else if (type === 'live') {
-        q = query(q, where('isDevelopment', '==', false));
-    }
-
     const snapshot = await getDocs(q);
     
     // If the entire collection is empty, this is a first run. Create all default data atomically.
@@ -327,62 +341,46 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
         console.log("No App AI Systems found. Creating complete default configuration.");
         
         await runTransaction(db, async (transaction) => {
-            const createDefaultSystemInTransaction = async (systemId: string, name: string, description: string, initialPromptText: string) => {
-                const systemRef = doc(db, 'prompt_systems', systemId);
-                const defaultContentId = `${systemId}_base_instruction_v1-0-0`;
-                const contentRef = doc(db, 'prompt_content', defaultContentId);
-                transaction.set(contentRef, {
-                    systemId, categoryId: 'base_instruction', version: 'v1.0.0',
-                    promptText: initialPromptText, timestamp: new Date().toISOString(),
-                });
+            const birdSystemId = 'bird-identifier-ai-newbie';
+            const themeSystemId = 'theme-generator-ai';
 
-                const defaultVersionId = `${systemId}-v1-0-0`;
-                const versionRef = doc(db, 'prompt_versions', defaultVersionId);
-                transaction.set(versionRef, {
-                    systemId, version: 'v1.0.0', composedPrompts: { base_instruction: defaultContentId },
-                    timestamp: new Date().toISOString(),
-                });
-
-                transaction.set(systemRef, { name, description, activeVersion: 'v1.0.0', developmentVersion: 'v1.0.0' });
-            };
-
-            await createDefaultSystemInTransaction(
-                'bird-identifier-ai-newbie', 
-                "Bird Identifier AI (Newbie)", 
-                "Manages prompts for identifying birds in Newbie mode.",
-                `You are an expert ornithologist AI...` // Abridged for brevity
-            );
-            await createDefaultSystemInTransaction(
-                'theme-generator-ai', 
-                "AI Theme Generator", 
-                "Manages prompts for generating UI color themes.",
-                `You are an expert UI/UX designer and color theorist...` // Abridged for brevity
-            );
+            // Create bird identifier system
+            transaction.set(doc(db, 'prompt_systems', birdSystemId), { name: "Bird Identifier AI (Newbie)", description: "Manages prompts for identifying birds in Newbie mode.", activeVersion: 'v1.0.0' });
+            const birdContentId = `${birdSystemId}_base_instruction_v1-0-0`;
+            transaction.set(doc(db, 'prompt_content', birdContentId), { systemId: birdSystemId, categoryId: 'base_instruction', version: 'v1.0.0', promptText: `You are an expert ornithologist AI...`, timestamp: new Date().toISOString() });
+            const birdVersionId = `${birdSystemId}-v1-0-0`;
+            transaction.set(doc(db, 'prompt_versions', birdVersionId), { systemId: birdSystemId, version: 'v1.0.0', composedPrompts: { base_instruction: birdContentId }, timestamp: new Date().toISOString() });
             
-            const defaultSystems = { 
-                'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-v1-0-0', 
-                'theme-generator-ai': 'theme-generator-ai-v1-0-0' 
-            };
+            // Create theme generator system
+            transaction.set(doc(db, 'prompt_systems', themeSystemId), { name: "AI Theme Generator", description: "Manages prompts for generating UI color themes.", activeVersion: 'v1.0.0' });
+            const themeContentId = `${themeSystemId}_base_instruction_v1-0-0`;
+            transaction.set(doc(db, 'prompt_content', themeContentId), { systemId: themeSystemId, categoryId: 'base_instruction', version: 'v1.0.0', promptText: `You are an expert UI/UX designer and color theorist...`, timestamp: new Date().toISOString() });
+            const themeVersionId = `${themeSystemId}-v1-0-0`;
+            transaction.set(doc(db, 'prompt_versions', themeVersionId), { systemId: themeSystemId, version: 'v1.0.0', composedPrompts: { base_instruction: themeContentId }, timestamp: new Date().toISOString() });
+
+            // Create top-level App AI Versions
+            const defaultSystems = { [birdSystemId]: birdVersionId, [themeSystemId]: themeVersionId };
             
-            const liveVersionRef = doc(db, 'app_ai_versions', 'v1.0.0');
-            transaction.set(liveVersionRef, {
-                version: 'v1.0.0', isDevelopment: false, timestamp: new Date().toISOString(), systems: defaultSystems,
-            });
-
-            const devVersionRef = doc(db, 'app_ai_versions', 'v1.0.0-dev');
-            transaction.set(devVersionRef, {
-                version: 'v1.0.0-dev', isDevelopment: true, timestamp: new Date().toISOString(), systems: defaultSystems,
-            });
-
-            const configRef = doc(db, 'app_ai_config', 'main');
-            transaction.set(configRef, { activeAppAIVersion: 'v1.0.0', developmentAppAIVersion: 'v1.0.0-dev' });
+            transaction.set(doc(db, 'app_ai_versions', 'v1.0.0'), { version: 'v1.0.0', isDevelopment: false, timestamp: new Date().toISOString(), systems: defaultSystems });
+            transaction.set(doc(db, 'app_ai_versions', 'v1.0.0-dev'), { version: 'v1.0.0-dev', isDevelopment: true, timestamp: new Date().toISOString(), systems: defaultSystems });
+            
+            // Create the main config
+            transaction.set(doc(db, 'app_ai_config', 'main'), { activeAppAIVersion: 'v1.0.0', developmentAppAIVersion: 'v1.0.0-dev' });
         });
 
+        // Re-fetch after creation
         const finalSnapshot = await getDocs(query(versionsRef, orderBy('timestamp', 'desc')));
         return finalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
     }
-
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
+    
+    let filteredVersions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
+    if (type === 'dev') {
+        filteredVersions = filteredVersions.filter(v => v.isDevelopment);
+    } else if (type === 'live') {
+        filteredVersions = filteredVersions.filter(v => !v.isDevelopment);
+    }
+    
+    return filteredVersions;
 }
 
 
@@ -404,7 +402,7 @@ export async function publishNewAppAIVersion(version: string, systems: { [system
         await setDoc(configRef, { activeAppAIVersion: newVersionId }, { merge: true });
     }
     
-    revalidateTag('prompts');
+    revalidateTag('prompts-v7');
     return { id: newVersionId, ...newVersionData };
 }
 
@@ -437,7 +435,7 @@ export async function promoteDevelopmentVersionToLive(
     
     const devVersionData = devVersionSnap.data() as AppAIVersion;
     const newLiveVersion: Omit<AppAIVersion, 'id'> = {
-        ...devVersionData, // This correctly carries over the 'systems' object
+        ...devVersionData,
         version: newLiveVersionString,
         isDevelopment: false,
         timestamp: new Date().toISOString(),
@@ -451,7 +449,7 @@ export async function promoteDevelopmentVersionToLive(
     batch.update(doc(db, 'app_ai_config', 'main'), { activeAppAIVersion: newLiveVersionId });
     await batch.commit();
     
-    revalidateTag('prompts');
+    revalidateTag('prompts-v7');
     return { id: newLiveVersionId, ...newLiveVersion };
 }
 
@@ -459,7 +457,7 @@ export async function promoteDevelopmentVersionToLive(
 export async function setLivePromptSystemVersion(systemId: string, version: string): Promise<void> {
     const systemRef = doc(db, 'prompt_systems', systemId);
     await updateDoc(systemRef, { activeVersion: version });
-    revalidateTag('prompts');
+    revalidateTag('prompts-v7');
 }
 
 export async function publishNewPromptVersion(systemId: string, version: string, composedPrompts: { [categoryId: string]: string }): Promise<PromptVersion> {
@@ -474,7 +472,7 @@ export async function publishNewPromptVersion(systemId: string, version: string,
     // When publishing a new AI Type Version, automatically set it as the active one for that type.
     await setLivePromptSystemVersion(systemId, version);
     
-    revalidateTag('prompts');
+    revalidateTag('prompts-v7');
     return { id: newId, ...newVersionData };
 }
 
@@ -496,7 +494,7 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
     };
     if (previousVersionId) (newContentData as PromptContent).previousVersionId = previousVersionId;
     await setDoc(contentRef, newContentData);
-revalidateTag('prompts');
+revalidateTag('prompts-v7');
     return { id: newId, ...newContentData };
 }
 
@@ -570,5 +568,5 @@ export const getComposedPrompt = cache(
             return null; 
         }
     },
-    ['composed-prompts-v7'], { revalidate: 30, tags: ['prompts'] }
+    ['composed-prompts-v7'], { revalidate: 30, tags: ['prompts-v7'] }
 );
