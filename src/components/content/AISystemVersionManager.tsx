@@ -36,6 +36,8 @@ import { Badge } from '../ui/badge';
 import { Skeleton } from '../ui/skeleton';
 import { Separator } from '../ui/separator';
 import { Switch } from '../ui/switch';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
+
 
 interface VersionSelection {
   [systemId: string]: string; // e.g., { 'bird-identifier-ai-newbie': 'v1.1.0' }
@@ -62,6 +64,7 @@ function VersionPublisher({
   onPublish,
   isLoading,
   isLive,
+  isCollapsible,
   onPromote,
 }: {
   title: string;
@@ -75,6 +78,7 @@ function VersionPublisher({
   onPublish: (selections: VersionSelection, version: string, enabledSystems: EnabledSystems) => void;
   isLoading: boolean;
   isLive?: boolean;
+  isCollapsible?: boolean;
   onPromote?: (versionId: string, type: 'major' | 'minor' | 'patch') => void;
 }) {
   const [selections, setSelections] = useState<VersionSelection>({});
@@ -128,14 +132,17 @@ function VersionPublisher({
   const [devVersionToPromote, setDevVersionToPromote] = useState<string>('');
 
 
-  if (isLive) {
-    return (
-        <Card className="border-0 border-b rounded-none shadow-none">
-            <CardHeader className="flex-1 flex flex-col justify-between text-center p-6 h-36">
-              <h3 className="text-2xl font-bold">{title}</h3>
-              <p className="text-sm text-muted-foreground px-4">{description}</p>
-            </CardHeader>
-            <CardContent>
+  const Header = (
+    <CardHeader className="flex-1 flex flex-col justify-between text-center p-6 h-36">
+        <h3 className="text-2xl font-bold">{title}</h3>
+        <p className="text-sm text-muted-foreground px-4">{description}</p>
+    </CardHeader>
+  );
+
+  const Content = (
+     <>
+        <CardContent>
+            {isLive ? (
                 <div className="space-y-2">
                     <Label htmlFor="dev-version-select">Development Version to Promote</Label>
                     <Select value={devVersionToPromote} onValueChange={setDevVersionToPromote}>
@@ -151,125 +158,115 @@ function VersionPublisher({
                         </SelectContent>
                     </Select>
                 </div>
-            </CardContent>
-            <CardFooter className="pt-6">
-                 <div className="flex w-full flex-wrap items-center justify-between gap-6">
-                     <div className="flex items-center gap-8">
-                        <div className="space-y-2">
-                            <Label>Release Type</Label>
-                            <RadioGroup
-                                value={saveType}
-                                className="flex gap-4"
-                                onValueChange={(v) => onSaveTypeChange(v as any)}
-                            >
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="live-major" /><Label htmlFor="live-major">Major</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="live-minor" /><Label htmlFor="live-minor">Minor</Label></div>
-                                <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id="live-patch" /><Label htmlFor="live-patch">Patch</Label></div>
-                            </RadioGroup>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Label className="text-muted-foreground">New Live Version:</Label>
-                            <Badge variant="secondary">{nextVersionString}</Badge>
-                        </div>
-                    </div>
-                     <Button
-                        onClick={() => devVersionToPromote && onPromote?.(devVersionToPromote, saveType)}
-                        disabled={isLoading || !devVersionToPromote}
-                    >
-                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Promote to Live
-                    </Button>
+            ) : (
+                <div className="mb-6 p-4 border rounded-lg bg-muted/50">
+                    <Label htmlFor="dev-version-viewer" className="font-semibold">View/Compose Dev Version</Label>
+                    <Select onValueChange={setViewingDevVersionId} value={viewingDevVersionId}>
+                        <SelectTrigger id="dev-version-viewer" className="mt-2">
+                            <SelectValue placeholder="Compose New Dev Version..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="compose-new">Compose New Dev Version...</SelectItem>
+                            <Separator/>
+                            {publishedVersions.map(v => (
+                                <SelectItem key={v.id} value={v.id}>
+                                Version {v.version}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
-            </CardFooter>
-        </Card>
-    )
-  }
-
-  return (
-    <Card className="border-0 border-b rounded-none shadow-none">
-      <CardHeader className="flex-1 flex flex-col justify-between text-center p-6 h-36">
-        <h3 className="text-2xl font-bold">{title}</h3>
-        <p className="text-sm text-muted-foreground px-4">{description}</p>
-      </CardHeader>
-      <CardContent>
-        <div className="mb-6 p-4 border rounded-lg bg-muted/50">
-            <Label htmlFor="dev-version-viewer" className="font-semibold">View/Compose Dev Version</Label>
-            <Select onValueChange={setViewingDevVersionId} value={viewingDevVersionId}>
-                <SelectTrigger id="dev-version-viewer" className="mt-2">
-                    <SelectValue placeholder="Compose New Dev Version..." />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="compose-new">Compose New Dev Version...</SelectItem>
-                    <Separator/>
-                    {publishedVersions.map(v => (
-                        <SelectItem key={v.id} value={v.id}>
-                        Version {v.version}
-                        </SelectItem>
+            )}
+            {!isLive && (
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead className="w-[200px]">AI Type</TableHead>
+                    <TableHead className="w-[120px]">Enabled</TableHead>
+                    <TableHead>Version</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {systems.map((system) => (
+                    <TableRow key={system.id} className={ !(enabledSystems[system.id] ?? true) ? 'opacity-40' : ''}>
+                        <TableCell className="font-medium">{system.name}</TableCell>
+                        <TableCell>
+                            <Switch
+                                checked={enabledSystems[system.id] ?? true}
+                                onCheckedChange={(checked) => setEnabledSystems(prev => ({ ...prev, [system.id]: checked }))}
+                            />
+                        </TableCell>
+                        <TableCell>
+                        <Select
+                            onValueChange={(value) => setSelections(prev => ({...prev, [system.id]: value}))}
+                            value={selections[system.id]}
+                            disabled={!(enabledSystems[system.id] ?? true)}
+                        >
+                            <SelectTrigger><SelectValue placeholder="Select Version" /></SelectTrigger>
+                            <SelectContent>
+                                {system.liveVersions.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        </TableCell>
+                    </TableRow>
                     ))}
-                </SelectContent>
-            </Select>
-        </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[200px]">AI Type</TableHead>
-              <TableHead className="w-[120px]">Enabled</TableHead>
-              <TableHead>Version</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {systems.map((system) => (
-              <TableRow key={system.id} className={ !(enabledSystems[system.id] ?? true) ? 'opacity-40' : ''}>
-                <TableCell className="font-medium">{system.name}</TableCell>
-                <TableCell>
-                    <Switch
-                        checked={enabledSystems[system.id] ?? true}
-                        onCheckedChange={(checked) => setEnabledSystems(prev => ({ ...prev, [system.id]: checked }))}
-                    />
-                </TableCell>
-                <TableCell>
-                  <Select
-                    onValueChange={(value) => setSelections(prev => ({...prev, [system.id]: value}))}
-                    value={selections[system.id]}
-                    disabled={!(enabledSystems[system.id] ?? true)}
-                  >
-                    <SelectTrigger><SelectValue placeholder="Select Version" /></SelectTrigger>
-                    <SelectContent>
-                        {system.liveVersions.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
+                </TableBody>
+                </Table>
+            )}
+        </CardContent>
         <CardFooter className="pt-6">
-            <div className="flex flex-1 justify-between items-center gap-8">
+            <div className="flex w-full flex-wrap items-center justify-between gap-6">
                 <div className="flex items-center gap-8">
-                    <div className="space-y-2">
-                    <Label>New Version Type</Label>
+                <div className="space-y-2">
+                    <Label>Release Type</Label>
                     <RadioGroup
                         value={saveType}
                         className="flex gap-4"
                         onValueChange={(v) => onSaveTypeChange(v as any)}
                     >
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="major" /><Label htmlFor="major">Major</Label></div>
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="minor" /><Label htmlFor="minor">Minor</Label></div>
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id="patch" /><Label htmlFor="patch">Patch</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="major" id={`${isLive ? 'live-' : ''}major`} /><Label htmlFor={`${isLive ? 'live-' : ''}major`}>Major</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id={`${isLive ? 'live-' : ''}minor`} /><Label htmlFor={`${isLive ? 'live-' : ''}minor`}>Minor</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id={`${isLive ? 'live-' : ''}patch`} /><Label htmlFor={`${isLive ? 'live-' : ''}patch`}>Patch</Label></div>
                     </RadioGroup>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Label className="text-muted-foreground">Next Dev Version:</Label>
-                        <Badge variant="outline">{nextVersionString}</Badge>
-                    </div>
                 </div>
-                <Button onClick={handlePublish} disabled={isLoading}>
+                <div className="flex items-center gap-2">
+                    <Label className="text-muted-foreground">New {isLive ? 'Live' : 'Dev'} Version:</Label>
+                    <Badge variant={isLive ? 'secondary' : 'outline'}>{nextVersionString}</Badge>
+                </div>
+                </div>
+                <Button
+                onClick={isLive ? () => devVersionToPromote && onPromote?.(devVersionToPromote, saveType) : handlePublish}
+                disabled={isLoading || (isLive && !devVersionToPromote)}
+                >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Publish to Dev
+                {isLive ? 'Promote to Live' : 'Publish to Dev'}
                 </Button>
             </div>
         </CardFooter>
+    </>
+  );
+
+  if (isCollapsible) {
+    return (
+        <Card className="border-0 border-b rounded-none shadow-none">
+            <Accordion type="single" collapsible>
+                <AccordionItem value="item-1" className="border-b-0">
+                    <AccordionTrigger className="hover:no-underline p-0">
+                        {Header}
+                    </AccordionTrigger>
+                    <AccordionContent>
+                        {Content}
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
+        </Card>
+    );
+  }
+
+  return (
+    <Card className="border-0 border-b rounded-none shadow-none">
+        {Header}
+        {Content}
     </Card>
   )
 }
@@ -421,33 +418,38 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
 
   return (
     <div className="space-y-8">
-      <VersionPublisher
-        title="Live Version"
-        description={`The AI system bundle currently live is ${activeVersionId || 'None'}. Select a Development Version below to promote it.`}
-        systems={systems}
-        publishedVersions={devPublishedVersions}
-        activeVersionId={activeVersionId}
-        saveType={liveSaveType}
-        onSaveTypeChange={setLiveSaveType}
-        nextVersionString={nextLiveVersionString}
-        onPublish={() => {}}
-        isLoading={isSubmitting}
-        isLive={true}
-        onPromote={handlePromoteToLive}
-      />
+        <Card className="pt-6">
+            <VersionPublisher
+                title="Live Version"
+                description={`The AI system bundle currently live is ${activeVersionId || 'None'}. Select a Development Version below to promote it.`}
+                systems={systems}
+                publishedVersions={devPublishedVersions}
+                activeVersionId={activeVersionId}
+                saveType={liveSaveType}
+                onSaveTypeChange={setLiveSaveType}
+                nextVersionString={nextLiveVersionString}
+                onPublish={() => {}}
+                isLoading={isSubmitting}
+                isLive={true}
+                onPromote={handlePromoteToLive}
+            />
+        </Card>
       
-      <VersionPublisher
-        title="Development Versions"
-        description="Compose a new development version by selecting a version for each AI Type below. This version will only be used in developer mode."
-        systems={systems}
-        publishedVersions={devPublishedVersions}
-        activeVersionId={developmentVersionId}
-        saveType={devSaveType}
-        onSaveTypeChange={setDevSaveType}
-        nextVersionString={nextDevVersionString}
-        onPublish={handlePublishToDev}
-        isLoading={isSubmitting}
-      />
+        <Card className="pt-6">
+            <VersionPublisher
+                title="Development Versions"
+                description="Compose a new development version by selecting a version for each AI Type below. This version will only be used in developer mode."
+                systems={systems}
+                publishedVersions={devPublishedVersions}
+                activeVersionId={developmentVersionId}
+                saveType={devSaveType}
+                onSaveTypeChange={setDevSaveType}
+                nextVersionString={nextDevVersionString}
+                onPublish={handlePublishToDev}
+                isLoading={isSubmitting}
+                isCollapsible={true}
+            />
+        </Card>
     </div>
   );
 }
