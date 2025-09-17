@@ -45,6 +45,26 @@ export async function generateTheme(
   return await generateThemeFlow(words);
 }
 
+// Define the prompt at the top level with a dynamic prompt function.
+const themePrompt = ai.definePrompt({
+    name: 'themePrompt',
+    input: { schema: GenerateThemeInputSchema },
+    output: { schema: GenerateThemeOutputSchema },
+    prompt: async (input) => {
+        const composedPrompt = await getComposedPrompt('theme-generator-ai');
+        if (!composedPrompt?.prompt) {
+            throw new Error('Failed to retrieve a valid prompt for theme generation.');
+        }
+        return {
+            prompt: composedPrompt.prompt,
+            context: [
+                { role: 'user', content: `{{{json input}}}` }
+            ]
+        };
+    },
+});
+
+
 const generateThemeFlow = ai.defineFlow(
   {
     name: 'generateThemeFlow',
@@ -53,27 +73,19 @@ const generateThemeFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      const composedPrompt = await getComposedPrompt('theme-generator-ai');
-
-      if (!composedPrompt || !composedPrompt.prompt) {
-        throw new Error('Failed to retrieve a valid prompt for theme generation.');
-      }
-      
-      const themePrompt = ai.definePrompt({
-          name: 'themePrompt',
-          prompt: composedPrompt.prompt,
-          input: { schema: GenerateThemeInputSchema },
-          output: { schema: GenerateThemeOutputSchema },
-      });
-
+      // Call the pre-defined prompt.
+      // Genkit will invoke the dynamic prompt function we provided above.
       const { output } = await themePrompt(input);
 
       if (!output) {
         throw new Error('The AI model failed to return a valid theme. This has been logged.');
       }
+      
+      // Since the prompt function is now self-contained, we need to get the version again to pass it along.
+      // A more advanced implementation might inject this into the prompt's return.
+      const composedPrompt = await getComposedPrompt('theme-generator-ai');
+      output.promptVersion = composedPrompt?.version;
 
-      // Add the version of the AI System used to the output for tracking.
-      output.promptVersion = composedPrompt.version;
       return output;
 
     } catch (error) {
