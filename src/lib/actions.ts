@@ -362,14 +362,13 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
     let q = query(versionsRef);
 
     if (type === 'dev') {
-        q = query(q, where('isDevelopment', '==', true));
+        q = query(q, where('isDevelopment', '==', true), orderBy('timestamp', 'desc'));
     } else if (type === 'live') {
-        q = query(q, where('isDevelopment', '==', false));
+        q = query(q, where('isDevelopment', '==', false), orderBy('timestamp', 'desc'));
+    } else {
+        q = query(q, orderBy('timestamp', 'desc'));
     }
     
-    // This query now requires a composite index: isDevelopment (asc), timestamp (desc)
-    q = query(q, orderBy('timestamp', 'desc'));
-
     const snapshot = await getDocs(q);
     const versions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
     
@@ -468,7 +467,7 @@ interface PublishNewPromptContentInput {
 
 export async function publishNewPromptContent(input: PublishNewPromptContentInput): Promise<PromptContent> {
     const { systemId, categoryId, version, promptText, previousVersionId } = input;
-    const newId = `${categoryId}_${version}`;
+    const newId = `${categoryId}_${version.replace(/\./g, '-')}`;
     const contentRef = doc(db, 'prompt_content', newId);
     const newContentData: Omit<PromptContent, 'id'> = {
         systemId, categoryId, version, promptText,
@@ -523,5 +522,6 @@ export const getComposedPrompt = cache(
     },
     ['composed-prompts-v3'], { revalidate: 30, tags: ['prompts'] }
 );
+
 
 

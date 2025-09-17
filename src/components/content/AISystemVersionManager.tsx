@@ -35,9 +35,14 @@ import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
 import { Skeleton } from '../ui/skeleton';
 import { Separator } from '../ui/separator';
+import { Switch } from '../ui/switch';
 
 interface VersionSelection {
   [systemId: string]: string; // e.g., { 'bird-identifier-ai-newbie': 'v1.1.0' }
+}
+
+interface EnabledSystems {
+    [systemId: string]: boolean;
 }
 
 interface SystemWithVersion extends PromptSystem {
@@ -67,19 +72,25 @@ function VersionPublisher({
   saveType: 'major' | 'minor' | 'patch';
   onSaveTypeChange: (type: 'major' | 'minor' | 'patch') => void;
   nextVersionString: string;
-  onPublish: (selections: VersionSelection, version: string) => void;
+  onPublish: (selections: VersionSelection, version: string, enabledSystems: EnabledSystems) => void;
   isLoading: boolean;
   isLive?: boolean;
   onPromote?: (versionId: string) => void;
 }) {
   const [selections, setSelections] = useState<VersionSelection>({});
+  const [enabledSystems, setEnabledSystems] = useState<EnabledSystems>({});
+
+  useEffect(() => {
+    // Initialize all systems as enabled
+    const initialEnabledState = systems.reduce((acc, system) => {
+        acc[system.id] = true;
+        return acc;
+    }, {} as EnabledSystems);
+    setEnabledSystems(initialEnabledState);
+  }, [systems]);
 
   const handlePublish = () => {
-    if (systems.some(s => !selections[s.id])) {
-      alert('Please select a version for all systems.');
-      return;
-    }
-    onPublish(selections, nextVersionString);
+    onPublish(selections, nextVersionString, enabledSystems);
   };
   
   return (
@@ -93,6 +104,7 @@ function VersionPublisher({
           <TableHeader>
             <TableRow>
               <TableHead className="w-[200px]">AI System</TableHead>
+              {!isLive && <TableHead className="w-[120px]">Enabled</TableHead>}
               <TableHead>Version</TableHead>
               {isLive && <TableHead className="text-right">Action</TableHead>}
             </TableRow>
@@ -101,6 +113,14 @@ function VersionPublisher({
             {systems.map((system) => (
               <TableRow key={system.id}>
                 <TableCell className="font-medium">{system.name}</TableCell>
+                {!isLive && (
+                    <TableCell>
+                        <Switch
+                            checked={enabledSystems[system.id] ?? true}
+                            onCheckedChange={(checked) => setEnabledSystems(prev => ({ ...prev, [system.id]: checked }))}
+                        />
+                    </TableCell>
+                )}
                 <TableCell>
                   <Select
                     onValueChange={(value) => setSelections(prev => ({...prev, [system.id]: value}))}
@@ -224,10 +244,25 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
     fetchData();
   }, [fetchData]);
 
-  const handlePublishToDev = async (selections: VersionSelection, version: string) => {
+  const handlePublishToDev = async (selections: VersionSelection, version: string, enabledSystems: EnabledSystems) => {
     setIsSubmitting(true);
     try {
-        await publishNewAppAIVersion(version, selections, true);
+        const enabledSystemIds = Object.keys(enabledSystems).filter(id => enabledSystems[id]);
+        if (enabledSystemIds.some(id => !selections[id])) {
+            toast({
+                variant: 'destructive',
+                title: 'Incomplete Selection',
+                description: 'Please select a version for all enabled systems.',
+            });
+            return;
+        }
+
+        const finalSelections: VersionSelection = {};
+        for (const id of enabledSystemIds) {
+            finalSelections[id] = selections[id];
+        }
+
+        await publishNewAppAIVersion(version, finalSelections, true);
         toast({ title: 'Published to Dev!', description: `Version ${version} is now available for testing.` });
         onUpdate();
         fetchData();

@@ -47,6 +47,10 @@ interface ContentSelection {
     };
 }
 
+interface EnabledCategories {
+    [categoryId: string]: boolean;
+}
+
 interface PromptSystemVersionManagerProps {
     system: PromptSystem | null;
     versions: PromptVersion[];
@@ -63,6 +67,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [viewingVersionId, setViewingVersionId] = useState<string>('compose-new');
   const [isRepublishing, setIsRepublishing] = useState(false);
+  const [enabledCategories, setEnabledCategories] = useState<EnabledCategories>({});
 
   // Group content by category for easy lookup
   const { contentByCategory, contentVersionParts } = useMemo(() => {
@@ -115,13 +120,27 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
     setSelections({});
     setViewingVersionId('compose-new');
     setIsRepublishing(false);
-  }, [system]);
+    
+    // Default all categories to enabled
+    const initialEnabled: EnabledCategories = {};
+    for (const category of contentByCategory.keys()) {
+        initialEnabled[category] = true;
+    }
+    setEnabledCategories(initialEnabled);
+  }, [system, contentByCategory]);
 
   const loadSelectionsFromVersion = useCallback((versionId: string) => {
     const version = versions.find(v => v.id === versionId);
     if (version) {
         const newSelections: ContentSelection = {};
+        const newEnabled: EnabledCategories = {};
+        // First, set all known categories to disabled
+        for (const cat of contentByCategory.keys()) {
+            newEnabled[cat] = false;
+        }
+        // Then, enable and populate selections for categories present in the version
         for(const categoryId in version.composedPrompts) {
+            newEnabled[categoryId] = true;
             const contentId = version.composedPrompts[categoryId];
             const contentItem = content.find(c => c.id === contentId);
             if (contentItem) {
@@ -132,8 +151,9 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
             }
         }
         setSelections(newSelections);
+        setEnabledCategories(newEnabled);
     }
-  }, [versions, content]);
+  }, [versions, content, contentByCategory]);
 
   useEffect(() => {
     if (viewingVersionId && viewingVersionId !== 'compose-new') {
@@ -196,25 +216,28 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
             const versionToRepublish = versions.find(v => v.id === viewingVersionId);
             if (!versionToRepublish) return;
 
-            await setLivePromptSystemVersion(system.id, versionToRepublish.version);
+            await setLivePromptSystemVersion(system.id, versionToRepublish.version, true); // Assuming this is for dev
             
-            toast({ title: 'Success!', description: `Version ${versionToRepublish.version} is now the active version for ${system.name}.` });
+            toast({ title: 'Success!', description: `Version ${versionToRepublish.version} is now the active DEV version for ${system.name}.` });
         } else {
              if (!nextVersionString) {
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not determine next version number.' });
                 return;
             }
-            if (Array.from(contentByCategory.keys()).some(key => !selections[key]?.contentId)) {
-                toast({ variant: 'destructive', title: 'Incomplete Selection', description: 'Please select a prompt content version for every category.' });
+
+            const enabledCategoryIds = Array.from(contentByCategory.keys()).filter(key => enabledCategories[key]);
+            
+            if (enabledCategoryIds.some(key => !selections[key]?.contentId)) {
+                toast({ variant: 'destructive', title: 'Incomplete Selection', description: 'Please select a prompt content version for every enabled category.' });
                 return;
             }
 
             const finalComposedPrompts: { [categoryId: string]: string } = {};
-            for(const categoryId in selections) {
+            for(const categoryId of enabledCategoryIds) {
                 finalComposedPrompts[categoryId] = selections[categoryId].contentId!;
             }
             
-            await publishNewPromptVersion(system.id, nextVersionString, finalComposedPrompts);
+            await publishNewPromptVersion(system.id, nextVersionString, finalComposedPrompts, true); // Always publish as dev
             toast({ title: 'Published!', description: `Prompt System Version ${nextVersionString} for ${system.name} is now available.` });
         }
 
@@ -235,14 +258,15 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
   };
 
   const nextVersionString = useMemo(() => {
-    if (!system) return "v1.0.0";
-    const latestVersion = versions[0]; // Assumes versions are sorted desc
-    if (!latestVersion) return "v1.0.0";
+    const devVersions = versions.filter(v => v.isDevelopment);
+    if (!system) return "v1.0.0-dev";
+    const latestVersion = devVersions[0]; // Assumes versions are sorted desc
+    if (!latestVersion) return "v1.0.0-dev";
 
-    const [major, minor, patch] = latestVersion.version.replace('v', '').split('.').map(Number);
-    if (saveType === 'major') return `v${major + 1}.0.0`;
-    if (saveType === 'minor') return `v${major}.${minor + 1}.0`;
-    return `v${major}.${minor}.${patch + 1}`;
+    const [major, minor, patch] = latestVersion.version.replace('v', '').split('-')[0].split('.').map(Number);
+    if (saveType === 'major') return `v${major + 1}.0.0-dev`;
+    if (saveType === 'minor') return `v${major}.${minor + 1}.0-dev`;
+    return `v${major}.${minor}.${patch + 1}-dev`;
   }, [system, versions, saveType]);
 
 
@@ -299,11 +323,11 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                                       <SelectValue placeholder="Compose New..." />
                                   </SelectTrigger>
                                   <SelectContent>
-                                      <SelectItem value="compose-new">Compose New...</SelectItem>
+                                      <SelectItem value="compose-new">Compose New Dev Version...</SelectItem>
                                       <Separator/>
                                       {versions.map(v => (
                                           <SelectItem key={v.id} value={v.id}>
-                                          Version {v.version} {system.activeVersion === v.version && '(Active)'}
+                                          Version {v.version} {v.isDevelopment ? '(Dev)' : '(Live)'}
                                           </SelectItem>
                                       ))}
                                   </SelectContent>
@@ -316,6 +340,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                       <TableHeader>
                           <TableRow>
                           <TableHead className="w-[200px]">Prompt Category</TableHead>
+                          <TableHead className="w-[120px]">Enabled</TableHead>
                           <TableHead>Major</TableHead>
                           <TableHead>Minor</TableHead>
                           <TableHead>Patch</TableHead>
@@ -325,12 +350,20 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                           {Array.from(contentByCategory.keys()).map((category) => {
                           const selected = selections[category] || {};
                           const parts = contentVersionParts.get(category);
+                          const isEnabled = enabledCategories[category] ?? true;
 
                           return (
-                              <TableRow key={category}>
+                              <TableRow key={category} className={!isEnabled ? 'opacity-50' : ''}>
                                   <TableCell className="font-medium capitalize">{category.replace(/_/g, ' ')}</TableCell>
                                   <TableCell>
-                                      <Select onValueChange={(value) => handleSelection(category, 'major', value)} value={selected.major} disabled={isCompositionDisabled}>
+                                    <Switch 
+                                        checked={isEnabled}
+                                        onCheckedChange={(checked) => setEnabledCategories(prev => ({...prev, [category]: checked}))}
+                                        disabled={isCompositionDisabled}
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                      <Select onValueChange={(value) => handleSelection(category, 'major', value)} value={selected.major} disabled={isCompositionDisabled || !isEnabled}>
                                       <SelectTrigger><SelectValue placeholder="Select Major" /></SelectTrigger>
                                       <SelectContent>
                                           {parts?.major.map(v => <SelectItem key={v} value={v}>v{v}</SelectItem>)}
@@ -338,7 +371,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                                       </Select>
                                   </TableCell>
                                   <TableCell>
-                                      <Select onValueChange={(value) => handleSelection(category, 'minor', value)} value={selected.minor} disabled={!selected.major || isCompositionDisabled}>
+                                      <Select onValueChange={(value) => handleSelection(category, 'minor', value)} value={selected.minor} disabled={!selected.major || isCompositionDisabled || !isEnabled}>
                                       <SelectTrigger><SelectValue placeholder="Select Minor" /></SelectTrigger>
                                       <SelectContent>
                                           {selected.major && parts?.minor.get(selected.major)?.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
@@ -346,7 +379,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                                       </Select>
                                   </TableCell>
                                   <TableCell>
-                                      <Select onValueChange={(value) => handleSelection(category, 'patch', value)} value={selected.patch} disabled={!selected.minor || isCompositionDisabled}>
+                                      <Select onValueChange={(value) => handleSelection(category, 'patch', value)} value={selected.patch} disabled={!selected.minor || isCompositionDisabled || !isEnabled}>
                                       <SelectTrigger><SelectValue placeholder="Select Patch" /></SelectTrigger>
                                       <SelectContent>
                                           {selected.major && selected.minor && parts?.patch.get(`${selected.major}.${selected.minor}`)?.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
@@ -364,7 +397,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                   <div className="flex flex-wrap items-center gap-6">
                       <div className="flex items-center space-x-2">
                           <Switch id="sys-republish-switch" checked={isRepublishing} onCheckedChange={setIsRepublishing} disabled={!isViewingHistory} />
-                          <Label htmlFor="sys-republish-switch">Republish Selected</Label>
+                          <Label htmlFor="sys-republish-switch">Set as Active Dev Version</Label>
                       </div>
                       <div className="flex items-center gap-8" style={{ opacity: isRepublishing ? 0.5 : 1 }}>
                           <div className="space-y-2">
@@ -381,13 +414,13 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                               </RadioGroup>
                           </div>
                           <div className="flex items-center gap-2">
-                              <Label className="text-muted-foreground">Next Version:</Label>
+                              <Label className="text-muted-foreground">Next Dev Version:</Label>
                               <Badge variant="outline">{nextVersionString}</Badge>
                           </div>
                       </div>
                       <Button onClick={handlePublish} disabled={isSubmitting || (isViewingHistory && !isRepublishing)}>
                           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Publish
+                          {isRepublishing ? 'Set Active Dev' : 'Publish New Dev Version'}
                       </Button>
                   </div>
               </CardFooter>
