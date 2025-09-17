@@ -233,19 +233,59 @@ export async function getPromptSystems(): Promise<PromptSystem[]> {
     const q = query(systemsRef, orderBy('name'));
     const snapshot = await getDocs(q);
 
-    if (snapshot.empty) {
-        const defaultSystem = {
+    const systems = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
+    
+    // Check if the default systems exist, if not, create them.
+    const hasBirdId = systems.some(s => s.id === 'bird-identifier-ai-newbie');
+    const hasThemeGen = systems.some(s => s.id === 'theme-generator-ai');
+
+    if (!hasBirdId) {
+        const newSystem = await createNewPromptSystem({ 
+            systemId: 'bird-identifier-ai-newbie', 
             name: "Bird Identifier AI (Newbie)",
             description: "Manages prompts for identifying birds in Newbie mode.",
-            activeVersion: "v1.0.0",
-            developmentVersion: "v1.0.0",
-        };
-        const newSystem = await createNewPromptSystem({ systemId: 'bird-identifier-ai-newbie', ...defaultSystem });
-        return [newSystem];
+        });
+        systems.push(newSystem);
     }
+    if (!hasThemeGen) {
+        const newSystem = await createNewPromptSystem({ 
+            systemId: 'theme-generator-ai', 
+            name: "AI Theme Generator",
+            description: "Manages prompts for generating UI color themes.",
+            initialPromptText: `You are an expert UI/UX designer and color theorist with a deep understanding of web accessibility standards (WCAG).
 
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
+Your task is to create a well-balanced and aesthetically pleasing four-color theme palette for a web application, based on user-provided inputs. The output MUST be a valid JSON object.
+
+INPUTS:
+You will be given three inspirational words (word1, word2, word3) and a mood (mood). The words are your primary creative source for the colors.
+
+OUTPUT FORMAT:
+You must output your response as a valid JSON object. The root object must contain four keys: 'background', 'foreground', 'primary', and 'ring'. Each of these keys must contain an object with three numerical properties: 'h' (0-360), 's' (0-100), and 'l' (0-100). Do not add any commentary or explanation outside of the JSON object.
+
+CORE RULES & CONSTRAINTS:
+1.  **Word-to-Color Logic:** Intelligently assign the inspirational words to the background, foreground, and primary colors. Consider design best practices. For example, a word like 'sky' is better for a background than 'fire'. A word like 'charcoal' is a good candidate for a foreground (text) color. A vibrant word like 'sunset' might be a good primary accent color.
+2.  **Mood Application:** After establishing a base palette from the words, you MUST adjust the final HSL values based on the 'mood' keyword.
+    *   'Vibrant': Increase saturation (s) for bright, vivid colors.
+    *   'Calm': Decrease saturation (s) for more muted, soothing colors.
+    *   'Dark': The background 'l' value must be very low (e.g., < 15), and the foreground 'l' value must be very high (e.g., > 85).
+    *   'High Contrast': Prioritize a very high contrast ratio between background and foreground/primary colors. This is the most important accessibility constraint.
+    *   '*-Friendly' (e.g., 'Tritanopia-Friendly'): Adjust hues to avoid color combinations that are difficult for users with specific types of color blindness to distinguish.
+3.  **Accessibility First:** CRITICAL RULE: The final color palette MUST be accessible. There must be a very high contrast ratio between the background color and both the foreground and primary colors to ensure readability. The text color (foreground) on the main accent color (primary) must also be readable.
+4.  **Ring Color:** The 'ring' color is crucial for user interaction highlights (like focus rings). It MUST be a derivative of the 'primary' color. To ensure it's always visible, its lightness ('l') value should be at least 15-20% lighter or darker than the primary color's lightness.
+5.  **Derived Colors:** Be aware that the application's CSS will automatically generate secondary, muted, and accent colors by adjusting the lightness of your chosen primary and background colors. Your choices must result in a harmonious and readable palette even after these automatic adjustments.
+
+Example Input: { "word1": "ocean", "word2": "sand", "word3": "sun", "mood": "Vibrant" }
+Your response should be a single, raw JSON object and nothing else.`
+        });
+        systems.push(newSystem);
+    }
+    
+    // Re-sort if new systems were added
+    systems.sort((a,b) => a.name.localeCompare(b.name));
+
+    return systems;
 }
+
 
 export async function getPromptSystem(systemId: string): Promise<PromptSystem | null> {
     const systemRef = doc(db, 'prompt_systems', systemId);
@@ -256,8 +296,8 @@ export async function getPromptSystem(systemId: string): Promise<PromptSystem | 
     return { id: snapshot.id, ...snapshot.data() } as PromptSystem;
 }
 
-export async function createNewPromptSystem(data: { systemId: string, name: string, description: string }): Promise<PromptSystem> {
-    const { systemId, name, description } = data;
+export async function createNewPromptSystem(data: { systemId: string, name: string, description: string, initialPromptText?: string }): Promise<PromptSystem> {
+    const { systemId, name, description, initialPromptText } = data;
     const systemRef = doc(db, 'prompt_systems', systemId);
     const systemSnap = await getDoc(systemRef);
 
@@ -265,7 +305,7 @@ export async function createNewPromptSystem(data: { systemId: string, name: stri
         throw new Error('A system with this ID already exists.');
     }
 
-    const baseInstruction = `You are a world-class ornithologist AI. Your purpose is to identify bird species from audio recordings with the highest possible accuracy...`;
+    const baseInstruction = initialPromptText || `You are a world-class AI. Your purpose is to provide accurate and helpful responses.`;
     
     await runTransaction(db, async (transaction) => {
         const defaultContentId = `base_instruction_v1-0-0`;
@@ -555,4 +595,5 @@ export const getComposedPrompt = cache(
     },
     ['composed-prompts-v4'], { revalidate: 30, tags: ['prompts'] }
 );
+
 
