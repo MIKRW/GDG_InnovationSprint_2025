@@ -142,7 +142,7 @@ function VersionPublisher({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[200px]">AI System</TableHead>
+              <TableHead className="w-[200px]">AI Type</TableHead>
               <TableHead className="w-[120px]">Enabled</TableHead>
               <TableHead>Version</TableHead>
             </TableRow>
