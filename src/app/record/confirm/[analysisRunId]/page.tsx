@@ -27,8 +27,6 @@ import { saveCanonicalImage } from '@/lib/actions';
 
 type PageState = 'loading' | 'confirmingId' | 'confirmingImage' | 'saving' | 'done';
 
-const PROMPT_VERSION = "1.8"; // Added confidence score to AI output
-
 export default function ConfirmIdentificationPage() {
   const params = useParams();
   const router = useRouter();
@@ -62,8 +60,13 @@ export default function ConfirmIdentificationPage() {
         }
       }
       
-      setAnalysisRun(foundRun);
-      setPageState(foundRun ? 'confirmingId' : 'loading');
+      if(foundRun) {
+        setAnalysisRun(foundRun);
+        setPageState('confirmingId');
+      } else {
+        setAnalysisRun(null);
+        setPageState('loading'); // Will result in a notFound() if it stays null
+      }
     };
 
     fetchAnalysisRun().catch(error => {
@@ -313,7 +316,3 @@ export default function ConfirmIdentificationPage() {
     </AppLayout>
   );
 }
-
-    
-
-    
