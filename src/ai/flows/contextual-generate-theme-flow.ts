@@ -45,30 +45,6 @@ export async function generateTheme(
   return await generateThemeFlow(words);
 }
 
-// Define the prompt at the top level with a dynamic prompt function.
-const themePrompt = ai.definePrompt({
-    name: 'themePrompt',
-    input: { schema: GenerateThemeInputSchema },
-    output: { schema: GenerateThemeOutputSchema },
-    prompt: async (input) => {
-        const composedPrompt = await getComposedPrompt('theme-generator-ai');
-        if (!composedPrompt?.prompt) {
-            throw new Error('Failed to retrieve a valid prompt for theme generation.');
-        }
-        return {
-            prompt: composedPrompt.prompt,
-            context: [
-                { role: 'user', content: `{{{json input}}}` }
-            ],
-            // Pass the version along so the flow can access it
-            metadata: {
-                promptVersion: composedPrompt.version,
-            }
-        };
-    },
-});
-
-
 const generateThemeFlow = ai.defineFlow(
   {
     name: 'generateThemeFlow',
@@ -77,8 +53,23 @@ const generateThemeFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      // Call the pre-defined prompt.
-      // Genkit will invoke the dynamic prompt function we provided above.
+      // 1. Ask the backend for the correct prompt based on the current mode (dev/live).
+      const composedPrompt = await getComposedPrompt('theme-generator-ai');
+      
+      if (!composedPrompt || !composedPrompt.prompt) {
+        // This error is now protected by the robust database initialization.
+        throw new Error('Failed to retrieve a valid prompt for theme generation.');
+      }
+
+      // 2. Define the prompt object with the retrieved instructions.
+      const themePrompt = ai.definePrompt({
+          name: 'themePrompt',
+          input: { schema: GenerateThemeInputSchema },
+          output: { schema: GenerateThemeOutputSchema },
+          prompt: composedPrompt.prompt,
+      });
+
+      // 3. Send the prompt to the AI and get the result.
       const response = await themePrompt(input);
       const output = response.output;
 
@@ -86,10 +77,8 @@ const generateThemeFlow = ai.defineFlow(
         throw new Error('The AI model failed to return a valid theme. This has been logged.');
       }
       
-      // Get the prompt version from the response metadata.
-      const promptVersion = response.request.metadata?.promptVersion as string | undefined;
-      output.promptVersion = promptVersion;
-
+      // 4. Send the AI result (and version info) to the frontend.
+      output.promptVersion = composedPrompt.version;
       return output;
 
     } catch (error) {
