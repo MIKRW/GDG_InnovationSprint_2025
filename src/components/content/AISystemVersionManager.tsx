@@ -452,8 +452,7 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
         <Card>
             <VersionPublisher
                 idPrefix="dev"
-                title="Development Versions"
-                description="Compose a new development version by selecting a version for each AI Type below. This version will only be used in developer mode."
+                title="Development Version"
                 systems={systems}
                 publishedVersions={devPublishedVersions}
                 currentVersionId={developmentVersionId}
