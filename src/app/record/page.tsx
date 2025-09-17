@@ -5,7 +5,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { getBlob, ref as storageRef } from 'firebase/storage';
 import { collection, getDocs } from 'firebase/firestore';
-import { RecordButton } from '@/components/content/RecordButton';
+import { RecordButton, type RecordButtonRef } from '@/components/content/RecordButton';
 import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
@@ -24,7 +24,7 @@ export default function RecordPage() {
   const [showIdentificationError, setShowIdentificationError] = useState(false);
   
   // Ref to call the method inside RecordButton
-  const RecordButtonRef = useRef<{ handleFileSelect: (file: File, testContext?: { birdId: string, testAudioId: string }) => void }>(null);
+  const recordButtonRef = useRef<RecordButtonRef>(null);
 
   const [isTestAudioDialogOpen, setIsTestAudioDialogOpen] = useState(false);
   const [testAudioLibrary, setTestAudioLibrary] = useState<TestAudioMetadata[]>([]);
@@ -81,8 +81,8 @@ export default function RecordPage() {
         const blob = await getBlob(fileRef);
         const file = new File([blob], audio.fileName, { type: blob.type || 'audio/wav' });
 
-        if (RecordButtonRef.current) {
-            RecordButtonRef.current.handleFileSelect(file, { birdId: audio.birdId, testAudioId: audio.testAudioId });
+        if (recordButtonRef.current) {
+            recordButtonRef.current.handleFileSelect(file, { birdId: audio.birdId, testAudioId: audio.testAudioId });
         }
     } catch (error) {
         console.error("Error loading test audio from Firebase Storage:", error);
@@ -166,7 +166,7 @@ export default function RecordPage() {
             )}
 
             <RecordButton 
-              ref={RecordButtonRef}
+              ref={recordButtonRef}
               onPermissionDenied={() => setShowPermissionError(true)} 
               onIdentificationFailed={() => setShowIdentificationError(true)}
               onStartRecording={() => {

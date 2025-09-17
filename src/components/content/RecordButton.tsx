@@ -31,12 +31,15 @@ interface RecordButtonProps {
     onStartRecording?: () => void;
 }
 
+export interface RecordButtonRef {
+    handleFileSelect: (file: File, testContext: { birdId: string; testAudioId: string }) => void;
+}
+
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
-const PROMPT_VERSION = "1.8"; // This should be updated when the prompt text files change.
 
-const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps, ref) => {
+const RecordButton = forwardRef<RecordButtonRef, RecordButtonProps>(({ onPermissionDenied, onIdentificationFailed, onStartRecording }, ref) => {
   const router = useRouter();
   const { user } = useAuth();
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
@@ -50,7 +53,9 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   const currentTestContext = useRef<{ birdId: string, testAudioId: string } | undefined>(undefined);
 
   useImperativeHandle(ref, () => ({
-    handleFileSelect: (file: File, testContext: { birdId: string, testAudioId: string }) => {
+    handleFileSelect: (file: File, testContext?: { birdId: string, testAudioId: string }) => {
+      if (!testContext) return;
+      
       currentSessionId.current = uuidv4();
       currentTimestamp.current = new Date().toISOString();
       currentTestContext.current = testContext;
@@ -189,7 +194,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         longitude: locationData?.longitude ?? null,
         locationDescription: locationData?.locationDescription ?? null,
       },
-      analysisMethod: `gemini-pro-vision-prompt-v${PROMPT_VERSION}`,
+      analysisMethod: `gemini-pro-vision-prompt-v1.8`,
       aiResult: aiResult,
       wasSuccessful: wasSuccessful,
       wasSavedByUser: false, 
@@ -287,9 +292,11 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     const appSettings = getAppSettings();
     const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
     const isDeveloperRun = !!currentTestContext.current;
+    
+    let analysisRunId: string | null = null;
+    const analysisStartTime = Date.now();
 
     try {
-      const analysisStartTime = Date.now();
       const result = await identifyBirdBySound({ 
           audioDataUri: base64Audio,
           timestamp: currentTimestamp.current,
@@ -300,7 +307,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       
       const wasSuccessful = result && result.isBirdSong && !!result.commonName;
 
-      const analysisRunId = await createAnalysisRun(
+      analysisRunId = await createAnalysisRun(
           base64Audio, 
           result, 
           wasSuccessful, 
@@ -312,18 +319,11 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           recordingLengthSeconds,
           { primaryIdentificationMs: analysisDurationMs }
       );
-      
-      setRecordingState('idle');
-
-      if (analysisRunId) {
-          router.push(`/record/confirm/${analysisRunId}`);
-      } else {
-        onIdentificationFailed?.();
-      }
 
     } catch (error) {
       console.error('Error identifying bird sound:', error);
-      const analysisDurationMs = recordingStartTimeRef.current ? Date.now() - recordingStartTimeRef.current : undefined;
+      const analysisDurationMs = Date.now() - analysisStartTime;
+      
       logErrorToFirestore(error as Error, 'ai-identification-failure', {
         sessionId: currentSessionId.current,
         timestamp: currentTimestamp.current,
@@ -332,7 +332,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
         userId: user?.uid
       });
 
-       const analysisRunId = await createAnalysisRun(
+       analysisRunId = await createAnalysisRun(
            base64Audio, 
            { error: (error as Error).message, isBirdSong: false }, 
            false, 
@@ -342,16 +342,15 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
            isDeveloperRun,
            currentTestContext.current,
            recordingLengthSeconds,
-           analysisDurationMs ? { primaryIdentificationMs: analysisDurationMs } : undefined
+           { primaryIdentificationMs: analysisDurationMs }
         );
-        
-      setRecordingState('idle');
-      
-      if (analysisRunId) {
-          router.push(`/record/confirm/${analysisRunId}`);
-      } else {
-          onIdentificationFailed?.();
-      }
+    } finally {
+        setRecordingState('idle');
+        if (analysisRunId) {
+            router.push(`/record/confirm/${analysisRunId}`);
+        } else {
+            onIdentificationFailed?.();
+        }
     }
   }
 
