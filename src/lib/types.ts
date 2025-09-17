@@ -147,6 +147,7 @@ export interface TestAudioMetadata {
   license: string;
   hardware: string;
   location: string;
+  duration: number;
   // These are added client-side for context when running tests
   birdId: string; 
   testAudioId: string;
@@ -219,3 +220,5 @@ export type PromptContent = {
     promptText: string;
     previousVersionId?: string;
 };
+
+    

@@ -97,7 +97,8 @@ export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<T
         species: species,
         scientificName: scientificName,
         family: family,
-        order: order
+        order: order,
+        duration: 0, // Placeholder, will be calculated on analysis
     };
 }
 
@@ -168,7 +169,6 @@ export async function createAnalysisRun(
     mode: AppMode,
     isDeveloperRun: boolean,
     testContext?: { birdId: string; testAudioId: string },
-    recordingLengthSeconds?: number,
     analysisTimings?: AnalysisRun['analysisTimings'],
     sessionId?: string,
     timestamp?: string,
@@ -201,8 +201,8 @@ export async function createAnalysisRun(
       analysisTimings: analysisTimings,
     };
     
-    if (typeof recordingLengthSeconds === 'number') {
-        docToCreate.recordingLengthSeconds = recordingLengthSeconds;
+    if (typeof aiResult.duration === 'number') {
+        docToCreate.recordingLengthSeconds = aiResult.duration;
     }
     
     if (hardware) {
@@ -525,3 +525,5 @@ export const getComposedPrompt = cache(
         tags: ['prompts'],
     }
 );
+
+    
