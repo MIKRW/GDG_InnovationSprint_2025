@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
 import type { PromptSystem, AppAIVersion } from '@/lib/types';
 import { getPromptSystems, getPromptVersionsForSystem, getAppAIVersions, getAppAIConfig, publishNewAppAIVersion, promoteDevelopmentVersionToLive } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -248,18 +248,21 @@ function VersionPublisher({
 
   if (isCollapsible) {
     return (
-        <Card className="border-0 border-b rounded-none shadow-none">
-            <Accordion type="single" collapsible>
-                <AccordionItem value="item-1" className="border-b-0">
-                    <AccordionTrigger className="hover:no-underline p-0">
-                        {Header}
-                    </AccordionTrigger>
-                    <AccordionContent>
-                        {Content}
-                    </AccordionContent>
-                </AccordionItem>
-            </Accordion>
-        </Card>
+      <Card className="border-0 border-b shadow-none rounded-none">
+        <Accordion type="single" collapsible>
+          <AccordionItem value="item-1" className="border-b-0">
+            <AccordionTrigger className="hover:no-underline p-0">
+              <div className="flex-1 flex flex-col justify-between text-center p-6 h-36">
+                  <h3 className="text-2xl font-bold">{title}</h3>
+                  <p className="text-sm text-muted-foreground px-4">{description}</p>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              {Content}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </Card>
     );
   }
 
