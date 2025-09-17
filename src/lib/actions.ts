@@ -233,26 +233,31 @@ export async function getPromptSystems(): Promise<PromptSystem[]> {
     const initialSnapshot = await getDocs(query(systemsRef, orderBy('name')));
     let systems = initialSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
 
+    let createdNewSystem = false;
     const needsBirdIdentifier = !systems.some(s => s.id === 'bird-identifier-ai-newbie');
+    if (needsBirdIdentifier) {
+        console.log("Default 'Bird Identifier' AI Type is missing. Creating it now...");
+        await createNewPromptSystem({ 
+            systemId: 'bird-identifier-ai-newbie', 
+            name: "Bird Identifier AI (Newbie)",
+            description: "Manages prompts for identifying birds in Newbie mode.",
+        });
+        createdNewSystem = true;
+    }
+    
     const needsThemeGenerator = !systems.some(s => s.id === 'theme-generator-ai');
+    if (needsThemeGenerator) {
+        console.log("Default 'AI Theme Generator' AI Type is missing. Creating it now...");
+        await createNewPromptSystem({ 
+            systemId: 'theme-generator-ai', 
+            name: "AI Theme Generator",
+            description: "Manages prompts for generating UI color themes.",
+        });
+        createdNewSystem = true;
+    }
 
-    if (needsBirdIdentifier || needsThemeGenerator) {
-        console.log("One or more default AI Types are missing. Creating them now...");
-        if (needsBirdIdentifier) {
-            await createNewPromptSystem({ 
-                systemId: 'bird-identifier-ai-newbie', 
-                name: "Bird Identifier AI (Newbie)",
-                description: "Manages prompts for identifying birds in Newbie mode.",
-            });
-        }
-        if (needsThemeGenerator) {
-            await createNewPromptSystem({ 
-                systemId: 'theme-generator-ai', 
-                name: "AI Theme Generator",
-                description: "Manages prompts for generating UI color themes. (KEEP THIS ONE)",
-            });
-        }
-        // Refetch the whole list to ensure correctness and sorting.
+    if (createdNewSystem) {
+        // Refetch the whole list to ensure correctness and sorting if we created anything.
         const finalSnapshot = await getDocs(query(systemsRef, orderBy('name')));
         systems = finalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
     }
@@ -440,24 +445,26 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
     }
 
     const snapshot = await getDocs(q);
-    const versions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
-
+    
     if (snapshot.empty) {
+        console.log("No App AI Versions found. Creating defaults for live and dev.");
         const defaultSystems = { 
             'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-v1-0-0', 
             'theme-generator-ai': 'theme-generator-ai-v1-0-0' 
         };
         
-        // If the database is completely empty, we need to create both default live and dev versions.
-        const liveVersion = await publishNewAppAIVersion('v1.0.0', defaultSystems, false);
-        const devVersion = await publishNewAppAIVersion('v1.0.0-dev', defaultSystems, true);
+        await Promise.all([
+             publishNewAppAIVersion('v1.0.0', defaultSystems, false),
+             publishNewAppAIVersion('v1.0.0-dev', defaultSystems, true)
+        ]);
         
-        // Return the one that was requested, or both if 'all'
-        if (type === 'live') return [liveVersion];
-        if (type === 'dev') return [devVersion];
-        return [devVersion, liveVersion]; // dev is newer, so it comes first in 'desc' order
+        // After creating, refetch everything to return the correct data.
+        const finalSnapshot = await getDocs(q);
+        const versions = finalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
+        return versions;
     }
 
+    const versions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
     return versions;
 }
 
@@ -636,4 +643,5 @@ export const getComposedPrompt = cache(
     },
     ['composed-prompts-v4'], { revalidate: 30, tags: ['prompts'] }
 );
+
 

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
@@ -270,7 +271,8 @@ export function ThemeGenerator() {
         const themeDocRef = doc(db, 'users', user.uid, 'themes', themeId);
         await setDoc(themeDocRef, themeToSaveToSlot);
 
-        if(savedThemes[selectedSlot]?.isActive) {
+        const currentActiveTheme = savedThemes[selectedSlot];
+        if(currentActiveTheme?.isActive) {
             updateCSSVariables(themeToSaveToSlot.colors);
             localStorage.setItem('active-theme-json', JSON.stringify(themeToSaveToSlot));
         }
@@ -364,10 +366,13 @@ export function ThemeGenerator() {
         return;
     };
   
-    const newSavedThemes = savedThemes.map((theme, i) => ({
-      ...theme,
-      isActive: i === index,
-    }));
+    const newSavedThemes: (Theme | null)[] = savedThemes.map((theme, i) => {
+        if(theme) {
+            return {...theme, isActive: i === index};
+        }
+        return null;
+    });
+
     setSelectedSlot(index);
     setSavedThemes(newSavedThemes);
   
@@ -379,12 +384,14 @@ export function ThemeGenerator() {
   
     try {
       // Update the status of all themes for this user in a batch
+      const batch = [];
       for (const theme of newSavedThemes) {
           if (theme) {
             const themeDocRef = doc(db, 'users', user.uid, 'themes', theme.id);
-            await setDoc(themeDocRef, theme, { merge: true });
+            batch.push(setDoc(themeDocRef, theme, { merge: true }));
           }
       }
+      await Promise.all(batch);
     } catch (error) {
       console.error("Error updating active theme in Firestore: ", error);
     }
@@ -642,4 +649,5 @@ localStorage.setItem('manual-theme', JSON.stringify(newTheme));
     </>
   );
 }
+
 
