@@ -14,6 +14,12 @@ This is a list of tasks and ideas for improving the application.
 
 ---
 
+## Audio & Recording
+
+- **Implement Lossless Recording**: For "Twitcher Mode", investigate and implement a high-fidelity recording system using the browser's `AudioWorklet` API. This would involve capturing raw audio buffers and manually encoding them into a lossless `.wav` file on the client-side before upload, providing the AI with the maximum possible data for analysis.
+
+---
+
 ## Backend & Cloud Functions
 
 - **Review Deletion Logic**: Check the parameters being passed to the `onUserLogDisowned` Cloud Function and update the logic as needed to ensure file deletions are handled correctly and securely.
