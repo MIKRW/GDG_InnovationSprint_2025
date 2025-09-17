@@ -147,7 +147,7 @@ function VersionPublisher({
      <>
         <CardContent>
             {isLive ? (
-                <div className="flex flex-col items-center space-y-2">
+                <div className="flex flex-col items-center space-y-4 pt-4">
                     <Label htmlFor="dev-version-select">Development Version to Promote</Label>
                     <Select value={devVersionToPromote} onValueChange={setDevVersionToPromote}>
                         <SelectTrigger id="dev-version-select" className="w-full max-w-xs">
@@ -457,3 +457,5 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
     </div>
   );
 }
+
+    
