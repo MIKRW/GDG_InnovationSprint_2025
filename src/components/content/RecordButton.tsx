@@ -5,7 +5,7 @@
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
-import { doc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, getDoc } from 'firebase/firestore';
 import { ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
 
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
@@ -49,13 +49,11 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   const currentTimestamp = useRef<string | null>(null);
 
   useImperativeHandle(ref, () => ({
-    handleFileSelect: async (file: File, testContext?: { birdId: string, testAudioId: string }) => {
-      setRecordingState('processing');
-      if (currentSessionId.current === null) {
-        currentSessionId.current = uuidv4();
-      }
+    handleFileSelect: (file: File, testContext?: { birdId: string, testAudioId: string }) => {
+      // This is now a unified entry point for processing an audio file
+      currentSessionId.current = uuidv4();
       currentTimestamp.current = new Date().toISOString();
-
+      setRecordingState('processing');
       const audio = new Audio(URL.createObjectURL(file));
       audio.onloadedmetadata = () => {
         const duration = audio.duration;
@@ -247,17 +245,18 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   };
 
   const handleStop = async () => {
-    setRecordingState('processing');
     const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
     const recordingLengthSeconds = recordingStartTimeRef.current ? parseFloat(((Date.now() - recordingStartTimeRef.current) / 1000).toFixed(2)) : undefined;
 
+    // A live recording in dev mode is flagged as developer data
+    const isDeveloperRun = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+    const testContext = isDeveloperRun ? { birdId: 'live-test', testAudioId: uuidv4() } : undefined;
+    
+    setRecordingState('processing');
     const reader = new FileReader();
     reader.readAsDataURL(audioBlob);
     reader.onloadend = async () => {
         const base64Audio = reader.result as string;
-        // In dev mode, a live recording is still flagged as dev data
-        const isDeveloperRun = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
-        const testContext = isDeveloperRun ? { birdId: 'live-test', testAudioId: uuidv4() } : undefined;
         getLocationForAIShot(locationData => processAudio(base64Audio, recordingLengthSeconds, locationData, testContext));
     };
   };
@@ -321,7 +320,8 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     const appSettings = getAppSettings();
     const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
     
-    const isDeveloperRun = !!testContext;
+    // A run is a "developer run" if it has test context (from file upload) or if it's a live recording in dev mode
+    const isDeveloperRun = !!testContext || process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
     try {
       const analysisStartTime = Date.now();
@@ -347,6 +347,8 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           recordingLengthSeconds,
           { primaryIdentificationMs: analysisDurationMs }
       );
+      
+      setRecordingState('idle'); // Reset state after processing
 
       if (analysisRunId) {
           // ALWAYS go to confirmation page now. The page itself will handle
@@ -354,7 +356,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           router.push(`/record/confirm/${analysisRunId}`);
       } else {
         // If analysisRunId failed to create for some reason.
-        setRecordingState('idle');
+        onIdentificationFailed?.();
       }
 
     } catch (error) {
@@ -381,12 +383,14 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
            recordingLengthSeconds,
            analysisDurationMs ? { primaryIdentificationMs: analysisDurationMs } : undefined
         );
-
+        
+      setRecordingState('idle'); // Reset state after processing
+      
       if (analysisRunId) {
           // ALWAYS go to confirmation page, even on failure.
           router.push(`/record/confirm/${analysisRunId}`);
       } else {
-          setRecordingState('idle');
+          onIdentificationFailed?.();
       }
     }
   }
@@ -408,7 +412,6 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           label: 'Press to Stop',
         };
       case 'processing':
-      case 'confirming':
         return {
           icon: <Loader2 className="w-40 h-40 text-background animate-spin" />,
           label: 'Analyzing...',
@@ -427,7 +430,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   };
 
   const { icon, label } = getButtonContent();
-  const isDisabled = recordingState === 'processing' || recordingState === 'confirming' || !user;
+  const isDisabled = recordingState === 'processing' || !user;
 
 
   return (

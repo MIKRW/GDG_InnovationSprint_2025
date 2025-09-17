@@ -73,7 +73,8 @@ export default function RecordPage() {
   }, [isTestAudioDialogOpen, isDevMode]);
 
   const handleSelectTestAudio = async (audio: TestAudioMetadata) => {
-    setIsTestAudioDialogOpen(false);
+    // This function now correctly triggers the file selection on the child.
+    // The dialog closing is handled by `onNewAudioUploaded` to ensure a smooth flow.
     try {
         const fileRef = storageRef(storage, audio.storagePath);
         const blob = await getBlob(fileRef);
@@ -88,6 +89,9 @@ export default function RecordPage() {
   };
   
   const onNewAudioUploaded = (metadata: TestAudioMetadata) => {
+    // This is the success callback from the form.
+    // It closes the dialog and passes the uploaded audio to be processed.
+    setIsTestAudioDialogOpen(false);
     handleSelectTestAudio(metadata);
   }
 
@@ -132,7 +136,10 @@ export default function RecordPage() {
                                                 key={audio.id} 
                                                 variant="ghost" 
                                                 className="w-full justify-start h-auto text-left"
-                                                onClick={() => handleSelectTestAudio(audio)}
+                                                onClick={() => {
+                                                  setIsTestAudioDialogOpen(false);
+                                                  handleSelectTestAudio(audio);
+                                                }}
                                             >
                                             <Music className="mr-4 h-6 w-6 shrink-0" />
                                             <div>
