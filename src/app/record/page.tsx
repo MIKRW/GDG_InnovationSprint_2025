@@ -133,7 +133,7 @@ export default function RecordPage() {
   };
 
 
-  const processAudio = async (
+  const processAudio = (
       base64Audio: string, 
       isDeveloperRun: boolean,
       testContext?: { birdId: string, testAudioId: string },
@@ -209,6 +209,7 @@ export default function RecordPage() {
 
   const handleSelectTestAudio = async (audio: TestAudioMetadata) => {
     setIsTestAudioDialogOpen(false);
+    setIsProcessing(true); // Show spinner immediately
     currentSessionId.current = uuidv4();
     currentTimestamp.current = new Date().toISOString();
     
@@ -216,49 +217,32 @@ export default function RecordPage() {
         const fileRef = storageRef(storage, audio.storagePath);
         const blob = await getBlob(fileRef);
         
-        let mimeType = blob.type;
-        if (!mimeType) {
-            if (audio.fileName.endsWith('.wav')) {
-                mimeType = 'audio/wav';
-            } else if (audio.fileName.endsWith('.mp3')) {
-                mimeType = 'audio/mpeg';
-            }
-        }
-        
-        const file = new File([blob], audio.fileName, { type: mimeType });
         const testContext = { birdId: audio.birdId, testAudioId: audio.testAudioId };
 
-        const audioEl = new Audio();
-        audioEl.src = URL.createObjectURL(file);
-
-        audioEl.onloadedmetadata = () => {
-            const duration = audioEl.duration;
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onloadend = () => {
-                const base64Audio = reader.result as string;
-                processAudio(base64Audio, true, testContext, duration);
-                URL.revokeObjectURL(audioEl.src); 
-            };
-            reader.onerror = () => {
-                console.error("Failed to read file for test run.");
-                URL.revokeObjectURL(audioEl.src);
-            }
+        const reader = new FileReader();
+        reader.readAsDataURL(blob);
+        
+        reader.onloadend = () => {
+            const base64Audio = reader.result as string;
+            // We can't easily get duration from a blob without loading it, so we'll skip it for test runs.
+            processAudio(base64Audio, true, testContext, undefined);
         };
-         audioEl.onerror = (e) => {
-            console.error("Failed to load audio metadata for test run.", e);
-            logErrorToFirestore(new Error('Failed to load audio metadata for test run'), 'audio-metadata-load-failure', {
+        
+        reader.onerror = (error) => {
+            console.error("FileReader error:", error);
+            logErrorToFirestore(new Error('Failed to read test audio file'), 'filereader-failure', {
                 fileName: audio.fileName,
-                storagePath: audio.storagePath,
-                mimeType: mimeType
+                storagePath: audio.storagePath
             });
-         }
+            setIsProcessing(false);
+        };
 
     } catch (error) {
         console.error("Error loading test audio from Firebase Storage:", error);
          logErrorToFirestore(error as Error, 'firebase-storage-read-failure', {
             storagePath: audio.storagePath
         });
+        setIsProcessing(false);
     }
   };
 
@@ -356,5 +340,3 @@ export default function RecordPage() {
     </AppLayout>
   );
 }
-
-    
