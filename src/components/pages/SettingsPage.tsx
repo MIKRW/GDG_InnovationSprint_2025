@@ -54,19 +54,19 @@ export function SettingsPage() {
         <p className="text-muted-foreground">
           Customize the look, feel, and functionality of your application.
         </p>
-        <Link href="/theme" asChild>
-          <Button variant="outline">
-            Customize Theme
+        <Link href="/theme" passHref>
+          <Button asChild variant="outline">
+            <a>Customize Theme</a>
           </Button>
         </Link>
-        <Link href="/settings/location" asChild>
-          <Button variant="outline">
-            Location Settings
+        <Link href="/settings/location" passHref>
+          <Button asChild variant="outline">
+            <a>Location Settings</a>
           </Button>
         </Link>
-         <Link href="/settings/mode" asChild>
-          <Button variant="outline">
-            App Mode
+         <Link href="/settings/mode" passHref>
+          <Button asChild variant="outline">
+            <a>App Mode</a>
           </Button>
         </Link>
 
@@ -94,24 +94,25 @@ export function SettingsPage() {
         {isDevMode && (
           <div className="pt-8 w-full max-w-sm">
               <h2 className="text-lg font-semibold mb-2">Developer Tools</h2>
-                <Card className="bg-hazard-stripes p-1 rounded-lg">
-                    <div className="bg-background rounded-sm">
-                      <Link href="/settings/prompts" asChild>
-                        <Button variant="outline" className="w-full justify-start">
-                          <FlaskConical className="mr-2 h-4 w-4" />Prompt Management
-                        </Button>
-                      </Link>
-                    </div>
+              <Link href="/settings/prompts" passHref>
+                <Card asChild className="bg-hazard-stripes p-1 rounded-lg cursor-pointer">
+                    <a>
+                        <div className="bg-background rounded-sm p-4 flex items-center">
+                            <FlaskConical className="mr-2 h-4 w-4" />
+                            <span>Prompt Management</span>
+                        </div>
+                    </a>
                 </Card>
+              </Link>
           </div>
         )}
 
         <div className="pt-8 w-full max-w-sm">
             <h2 className="text-lg font-semibold mb-2">Account</h2>
             {isAnonymous ? (
-                 <Link href="/settings/register" asChild>
-                    <Button variant="outline">
-                        Create Account
+                 <Link href="/settings/register" passHref>
+                    <Button asChild variant="outline">
+                        <a>Create Account</a>
                     </Button>
                 </Link>
             ) : (
