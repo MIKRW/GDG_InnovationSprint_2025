@@ -151,6 +151,7 @@ export default function RecordPage() {
                 audioStoragePath: storagePath,
                 timestamp: currentTimestamp.current,
                 mode: appSettings.mode,
+                isDeveloperData: isDeveloperRun,
                 ...locationData
             });
             const analysisDurationMs = Date.now() - analysisStartTime;

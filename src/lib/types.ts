@@ -77,6 +77,7 @@ export type AnalysisRun = {
     season?: string;
     confidence?: number;
     aiGeneratedHabitatTags?: string[];
+    duration?: number;
   };
   wasSuccessful: boolean;
   wasSavedByUser: boolean;
@@ -220,5 +221,3 @@ export type PromptContent = {
     promptText: string;
     previousVersionId?: string;
 };
-
-    

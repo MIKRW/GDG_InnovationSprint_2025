@@ -14,6 +14,7 @@ import { getComposedPrompt } from '@/lib/actions';
 import { getStorage } from 'firebase-admin/storage';
 import { Readable } from 'stream';
 import wavDecoder from 'wav-decoder';
+import { devTestPrompt } from '@/ai/prompts/dev-test-prompt';
 
 const IdentifyBirdInputSchema = z.object({
   audioDataUri: z
@@ -30,6 +31,7 @@ const IdentifyBirdInputSchema = z.object({
     mode: z.enum(['newbie', 'twitcher']).describe('The application mode selected by the user, which may determine the expected audio quality and analysis depth.'),
     habitatPhotoDataUri: z.string().optional().describe("An optional photo of the bird's habitat, as a data URI."),
     habitatDescription: z.string().optional().describe("A user-provided text description of the habitat."),
+    isDeveloperData: z.boolean().optional().describe("A flag to indicate if this is a developer test run, which may trigger different processing logic."),
 });
 export type IdentifyBirdInput = z.infer<typeof IdentifyBirdInputSchema>;
 
@@ -155,7 +157,7 @@ export async function identifyBirdBySound(
   const result = await identifyBirdFlow(input);
   
   // Add the server-calculated duration to the final result if it exists.
-  if (duration) {
+  if (duration && result.duration === undefined) {
     result.duration = duration;
   }
 
@@ -172,11 +174,19 @@ const identifyBirdFlow = ai.defineFlow(
   },
   async (input) => {
     
-    // Dynamically get the live prompt from our versioning system
-    const promptTemplate = await getComposedPrompt('bird-identifier-ai-newbie');
+    let promptTemplate: string | null;
+
+    // Use the developer test prompt if this is a developer run, otherwise get the live prompt.
+    if (input.isDeveloperData) {
+        console.log("Using developer test prompt.");
+        promptTemplate = devTestPrompt;
+    } else {
+        console.log("Using live prompt from Firestore.");
+        promptTemplate = await getComposedPrompt('bird-identifier-ai-newbie');
+    }
     
     if (!promptTemplate) {
-        throw new Error("Could not retrieve a valid prompt from the AI configuration system. Please check the 'prompt_systems' configuration in Firestore.");
+        throw new Error("Could not retrieve a valid prompt. For dev runs, check 'src/ai/prompts/dev-test-prompt.ts'. For live runs, check the AI configuration in Firestore.");
     }
     
     const prompt = ai.definePrompt({
@@ -207,11 +217,10 @@ const identifyBirdFlow = ai.defineFlow(
             season: output.season || "Unknown",
             weather: output.weather || "Unknown",
             aiGeneratedHabitatTags: [],
+            duration: output.duration,
         };
     }
     
     return output;
   }
 );
-
-    

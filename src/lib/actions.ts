@@ -184,7 +184,8 @@ export async function createAnalysisRun(
     const fileRef = storageRef(storage, audioStoragePath);
     const inputAudioUrl = await getDownloadURL(fileRef);
 
-    const docToCreate: Omit<AnalysisRun, 'id'> = {
+    const docToCreate: Partial<AnalysisRun> = {
+      id: analysisRunId,
       timestamp: timestamp!,
       userId: userId,
       sessionId: sessionId!,
@@ -528,5 +529,3 @@ export const getComposedPrompt = cache(
         tags: ['prompts'],
     }
 );
-
-    
