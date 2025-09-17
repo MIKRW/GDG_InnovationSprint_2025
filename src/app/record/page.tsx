@@ -22,7 +22,10 @@ import { NewMasterAudioForm } from '@/components/content/NewMasterAudioForm';
 export default function RecordPage() {
   const [showPermissionError, setShowPermissionError] = useState(false);
   const [showIdentificationError, setShowIdentificationError] = useState(false);
+  
+  // Ref to call the method inside RecordButton
   const RecordButtonRef = useRef<{ handleFileSelect: (file: File, testContext?: { birdId: string, testAudioId: string }) => void }>(null);
+
   const [isTestAudioDialogOpen, setIsTestAudioDialogOpen] = useState(false);
   const [testAudioLibrary, setTestAudioLibrary] = useState<TestAudioMetadata[]>([]);
   const [isLibraryLoading, setIsLibraryLoading] = useState(false);
@@ -73,8 +76,7 @@ export default function RecordPage() {
   }, [isTestAudioDialogOpen, isDevMode]);
 
   const handleSelectTestAudio = async (audio: TestAudioMetadata) => {
-    // This function now correctly triggers the file selection on the child.
-    // The dialog closing is handled by `onNewAudioUploaded` to ensure a smooth flow.
+    setIsTestAudioDialogOpen(false);
     try {
         const fileRef = storageRef(storage, audio.storagePath);
         const blob = await getBlob(fileRef);
@@ -89,9 +91,6 @@ export default function RecordPage() {
   };
   
   const onNewAudioUploaded = (metadata: TestAudioMetadata) => {
-    // This is the success callback from the form.
-    // It closes the dialog and passes the uploaded audio to be processed.
-    setIsTestAudioDialogOpen(false);
     handleSelectTestAudio(metadata);
   }
 
@@ -137,7 +136,6 @@ export default function RecordPage() {
                                                 variant="ghost" 
                                                 className="w-full justify-start h-auto text-left"
                                                 onClick={() => {
-                                                  setIsTestAudioDialogOpen(false);
                                                   handleSelectTestAudio(audio);
                                                 }}
                                             >

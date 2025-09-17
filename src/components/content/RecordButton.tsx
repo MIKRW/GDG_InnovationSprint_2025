@@ -39,8 +39,7 @@ const PROMPT_VERSION = "1.8"; // This should be updated when the prompt text fil
 const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps, ref) => {
   const router = useRouter();
   const { user } = useAuth();
-  const [recordingState, setRecordingState] =
-    useState<RecordingState>('idle');
+  const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingStartTimeRef = useRef<number | null>(null);
@@ -53,7 +52,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
       // This is now a unified entry point for processing an audio file
       currentSessionId.current = uuidv4();
       currentTimestamp.current = new Date().toISOString();
-      setRecordingState('processing');
+      setRecordingState('processing'); // Set state to show "Analyzing..."
       const audio = new Audio(URL.createObjectURL(file));
       audio.onloadedmetadata = () => {
         const duration = audio.duration;
@@ -248,11 +247,12 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
     const recordingLengthSeconds = recordingStartTimeRef.current ? parseFloat(((Date.now() - recordingStartTimeRef.current) / 1000).toFixed(2)) : undefined;
 
+    setRecordingState('processing');
+    
     // A live recording in dev mode is flagged as developer data
     const isDeveloperRun = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
     const testContext = isDeveloperRun ? { birdId: 'live-test', testAudioId: uuidv4() } : undefined;
     
-    setRecordingState('processing');
     const reader = new FileReader();
     reader.readAsDataURL(audioBlob);
     reader.onloadend = async () => {
@@ -320,7 +320,7 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
     const appSettings = getAppSettings();
     const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
     
-    // A run is a "developer run" if it has test context (from file upload) or if it's a live recording in dev mode
+    // A run is a "developer run" if it has test context (from a file upload) or if it's a live recording in dev mode.
     const isDeveloperRun = !!testContext || process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
     try {
