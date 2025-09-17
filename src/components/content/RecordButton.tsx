@@ -2,7 +2,7 @@
 
 'use-client';
 
-import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useState, useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 import { doc, setDoc, collection, addDoc, getDoc, updateDoc } from 'firebase/firestore';
@@ -29,6 +29,7 @@ interface RecordButtonProps {
     onPermissionDenied?: () => void;
     onIdentificationFailed?: () => void;
     onStartRecording?: () => void;
+    isProcessingFile?: boolean; // New prop to control processing state externally
 }
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
@@ -36,7 +37,7 @@ const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 const PROMPT_VERSION = "1.8"; // This should be updated when the prompt text files change.
 
-const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, onStartRecording }: RecordButtonProps, ref) => {
+const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, onStartRecording, isProcessingFile = false }: RecordButtonProps, ref) => {
   const router = useRouter();
   const { user } = useAuth();
   const [recordingState, setRecordingState] =
@@ -47,6 +48,15 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
   const [lastAnalysisRunId, setLastAnalysisRunId] = useState<string | null>(null);
   const currentSessionId = useRef<string | null>(null);
   const currentTimestamp = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (isProcessingFile) {
+        setRecordingState('processing');
+    } else if (recordingState === 'processing' && !mediaRecorderRef.current) {
+        // If we were processing a file and it's done, go back to idle
+        setRecordingState('idle');
+    }
+  }, [isProcessingFile, recordingState]);
 
 
   useImperativeHandle(ref, () => ({
@@ -63,7 +73,6 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
           reader.readAsDataURL(file);
           reader.onloadend = async () => {
               const base64Audio = reader.result as string;
-              setRecordingState('processing');
               getLocationForAIShot(locationData => processAudio(base64Audio, duration, locationData, testContext));
           };
           reader.onerror = () => {
@@ -467,7 +476,3 @@ const RecordButton = forwardRef(({ onPermissionDenied, onIdentificationFailed, o
 RecordButton.displayName = "RecordButton";
 
 export { RecordButton };
-
-    
-
-    
