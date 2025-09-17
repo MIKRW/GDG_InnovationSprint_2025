@@ -244,11 +244,7 @@ export async function getPromptSystem(systemId: string): Promise<PromptSystem | 
     return { id: snapshot.id, ...snapshot.data() } as PromptSystem;
 }
 
-/**
- * Creates a new Prompt System with a simple name and description.
- * It no longer creates the deep child documents, as that is handled by `getAppAIVersions`
- * to prevent race conditions on first app load.
- */
+
 export async function createNewPromptSystem(data: { systemId: string, name: string, description: string }): Promise<void> {
     const { systemId, name, description } = data;
     const systemRef = doc(db, 'prompt_systems', systemId);
@@ -312,7 +308,6 @@ export async function getAppAIConfig(): Promise<AppAIConfig | null> {
     const configRef = doc(db, 'app_ai_config', 'main');
     const snapshot = await getDoc(configRef);
     if (!snapshot.exists()) {
-        // Return null instead of creating, as getAppAIVersions will handle creation.
         return null;
     }
     return snapshot.data() as AppAIConfig;
@@ -514,16 +509,18 @@ export const getComposedPrompt = cache(
         console.log(`Composing prompt for AI Type '${systemId}' (Mode: ${isDevMode ? 'Development' : 'Live'}).`);
 
         try {
-            // 1. Get the global AI config to find which top-level version to use.
-            const appAIConfig = await getAppAIConfig();
+            // 1. Get the global AI config. If it doesn't exist, create it and retry.
+            let appAIConfig = await getAppAIConfig();
             if (!appAIConfig) {
-                // If it's null, it means the DB is likely empty. Trigger creation and retry.
-                await getAppAIVersions('all');
-                const refreshedConfig = await getAppAIConfig();
-                if (!refreshedConfig) throw new Error("App AI Systems config not found even after refresh.");
-                return getComposedPrompt(systemId); // Recurse once after creation
+                console.log("App AI config not found. Triggering initial data creation.");
+                await getAppAIVersions('all'); // This function contains the transactional creation logic.
+                appAIConfig = await getAppAIConfig(); // Retry fetching after creation.
+                if (!appAIConfig) {
+                    throw new Error("App AI Systems config not found even after refresh.");
+                }
             }
 
+            // 2. Determine which top-level version to use.
             const appAIVersionId = isDevMode 
                 ? appAIConfig.developmentAppAIVersion 
                 : appAIConfig.activeAppAIVersion;
@@ -532,7 +529,7 @@ export const getComposedPrompt = cache(
                 throw new Error(`No ${isDevMode ? 'development' : 'active'} App AI Version is set.`);
             }
 
-            // 2. Get the App AI System document (the manifest).
+            // 3. Get the App AI System document (the manifest).
             const appAIVersionRef = doc(db, 'app_ai_versions', appAIVersionId);
             const appAIVersionSnap = await getDoc(appAIVersionRef);
             if (!appAIVersionSnap.exists()) {
@@ -540,13 +537,13 @@ export const getComposedPrompt = cache(
             }
             const appAIVersion = appAIVersionSnap.data() as AppAIVersion;
 
-            // 3. From that, find the ID of the AI Type Version for the requested systemId.
+            // 4. From that, find the ID of the AI Type Version for the requested systemId.
             const promptSystemVersionId = appAIVersion.systems[systemId];
             if (!promptSystemVersionId) {
                 throw new Error(`AI Type '${systemId}' is not defined in App AI Version '${appAIVersionId}'.`);
             }
             
-            // 4. Get the AI Type Version document (the "recipe").
+            // 5. Get the AI Type Version document (the "recipe").
             const promptVersionRef = doc(db, 'prompt_versions', promptSystemVersionId);
             const promptVersionSnap = await getDoc(promptVersionRef);
             if (!promptVersionSnap.exists()) {
@@ -554,7 +551,7 @@ export const getComposedPrompt = cache(
             }
             const promptVersionData = promptVersionSnap.data() as PromptVersion;
 
-            // 5. Get all the individual Prompt Content documents from the recipe.
+            // 6. Get all the individual Prompt Content documents from the recipe.
             const contentIds = Object.values(promptVersionData.composedPrompts);
             if (contentIds.length === 0) {
                  throw new Error(`AI Type Version '${promptSystemVersionId}' has no prompt content defined.`);
@@ -562,13 +559,13 @@ export const getComposedPrompt = cache(
             const contentPromises = contentIds.map(id => getDoc(doc(db, 'prompt_content', id)));
             const contentSnaps = await Promise.all(contentPromises);
 
-            // 6. Assemble the final prompt text.
+            // 7. Assemble the final prompt text.
             const composedText = contentSnaps.map(snap => {
                 if (!snap.exists()) throw new Error(`Required prompt content document with ID '${snap.ref.id}' is missing.`);
                 return (snap.data() as PromptContent).promptText;
             }).join('\n\n');
             
-            // Return both the prompt and the top-level version string for logging.
+            // 8. Return both the prompt and the top-level version string for logging.
             return { prompt: composedText, version: appAIVersionId };
 
         } catch (error) {
@@ -578,6 +575,3 @@ export const getComposedPrompt = cache(
     },
     ['composed-prompts-v7'], { revalidate: 30, tags: ['prompts'] }
 );
-
-
-      
