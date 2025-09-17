@@ -3,9 +3,12 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { getBlob, ref as storageRef } from 'firebase/storage';
-import { collection, getDocs } from 'firebase/firestore';
-import { RecordButton, type RecordButtonRef } from '@/components/content/RecordButton';
+import { getBlob, ref as storageRef, uploadString, getDownloadURL } from 'firebase/storage';
+import { collection, getDocs, doc, setDoc } from 'firebase/firestore';
+import { v4 as uuidv4 } from 'uuid';
+import { useRouter } from 'next/navigation';
+
+import { RecordButton } from '@/components/content/RecordButton';
 import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
@@ -15,21 +18,34 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { db, storage } from '@/lib/firebase';
-import type { TestAudioMetadata } from '@/lib/types';
+import type { AnalysisRun, AppMode, AppSettings, LocationSettings, TestAudioMetadata } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NewMasterAudioForm } from '@/components/content/NewMasterAudioForm';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { logErrorToFirestore } from '@/lib/error-logging';
+import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
+
+const LOCATION_SETTINGS_KEY = 'location-settings';
+const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
+const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
+
 
 export default function RecordPage() {
-  const [showPermissionError, setShowPermissionError] = useState(false);
-  const [showIdentificationError, setShowIdentificationError] = useState(false);
+  const router = useRouter();
+  const { user } = useAuth();
   
-  // Ref to call the method inside RecordButton
-  const recordButtonRef = useRef<RecordButtonRef>(null);
-
+  const [showPermissionError, setShowPermissionError] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  
   const [isTestAudioDialogOpen, setIsTestAudioDialogOpen] = useState(false);
   const [testAudioLibrary, setTestAudioLibrary] = useState<TestAudioMetadata[]>([]);
   const [isLibraryLoading, setIsLibraryLoading] = useState(false);
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+
+  // Refs for managing state across async operations
+  const currentSessionId = useRef<string | null>(null);
+  const currentTimestamp = useRef<string | null>(null);
+
 
   const fetchTestAudioLibrary = async () => {
     setIsLibraryLoading(true);
@@ -74,40 +90,229 @@ export default function RecordPage() {
       fetchTestAudioLibrary();
     }
   }, [isTestAudioDialogOpen, isDevMode]);
+  
+  // ================================================================
+  // Centralized Audio Processing Logic
+  // ================================================================
 
+  const getAppSettings = (): AppSettings => {
+    const savedSettingsJson = localStorage.getItem(APP_MODE_SETTINGS_KEY);
+    const defaultSettings: AppSettings = { mode: 'newbie' };
+    if (savedSettingsJson) {
+        try {
+            const parsed = JSON.parse(savedSettingsJson);
+            if (parsed.mode === 'newbie' || parsed.mode === 'twitcher') {
+                return { mode: parsed.mode };
+            }
+        } catch { return defaultSettings; }
+    }
+    return defaultSettings;
+  }
+
+  const getLocationForAIShot = (
+    callback: (locationData?: { latitude?: number; longitude?: number, locationDescription?: string }) => void
+  ) => {
+    const savedSettingsJson = localStorage.getItem(LOCATION_SETTINGS_KEY);
+    let settings: LocationSettings = { mode: 'device', manual: { latitude: 0, longitude: 0 }, description: '', privacy: { isOutside: true } };
+    if (savedSettingsJson) {
+      try { settings = JSON.parse(savedSettingsJson); } catch { /* Fallback to default */ }
+    }
+
+    if (settings.mode === 'device') {
+      navigator.geolocation.getCurrentPosition(
+        (position) => callback({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
+        () => callback() // Proceed without location on error/denial
+      );
+    } else if (settings.mode === 'manual') {
+      callback(settings.manual);
+    } else if (settings.mode === 'description') {
+      callback({ locationDescription: settings.description });
+    } else { // privacy mode
+      callback();
+    }
+  };
+
+  const createAnalysisRun = async (
+    audioDataUri: string,
+    aiResult: any,
+    wasSuccessful: boolean,
+    locationData: any,
+    hardware: string | null,
+    mode: AppMode,
+    isDeveloperRun: boolean,
+    testContext?: { birdId: string; testAudioId: string },
+    recordingLengthSeconds?: number,
+    analysisTimings?: AnalysisRun['analysisTimings']
+  ) => {
+    if (!user) {
+      console.error("Cannot create analysis run: user is not authenticated.");
+      logErrorToFirestore(new Error("Analysis run failed: No user."), 'firestore-write-failure', { detail: 'User not authenticated during createAnalysisRun.' });
+      return null;
+    }
+
+    const audioId = uuidv4();
+    const filePath = `users/${user.uid}/recordings/${audioId}.webm`;
+    const fileRef = storageRef(storage, filePath);
+    await uploadString(fileRef, audioDataUri, 'data_url');
+    const downloadURL = await getDownloadURL(fileRef);
+
+    const analysisRunId = uuidv4();
+    const collectionName = isDeveloperRun ? 'all_test_runs' : 'all_analysis_runs';
+    const analysisRunRef = doc(db, collectionName, analysisRunId);
+
+    const docToCreate: Partial<AnalysisRun> = {
+      id: analysisRunId,
+      timestamp: currentTimestamp.current!,
+      userId: user.uid,
+      sessionId: currentSessionId.current!,
+      inputAudioUrl: downloadURL,
+      inputAudioStoragePath: filePath,
+      locationData: {
+        latitude: locationData?.latitude ?? null,
+        longitude: locationData?.longitude ?? null,
+        locationDescription: locationData?.locationDescription ?? null,
+      },
+      analysisMethod: `gemini-pro-vision-prompt-v1.8`,
+      aiResult: aiResult,
+      wasSuccessful: wasSuccessful,
+      wasSavedByUser: false,
+      mode: mode,
+      isDeveloperData: isDeveloperRun,
+      recordingLengthSeconds: recordingLengthSeconds,
+      analysisTimings: analysisTimings,
+    };
+
+    if (hardware) {
+        docToCreate.hardware = hardware;
+    }
+    if (isDeveloperRun && testContext) {
+      docToCreate.birdId = testContext.birdId;
+      docToCreate.testAudioId = testContext.testAudioId;
+    }
+
+    await setDoc(analysisRunRef, docToCreate);
+    return analysisRunId;
+  }
+
+  const processAudio = async (
+      base64Audio: string, 
+      isDeveloperRun: boolean,
+      testContext?: { birdId: string, testAudioId: string },
+      recordingLengthSeconds?: number
+  ) => {
+      setIsProcessing(true);
+      
+      const processWithLocation = async (locationData?: { latitude?: number; longitude?: number, locationDescription?: string }) => {
+        if (!currentTimestamp.current) {
+            setIsProcessing(false);
+            return;
+        }
+        const appSettings = getAppSettings();
+        const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
+        let analysisRunId: string | null = null;
+        const analysisStartTime = Date.now();
+
+        try {
+            const result = await identifyBirdBySound({
+                audioDataUri: base64Audio,
+                timestamp: currentTimestamp.current,
+                mode: appSettings.mode,
+                ...locationData
+            });
+            const analysisDurationMs = Date.now() - analysisStartTime;
+            const wasSuccessful = result && result.isBirdSong && !!result.commonName;
+
+            analysisRunId = await createAnalysisRun(
+                base64Audio, result, wasSuccessful, locationData, hardware,
+                appSettings.mode, isDeveloperRun, testContext,
+                recordingLengthSeconds, { primaryIdentificationMs: analysisDurationMs }
+            );
+
+        } catch (error) {
+            const analysisDurationMs = Date.now() - analysisStartTime;
+            logErrorToFirestore(error as Error, 'ai-identification-failure', {
+                sessionId: currentSessionId.current, timestamp: currentTimestamp.current,
+                locationData: locationData, appMode: appSettings.mode, userId: user?.uid
+            });
+
+            analysisRunId = await createAnalysisRun(
+                base64Audio, { error: (error as Error).message, isBirdSong: false }, false,
+                locationData, hardware, appSettings.mode, isDeveloperRun, testContext,
+                recordingLengthSeconds, { primaryIdentificationMs: analysisDurationMs }
+            );
+        } finally {
+            setIsProcessing(false);
+            if (analysisRunId) {
+                router.push(`/record/confirm/${analysisRunId}`);
+            }
+        }
+      };
+
+      getLocationForAIShot(processWithLocation);
+  };
+  
+  // ================================================================
+  // Handlers for Live Recording and Test Audio
+  // ================================================================
+
+  const handleStartRecording = () => {
+    setShowPermissionError(false);
+    currentSessionId.current = uuidv4();
+    currentTimestamp.current = new Date().toISOString();
+  }
+
+  const handleRecordingComplete = (audioDataUri: string, duration?: number) => {
+    // A live recording in dev mode is flagged as developer data for testing
+    const isDevTest = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+    const testContext = isDevTest ? { birdId: 'live-test', testAudioId: uuidv4() } : undefined;
+    processAudio(audioDataUri, isDevTest, testContext, duration);
+  }
 
   const handleSelectTestAudio = async (audio: TestAudioMetadata) => {
-    if (!recordButtonRef.current) return;
-    setIsTestAudioDialogOpen(false); // Close dialog immediately
-
+    setIsTestAudioDialogOpen(false);
+    currentSessionId.current = uuidv4();
+    currentTimestamp.current = new Date().toISOString();
+    
+    setIsProcessing(true); // Show processing state on the main button
+    
     try {
         const fileRef = storageRef(storage, audio.storagePath);
         const blob = await getBlob(fileRef);
         const file = new File([blob], audio.fileName, { type: blob.type || 'audio/wav' });
 
         const testContext = { birdId: audio.birdId, testAudioId: audio.testAudioId };
-        recordButtonRef.current.handleFileSelect(file, testContext);
+
+        // Get duration from file
+        const audioEl = new Audio();
+        audioEl.src = URL.createObjectURL(file);
+        audioEl.onloadedmetadata = () => {
+            const duration = audioEl.duration;
+            // Convert file to data URI and process
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onloadend = () => {
+                const base64Audio = reader.result as string;
+                processAudio(base64Audio, true, testContext, duration);
+            };
+            reader.onerror = () => {
+                console.error("Failed to read file for test run.");
+                setIsProcessing(false);
+            }
+        };
+         audioEl.onerror = () => {
+            console.error("Failed to load audio metadata for test run.");
+            setIsProcessing(false);
+        }
 
     } catch (error) {
         console.error("Error loading test audio from Firebase Storage:", error);
+        setIsProcessing(false);
     }
   };
-  
+
   const onNewAudioUploaded = async (metadata: TestAudioMetadata) => {
-    if (!recordButtonRef.current) return;
-    setIsTestAudioDialogOpen(false); // Close dialog
-
-    try {
-        const fileRef = storageRef(storage, metadata.storagePath);
-        const blob = await getBlob(fileRef);
-        const file = new File([blob], metadata.fileName, { type: blob.type || 'audio/wav' });
-        
-        const testContext = { birdId: metadata.birdId, testAudioId: metadata.testAudioId };
-        recordButtonRef.current.handleFileSelect(file, testContext);
-
-    } catch (error) {
-        console.error("Error running analysis on newly uploaded file:", error);
-    }
+    setIsTestAudioDialogOpen(false);
+    await handleSelectTestAudio(metadata);
   }
 
   return (
@@ -177,13 +382,10 @@ export default function RecordPage() {
             )}
 
             <RecordButton 
-              ref={recordButtonRef}
               onPermissionDenied={() => setShowPermissionError(true)} 
-              onIdentificationFailed={() => setShowIdentificationError(true)}
-              onStartRecording={() => {
-                setShowPermissionError(false);
-                setShowIdentificationError(false);
-              }}
+              onStartRecording={handleStartRecording}
+              onRecordingComplete={handleRecordingComplete}
+              isProcessing={isProcessing}
             />
 
             <div className="absolute left-full ml-16 w-96 space-y-4">
@@ -193,15 +395,6 @@ export default function RecordPage() {
                   <AlertTitle className="text-2xl">Microphone Access Required</AlertTitle>
                   <AlertDescription className="text-base">
                     This app needs access to your microphone. Please enable permissions in your browser settings and refresh the page.
-                  </AlertDescription>
-                </Alert>
-              )}
-               {showIdentificationError && (
-                <Alert variant="destructive">
-                  <Bird className="h-4 w-4" />
-                  <AlertTitle className="text_2xl">Identification Failed</AlertTitle>
-                  <AlertDescription className="text-base">
-                    The AI could not identify a bird in the recording. You can save it to the "Mystery Recordings" log to review later.
                   </AlertDescription>
                 </Alert>
               )}
