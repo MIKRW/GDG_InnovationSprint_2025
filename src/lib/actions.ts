@@ -231,30 +231,29 @@ export async function createAnalysisRun(
 export async function getPromptSystems(): Promise<PromptSystem[]> {
     const systemsRef = collection(db, 'prompt_systems');
     const initialSnapshot = await getDocs(query(systemsRef, orderBy('name')));
-    const systems = initialSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
+    let systems = initialSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
 
-    const hasBirdId = systems.some(s => s.id === 'bird-identifier-ai-newbie');
-    const hasThemeGen = systems.some(s => s.id === 'theme-generator-ai');
+    const needsUpdate = !systems.some(s => s.id === 'bird-identifier-ai-newbie') || !systems.some(s => s.id === 'theme-generator-ai');
 
-    if (!hasBirdId) {
-        await createNewPromptSystem({ 
-            systemId: 'bird-identifier-ai-newbie', 
-            name: "Bird Identifier AI (Newbie)",
-            description: "Manages prompts for identifying birds in Newbie mode.",
-        });
-    }
-    if (!hasThemeGen) {
-        await createNewPromptSystem({ 
-            systemId: 'theme-generator-ai', 
-            name: "AI Theme Generator",
-            description: "Manages prompts for generating UI color themes. (KEEP THIS ONE)",
-        });
-    }
-
-    if (!hasBirdId || !hasThemeGen) {
-        // If we created a system, refetch the whole list to ensure correctness and sorting.
+    if (needsUpdate) {
+        console.log("One or more default AI Types are missing. Creating them now...");
+        if (!systems.some(s => s.id === 'bird-identifier-ai-newbie')) {
+            await createNewPromptSystem({ 
+                systemId: 'bird-identifier-ai-newbie', 
+                name: "Bird Identifier AI (Newbie)",
+                description: "Manages prompts for identifying birds in Newbie mode.",
+            });
+        }
+        if (!systems.some(s => s.id === 'theme-generator-ai')) {
+            await createNewPromptSystem({ 
+                systemId: 'theme-generator-ai', 
+                name: "AI Theme Generator",
+                description: "Manages prompts for generating UI color themes. (KEEP THIS ONE)",
+            });
+        }
+        // Refetch the whole list to ensure correctness and sorting.
         const finalSnapshot = await getDocs(query(systemsRef, orderBy('name')));
-        return finalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
+        systems = finalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
     }
     
     return systems;
@@ -288,8 +287,8 @@ You will be given a JSON object containing the audio, location, and other metada
 **Evidence Hierarchy:**
 You MUST prioritize evidence in this order:
 1.  **Habitat Photo (\`habitatPhotoDataUri\`):** This is the primary source of truth for the habitat.
-2.  **Habitat Description (\`habitatDescription\`):** The user's text description is the second most important piece of evidence.
-3.  **GPS Coordinates & Weather:** Use latitude/longitude and weather data (retrieved via the \`getCurrentWeather\` tool) as a fallback or to supplement the user's direct input.
+2.  **Habitat Description (\`habitatDescription\`):** The user\\'s text description is the second most important piece of evidence.
+3.  **GPS Coordinates & Weather:** Use latitude/longitude and weather data (retrieved via the \`getCurrentWeather\` tool) as a fallback or to supplement the user\\'s direct input.
 
 **Tool Usage:**
 - If latitude and longitude are provided, you SHOULD use the \`getCurrentWeather\` tool to get historical weather data for that location and date. This will help you determine the season and conditions, which can be crucial for identification.
@@ -431,21 +430,31 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
     const versionsRef = collection(db, 'app_ai_versions');
     let q: Query;
     
-    // Efficiently query based on the index: (isDevelopment, timestamp DESC)
     if (type === 'dev') {
         q = query(versionsRef, where('isDevelopment', '==', true), orderBy('timestamp', 'desc'));
     } else if (type === 'live') {
         q = query(versionsRef, where('isDevelopment', '==', false), orderBy('timestamp', 'desc'));
-    } else { // 'all'
+    } else {
         q = query(versionsRef, orderBy('timestamp', 'desc'));
     }
 
     const snapshot = await getDocs(q);
     const versions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
 
-    if (versions.length === 0 && type !== 'dev') {
-        // If there are no versions at all, create a default live one.
-        return [await publishNewAppAIVersion('v1.0.0', { 'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-v1-0-0', 'theme-generator-ai': 'theme-generator-ai-v1-0-0' }, false)];
+    if (snapshot.empty) {
+        const defaultSystems = { 
+            'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-v1-0-0', 
+            'theme-generator-ai': 'theme-generator-ai-v1-0-0' 
+        };
+        
+        // If the database is completely empty, we need to create both default live and dev versions.
+        const liveVersion = await publishNewAppAIVersion('v1.0.0', defaultSystems, false);
+        const devVersion = await publishNewAppAIVersion('v1.0.0-dev', defaultSystems, true);
+        
+        // Return the one that was requested, or both if 'all'
+        if (type === 'live') return [liveVersion];
+        if (type === 'dev') return [devVersion];
+        return [devVersion, liveVersion]; // dev is newer, so it comes first in 'desc' order
     }
 
     return versions;
@@ -626,6 +635,7 @@ export const getComposedPrompt = cache(
     },
     ['composed-prompts-v4'], { revalidate: 30, tags: ['prompts'] }
 );
+
 
 
 
