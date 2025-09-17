@@ -241,9 +241,9 @@ function VersionPublisher({
                         className="flex gap-4"
                         onValueChange={(v) => onSaveTypeChange(v as any)}
                     >
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="major" id={`${isLive ? 'live-' : ''}major`} /><Label htmlFor={`${isLive ? 'live-' : ''}major`}>Major</Label></div>
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id={`${isLive ? 'live-' : ''}minor`} /><Label htmlFor={`${isLive ? 'live-' : ''}minor`}>Minor</Label></div>
-                        <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id={`${isLive ? 'live-' : ''}patch`} /><Label htmlFor={`${isLive ? 'live-' : ''}patch`}>Patch</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="major" id={`${isLive ? 'live-' : 'dev-'}major`} /><Label htmlFor={`${isLive ? 'live-' : 'dev-'}major`}>Major</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id={`${isLive ? 'live-' : 'dev-'}minor`} /><Label htmlFor={`${isLive ? 'live-' : 'dev-'}minor`}>Minor</Label></div>
+                        <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id={`${isLive ? 'live-' : 'dev-'}patch`} /><Label htmlFor={`${isLive ? 'live-' : 'dev-'}patch`}>Patch</Label></div>
                     </RadioGroup>
                 </div>
                 <div className="flex items-center gap-2">
