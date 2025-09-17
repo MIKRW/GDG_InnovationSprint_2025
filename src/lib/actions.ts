@@ -231,34 +231,7 @@ export async function createAnalysisRun(
 export async function getPromptSystems(): Promise<PromptSystem[]> {
     const systemsRef = collection(db, 'prompt_systems');
     const initialSnapshot = await getDocs(query(systemsRef, orderBy('name')));
-    let systems = initialSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
-
-    let createdNewSystem = false;
-    if (!systems.some(s => s.id === 'bird-identifier-ai-newbie')) {
-        await createNewPromptSystem({ 
-            systemId: 'bird-identifier-ai-newbie', 
-            name: "Bird Identifier AI (Newbie)",
-            description: "Manages prompts for identifying birds in Newbie mode.",
-        });
-        createdNewSystem = true;
-    }
-    
-    if (!systems.some(s => s.id === 'theme-generator-ai')) {
-        await createNewPromptSystem({ 
-            systemId: 'theme-generator-ai', 
-            name: "AI Theme Generator",
-            description: "Manages prompts for generating UI color themes.",
-        });
-        createdNewSystem = true;
-    }
-
-    if (createdNewSystem) {
-        // Refetch if we created anything to ensure the list is current.
-        const finalSnapshot = await getDocs(query(systemsRef, orderBy('name')));
-        systems = finalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
-    }
-    
-    return systems;
+    return initialSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PromptSystem));
 }
 
 
@@ -271,14 +244,9 @@ export async function getPromptSystem(systemId: string): Promise<PromptSystem | 
     return { id: snapshot.id, ...snapshot.data() } as PromptSystem;
 }
 
-export async function createNewPromptSystem(data: { systemId: string, name: string, description: string }): Promise<PromptSystem> {
+export async function createNewPromptSystem(transaction: any, data: { systemId: string, name: string, description: string }): Promise<void> {
     const { systemId, name, description } = data;
     const systemRef = doc(db, 'prompt_systems', systemId);
-    const systemSnap = await getDoc(systemRef);
-
-    if (systemSnap.exists()) {
-        throw new Error('A system with this ID already exists.');
-    }
 
     let initialPromptText = `You are a world-class AI. Your purpose is to provide accurate and helpful responses.`;
     if (systemId === 'bird-identifier-ai-newbie') {
@@ -339,37 +307,31 @@ Example Input: { "word1": "ocean", "word2": "sand", "word3": "sun", "mood": "Vib
 Your response should be a single, raw JSON object and nothing else.`;
     }
     
-    await runTransaction(db, async (transaction) => {
-        const defaultContentId = `${systemId}_base_instruction_v1-0-0`;
-        const contentRef = doc(db, 'prompt_content', defaultContentId);
-        transaction.set(contentRef, {
-            systemId,
-            categoryId: 'base_instruction',
-            version: 'v1.0.0',
-            promptText: initialPromptText,
-            timestamp: new Date().toISOString(),
-        });
-
-        const defaultVersionId = `${systemId}-v1-0-0`;
-        const versionRef = doc(db, 'prompt_versions', defaultVersionId);
-        transaction.set(versionRef, {
-            systemId,
-            version: 'v1.0.0',
-            timestamp: new Date().toISOString(),
-            composedPrompts: { base_instruction: defaultContentId },
-        });
-
-        const newSystemData: Omit<PromptSystem, 'id'> = {
-            name,
-            description,
-            activeVersion: 'v1.0.0',
-            developmentVersion: 'v1.0.0',
-        };
-        transaction.set(systemRef, newSystemData);
+    const defaultContentId = `${systemId}_base_instruction_v1-0-0`;
+    const contentRef = doc(db, 'prompt_content', defaultContentId);
+    transaction.set(contentRef, {
+        systemId,
+        categoryId: 'base_instruction',
+        version: 'v1.0.0',
+        promptText: initialPromptText,
+        timestamp: new Date().toISOString(),
     });
 
-    revalidateTag('prompts');
-    return { id: systemId, name, description, activeVersion: 'v1.0.0', developmentVersion: 'v1.0.0' };
+    const defaultVersionId = `${systemId}-v1-0-0`;
+    const versionRef = doc(db, 'prompt_versions', defaultVersionId);
+    transaction.set(versionRef, {
+        systemId,
+        version: 'v1.0.0',
+        composedPrompts: { base_instruction: defaultContentId },
+    });
+
+    const newSystemData: Omit<PromptSystem, 'id'> = {
+        name,
+        description,
+        activeVersion: 'v1.0.0',
+        developmentVersion: 'v1.0.0',
+    };
+    transaction.set(systemRef, newSystemData);
 }
 
 export async function getPromptVersionsForSystem(systemId: string, type: 'dev' | 'live' | 'all' = 'all'): Promise<PromptVersion[]> {
@@ -442,16 +404,52 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
     
     if (snapshot.empty && type === 'all') { // Only seed if the entire collection is empty
         console.log("No App AI Systems found. Creating defaults for live and dev.");
-        const defaultSystems = { 
-            'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-v1-0-0', 
-            'theme-generator-ai': 'theme-generator-ai-v1-0-0' 
-        };
         
-        await Promise.all([
-             publishNewAppAIVersion('v1.0.0', defaultSystems, false),
-             publishNewAppAIVersion('v1.0.0-dev', defaultSystems, true)
-        ]);
-        
+        await runTransaction(db, async (transaction) => {
+            // Create default AI Types if they don't exist
+            await createNewPromptSystem(transaction, { 
+                systemId: 'bird-identifier-ai-newbie', 
+                name: "Bird Identifier AI (Newbie)",
+                description: "Manages prompts for identifying birds in Newbie mode.",
+            });
+            await createNewPromptSystem(transaction, { 
+                systemId: 'theme-generator-ai', 
+                name: "AI Theme Generator",
+                description: "Manages prompts for generating UI color themes.",
+            });
+            
+            // Define the default system compositions
+            const defaultSystems = { 
+                'bird-identifier-ai-newbie': 'bird-identifier-ai-newbie-v1-0-0', 
+                'theme-generator-ai': 'theme-generator-ai-v1-0-0' 
+            };
+            
+            // Create default live App AI Version
+            const liveVersionRef = doc(db, 'app_ai_versions', 'v1.0.0');
+            transaction.set(liveVersionRef, {
+                version: 'v1.0.0',
+                isDevelopment: false,
+                timestamp: new Date().toISOString(),
+                systems: defaultSystems,
+            });
+
+            // Create default dev App AI Version
+            const devVersionRef = doc(db, 'app_ai_versions', 'v1.0.0-dev');
+            transaction.set(devVersionRef, {
+                version: 'v1.0.0-dev',
+                isDevelopment: true,
+                timestamp: new Date().toISOString(),
+                systems: defaultSystems,
+            });
+
+            // Set the main config to point to these new defaults
+            const configRef = doc(db, 'app_ai_config', 'main');
+            transaction.set(configRef, {
+                activeAppAIVersion: 'v1.0.0',
+                developmentAppAIVersion: 'v1.0.0-dev'
+            });
+        });
+
         // After creating, refetch everything to return the correct data.
         const finalSnapshot = await getDocs(query(versionsRef, orderBy('timestamp', 'desc')));
         return finalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
@@ -563,7 +561,7 @@ interface PublishNewPromptContentInput {
 
 export async function publishNewPromptContent(input: PublishNewPromptContentInput): Promise<PromptContent> {
     const { systemId, categoryId, version, promptText, previousVersionId } = input;
-    const newId = `${categoryId}_${version.replace(/\./g, '-')}`;
+    const newId = `${systemId}_${categoryId}_${version.replace(/\./g, '-')}`;
     const contentRef = doc(db, 'prompt_content', newId);
     const newContentData: Omit<PromptContent, 'id'> = {
         systemId, categoryId, version, promptText,
@@ -635,6 +633,7 @@ export const getComposedPrompt = cache(
     },
     ['composed-prompts-v5'], { revalidate: 30, tags: ['prompts'] }
 );
+
 
 
 
