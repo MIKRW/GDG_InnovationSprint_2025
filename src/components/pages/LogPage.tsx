@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { collection, query, onSnapshot, orderBy, where, or, and, Query } from 'firebase/firestore';
 import { groupBy } from 'lodash';
 
-import type { BirdLog } from '@/lib/types';
+import type { BirdLog, SortOption } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
 
@@ -133,27 +133,24 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                 Developer Tools
             </h2>
              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <Link href="/log/test" passHref>
-                  <a>
-                    <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
-                        <div className="bg-background h-full flex flex-col rounded-sm">
-                            <CardContent className="p-0 flex-grow flex items-center justify-center">
-                                <div className="aspect-square relative w-full flex items-center justify-center">
-                                    <FlaskConical className="w-24 h-24 text-secondary-foreground" />
-                                </div>
-                            </CardContent>
-                            <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
-                                <div className="text-left">
-                                <p className="font-bold text-sm truncate">Test Logs</p>
-                                <p className="text-xs text-muted-foreground truncate italic">View test results</p>
-                                </div>
-                            </CardFooter>
-                        </div>
-                    </Card>
-                  </a>
+                <Link href="/log/test">
+                  <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
+                      <div className="bg-background h-full flex flex-col rounded-sm">
+                          <CardContent className="p-0 flex-grow flex items-center justify-center">
+                              <div className="aspect-square relative w-full flex items-center justify-center">
+                                  <FlaskConical className="w-24 h-24 text-secondary-foreground" />
+                              </div>
+                          </CardContent>
+                          <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
+                              <div className="text-left">
+                              <p className="font-bold text-sm truncate">Test Logs</p>
+                              <p className="text-xs text-muted-foreground truncate italic">View test results</p>
+                              </div>
+                          </CardFooter>
+                      </div>
+                  </Card>
                 </Link>
-                <Link href="/log/errors" passHref>
-                  <a>
+                <Link href="/log/errors">
                     <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
                         <div className="bg-background h-full flex flex-col rounded-sm">
                             <CardContent className="p-0 flex-grow flex items-center justify-center">
@@ -169,7 +166,6 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                             </CardFooter>
                         </div>
                     </Card>
-                  </a>
                 </Link>
             </div>
           </div>
