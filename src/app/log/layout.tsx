@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -23,11 +24,8 @@ export default function LogLayout({
     if (pathname.startsWith('/log/mystery')) {
       return 'Mystery Recordings';
     }
-    if (pathname.startsWith('/log/test/live')) {
-        return 'Live Test Results';
-    }
     if (pathname.startsWith('/log/test')) {
-        return 'Master Audio Test Results'
+        return 'Developer Test Logs'
     }
     if (pathname.startsWith('/log/errors')) {
         return 'Error Logs'

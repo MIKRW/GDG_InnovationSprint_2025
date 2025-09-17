@@ -14,7 +14,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { PageTitle } from '../content/PageTitle';
-import { Bird, FlaskConical, HelpCircle, ShieldAlert, Loader2, Mic } from 'lucide-react';
+import { Bird, FlaskConical, HelpCircle, ShieldAlert, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
 
@@ -133,56 +133,43 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                 Developer Tools
             </h2>
              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <Link href="/log/test">
-                  <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
-                      <div className="bg-background h-full flex flex-col rounded-sm">
-                          <CardContent className="p-0 flex-grow flex items-center justify-center">
-                              <div className="aspect-square relative w-full flex items-center justify-center">
-                                  <FlaskConical className="w-24 h-24 text-secondary-foreground" />
-                              </div>
-                          </CardContent>
-                          <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
-                              <div className="text-left">
-                              <p className="font-bold text-sm truncate">Master Audio Tests</p>
-                              <p className="text-xs text-muted-foreground truncate italic">Controlled test runs</p>
-                              </div>
-                          </CardFooter>
-                      </div>
-                  </Card>
+                <Link href="/log/test" passHref>
+                  <a>
+                    <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
+                        <div className="bg-background h-full flex flex-col rounded-sm">
+                            <CardContent className="p-0 flex-grow flex items-center justify-center">
+                                <div className="aspect-square relative w-full flex items-center justify-center">
+                                    <FlaskConical className="w-24 h-24 text-secondary-foreground" />
+                                </div>
+                            </CardContent>
+                            <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
+                                <div className="text-left">
+                                <p className="font-bold text-sm truncate">Test Logs</p>
+                                <p className="text-xs text-muted-foreground truncate italic">View test results</p>
+                                </div>
+                            </CardFooter>
+                        </div>
+                    </Card>
+                  </a>
                 </Link>
-                <Link href="/log/test/live">
-                  <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
-                      <div className="bg-background h-full flex flex-col rounded-sm">
-                          <CardContent className="p-0 flex-grow flex items-center justify-center">
-                              <div className="aspect-square relative w-full flex items-center justify-center">
-                                  <Mic className="w-24 h-24 text-secondary-foreground" />
-                              </div>
-                          </CardContent>
-                          <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
-                              <div className="text-left">
-                              <p className="font-bold text-sm truncate">Live Test Logs</p>
-                              <p className="text-xs text-muted-foreground truncate italic">Live dev recordings</p>
-                              </div>
-                          </CardFooter>
-                      </div>
-                  </Card>
-                </Link>
-                <Link href="/log/errors">
-                  <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
-                      <div className="bg-background h-full flex flex-col rounded-sm">
-                          <CardContent className="p-0 flex-grow flex items-center justify-center">
-                              <div className="aspect-square relative w-full flex items-center justify-center">
-                                  <ShieldAlert className="w-24 h-24 text-secondary-foreground" />
-                              </div>
-                          </CardContent>
-                          <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
-                              <div className="text-left">
-                              <p className="font-bold text-sm truncate">Error Logs</p>
-                              <p className="text-xs text-muted-foreground truncate italic">Application error instances</p>
-                              </div>
-                          </CardFooter>
-                      </div>
-                  </Card>
+                <Link href="/log/errors" passHref>
+                  <a>
+                    <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
+                        <div className="bg-background h-full flex flex-col rounded-sm">
+                            <CardContent className="p-0 flex-grow flex items-center justify-center">
+                                <div className="aspect-square relative w-full flex items-center justify-center">
+                                    <ShieldAlert className="w-24 h-24 text-secondary-foreground" />
+                                </div>
+                            </CardContent>
+                            <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
+                                <div className="text-left">
+                                <p className="font-bold text-sm truncate">Error Logs</p>
+                                <p className="text-xs text-muted-foreground truncate italic">Application error instances</p>
+                                </div>
+                            </CardFooter>
+                        </div>
+                    </Card>
+                  </a>
                 </Link>
             </div>
           </div>
@@ -202,7 +189,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                       Review
                   </h2>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      <Link href="/log/mystery" asChild>
+                      <Link href="/log/mystery" passHref>
                           <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-secondary cursor-pointer">
                           <CardContent className="p-0 flex-grow flex items-center justify-center">
                               <div className="aspect-square relative w-full flex items-center justify-center">
@@ -228,7 +215,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                     </h2>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     {logs.map((log) => (
-                        <Link href={`/log/${log.id}`} key={log.id} asChild>
+                        <Link href={`/log/${log.id}`} key={log.id} passHref>
                         <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl cursor-pointer">
                             <CardContent className="p-0 flex-grow">
                                 <div className="aspect-square relative w-full">
@@ -270,7 +257,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                  <div className="text-center py-16">
                     <PageTitle>Your Bird Book is Empty</PageTitle>
                     <p className="mt-4 text-muted-foreground">You haven't identified any birds yet.</p>
-                    <Link href="/record" asChild>
+                    <Link href="/record" passHref>
                         <Button className="mt-4">
                             Start your collection!
                         </Button>

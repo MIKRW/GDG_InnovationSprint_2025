@@ -90,10 +90,11 @@ export default function RecordPage() {
   };
 
   const onNewAudioUploaded = (metadata: TestAudioMetadata) => {
-    // A new file was uploaded, refresh the library list
-    fetchTestAudioLibrary();
-    // Then immediately run it for a test
+    // This function is now called after a successful upload.
+    // It immediately triggers the test run with the new audio.
     handleSelectTestAudio(metadata);
+    // And closes the dialog.
+    setIsTestAudioDialogOpen(false);
   }
 
   return (
