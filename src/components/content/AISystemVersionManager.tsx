@@ -79,6 +79,8 @@ function VersionPublisher({
 }) {
   const [selections, setSelections] = useState<VersionSelection>({});
   const [enabledSystems, setEnabledSystems] = useState<EnabledSystems>({});
+  const [devVersionToPromote, setDevVersionToPromote] = useState<string>('');
+
 
   useEffect(() => {
     // Initialize all systems as enabled
@@ -93,6 +95,43 @@ function VersionPublisher({
     onPublish(selections, nextVersionString, enabledSystems);
   };
   
+  if (isLive) {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>{title}</CardTitle>
+                <CardDescription>{description}</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <Label htmlFor="dev-version-select" className="flex-shrink-0">Development Version to Promote</Label>
+                    <Select value={devVersionToPromote} onValueChange={setDevVersionToPromote}>
+                        <SelectTrigger id="dev-version-select" className="w-full sm:w-[250px]">
+                            <SelectValue placeholder="Select a dev version..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {publishedVersions.map(v => (
+                                <SelectItem key={v.id} value={v.id}>
+                                    {v.version} - {new Date(v.timestamp).toLocaleDateString()}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </CardContent>
+            <CardFooter className="border-t pt-6 flex justify-end">
+                 <Button
+                    onClick={() => devVersionToPromote && onPromote?.(devVersionToPromote)}
+                    disabled={isLoading || !devVersionToPromote}
+                >
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Promote to Live
+                </Button>
+            </CardFooter>
+        </Card>
+    )
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -104,23 +143,20 @@ function VersionPublisher({
           <TableHeader>
             <TableRow>
               <TableHead className="w-[200px]">AI System</TableHead>
-              {!isLive && <TableHead className="w-[120px]">Enabled</TableHead>}
+              <TableHead className="w-[120px]">Enabled</TableHead>
               <TableHead>Version</TableHead>
-              {isLive && <TableHead className="text-right">Action</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {systems.map((system) => (
               <TableRow key={system.id}>
                 <TableCell className="font-medium">{system.name}</TableCell>
-                {!isLive && (
-                    <TableCell>
-                        <Switch
-                            checked={enabledSystems[system.id] ?? true}
-                            onCheckedChange={(checked) => setEnabledSystems(prev => ({ ...prev, [system.id]: checked }))}
-                        />
-                    </TableCell>
-                )}
+                <TableCell>
+                    <Switch
+                        checked={enabledSystems[system.id] ?? true}
+                        onCheckedChange={(checked) => setEnabledSystems(prev => ({ ...prev, [system.id]: checked }))}
+                    />
+                </TableCell>
                 <TableCell>
                   <Select
                     onValueChange={(value) => setSelections(prev => ({...prev, [system.id]: value}))}
@@ -128,40 +164,15 @@ function VersionPublisher({
                   >
                     <SelectTrigger><SelectValue placeholder="Select Version" /></SelectTrigger>
                     <SelectContent>
-                        {isLive ? (
-                             publishedVersions.map(v => (
-                                <SelectItem key={v.id} value={v.id}>
-                                    {v.version} - {new Date(v.timestamp).toLocaleDateString()}
-                                </SelectItem>
-                            ))
-                        ) : (
-                            <>
-                                {system.liveVersions.map(v => <SelectItem key={v} value={v}>Live: {v}</SelectItem>)}
-                                {system.devVersions.length > 0 && <Separator />}
-                                {system.devVersions.map(v => <SelectItem key={v} value={v}>Dev: {v}</SelectItem>)}
-                            </>
-                        )}
+                        {system.liveVersions.map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </TableCell>
-                 {isLive && onPromote && (
-                    <TableCell className="text-right">
-                        <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => selections[system.id] && onPromote(selections[system.id])}
-                            disabled={isLoading || !selections[system.id]}
-                        >
-                            Promote to Live
-                        </Button>
-                    </TableCell>
-                )}
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </CardContent>
-      {!isLive && (
         <CardFooter className="border-t pt-6 flex-wrap justify-between gap-4">
             <div className="flex items-center gap-8">
                 <div className="space-y-2">
@@ -186,7 +197,6 @@ function VersionPublisher({
               Publish to Dev
             </Button>
         </CardFooter>
-      )}
     </Card>
   )
 }
@@ -344,3 +354,5 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
     </div>
   );
 }
+
+    
