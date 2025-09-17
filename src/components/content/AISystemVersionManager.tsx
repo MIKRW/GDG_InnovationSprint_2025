@@ -131,27 +131,29 @@ function VersionPublisher({
   if (isLive) {
     return (
         <Card>
-             <div className="flex-1 flex flex-col justify-between text-center p-6 h-36">
+            <div className="flex-1 flex flex-col justify-between text-center p-6 h-36">
               <h3 className="text-2xl font-bold">{title}</h3>
               <p className="text-sm text-muted-foreground px-4">{description}</p>
             </div>
             <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                    <div className="space-y-2">
-                        <Label htmlFor="dev-version-select">Development Version to Promote</Label>
-                        <Select value={devVersionToPromote} onValueChange={setDevVersionToPromote}>
-                            <SelectTrigger id="dev-version-select">
-                                <SelectValue placeholder="Select a dev version..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {publishedVersions.map(v => (
-                                    <SelectItem key={v.id} value={v.id}>
-                                        {v.version} - {new Date(v.timestamp).toLocaleDateString()}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+                <div className="space-y-2">
+                    <Label htmlFor="dev-version-select">Development Version to Promote</Label>
+                    <Select value={devVersionToPromote} onValueChange={setDevVersionToPromote}>
+                        <SelectTrigger id="dev-version-select">
+                            <SelectValue placeholder="Select a dev version..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {publishedVersions.map(v => (
+                                <SelectItem key={v.id} value={v.id}>
+                                    {v.version} - {new Date(v.timestamp).toLocaleDateString()}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </CardContent>
+            <CardFooter className="border-t pt-6 flex flex-wrap justify-between items-center gap-4">
+                 <div className="flex items-center gap-8">
                     <div className="space-y-2">
                         <Label>Release Type</Label>
                         <RadioGroup
@@ -164,13 +166,11 @@ function VersionPublisher({
                             <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id="live-patch" /><Label htmlFor="live-patch">Patch</Label></div>
                         </RadioGroup>
                     </div>
+                    <div className="flex items-center gap-2">
+                        <Label className="text-muted-foreground">New Live Version:</Label>
+                        <Badge variant="secondary">{nextVersionString}</Badge>
+                    </div>
                 </div>
-                 <div className="mt-4 flex items-center gap-2">
-                    <Label className="text-muted-foreground">New Live Version:</Label>
-                    <Badge variant="secondary">{nextVersionString}</Badge>
-                </div>
-            </CardContent>
-            <CardFooter className="border-t pt-6 flex justify-end">
                  <Button
                     onClick={() => devVersionToPromote && onPromote?.(devVersionToPromote, saveType)}
                     disabled={isLoading || !devVersionToPromote}
