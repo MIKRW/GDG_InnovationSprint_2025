@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -379,14 +380,13 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                           <div className="space-y-2">
                               <Label>New Version Type</Label>
                               <RadioGroup
-                                  defaultValue="patch"
+                                  value={saveType}
                                   className="flex gap-4"
                                   onValueChange={(v) => setSaveType(v as any)}
-                                  disabled={isCompositionDisabled}
                               >
-                                  <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="sys-major" disabled={isCompositionDisabled}/><Label htmlFor="sys-major">Major</Label></div>
-                                  <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="sys-minor" disabled={isCompositionDisabled}/><Label htmlFor="sys-minor">Minor</Label></div>
-                                  <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id="sys-patch" disabled={isCompositionDisabled}/><Label htmlFor="sys-patch">Patch</Label></div>
+                                  <div className="flex items-center space-x-2"><RadioGroupItem value="major" id="sys-major" /><Label htmlFor="sys-major">Major</Label></div>
+                                  <div className="flex items-center space-x-2"><RadioGroupItem value="minor" id="sys-minor" /><Label htmlFor="sys-minor">Minor</Label></div>
+                                  <div className="flex items-center space-x-2"><RadioGroupItem value="patch" id="sys-patch" /><Label htmlFor="sys-patch">Patch</Label></div>
                               </RadioGroup>
                           </div>
                           <div className="flex items-center gap-2">
@@ -394,7 +394,7 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
                               <Badge variant="outline">{nextVersionString}</Badge>
                           </div>
                       </div>
-                      <Button onClick={handleSaveNewVersion} disabled={isSubmitting || isCompositionDisabled}>
+                      <Button onClick={handleSaveNewVersion} disabled={isSubmitting}>
                           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                           Save New Version
                       </Button>
