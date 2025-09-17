@@ -135,7 +135,7 @@ export default function RecordPage() {
     isDeveloperRun: boolean,
     testContext?: { birdId: string; testAudioId: string }
   ) => {
-      const processWithLocation = async (locationData?: { latitude?: number; longitude?: number, locationDescription?: string }) => {
+      getLocationForAIShot(async (locationData) => {
         setIsProcessing(true);
         if (!currentTimestamp.current || !user) {
             setIsProcessing(false);
@@ -144,9 +144,9 @@ export default function RecordPage() {
         const appSettings = getAppSettings();
         const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
         let analysisRunId: string | null = null;
-        const analysisStartTime = Date.now();
-
+        
         try {
+            const analysisStartTime = Date.now();
             const result = await identifyBirdBySound({
                 audioStoragePath: storagePath,
                 timestamp: currentTimestamp.current,
@@ -164,7 +164,7 @@ export default function RecordPage() {
             );
 
         } catch (error) {
-            const analysisDurationMs = Date.now() - analysisStartTime;
+            const analysisDurationMs = Date.now() - (currentTimestamp.current ? new Date(currentTimestamp.current).getTime() : Date.now());
             logErrorToFirestore(error as Error, 'ai-identification-failure', {
                 sessionId: currentSessionId.current, timestamp: currentTimestamp.current,
                 locationData: locationData, appMode: appSettings.mode, userId: user?.uid
@@ -182,9 +182,7 @@ export default function RecordPage() {
             }
             setIsProcessing(false);
         }
-      };
-
-      getLocationForAIShot(processWithLocation);
+      });
   };
   
   const handleStartRecording = () => {
