@@ -135,12 +135,17 @@ function VersionPublisher({
   const Header = (
      <CardHeader className="flex-1 flex flex-col justify-between text-center p-6 h-36">
         <h3 className="text-2xl font-bold">{title}</h3>
-         {isLive ? (
-            <p className="text-xl text-foreground font-semibold">{activeVersionId || 'None'}</p>
-        ) : (
-            <p className="text-sm text-muted-foreground px-4">{description}</p>
-        )}
+        <p className="text-xl text-foreground font-semibold">{activeVersionId || 'None'}</p>
     </CardHeader>
+  );
+
+  const CollapsibleHeader = (
+     <AccordionTrigger className="hover:no-underline p-0 flex-1">
+        <CardHeader className="flex-1 flex flex-col justify-between text-center p-6 h-36">
+            <h3 className="text-2xl font-bold">{title}</h3>
+            <p className="text-xl text-foreground font-semibold">{activeVersionId || 'None'}</p>
+        </CardHeader>
+    </AccordionTrigger>
   );
 
   const Content = (
@@ -254,9 +259,7 @@ function VersionPublisher({
     return (
         <Accordion type="single" collapsible className="w-full" defaultValue="item-1">
           <AccordionItem value="item-1" className="border-b-0">
-            <AccordionTrigger className="hover:no-underline p-0">
-              {Header}
-            </AccordionTrigger>
+            {CollapsibleHeader}
             <AccordionContent>
               {Content}
             </AccordionContent>
@@ -455,3 +458,5 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
     </div>
   );
 }
+
+    
