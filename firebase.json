@@ -1,0 +1,9 @@
+{
+  "storage": {
+    "rules": "storage.rules",
+    "bucket": "studio-2836459659-ecbdf.firebasestorage.app"
+  },
+  "functions": {
+    "source": "functions"
+  }
+}
