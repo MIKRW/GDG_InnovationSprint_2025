@@ -1,3 +1,4 @@
+
 {
   "hosting": {
     "source": ".",
@@ -5,7 +6,10 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
-    ]
+    ],
+    "frameworksBackend": {
+      "id": "lyre-app-backend"
+    }
   },
   "storage": {
     "rules": "storage.rules",
