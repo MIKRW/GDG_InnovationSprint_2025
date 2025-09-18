@@ -1,3 +1,5 @@
+> DEPRECATED: we have completed the steps detailed in this plan or alternatives. Further refinement of the testing framwork will be outlined in a new plan. 
+
 # Developer Testing Framework Plan
 
 This document outlines the step-by-step plan to build a robust testing framework directly into the application. This will allow for consistent, repeatable testing of the AI's performance.
