@@ -1,4 +1,4 @@
-
+> DEPRECATED: we have impleted this model and any changes and updates will be described in a new plan. (18/09/25)
 
 # Firestore Data Architecture Plan
 
@@ -149,7 +149,7 @@ To ensure a seamless, multi-device user experience and prevent data loss, the us
 *   **Benefit:** This model guarantees that a user's collection is never lost. It is always backed up to the cloud and can be accessed or restored from any device, providing the professional and reliable user experience we aim for.
 ---
 
-## Post-Implementation Review Summary (Current State)
+>Post-Implementation Review Summary (Current State)
 
 This summary was added after a review of the application's current state against the data model plan.
 
