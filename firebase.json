@@ -5,11 +5,7 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
-    ],
-    "frameworksBackend": {
-      "id": "lyre-app-backend",
-      "region": "us-east4"
-    }
+    ]
   },
   "storage": {
     "rules": "storage.rules",
