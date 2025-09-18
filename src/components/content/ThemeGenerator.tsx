@@ -87,7 +87,7 @@ export function ThemeGenerator() {
   const [isApiOverloaded, setIsApiOverloaded] = useState(false);
   const [showEmptyInputInfo, setShowEmptyInputInfo] = useState(false);
   const [generatedTheme, setGeneratedTheme] = useState<Theme>(EMPTY_THEME);
-  const [savedThemes, setSavedThemes] = useState<(Theme | null)[]>([]);
+  const [savedThemes, setSavedThemes] = useState<(Theme | null)[]>(Array(MAX_SAVED_THEMES).fill(null));
   const [selectedSlot, setSelectedSlot] = useState(0);
   const [isPreviewingGenerated, setIsPreviewingGenerated] = useState(false);
   const [isPreviewingManual, setIsPreviewingManual] = useState(false);
@@ -131,7 +131,10 @@ export function ThemeGenerator() {
 
     // Load themes from Firestore
     useEffect(() => {
-        if (authLoading || !user) return;
+        if (authLoading || !user) {
+          setIsFirestoreLoading(false);
+          return;
+        };
 
         const fetchThemes = async () => {
             setIsFirestoreLoading(true);
@@ -147,7 +150,7 @@ export function ThemeGenerator() {
                 querySnapshot.forEach((doc) => {
                     const theme = doc.data() as Theme;
                     const index = parseInt(theme.id);
-                    if (index >= 0 && index < MAX_SAVED_THEMES) {
+                    if (!isNaN(index) && index >= 0 && index < MAX_SAVED_THEMES) {
                         themesFromFirestore[index] = theme;
                         themesFound = true;
                         if (theme.isActive) {
@@ -160,7 +163,9 @@ export function ThemeGenerator() {
                     const defaultThemeWithActive = { ...DEFAULTS, id: '0', isActive: true };
                     themesFromFirestore[0] = defaultThemeWithActive;
                     activeIndex = 0;
+                     await setDoc(doc(db, 'users', user.uid, 'themes', '0'), defaultThemeWithActive);
                 } else if (activeIndex === -1) {
+                    // Find first non-null slot to be active if none is marked
                     activeIndex = themesFromFirestore.findIndex(t => t !== null);
                     if (activeIndex !== -1 && themesFromFirestore[activeIndex]) {
                         themesFromFirestore[activeIndex]!.isActive = true;
@@ -176,6 +181,9 @@ export function ThemeGenerator() {
                 if (activeTheme) {
                     localStorage.setItem('active-theme-json', JSON.stringify(activeTheme));
                     updateCSSVariables(activeTheme.colors);
+                    document.documentElement.classList.remove('light', 'dark');
+                    document.documentElement.classList.add('custom');
+                    localStorage.setItem('theme', 'custom');
                 }
 
             } catch (error) {
@@ -245,7 +253,8 @@ export function ThemeGenerator() {
   
     // This ID is the slot index '0' through '5'
     const themeId = `${selectedSlot}`;
-    const themeToSaveToSlot = { ...themeToSave, id: themeId, isActive: false };
+    const wasSlotActive = savedThemes[selectedSlot]?.isActive ?? false;
+    const themeToSaveToSlot = { ...themeToSave, id: themeId, isActive: wasSlotActive };
     
     // Optimistically update UI
     const newSavedThemes = savedThemes.map((theme, index) => 
@@ -257,8 +266,7 @@ export function ThemeGenerator() {
         const themeDocRef = doc(db, 'users', user.uid, 'themes', themeId);
         await setDoc(themeDocRef, themeToSaveToSlot);
 
-        const currentActiveTheme = savedThemes[selectedSlot];
-        if(currentActiveTheme?.isActive) {
+        if(wasSlotActive) {
             updateCSSVariables(themeToSaveToSlot.colors);
             localStorage.setItem('active-theme-json', JSON.stringify(themeToSaveToSlot));
         }
@@ -296,14 +304,16 @@ export function ThemeGenerator() {
     setIsLoading(true);
     setIsApiOverloaded(false);
 
+    let finalWords = values;
     if (!values.word1 && !values.word2 && !values.word3) {
       setShowEmptyInputInfo(true);
+      finalWords = { word1: 'random', word2: 'color', word3: 'palette' };
     } else {
       setShowEmptyInputInfo(false);
     }
     
     const mood = MOODS[currentMoodIndex];
-    const inputForAI = { ...values, mood };
+    const inputForAI = { ...finalWords, mood };
 
     try {
       const newColors = await generateTheme(inputForAI);
@@ -320,23 +330,24 @@ export function ThemeGenerator() {
       
       toast({
         title: 'Theme Generated!',
-        description: 'Click a save slot, then "Save Theme".',
+        description: 'Click an empty save slot, then "Save Theme".',
       });
     } catch (error) {
       console.error(error);
-      logErrorToFirestore(error as Error, 'theme-generation-failure', {
-        words: { word1: values.word1, word2: values.word2, word3: values.word3 },
+      const typedError = error as Error;
+      logErrorToFirestore(typedError, 'theme-generation-failure', {
+        words: inputForAI,
         mood: mood,
       });
 
-      const errorMessage = (error as Error).message || '';
-      if (errorMessage.includes('503') || errorMessage.toLowerCase().includes('overloaded')) {
+      const errorMessage = typedError.message || '';
+      if (errorMessage.includes('429') || errorMessage.toLowerCase().includes('resource has been exhausted')) {
         setIsApiOverloaded(true);
       } else {
         toast({
             variant: 'destructive',
             title: 'Generation Failed',
-            description: (error as Error).message || 'Could not generate the theme. This error has been logged.',
+            description: typedError.message || 'Could not generate the theme. This error has been logged.',
         });
       }
     } finally {
@@ -346,52 +357,49 @@ export function ThemeGenerator() {
 
   const handleSlotClick = async (index: number) => {
     if (!user) return;
-    const themeToActivate = savedThemes[index];
-    if (!themeToActivate) {
-        setSelectedSlot(index);
-        return;
-    };
-  
-    const newSavedThemes: (Theme | null)[] = savedThemes.map((theme, i) => {
-        if(theme) {
-            return {...theme, isActive: i === index};
-        }
-        return null;
-    });
-
     setSelectedSlot(index);
-    setSavedThemes(newSavedThemes);
   
-    updateCSSVariables(themeToActivate.colors);
-    localStorage.setItem('active-theme-json', JSON.stringify(themeToActivate));
-    localStorage.setItem('theme', 'custom');
-    document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add('custom');
-  
-    try {
-      // Update the status of all themes for this user in a batch
-      const batch = [];
-      for (const theme of newSavedThemes) {
-          if (theme) {
-            const themeDocRef = doc(db, 'users', user.uid, 'themes', theme.id);
-            batch.push(setDoc(themeDocRef, theme, { merge: true }));
-          }
+    const themeToActivate = savedThemes[index];
+    
+    // If the slot is not empty, activate it
+    if (themeToActivate) {
+      const newSavedThemes: (Theme | null)[] = savedThemes.map((theme, i) => {
+          if(theme) return {...theme, isActive: i === index};
+          return null;
+      });
+      setSavedThemes(newSavedThemes);
+    
+      updateCSSVariables(themeToActivate.colors);
+      localStorage.setItem('active-theme-json', JSON.stringify(themeToActivate));
+      localStorage.setItem('theme', 'custom');
+      document.documentElement.classList.remove('light', 'dark');
+      document.documentElement.classList.add('custom');
+    
+      try {
+        const batch = [];
+        for (const theme of newSavedThemes) {
+            if (theme) {
+              const themeDocRef = doc(db, 'users', user.uid, 'themes', theme.id);
+              batch.push(setDoc(themeDocRef, theme, { merge: true }));
+            }
+        }
+        await Promise.all(batch);
+      } catch (error) {
+        console.error("Error updating active theme in Firestore: ", error);
       }
-      await Promise.all(batch);
-    } catch (error) {
-      console.error("Error updating active theme in Firestore: ", error);
+    
+      if(themeToActivate.words.mood) {
+          const activeMoodIndex = MOODS.indexOf(themeToActivate.words.mood);
+          setCurrentMoodIndex(activeMoodIndex >= 0 ? activeMoodIndex : 0);
+      }
+      form.reset(themeToActivate.words);
     }
   
+    // Always deactivate previews when a slot is clicked
     setIsPreviewingGenerated(false);
     setIsPreviewingManual(false);
     sessionStorage.removeItem('theme-preview-active');
     setShowEmptyInputInfo(false);
-  
-    if(themeToActivate.words.mood) {
-        const activeMoodIndex = MOODS.indexOf(themeToActivate.words.mood);
-        setCurrentMoodIndex(activeMoodIndex >= 0 ? activeMoodIndex : 0);
-    }
-    form.reset(themeToActivate.words);
   };
 
   const startPreview = (theme: Theme) => {
@@ -488,7 +496,7 @@ localStorage.setItem('manual-theme', JSON.stringify(newTheme));
               <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-800 md:col-span-4">
                 <Info className="h-4 w-4 !text-blue-800" />
                 <AlertDescription>
-                  To generate your own theme, enter some descriptive words below.
+                  No words provided. Generating a theme from random words.
                 </AlertDescription>
               </Alert>
             )}
@@ -586,32 +594,18 @@ localStorage.setItem('manual-theme', JSON.stringify(newTheme));
             </div>
         ) : (
             <div className="grid grid-cols-6 gap-4">
-            {savedThemes.map((theme, index) => {
-                if (!theme) {
-                    return (
-                        <div key={index} className="h-28">
-                           <ThemeHistoryItem
-                                theme={EMPTY_THEME}
-                                onClick={() => handleSlotClick(index)}
-                                isEmpty={true}
-                                emptyText="Empty Slot"
-                                isSelected={!isPreviewingGenerated && !isPreviewingManual && selectedSlot === index}
-                           />
-                        </div>
-                    )
-                }
-                const isActive = theme.isActive;
-                return (
-                <div key={theme.id + index} className="h-28">
-                    <ThemeHistoryItem
-                        theme={theme}
+            {savedThemes.map((theme, index) => (
+                <div key={index} className="h-28">
+                   <ThemeHistoryItem
+                        theme={theme || EMPTY_THEME}
                         onClick={() => handleSlotClick(index)}
-                        isActive={isActive}
+                        isEmpty={!theme}
+                        emptyText="Empty Slot"
+                        isActive={theme?.isActive ?? false}
                         isSelected={!isPreviewingGenerated && !isPreviewingManual && selectedSlot === index}
-                    />
+                   />
                 </div>
-                );
-            })}
+            ))}
             </div>
         )}
       </div>
@@ -635,7 +629,3 @@ localStorage.setItem('manual-theme', JSON.stringify(newTheme));
     </>
   );
 }
-
-
-
-
