@@ -25,6 +25,8 @@
 
 - **Review Deletion Logic**: Check the parameters being passed to the `onUserLogDisowned` Cloud Function and update the logic as needed to ensure file deletions are handled correctly and securely.
 
+- ** implement automatic, time based  cleanup of inactive annoymous accounts 
+
 ---
 
 ## Robustness & UX

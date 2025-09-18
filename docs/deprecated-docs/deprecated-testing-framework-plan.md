@@ -1,4 +1,4 @@
-> DEPRECATED: we have completed the steps detailed in this plan or alternatives. Further refinement of the testing framwork will be outlined in a new plan. 
+> DEPRECATED: we have completed the steps detailed in this plan or alternatives. Further refinement of the testing framwork will be outlined in a new plan. (18/09/25)
 
 # Developer Testing Framework Plan
 

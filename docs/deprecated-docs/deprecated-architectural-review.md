@@ -1,4 +1,4 @@
->DEPRECATED: We have significantly changed the architeture since this and will do another review later. 
+>DEPRECATED: We have significantly changed the architeture since this and will do another review later. (18/09/25)
 
 # Architectural & Best Practices Review (Post-Stage 3)
 
@@ -55,7 +55,7 @@ This review confirms the successful implementation of several key architectural 
 
 ---
 
-## Post-Implementation Review Summary (Current State)
+## Post-Implementation Review Summary (Current State / 18/09/2025)
 
 This summary was added after a subsequent review of the application's current state against the points made in the original architectural review.
 
