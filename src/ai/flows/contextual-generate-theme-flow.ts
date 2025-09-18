@@ -6,6 +6,11 @@
  * - generateTheme - A function that creates a color theme from words.
  * - GenerateThemeInput - The input type for the generateTheme function.
  * - GenerateThemeOutput - The return type for the generateTheme function.
+ *
+ * This file uses Zod schemas (the `const` variables) to define the exact
+ * structure and data types for the AI's input and output. This ensures
+ * that the AI's response is always in a predictable JSON format that the
+ * application can safely use, preventing errors and providing type safety.
  */
 
 import { ai } from '@/ai/genkit';
@@ -13,11 +18,13 @@ import { z } from 'zod';
 import { logErrorToFirestore } from '@/lib/error-logging';
 import { getComposedPrompt } from '@/lib/actions';
 
+
 const ThemeColorSchema = z.object({
   h: z.number().describe('The hue value (0-360).'),
   s: z.number().describe('The saturation value (0-100).'),
   l: z.number().describe('The lightness value (0-100).'),
 });
+
 
 const GenerateThemeOutputSchema = z.object({
   background: ThemeColorSchema.describe('The background color of the theme.'),
