@@ -155,9 +155,9 @@ export function ThemeGenerator() {
                     themesToSet = themesToSet.concat(Array(MAX_SAVED_THEMES - themesToSet.length).fill(null));
                 }
 
-                if (activeIndex === -1) {
+                if (activeIndex === -1 && themesToSet.length > 0 && themesToSet[0] !== null) {
                     activeIndex = 0;
-                    if(themesToSet[0]) themesToSet[0].isActive = true;
+                    themesToSet[0].isActive = true;
                 }
 
                 const finalThemes = themesToSet.map((theme, i) => {
@@ -173,10 +173,10 @@ export function ThemeGenerator() {
                     };
                 });
 
-                setSelectedSlot(activeIndex);
+                setSelectedSlot(activeIndex === -1 ? 0 : activeIndex);
                 setSavedThemes(finalThemes);
                 
-                const activeTheme = finalThemes[activeIndex];
+                const activeTheme = finalThemes.find(t => t.isActive);
                 if (activeTheme) {
                     localStorage.setItem('active-theme-json', JSON.stringify(activeTheme));
                     updateCSSVariables(activeTheme.colors);
@@ -368,6 +368,7 @@ export function ThemeGenerator() {
     try {
       // Update the status of all themes for this user in a batch
       for (const theme of newSavedThemes) {
+          if (theme.id === 'default' && theme.words.word1 === 'sand') continue; // Skip default placeholder
           const themeDocRef = doc(db, 'users', user.uid, 'themes', theme.id);
           await setDoc(themeDocRef, theme, { merge: true });
       }
@@ -613,3 +614,5 @@ localStorage.setItem('manual-theme', JSON.stringify(newTheme));
     </>
   );
 }
+
+    
