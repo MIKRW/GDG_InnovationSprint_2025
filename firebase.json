@@ -8,14 +8,8 @@
       "**/node_modules/**"
     ],
     "frameworksBackend": {
-      "id": "lyre-app-backend"
+      "id": "lyre-app-backend",
+      "region": "us-east4"
     }
-  },
-  "storage": {
-    "rules": "storage.rules",
-    "bucket": "studio-2836459659-ecbdf.firebasestorage.app"
-  },
-  "functions": {
-    "source": "functions"
   }
 }
