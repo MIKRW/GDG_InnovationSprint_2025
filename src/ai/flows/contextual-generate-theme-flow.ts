@@ -37,25 +37,6 @@ const GenerateThemeInputSchema = z.object({
 });
 export type GenerateThemeInput = z.infer<typeof GenerateThemeInputSchema>;
 
-// Define the prompt object once, outside the flow.
-const themePrompt = ai.definePrompt({
-    name: 'themePrompt',
-    input: { schema: GenerateThemeInputSchema },
-    output: { schema: GenerateThemeOutputSchema },
-    prompt: `You are an expert UI/UX designer with a deep understanding of color theory and accessibility. Your task is to generate a color theme for a web application based on three inspirational words and a mood.
-
-You MUST return a JSON object with four HSL color objects: 'background', 'foreground', 'primary', and 'ring'. Each object must have 'h' (0-360), 's' (0-100), and 'l' (0-100) values.
-
-Follow these rules precisely:
-1.  **Word Association**: Use the three words ({{word1}}, {{word2}}, {{word3}}) as the primary inspiration. The AI should intelligently assign these words to the background, foreground, and primary color roles based on design best practices. Research how established color brands (like Pantone or paint companies) name their colors to derive realistic and aesthetically pleasing shades.
-2.  **Mood Application**: Use the '{{mood}}' keyword to adjust the final palette. For example, 'Vibrant' should increase saturation, 'Calm' should be desaturated, and 'Dark' should use a dark background with light text. Accessibility moods like 'High Contrast' or color-blind-friendly options must be strictly followed.
-3.  **Contrast and Accessibility**: The 'foreground' color MUST have a high contrast ratio with the 'background' color. The 'primary' color must also be highly visible against the 'background'.
-4.  **Ring Color**: The 'ring' color is for focus indicators. It MUST be a derivative of the 'primary' color, but with a lightness value that is at least 15% lighter or darker to ensure it stands out clearly.
-5.  **Derived Color Safety**: The app's CSS will automatically create secondary and muted colors by adjusting the lightness of your chosen primary and background colors. You MUST select base colors that will produce readable and accessible derived colors. For example, a mid-range grey background is dangerous because adding lightness might make it too close to white text.
-
-Do not add any explanations. Only return the JSON object.`,
-});
-
 export async function generateTheme(
   words: GenerateThemeInput
 ): Promise<GenerateThemeOutput> {
@@ -71,6 +52,25 @@ const generateThemeFlow = ai.defineFlow(
   },
   async (input) => {
     try {
+      // Define the prompt object inside the flow to ensure it has the correct context.
+      const themePrompt = ai.definePrompt({
+          name: 'themePrompt',
+          input: { schema: GenerateThemeInputSchema },
+          output: { schema: GenerateThemeOutputSchema },
+          prompt: `You are an expert UI/UX designer with a deep understanding of color theory and accessibility. Your task is to generate a color theme for a web application based on three inspirational words and a mood.
+
+You MUST return a JSON object with four HSL color objects: 'background', 'foreground', 'primary', and 'ring'. Each object must have 'h' (0-360), 's' (0-100), and 'l' (0-100) values.
+
+Follow these rules precisely:
+1.  **Word Association**: Use the three words ({{word1}}, {{word2}}, {{word3}}) as the primary inspiration. The AI should intelligently assign these words to the background, foreground, and primary color roles based on design best practices. Research how established color brands (like Pantone or paint companies) name their colors to derive realistic and aesthetically pleasing shades.
+2.  **Mood Application**: Use the '{{mood}}' keyword to adjust the final palette. For example, 'Vibrant' should increase saturation, 'Calm' should be desaturated, and 'Dark' should use a dark background with light text. Accessibility moods like 'High Contrast' or color-blind-friendly options must be strictly followed.
+3.  **Contrast and Accessibility**: The 'foreground' color MUST have a high contrast ratio with the 'background' color. The 'primary' color must also be highly visible against the 'background'.
+4.  **Ring Color**: The 'ring' color is for focus indicators. It MUST be a derivative of the 'primary' color, but with a lightness value that is at least 15% lighter or darker to ensure it stands out clearly.
+5.  **Derived Color Safety**: The app's CSS will automatically create secondary and muted colors by adjusting the lightness of your chosen primary and background colors. You MUST select base colors that will produce readable and accessible derived colors. For example, a mid-range grey background is dangerous because adding lightness might make it too close to white text.
+
+Do not add any explanations. Only return the JSON object.`,
+      });
+
       // 1. Send the prompt to the AI and get the result.
       const response = await themePrompt(input);
       const output = response.output;
