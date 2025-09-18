@@ -151,13 +151,26 @@ export function ThemeGenerator() {
                 let themesToSet = themesFromFirestore;
                 let activeIndex = themesToSet.findIndex(t => t.isActive);
 
-                if (themesToSet.length < MAX_SAVED_THEMES) {
-                    themesToSet = themesToSet.concat(Array(MAX_SAVED_THEMES - themesToSet.length).fill(null));
+                // If no active theme is found in Firestore, check localStorage
+                if (activeIndex === -1) {
+                  const localActiveThemeJson = localStorage.getItem('active-theme-json');
+                  if (localActiveThemeJson) {
+                    const localActiveTheme = JSON.parse(localActiveThemeJson);
+                    // Find the index of the locally stored active theme in the data from Firestore
+                    const localActiveIndex = themesToSet.findIndex(t => t.id === localActiveTheme.id);
+                    if (localActiveIndex !== -1) {
+                      activeIndex = localActiveIndex;
+                    }
+                  }
+                }
+                
+                // If still no active theme, default to the first slot
+                if (activeIndex === -1 && themesToSet.length > 0) {
+                    activeIndex = 0;
                 }
 
-                if (activeIndex === -1 && themesToSet.length > 0 && themesToSet[0] !== null) {
-                    activeIndex = 0;
-                    themesToSet[0].isActive = true;
+                if (themesToSet.length < MAX_SAVED_THEMES) {
+                    themesToSet = themesToSet.concat(Array(MAX_SAVED_THEMES - themesToSet.length).fill(null));
                 }
 
                 const finalThemes = themesToSet.map((theme, i) => {
@@ -179,6 +192,8 @@ export function ThemeGenerator() {
                 const activeTheme = finalThemes.find(t => t.isActive);
                 if (activeTheme) {
                     localStorage.setItem('active-theme-json', JSON.stringify(activeTheme));
+                    // The root layout script will handle the initial paint,
+                    // but we can update it here for consistency after load.
                     updateCSSVariables(activeTheme.colors);
                 }
 

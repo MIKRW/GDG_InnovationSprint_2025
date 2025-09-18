@@ -26,22 +26,24 @@ const themeScript = `
         const activeThemeJson = localStorage.getItem('active-theme-json');
         if (activeThemeJson) {
           const activeTheme = JSON.parse(activeThemeJson);
-          const { colors } = activeTheme;
-          const ringColor = colors.ring || colors.primary;
-          const root = document.documentElement;
+          if (activeTheme && activeTheme.colors) {
+            const { colors } = activeTheme;
+            const ringColor = colors.ring || colors.primary;
+            const root = document.documentElement;
 
-          root.style.setProperty('--custom-background-h', '' + colors.background.h);
-          root.style.setProperty('--custom-background-s', colors.background.s + '%');
-          root.style.setProperty('--custom-background-l', colors.background.l + '%');
-          root.style.setProperty('--custom-foreground-h', '' + colors.foreground.h);
-          root.style.setProperty('--custom-foreground-s', colors.foreground.s + '%');
-          root.style.setProperty('--custom-foreground-l', colors.foreground.l + '%');
-          root.style.setProperty('--custom-primary-h', '' + colors.primary.h);
-          root.style.setProperty('--custom-primary-s', colors.primary.s + '%');
-          root.style.setProperty('--custom-primary-l', colors.primary.l + '%');
-          root.style.setProperty('--custom-ring-h', '' + ringColor.h);
-          root.style.setProperty('--custom-ring-s', ringColor.s + '%');
-          root.style.setProperty('--custom-ring-l', ringColor.l + '%');
+            root.style.setProperty('--custom-background-h', '' + colors.background.h);
+            root.style.setProperty('--custom-background-s', colors.background.s + '%');
+            root.style.setProperty('--custom-background-l', colors.background.l + '%');
+            root.style.setProperty('--custom-foreground-h', '' + colors.foreground.h);
+            root.style.setProperty('--custom-foreground-s', colors.foreground.s + '%');
+            root.style.setProperty('--custom-foreground-l', colors.foreground.l + '%');
+            root.style.setProperty('--custom-primary-h', '' + colors.primary.h);
+            root.style.setProperty('--custom-primary-s', colors.primary.s + '%');
+            root.style.setProperty('--custom-primary-l', colors.primary.l + '%');
+            root.style.setProperty('--custom-ring-h', '' + ringColor.h);
+            root.style.setProperty('--custom-ring-s', ringColor.s + '%');
+            root.style.setProperty('--custom-ring-l', ringColor.l + '%');
+          }
         }
       }
     } catch (e) {
