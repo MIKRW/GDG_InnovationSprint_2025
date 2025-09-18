@@ -37,8 +37,12 @@ const GenerateThemeInputSchema = z.object({
 });
 export type GenerateThemeInput = z.infer<typeof GenerateThemeInputSchema>;
 
-// Static prompt to bypass the failing database lookup.
-const staticThemePrompt = `You are an expert UI/UX designer with a deep understanding of color theory and accessibility. Your task is to generate a color theme for a web application based on three inspirational words and a mood.
+// Define the prompt object once, outside the flow.
+const themePrompt = ai.definePrompt({
+    name: 'themePrompt',
+    input: { schema: GenerateThemeInputSchema },
+    output: { schema: GenerateThemeOutputSchema },
+    prompt: `You are an expert UI/UX designer with a deep understanding of color theory and accessibility. Your task is to generate a color theme for a web application based on three inspirational words and a mood.
 
 You MUST return a JSON object with four HSL color objects: 'background', 'foreground', 'primary', and 'ring'. Each object must have 'h' (0-360), 's' (0-100), and 'l' (0-100) values.
 
@@ -49,8 +53,8 @@ Follow these rules precisely:
 4.  **Ring Color**: The 'ring' color is for focus indicators. It MUST be a derivative of the 'primary' color, but with a lightness value that is at least 15% lighter or darker to ensure it stands out clearly.
 5.  **Derived Color Safety**: The app's CSS will automatically create secondary and muted colors by adjusting the lightness of your chosen primary and background colors. You MUST select base colors that will produce readable and accessible derived colors. For example, a mid-range grey background is dangerous because adding lightness might make it too close to white text.
 
-Do not add any explanations. Only return the JSON object.`;
-
+Do not add any explanations. Only return the JSON object.`,
+});
 
 export async function generateTheme(
   words: GenerateThemeInput
@@ -67,15 +71,7 @@ const generateThemeFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      // 1. Define the prompt object with the static instructions.
-      const themePrompt = ai.definePrompt({
-          name: 'themePrompt',
-          input: { schema: GenerateThemeInputSchema },
-          output: { schema: GenerateThemeOutputSchema },
-          prompt: staticThemePrompt,
-      });
-
-      // 2. Send the prompt to the AI and get the result.
+      // 1. Send the prompt to the AI and get the result.
       const response = await themePrompt(input);
       const output = response.output;
 
@@ -83,8 +79,8 @@ const generateThemeFlow = ai.defineFlow(
         throw new Error('The AI model failed to return a valid theme. This has been logged.');
       }
       
-      // 3. Send the AI result (and version info) to the frontend.
-      output.promptVersion = "static-v1.0"; // Indicate that a static prompt was used
+      // 2. Send the AI result (and version info) to the frontend.
+      output.promptVersion = "static-v1.1"; // Indicate that a static prompt was used
       return output;
 
     } catch (error) {
