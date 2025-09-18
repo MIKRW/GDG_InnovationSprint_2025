@@ -1,6 +1,5 @@
 
 'use server';
-
 /**
  * @fileOverview An AI flow for generating a custom theme palette from three words.
  *
@@ -11,7 +10,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { ThemeColor } from '@/lib/types';
 import { logErrorToFirestore } from '@/lib/error-logging';
 import { getComposedPrompt } from '@/lib/actions';
 
