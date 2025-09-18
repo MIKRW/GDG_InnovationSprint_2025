@@ -151,20 +151,24 @@ export function ThemeGenerator() {
                 let themesToSet = themesFromFirestore;
                 let activeIndex = themesToSet.findIndex(t => t.isActive);
 
-                // If no active theme is found in Firestore, check localStorage
+                // If no active theme is found in Firestore, check localStorage as the source of truth
                 if (activeIndex === -1) {
                   const localActiveThemeJson = localStorage.getItem('active-theme-json');
                   if (localActiveThemeJson) {
-                    const localActiveTheme = JSON.parse(localActiveThemeJson);
-                    // Find the index of the locally stored active theme in the data from Firestore
-                    const localActiveIndex = themesToSet.findIndex(t => t.id === localActiveTheme.id);
-                    if (localActiveIndex !== -1) {
-                      activeIndex = localActiveIndex;
+                    try {
+                        const localActiveTheme = JSON.parse(localActiveThemeJson);
+                        // Find the index of the locally stored active theme in the data from Firestore
+                        const localActiveIndex = themesToSet.findIndex(t => t.id === localActiveTheme.id);
+                        if (localActiveIndex !== -1) {
+                          activeIndex = localActiveIndex;
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse active theme from localStorage", e);
                     }
                   }
                 }
                 
-                // If still no active theme, default to the first slot
+                // If still no active theme, default to the first slot as a final fallback
                 if (activeIndex === -1 && themesToSet.length > 0) {
                     activeIndex = 0;
                 }
@@ -191,9 +195,18 @@ export function ThemeGenerator() {
                 
                 const activeTheme = finalThemes.find(t => t.isActive);
                 if (activeTheme) {
+                    // This ensures the local storage is always in sync with the determined active theme.
                     localStorage.setItem('active-theme-json', JSON.stringify(activeTheme));
-                    // The root layout script will handle the initial paint,
-                    // but we can update it here for consistency after load.
+                    
+                    const currentThemeClass = document.documentElement.className;
+                    const savedThemePreference = localStorage.getItem('theme');
+
+                    // If the active theme is a custom one, ensure the correct class and styles are applied.
+                    if (savedThemePreference === 'custom' && currentThemeClass !== 'custom') {
+                       document.documentElement.classList.remove('light', 'dark');
+                       document.documentElement.classList.add('custom');
+                    }
+                    // This update ensures that even on first load, the correct CSS variables are set.
                     updateCSSVariables(activeTheme.colors);
                 }
 

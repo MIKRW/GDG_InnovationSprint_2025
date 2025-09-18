@@ -26,7 +26,7 @@ const themeScript = `
         const activeThemeJson = localStorage.getItem('active-theme-json');
         if (activeThemeJson) {
           const activeTheme = JSON.parse(activeThemeJson);
-          if (activeTheme && activeTheme.colors) {
+          if (activeTheme && activeTheme.colors && activeTheme.colors.background && activeTheme.colors.foreground && activeTheme.colors.primary) {
             const { colors } = activeTheme;
             const ringColor = colors.ring || colors.primary;
             const root = document.documentElement;
@@ -40,9 +40,9 @@ const themeScript = `
             root.style.setProperty('--custom-primary-h', '' + colors.primary.h);
             root.style.setProperty('--custom-primary-s', colors.primary.s + '%');
             root.style.setProperty('--custom-primary-l', colors.primary.l + '%');
-            root.style.setProperty('--custom-ring-h', '' + ringColor.h);
-            root.style.setProperty('--custom-ring-s', ringColor.s + '%');
-            root.style.setProperty('--custom-ring-l', ringColor.l + '%');
+            root.style.setProperty('--custom-ring-h', '' + (ringColor.h || colors.primary.h));
+            root.style.setProperty('--custom-ring-s', (ringColor.s || colors.primary.s) + '%');
+            root.style.setProperty('--custom-ring-l', (ringColor.l || colors.primary.l) + '%');
           }
         }
       }
