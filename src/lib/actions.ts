@@ -496,10 +496,12 @@ export const getComposedPrompt = cache(
 
             let appAIVersionId: string | undefined;
             
-            // Robust fallback logic
+            // Robust fallback logic.
             if (isDevMode) {
+                // In dev mode, prefer the development version, but fall back to live.
                 appAIVersionId = appAIConfig.developmentAppAIVersion || appAIConfig.activeAppAIVersion;
             } else {
+                // In live mode, prefer the live version, but fall back to development.
                 appAIVersionId = appAIConfig.activeAppAIVersion || appAIConfig.developmentAppAIVersion;
             }
             
@@ -516,7 +518,7 @@ export const getComposedPrompt = cache(
 
             const promptSystemVersionId = appAIVersion.systems[systemId];
             if (!promptSystemVersionId) {
-                throw new Error(`AI Type '${systemId}' is not defined in App AI Version '${appAIVersionId}'.`);
+                throw new Error(`AI Type '${systemId}' is not defined in App AI Version '${appAIVersion.version}'.`);
             }
             
             const promptVersionRef = doc(db, 'prompt_versions', promptSystemVersionId);
@@ -550,6 +552,7 @@ export const getComposedPrompt = cache(
 
 
     
+
 
 
 
