@@ -23,13 +23,12 @@ import type { Theme, ThemeColor } from '@/lib/types';
 import { Info, Loader2, RefreshCw, Save } from 'lucide-react';
 import { ThemeHistoryItem } from './ThemeHistoryItem';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { cn } from '@/lib/utils';
+import { cn, isDevMode } from '@/lib/utils';
 import { ManualThemeEditor } from './ManualThemeEditor';
 import { PageTitle } from '../content/PageTitle';
 import { db } from '@/lib/firebase';
 import { logErrorToFirestore } from '@/lib/error-logging';
 import { useAuth } from '../providers/AuthProvider';
-import { useIsLiveSite } from '@/hooks/useIsLiveSite';
 
 const formSchema = z.object({
   word1: z.string(),
@@ -83,7 +82,6 @@ const MAX_SAVED_THEMES = 6;
 export function ThemeGenerator() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
-  const isLiveSite = useIsLiveSite();
   const [isLoading, setIsLoading] = useState(false);
   const [isApiOverloaded, setIsApiOverloaded] = useState(false);
   const [showEmptyInputInfo, setShowEmptyInputInfo] = useState(false);
@@ -327,7 +325,7 @@ export function ThemeGenerator() {
     }
     
     const mood = MOODS[currentMoodIndex];
-    const inputForAI = { ...values, mood, isDevelopment: !isLiveSite };
+    const inputForAI = { ...values, mood, isDevelopment: isDevMode() };
 
     try {
       const newColors = await generateTheme(inputForAI);
