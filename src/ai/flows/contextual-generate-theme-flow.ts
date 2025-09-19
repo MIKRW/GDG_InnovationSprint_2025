@@ -15,7 +15,6 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppAIVersion, PromptVersion, PromptContent } from '@/lib/types';
 import { getActiveAIConfig } from '@/lib/actions';
-import { useIsDevMode } from '@/hooks/useIsDevMode';
 
 // A local utitlity does not need to be exported unlike the next two const.
 const ThemeColorSchema = z.object({
@@ -49,13 +48,14 @@ const GenerateThemeInputSchema = z.object({
   mood: z.string().describe(
     'A keyword that defines the desired aesthetic and accessibility constraints (e.g., "High Contrast", "Tritanopia-Friendly", "Vibrant", "Dark").'
   ),
+  isDevelopment: z.boolean().describe('Whether to use the development or live AI configuration.'),
 });
 export type GenerateThemeInput = z.infer<typeof GenerateThemeInputSchema>;
 
 export async function generateTheme(
-  words: GenerateThemeInput
+  input: GenerateThemeInput
 ): Promise<GenerateThemeOutput> {
-  return await generateThemeFlow(words);
+  return await generateThemeFlow(input);
 }
 
 const generateThemeFlow = ai.defineFlow(
@@ -69,8 +69,7 @@ const generateThemeFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      // Determine if we're in dev mode by checking the process env variable on the server.
-      const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+      const { isDevelopment, ...themeInput } = input;
       const systemId = 'theme-generator-ai';
 
       const appConfig = await getActiveAIConfig();
@@ -84,7 +83,7 @@ You must ensure that the contrast ratios between background, foreground, and pri
 
 
       if (appConfig) {
-        const activeAppVersionId = isDevMode
+        const activeAppVersionId = isDevelopment
           ? appConfig.developmentAppAIVersion
           : appConfig.activeAppAIVersion;
         const appVersionDoc = await getDoc(
@@ -124,18 +123,20 @@ Here is the user's input:
 - Word 2: {{{word2}}}
 - Word 3: {{{word3}}}
 - Mood: {{{mood}}}`;
+      
+      const themePromptInputSchema = GenerateThemeInputSchema.omit({ isDevelopment: true });
 
       const themePrompt = ai.definePrompt({
         name: 'themePrompt',
         prompt: fullPrompt,
-        input: { schema: GenerateThemeInputSchema },
+        input: { schema: themePromptInputSchema },
         output: { schema: GenerateThemeOutputSchema },
         config: {
           temperature: 0.7, // Increase creativity and reduce repetition.
         },
       });
 
-      const response = await themePrompt(input);
+      const response = await themePrompt(themeInput);
       const output = response.output;
 
       if (!output) {
