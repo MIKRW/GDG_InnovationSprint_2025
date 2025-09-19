@@ -10,7 +10,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { getComposedPrompt } from '@/lib/actions';
 import { getStorage } from 'firebase-admin/storage';
 import { Readable } from 'stream';
 import wavDecoder from 'wav-decoder';
@@ -49,6 +48,8 @@ const IdentifyBirdOutputSchema = z.object({
   promptVersion: z.string().optional().describe('The version of the prompt system used for this analysis.'),
 });
 export type IdentifyBirdOutput = z.infer<typeof IdentifyBirdOutputSchema>;
+
+const BIRD_IDENTIFIER_PROMPT = `You are an expert ornithologist. Your primary goal is to identify bird species from audio recordings. The user will provide an audio file and optional location data. You MUST analyze this audio to determine if a bird song is present. If it is, identify the bird's common name, scientific name, taxonomic family, and order. If no bird song is discernible, you MUST set 'isBirdSong' to false. You must also generate a simple, descriptive prompt for a text-to-image model to create a photorealistic image of the identified bird.`;
 
 const getCurrentWeather = ai.defineTool(
     {
@@ -175,15 +176,9 @@ const identifyBirdFlow = ai.defineFlow(
   },
   async (input) => {
     
-    const composedPrompt = await getComposedPrompt('bird-identifier-ai-newbie');
-    
-    if (!composedPrompt || !composedPrompt.prompt) {
-        throw new Error("Could not retrieve a valid prompt. Check the AI configuration in Firestore.");
-    }
-    
     const identifyBirdPrompt = ai.definePrompt({
         name: 'identifyBirdPrompt',
-        prompt: composedPrompt.prompt,
+        prompt: BIRD_IDENTIFIER_PROMPT,
         input: { schema: IdentifyBirdInputSchema },
         output: { schema: IdentifyBirdOutputSchema },
         tools: [getCurrentWeather],
@@ -195,8 +190,7 @@ const identifyBirdFlow = ai.defineFlow(
       throw new Error('The model failed to return a valid analysis.');
     }
     
-    // Attach the prompt version from the composed prompt to the output
-    output.promptVersion = composedPrompt.version;
+    output.promptVersion = "hardcoded-v1";
 
     // If no bird song was detected, fill in placeholder text.
     if (output.isBirdSong === false) {
@@ -214,7 +208,7 @@ const identifyBirdFlow = ai.defineFlow(
             weather: output.weather || "Unknown",
             aiGeneratedHabitatTags: [],
             duration: output.duration,
-            promptVersion: output.promptVersion, // Ensure the version is carried over
+            promptVersion: output.promptVersion,
         };
     }
     

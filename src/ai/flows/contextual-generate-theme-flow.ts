@@ -16,8 +16,6 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { logErrorToFirestore } from '@/lib/error-logging';
-// No import firebase-admin/storage as generated themes are saved outside of this flow
-import { getComposedPrompt } from '@/lib/actions';
 
 // A local utitlity does not need to be exported unlike the next two const. 
 const ThemeColorSchema = z.object({
@@ -49,6 +47,8 @@ export async function generateTheme(
   return await generateThemeFlow(words);
 }
 
+const THEME_GENERATOR_PROMPT = `You are a professional UI/UX designer specializing in color theory and accessibility. Your task is to generate a color palette for a web application based on three inspirational words and a 'mood'. The output must be a JSON object with 'background', 'foreground', 'primary', and 'ring' colors in HSL format. You must ensure that the contrast ratios between background, foreground, and primary colors are WCAG AA compliant at a minimum, aiming for AAA where possible, especially for 'High Contrast' mood. The 'ring' color must be a perceptibly lighter or darker shade of the 'primary' color to be visible as a selection indicator. The mood provides the artistic direction and accessibility constraints. For color-blindness-friendly moods, you must avoid color combinations that are difficult to distinguish for that specific type of color vision deficiency.`;
+
 const generateThemeFlow = ai.defineFlow(
   {
     name: 'generateThemeFlow',
@@ -60,20 +60,13 @@ const generateThemeFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      const composedPrompt = await getComposedPrompt('theme-generator-ai');
-      if (!composedPrompt || !composedPrompt.prompt) {
-          throw new Error("Could not retrieve a valid prompt for the theme generator. Check the AI configuration in Firestore.");
-      }
-
-      // Define the prompt object inside the flow to ensure it has the correct context.
       const themePrompt = ai.definePrompt({
           name: 'themePrompt',
-          prompt: composedPrompt.prompt,
+          prompt: THEME_GENERATOR_PROMPT,
           input: { schema: GenerateThemeInputSchema },
           output: { schema: GenerateThemeOutputSchema },
       });
 
-      // 1. Send the prompt to the AI and get the result.
       const response = await themePrompt(input);
       const output = response.output;
 
@@ -81,19 +74,15 @@ const generateThemeFlow = ai.defineFlow(
         throw new Error('The AI model failed to return a valid theme. This has been logged.');
       }
       
-      // 2. Send the AI result (and version info) to the frontend.
-      output.promptVersion = composedPrompt.version;
+      output.promptVersion = "hardcoded-v1";
       return output;
 
     } catch (error) {
         console.error("Error in generateThemeFlow:", error);
-        // Log the specific error to Firestore for better debugging.
         await logErrorToFirestore(error as Error, 'theme-generation-failure', {
             input: input,
             flow: 'generateThemeFlow',
         });
-        // Re-throw the error to be caught by the calling client component
-        // so it can display a message to the user.
         throw error;
     }
   }
