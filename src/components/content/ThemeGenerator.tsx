@@ -133,6 +133,15 @@ export function ThemeGenerator() {
         if (authLoading) return;
         if (!user) {
             setIsFirestoreLoading(false);
+            // Even if logged out, try to load from local storage
+            const localSavedThemes = localStorage.getItem('saved-themes');
+             if (localSavedThemes) {
+                try {
+                    setSavedThemes(JSON.parse(localSavedThemes));
+                } catch (e) {
+                    console.error("Failed to parse saved themes from localStorage", e);
+                }
+            }
             return;
         }
 
@@ -143,71 +152,51 @@ export function ThemeGenerator() {
                 const q = query(themesCollectionRef, orderBy('id'));
                 const querySnapshot = await getDocs(q);
                 
-                const themesFromFirestore: Theme[] = [];
+                let themesFromFirestore: Theme[] = [];
                 querySnapshot.forEach((doc) => {
                     themesFromFirestore.push(doc.data() as Theme);
                 });
                 
                 let themesToSet = themesFromFirestore;
                 let activeIndex = themesToSet.findIndex(t => t.isActive);
-
+                
                 // If no active theme is found in Firestore, check localStorage as the source of truth
                 if (activeIndex === -1) {
                   const localActiveThemeJson = localStorage.getItem('active-theme-json');
                   if (localActiveThemeJson) {
                     try {
                         const localActiveTheme = JSON.parse(localActiveThemeJson);
-                        // Find the index of the locally stored active theme in the data from Firestore
                         const localActiveIndex = themesToSet.findIndex(t => t.id === localActiveTheme.id);
                         if (localActiveIndex !== -1) {
                           activeIndex = localActiveIndex;
                         }
-                    } catch (e) {
-                        console.error("Failed to parse active theme from localStorage", e);
-                    }
+                    } catch (e) { console.error("Failed to parse active theme from localStorage", e); }
                   }
                 }
                 
-                // If still no active theme, default to the first slot as a final fallback
-                if (activeIndex === -1 && themesToSet.length > 0) {
-                    activeIndex = 0;
-                }
-
                 if (themesToSet.length < MAX_SAVED_THEMES) {
                     themesToSet = themesToSet.concat(Array(MAX_SAVED_THEMES - themesToSet.length).fill(null));
                 }
 
+                if (activeIndex === -1 && themesToSet.length > 0) {
+                    activeIndex = 0;
+                }
+
                 const finalThemes = themesToSet.map((theme, i) => {
-                    if (theme) {
-                        return { ...theme, isActive: i === activeIndex };
-                    }
-                    // Fill empty slots with defaults, ensuring only one is active
-                    return {
-                        ...DEFAULTS, 
-                        id: `${i}`, 
-                        isActive: i === activeIndex,
-                        words: i === 0 ? DEFAULTS.words : { word1: 'new', word2: 'theme', word3: 'slot', mood: 'default' }
-                    };
+                    const currentTheme = theme || { ...DEFAULTS, id: `${i}`, words: { word1: 'new', word2: 'theme', word3: 'slot', mood: 'default' } };
+                    return { ...currentTheme, isActive: i === activeIndex };
                 });
 
                 setSelectedSlot(activeIndex === -1 ? 0 : activeIndex);
                 setSavedThemes(finalThemes);
+                localStorage.setItem('saved-themes', JSON.stringify(finalThemes)); // Sync to local storage
                 
                 const activeTheme = finalThemes.find(t => t.isActive);
                 if (activeTheme) {
-                    // This ensures the local storage is always in sync with the determined active theme.
                     localStorage.setItem('active-theme-json', JSON.stringify(activeTheme));
-                    
-                    const currentThemeClass = document.documentElement.className;
-                    const savedThemePreference = localStorage.getItem('theme');
-
-                    // If the active theme is a custom one, ensure the correct class and styles are applied.
-                    if (savedThemePreference === 'custom' && currentThemeClass !== 'custom') {
-                       document.documentElement.classList.remove('light', 'dark');
-                       document.documentElement.classList.add('custom');
+                    if (localStorage.getItem('theme') === 'custom') {
+                       updateCSSVariables(activeTheme.colors);
                     }
-                    // This update ensures that even on first load, the correct CSS variables are set.
-                    updateCSSVariables(activeTheme.colors);
                 }
 
             } catch (error) {
@@ -270,49 +259,51 @@ export function ThemeGenerator() {
       });
       return;
     }
-    if (!user) {
-         toast({ variant: 'destructive', title: 'Authentication Error', description: 'You must be signed in to save a theme.' });
-         return;
-    }
   
-    // This ID is the slot index '0' through '5'
     const themeId = `${selectedSlot}`;
-    const themeToSaveToSlot = { ...themeToSave, id: themeId, isActive: false };
+    const themeToSaveToSlot = { ...themeToSave, id: themeId, isActive: savedThemes[selectedSlot]?.isActive ?? false };
     
     // Optimistically update UI
     const newSavedThemes = savedThemes.map((theme, index) => 
         index === selectedSlot ? themeToSaveToSlot : theme
     );
     setSavedThemes(newSavedThemes);
+    localStorage.setItem('saved-themes', JSON.stringify(newSavedThemes)); // also save to local
     
-    try {
-        const themeDocRef = doc(db, 'users', user.uid, 'themes', themeId);
-        await setDoc(themeDocRef, themeToSaveToSlot);
+    // If the user is logged in, sync to firestore
+    if (user) {
+        try {
+            const themeDocRef = doc(db, 'users', user.uid, 'themes', themeId);
+            await setDoc(themeDocRef, themeToSaveToSlot);
 
-        if(savedThemes[selectedSlot]?.isActive) {
-            updateCSSVariables(themeToSaveToSlot.colors);
-            localStorage.setItem('active-theme-json', JSON.stringify(themeToSaveToSlot));
+            if(themeToSaveToSlot.isActive) {
+                updateCSSVariables(themeToSaveToSlot.colors);
+                localStorage.setItem('active-theme-json', JSON.stringify(themeToSaveToSlot));
+            }
+
+            toast({
+              title: 'Theme Saved!',
+              description: `Theme saved to slot ${selectedSlot + 1}.`,
+            });
+        } catch (error) {
+           console.error("Error saving theme to Firestore: ", error);
+           logErrorToFirestore(error as Error, 'firestore-write-failure', {
+             collection: 'user_themes',
+             operation: 'setDoc',
+             documentId: themeId,
+             userId: user.uid,
+           });
+           toast({
+             variant: 'destructive',
+             title: 'Cloud Sync Failed',
+             description: 'Theme saved locally, but failed to sync to the cloud.',
+           });
         }
-
-        toast({
-          title: 'Theme Saved!',
-          description: `Theme saved to slot ${selectedSlot + 1}.`,
+    } else {
+         toast({
+          title: 'Theme Saved Locally',
+          description: `Theme saved to slot ${selectedSlot + 1}. Sign in to sync across devices.`,
         });
-    } catch (error) {
-       console.error("Error saving theme to Firestore: ", error);
-       logErrorToFirestore(error as Error, 'firestore-write-failure', {
-         collection: 'user_themes',
-         operation: 'setDoc',
-         documentId: themeId,
-         userId: user.uid,
-       });
-       toast({
-         variant: 'destructive',
-         title: 'Cloud Sync Failed',
-         description: 'Theme failed to sync to the cloud. Please try again.',
-       });
-       // Revert optimistic update on failure
-       setSavedThemes(savedThemes);
     }
 
     if (isPreviewingGenerated || isPreviewingManual) {
@@ -376,16 +367,16 @@ export function ThemeGenerator() {
   }
 
   const handleSlotClick = async (index: number) => {
-    if (!user) return;
     const themeToActivate = savedThemes[index];
     if (!themeToActivate) return;
   
     const newSavedThemes = savedThemes.map((theme, i) => ({
-      ...theme,
+      ...(theme || DEFAULTS),
       isActive: i === index,
     }));
     setSelectedSlot(index);
     setSavedThemes(newSavedThemes);
+    localStorage.setItem('saved-themes', JSON.stringify(newSavedThemes));
   
     updateCSSVariables(themeToActivate.colors);
     localStorage.setItem('active-theme-json', JSON.stringify(themeToActivate));
@@ -393,15 +384,17 @@ export function ThemeGenerator() {
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add('custom');
   
-    try {
-      // Update the status of all themes for this user in a batch
-      for (const theme of newSavedThemes) {
-          if (theme.id === 'default' && theme.words.word1 === 'sand') continue; // Skip default placeholder
-          const themeDocRef = doc(db, 'users', user.uid, 'themes', theme.id);
-          await setDoc(themeDocRef, theme, { merge: true });
-      }
-    } catch (error) {
-      console.error("Error updating active theme in Firestore: ", error);
+    if (user) {
+        try {
+          // Update the status of all themes for this user in a batch
+          for (const theme of newSavedThemes) {
+              if (!theme) continue;
+              const themeDocRef = doc(db, 'users', user.uid, 'themes', theme.id);
+              await setDoc(themeDocRef, theme, { merge: true });
+          }
+        } catch (error) {
+          console.error("Error updating active theme in Firestore: ", error);
+        }
     }
   
     setIsPreviewingGenerated(false);
@@ -585,7 +578,7 @@ localStorage.setItem('manual-theme', JSON.stringify(newTheme));
               <Button
                 type="button"
                 onClick={() => saveThemeToSlot(generatedTheme)}
-                disabled={generatedTheme.id === 'empty' || !user}
+                disabled={generatedTheme.id === 'empty'}
                 className="w-full h-40 text-lg"
               >
                 <Save className="mr-2 h-4 w-4" />
@@ -607,13 +600,13 @@ localStorage.setItem('manual-theme', JSON.stringify(newTheme));
         ) : (
             <div className="grid grid-cols-6 gap-4">
             {savedThemes.map((theme, index) => {
-                const isActive = theme.isActive;
+                const currentTheme = theme || { ...DEFAULTS, id: `${index}`, isActive: false };
                 return (
-                <div key={theme.id + index} className="h-28">
+                <div key={currentTheme.id + index} className="h-28">
                     <ThemeHistoryItem
-                    theme={theme}
+                    theme={currentTheme}
                     onClick={() => handleSlotClick(index)}
-                    isActive={isActive}
+                    isActive={currentTheme.isActive}
                     isSelected={!isPreviewingGenerated && !isPreviewingManual && selectedSlot === index}
                     />
                 </div>
