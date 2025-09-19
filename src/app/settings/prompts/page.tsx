@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -23,9 +22,10 @@ import { ChevronDown, Loader2 } from 'lucide-react';
 import { kebabCase } from 'lodash';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { notFound } from 'next/navigation';
+import { useIsDevMode } from '@/hooks/useIsDevMode';
 
 export default function PromptManagementPage() {
-  const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+  const isDevMode = useIsDevMode();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 

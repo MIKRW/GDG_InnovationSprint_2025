@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
@@ -15,6 +14,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { notFound } from 'next/navigation';
+import { useIsDevMode } from '@/hooks/useIsDevMode';
 
 interface MasterTestRun extends AnalysisRun {
   actualBirdName?: string;
@@ -212,7 +212,7 @@ function LiveRecordingTestLog() {
 
 
 export default function MasterAudioTestLogPage() {
-  const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+  const isDevMode = useIsDevMode();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
