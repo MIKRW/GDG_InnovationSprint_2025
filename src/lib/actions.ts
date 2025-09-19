@@ -1,7 +1,7 @@
 
 'use server';
 
-import { revalidateTag, unstable_cache as cache } from 'next/cache';
+import { unstable_revalidateTag, unstable_cache as cache } from 'next/cache';
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, orderBy, runTransaction, writeBatch } from 'firebase/firestore';
 import { db, storage } from './firebase';
@@ -433,7 +433,7 @@ export async function publishNewAppAIVersion(version: string, systems: { [system
         await setDoc(configRef, { activeAppAIVersion: newVersionId }, { merge: true });
     }
     
-    revalidateTag('prompts-v7');
+    unstable_revalidateTag('prompts-v7');
     return { id: newVersionId, ...newVersionData };
 }
 
@@ -480,7 +480,7 @@ export async function promoteDevelopmentVersionToLive(
     batch.update(doc(db, 'app_ai_config', 'main'), { activeAppAIVersion: newLiveVersionId });
     await batch.commit();
     
-    revalidateTag('prompts-v7');
+    unstable_revalidateTag('prompts-v7');
     return { id: newLiveVersionId, ...newLiveVersion };
 }
 
@@ -488,7 +488,7 @@ export async function promoteDevelopmentVersionToLive(
 export async function setLivePromptSystemVersion(systemId: string, version: string): Promise<void> {
     const systemRef = doc(db, 'prompt_systems', systemId);
     await updateDoc(systemRef, { activeVersion: version });
-    revalidateTag('prompts-v7');
+    unstable_revalidateTag('prompts-v7');
 }
 
 export async function publishNewPromptVersion(systemId: string, version: string, composedPrompts: { [categoryId: string]: string }): Promise<PromptVersion> {
@@ -503,7 +503,7 @@ export async function publishNewPromptVersion(systemId: string, version: string,
     
     await setLivePromptSystemVersion(systemId, version);
     
-    revalidateTag('prompts-v7');
+    unstable_revalidateTag('prompts-v7');
     return { id: newId, ...newVersionData };
 }
 
@@ -525,6 +525,6 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
     };
     if (previousVersionId) (newContentData as PromptContent).previousVersionId = previousVersionId;
     await setDoc(contentRef, newContentData);
-    revalidateTag('prompts-v7');
+    unstable_revalidateTag('prompts-v7');
     return { id: newId, ...newContentData };
 }
