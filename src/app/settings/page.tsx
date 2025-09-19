@@ -4,19 +4,19 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { PageTitle } from '../content/PageTitle';
-import { useAuth } from '../providers/AuthProvider';
+import { PageTitle } from '@/components/content/PageTitle';
+import { useAuth } from '@/components/providers/AuthProvider';
 import { LogOut, FlaskConical, Save } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
-import { Card } from '../ui/card';
-import { Label } from '../ui/label';
-import { Input } from '../ui/input';
+import { Card } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { useIsDevMode } from '@/hooks/useIsDevMode';
 
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 
-export function SettingsPage() {
+export default function SettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const isAnonymous = user?.isAnonymous;
