@@ -50,7 +50,6 @@ const GenerateThemeInputSchema = z.object({
   mood: z.string().describe(
     'A keyword that defines the desired aesthetic and accessibility constraints (e.g., "High Contrast", "Tritanopia-Friendly", "Vibrant", "Dark").'
   ),
-  isDevelopment: z.boolean().describe('Whether to use the development or live AI configuration.'),
 });
 export type GenerateThemeInput = z.infer<typeof GenerateThemeInputSchema>;
 
@@ -71,7 +70,7 @@ const generateThemeFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      const { isDevelopment, ...themeInput } = input;
+      const themeInput = input;
       const systemId = 'theme-generator-ai';
 
       const appConfig = await getActiveAIConfig();
@@ -85,7 +84,7 @@ You must ensure that the contrast ratios between background, foreground, and pri
 
 
       if (appConfig) {
-        const activeAppVersionId = isDevelopment
+        const activeAppVersionId = isDevMode()
           ? appConfig.developmentAppAIVersion
           : appConfig.activeAppAIVersion;
         
@@ -129,12 +128,10 @@ Here is the user's input:
 - Word 3: {{{word3}}}
 - Mood: {{{mood}}}`;
       
-      const themePromptInputSchema = GenerateThemeInputSchema.omit({ isDevelopment: true });
-
       const themePrompt = ai.definePrompt({
         name: 'themePrompt',
         prompt: fullPrompt,
-        input: { schema: themePromptInputSchema },
+        input: { schema: GenerateThemeInputSchema },
         output: { schema: GenerateThemeOutputSchema },
         config: {
           temperature: 0.7, // Increase creativity and reduce repetition.
