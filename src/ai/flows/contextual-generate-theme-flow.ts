@@ -86,34 +86,37 @@ You must ensure that the contrast ratios between background, foreground, and pri
         const activeAppVersionId = isDevelopment
           ? appConfig.developmentAppAIVersion
           : appConfig.activeAppAIVersion;
-        const appVersionDoc = await getDoc(
-          doc(db, 'app_ai_versions', activeAppVersionId)
-        );
-
-        if (appVersionDoc.exists()) {
-          const appVersionData = appVersionDoc.data() as AppAIVersion;
-          const systemVersionId = appVersionData.systems[systemId];
-
-          if (systemVersionId) {
-            const versionDoc = await getDoc(
-              doc(db, 'prompt_versions', systemVersionId)
+        
+        if (activeAppVersionId) {
+            const appVersionDoc = await getDoc(
+            doc(db, 'app_ai_versions', activeAppVersionId)
             );
-            if (versionDoc.exists()) {
-              const versionData = versionDoc.data() as PromptVersion;
-              promptVersion = versionData.version;
 
-              const contentId =
-                versionData.composedPrompts['base_instruction'];
-              if (contentId) {
-                const contentDoc = await getDoc(
-                  doc(db, 'prompt_content', contentId)
+            if (appVersionDoc.exists()) {
+            const appVersionData = appVersionDoc.data() as AppAIVersion;
+            const systemVersionId = appVersionData.systems[systemId];
+
+            if (systemVersionId) {
+                const versionDoc = await getDoc(
+                doc(db, 'prompt_versions', systemVersionId)
                 );
-                if (contentDoc.exists()) {
-                  promptText = (contentDoc.data() as PromptContent).promptText;
+                if (versionDoc.exists()) {
+                const versionData = versionDoc.data() as PromptVersion;
+                promptVersion = versionData.version;
+
+                const contentId =
+                    versionData.composedPrompts['base_instruction'];
+                if (contentId) {
+                    const contentDoc = await getDoc(
+                    doc(db, 'prompt_content', contentId)
+                    );
+                    if (contentDoc.exists()) {
+                    promptText = (contentDoc.data() as PromptContent).promptText;
+                    }
                 }
-              }
+                }
             }
-          }
+            }
         }
       }
       
