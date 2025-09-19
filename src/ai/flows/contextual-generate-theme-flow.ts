@@ -51,6 +51,13 @@ const GenerateThemeInputSchema = z.object({
 });
 export type GenerateThemeInput = z.infer<typeof GenerateThemeInputSchema>;
 
+const DEFAULT_THEME_PROMPT = `You are a professional UI/UX designer specializing in color theory and accessibility. Your task is to generate a color palette for a web application based on three inspirational words and a 'mood'. The output must be a JSON object with 'background', 'foreground', 'primary', and 'ring' colors in HSL format.
+
+While maintaining accessibility, strive for creative and colorful palettes. High contrast does not exclusively mean using white or near-white backgrounds; explore a wider range of base colors that can still provide good readability.
+
+You must ensure that the contrast ratios between background, foreground, and primary colors are WCAG AA compliant at a minimum, aiming for AAA where possible, especially for 'High-Contrast' mood. The 'ring' color must be a perceptibly lighter or darker shade of the 'primary' color to be visible as a selection indicator. The mood provides the artistic direction and accessibility constraints. For color-blindness-friendly moods, you must avoid color combinations that are difficult to distinguish for that specific type of color vision deficiency.`;
+
+
 export async function generateTheme(
   input: GenerateThemeInput
 ): Promise<GenerateThemeOutput> {
@@ -67,57 +74,51 @@ const generateThemeFlow = ai.defineFlow(
     },
   },
   async (input) => {
+    let promptVersion = 'v1.0.0-fallback';
+    let promptText = DEFAULT_THEME_PROMPT;
+
     try {
-      const themeInput = input;
-      const systemId = 'theme-generator-ai';
-
-      const appConfig = await getActiveAIConfig();
-
-      let promptVersion = 'v1.0.0-default';
-      let promptText = `You are a professional UI/UX designer specializing in color theory and accessibility. Your task is to generate a color palette for a web application based on three inspirational words and a 'mood'. The output must be a JSON object with 'background', 'foreground', 'primary', and 'ring' colors in HSL format.
-
-While maintaining accessibility, strive for creative and colorful palettes. High contrast does not exclusively mean using white or near-white backgrounds; explore a wider range of base colors that can still provide good readability.
-
-You must ensure that the contrast ratios between background, foreground, and primary colors are WCAG AA compliant at a minimum, aiming for AAA where possible, especially for 'High-Contrast' mood. The 'ring' color must be a perceptibly lighter or darker shade of the 'primary' color to be visible as a selection indicator. The mood provides the artistic direction and accessibility constraints. For color-blindness-friendly moods, you must avoid color combinations that are difficult to distinguish for that specific type of color vision deficiency.`;
-
-      if (appConfig) {
-        // Since this is a server action, we assume it's running in a production-like environment
-        // and always use the active (live) version.
-        const activeAppVersionId = appConfig.activeAppAIVersion;
+        const appConfig = await getActiveAIConfig();
+        const systemId = 'theme-generator-ai';
         
-        if (activeAppVersionId) {
+        if (appConfig?.activeAppAIVersion) {
             const appVersionDoc = await getDoc(
-            doc(db, 'app_ai_versions', activeAppVersionId)
+                doc(db, 'app_ai_versions', appConfig.activeAppAIVersion)
             );
 
             if (appVersionDoc.exists()) {
-            const appVersionData = appVersionDoc.data() as AppAIVersion;
-            const systemVersionId = appVersionData.systems[systemId];
+                const appVersionData = appVersionDoc.data() as AppAIVersion;
+                const systemVersionId = appVersionData.systems[systemId];
 
-            if (systemVersionId) {
-                const versionDoc = await getDoc(
-                doc(db, 'prompt_versions', systemVersionId)
-                );
-                if (versionDoc.exists()) {
-                const versionData = versionDoc.data() as PromptVersion;
-                promptVersion = versionData.version;
-
-                const contentId =
-                    versionData.composedPrompts['base_instruction'];
-                if (contentId) {
-                    const contentDoc = await getDoc(
-                    doc(db, 'prompt_content', contentId)
+                if (systemVersionId) {
+                    const versionDoc = await getDoc(
+                        doc(db, 'prompt_versions', systemVersionId)
                     );
-                    if (contentDoc.exists()) {
-                    promptText = (contentDoc.data() as PromptContent).promptText;
+                    if (versionDoc.exists()) {
+                        const versionData = versionDoc.data() as PromptVersion;
+                        promptVersion = versionData.version;
+
+                        const contentId = versionData.composedPrompts['base_instruction'];
+                        if (contentId) {
+                            const contentDoc = await getDoc(doc(db, 'prompt_content', contentId));
+                            if (contentDoc.exists()) {
+                                promptText = (contentDoc.data() as PromptContent).promptText;
+                            }
+                        }
                     }
                 }
-                }
-            }
             }
         }
-      }
+    } catch (configError) {
+        console.warn('Could not fetch dynamic AI config, using fallback prompt.', configError);
+        await logErrorToFirestore(configError as Error, 'ai-config-fetch-failure', {
+            flow: 'generateThemeFlow',
+            fallbackUsed: true,
+        });
+        // Non-fatal error, we will proceed with the default promptText and version.
+    }
       
+    try {
       const fullPrompt = `${promptText}
 Here is the user's input:
 - Word 1: {{{word1}}}
@@ -135,7 +136,7 @@ Here is the user's input:
         },
       });
 
-      const response = await themePrompt(themeInput);
+      const response = await themePrompt(input);
       const output = response.output;
 
       if (!output) {
@@ -146,14 +147,15 @@ Here is the user's input:
 
       output.promptVersion = promptVersion;
       return output;
-    } catch (error) {
-      console.error('Error in generateThemeFlow:', error);
-      // Log and throw generic error for all other cases
-      await logErrorToFirestore(error as Error, 'theme-generation-failure', {
+
+    } catch (generationError) {
+      console.error('Error in generateThemeFlow during AI generation:', generationError);
+      await logErrorToFirestore(generationError as Error, 'theme-generation-failure', {
         input: input,
         flow: 'generateThemeFlow',
+        promptVersionUsed: promptVersion,
       });
-      throw error;
+      throw generationError; // Re-throw to let the caller handle it.
     }
   }
 );
