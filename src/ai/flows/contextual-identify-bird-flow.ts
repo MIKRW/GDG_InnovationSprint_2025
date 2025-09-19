@@ -251,7 +251,7 @@ const identifyBirdFlow = ai.defineFlow(
             confidence: 0,
             season: output.season || "Unknown",
             weather: output.weather || "Unknown",
-            aiGeneratedHabitatTags: [],
+aiGeneratedHabitatTags: [],
             duration: output.duration,
             promptVersion: output.promptVersion,
         };
