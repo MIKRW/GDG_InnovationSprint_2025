@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { useRouter } from 'next/navigation';
 
@@ -11,20 +10,14 @@ import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Library, Loader2, Music, PlusSquare, Upload } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { db, storage } from '@/lib/firebase';
-import type { AnalysisRun, AppMode, AppSettings, LocationSettings, TestAudioMetadata } from '@/lib/types';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { NewMasterAudioForm } from '@/components/content/NewMasterAudioForm';
+import { AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { logErrorToFirestore } from '@/lib/error-logging';
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
 import { createAnalysisRun } from '@/lib/actions';
 import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
 import { useIsDevMode } from '@/hooks/useIsDevMode';
+import type { AppMode, LocationSettings } from '@/lib/types';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
@@ -38,64 +31,16 @@ export default function RecordPage() {
   const [showPermissionError, setShowPermissionError] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  const [isTestAudioDialogOpen, setIsTestAudioDialogOpen] = useState(false);
-  const [testAudioLibrary, setTestAudioLibrary] = useState<TestAudioMetadata[]>([]);
-  const [isLibraryLoading, setIsLibraryLoading] = useState(false);
   const isDevMode = useIsDevMode();
 
   // Refs for managing state across async operations
   const currentSessionId = useRef<string | null>(null);
   const currentTimestamp = useRef<string | null>(null);
 
-
-  const fetchTestAudioLibrary = async () => {
-    setIsLibraryLoading(true);
-    try {
-      const birdsCollectionRef = collection(db, 'birds');
-      const querySnapshot = await getDocs(birdsCollectionRef);
-      const library: TestAudioMetadata[] = [];
-      querySnapshot.forEach((doc) => {
-        const birdData = doc.data();
-        if (birdData.masterAudioFiles && Array.isArray(birdData.masterAudioFiles)) {
-          birdData.masterAudioFiles.forEach((audio: any) => {
-            library.push({
-              id: audio.audioId,
-              fileName: birdData.commonName,
-              storagePath: audio.storagePath,
-              description: audio.description,
-              sourceUrl: audio.sourceUrl || '',
-              author: audio.author || '',
-              license: audio.license || '',
-              hardware: audio.hardware || '',
-              location: audio.location || '',
-              birdId: doc.id,
-              testAudioId: audio.audioId,
-              genus: birdData.genus,
-              species: birdData.species,
-              scientificName: birdData.scientificName,
-              family: birdData.family,
-              order: birdData.order,
-              duration: audio.duration,
-            });
-          });
-        }
-      });
-      setTestAudioLibrary(library);
-    } catch (error) {
-      console.error("Error fetching test audio library from Firestore:", error);
-    }
-    setIsLibraryLoading(false);
-  };
-
-  useEffect(() => {
-    if (isTestAudioDialogOpen && isDevMode) {
-      fetchTestAudioLibrary();
-    }
-  }, [isTestAudioDialogOpen, isDevMode]);
   
-  const getAppSettings = (): AppSettings => {
+  const getAppSettings = (): { mode: AppMode } => {
     const savedSettingsJson = localStorage.getItem(APP_MODE_SETTINGS_KEY);
-    const defaultSettings: AppSettings = { mode: 'newbie' };
+    const defaultSettings: { mode: AppMode } = { mode: 'newbie' };
     if (savedSettingsJson) {
         try {
             const parsed = JSON.parse(savedSettingsJson);
@@ -219,85 +164,10 @@ export default function RecordPage() {
     }
   }
 
-  const handleSelectTestAudio = async (audio: TestAudioMetadata) => {
-    setIsTestAudioDialogOpen(false);
-    currentSessionId.current = uuidv4();
-    currentTimestamp.current = new Date().toISOString();
-    
-    const testContext = { birdId: audio.birdId, testAudioId: audio.testAudioId };
-
-    processAudio(audio.storagePath, true, testContext);
-  };
-
-  const onNewAudioUploaded = async (metadata: TestAudioMetadata) => {
-    await handleSelectTestAudio(metadata);
-  }
-
   return (
     <AppLayout header={<SecondaryHeader title="Microphone" />}>
       <main className="flex-1 flex items-center justify-center p-4 bg-muted relative">
         <div className="relative flex items-center justify-center">
-            {isDevMode && (
-              <div className="absolute right-full mr-16 w-96 space-y-4">
-                  <Card className="bg-hazard-stripes p-2 rounded-lg">
-                    <div className="bg-background rounded-sm">
-                      <Dialog open={isTestAudioDialogOpen} onOpenChange={setIsTestAudioDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" className="w-full h-24 text-lg">
-                                <Upload className="mr-2 h-6 w-6" />
-                                Run Test Audio
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-2xl">
-                          <DialogHeader>
-                              <DialogTitle>Run Master Audio Test</DialogTitle>
-                              <DialogDescription>
-                                  Choose a master audio file from the library or upload a new one to run through the AI identifier.
-                              </DialogDescription>
-                          </DialogHeader>
-                          <Tabs defaultValue="from-library">
-                            <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="from-library"><Library className="mr-2 h-4 w-4"/> From Library</TabsTrigger>
-                                <TabsTrigger value="upload-new"><PlusSquare className="mr-2 h-4 w-4"/> Upload New</TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="from-library">
-                                <div className="space-y-2 py-4 h-96 overflow-y-auto">
-                                    {isLibraryLoading ? (
-                                        <div className="flex items-center justify-center p-8">
-                                            <Loader2 className="h-8 w-8 animate-spin" />
-                                        </div>
-                                    ) : testAudioLibrary.length === 0 ? (
-                                        <p className="text-center text-muted-foreground p-4">No master audio files found in the 'birds' collection in Firestore.</p>
-                                    ) : (
-                                        testAudioLibrary.map((audio) => (
-                                            <Button 
-                                                key={audio.id} 
-                                                variant="ghost" 
-                                                className="w-full justify-start h-auto text-left"
-                                                onClick={() => handleSelectTestAudio(audio)}
-                                            >
-                                            <Music className="mr-4 h-6 w-6 shrink-0" />
-                                            <div>
-                                                    <p className="font-semibold">{audio.fileName}</p>
-                                                    <p className="text-xs text-muted-foreground">{audio.description}</p>
-                                            </div>
-                                            </Button>
-                                        ))
-                                    )}
-                                </div>
-                            </TabsContent>
-                             <TabsContent value="upload-new">
-                                <div className="py-4">
-                                   <NewMasterAudioForm onUploadSuccess={onNewAudioUploaded} />
-                                </div>
-                            </TabsContent>
-                          </Tabs>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  </Card>
-              </div>
-            )}
 
             <RecordButton 
               onPermissionDenied={() => setShowPermissionError(true)} 

@@ -16,8 +16,10 @@ const inter = Inter({
   variable: '--font-sans',
 });
 
+// This script runs immediately to prevent a flash of unstyled content (FOUC).
 const themeScript = `
   (function() {
+    // Set theme from localStorage
     try {
       const savedThemeClass = localStorage.getItem('theme') || 'light';
       document.documentElement.className = savedThemeClass;
@@ -26,7 +28,7 @@ const themeScript = `
         const activeThemeJson = localStorage.getItem('active-theme-json');
         if (activeThemeJson) {
           const activeTheme = JSON.parse(activeThemeJson);
-          if (activeTheme && activeTheme.colors && activeTheme.colors.background && activeTheme.colors.foreground && activeTheme.colors.primary) {
+          if (activeTheme && activeTheme.colors) {
             const { colors } = activeTheme;
             const ringColor = colors.ring || colors.primary;
             const root = document.documentElement;

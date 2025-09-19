@@ -10,11 +10,10 @@ import { groupBy } from 'lodash';
 import type { BirdLog, SortOption } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { useIsDevMode } from '@/hooks/useIsDevMode';
 
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { PageTitle } from '../content/PageTitle';
-import { Bird, FlaskConical, HelpCircle, ShieldAlert, Loader2 } from 'lucide-react';
+import { Bird, HelpCircle, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useRouter } from 'next/navigation';
 
@@ -28,7 +27,6 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const isDevMode = useIsDevMode();
 
   useEffect(() => {
     if (authLoading) {
@@ -127,50 +125,6 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
 
   return (
     <>
-       {isDevMode && (
-          <div className="mb-8">
-            <h2 className="text-sm font-semibold uppercase text-muted-foreground tracking-wider mb-2">
-                Developer Tools
-            </h2>
-             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <Link href="/log/test">
-                  <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
-                      <div className="bg-background h-full flex flex-col rounded-sm">
-                          <CardContent className="p-0 flex-grow flex items-center justify-center">
-                              <div className="aspect-square relative w-full flex items-center justify-center">
-                                  <FlaskConical className="w-24 h-24 text-secondary-foreground" />
-                              </div>
-                          </CardContent>
-                          <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
-                              <div className="text-left">
-                              <p className="font-bold text-sm truncate">Test Logs</p>
-                              <p className="text-xs text-muted-foreground truncate italic">View test results</p>
-                              </div>
-                          </CardFooter>
-                      </div>
-                  </Card>
-                </Link>
-                <Link href="/log/errors">
-                    <Card className="overflow-hidden h-full flex flex-col transform transition-transform duration-300 hover:scale-105 hover:shadow-xl bg-hazard-stripes p-1 rounded-lg cursor-pointer">
-                        <div className="bg-background h-full flex flex-col rounded-sm">
-                            <CardContent className="p-0 flex-grow flex items-center justify-center">
-                                <div className="aspect-square relative w-full flex items-center justify-center">
-                                    <ShieldAlert className="w-24 h-24 text-secondary-foreground" />
-                                </div>
-                            </CardContent>
-                            <CardFooter className="p-4 bg-background/80 backdrop-blur-sm">
-                                <div className="text-left">
-                                <p className="font-bold text-sm truncate">Error Logs</p>
-                                <p className="text-xs text-muted-foreground truncate italic">Application error instances</p>
-                                </div>
-                            </CardFooter>
-                        </div>
-                    </Card>
-                </Link>
-            </div>
-          </div>
-        )}
-
       {loading ? (
            <div className="text-center py-16 flex flex-col items-center">
                <Loader2 className="w-12 h-12 animate-spin text-muted-foreground mb-4" />
@@ -249,7 +203,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                 </div>
             )}
 
-            {allLogs.length === 0 && !hasMysteryLogs && !loading && !isDevMode && (
+            {allLogs.length === 0 && !hasMysteryLogs && !loading && (
                  <div className="text-center py-16">
                     <PageTitle>Your Bird Book is Empty</PageTitle>
                     <p className="mt-4 text-muted-foreground">You haven't identified any birds yet.</p>
