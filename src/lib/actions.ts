@@ -1,8 +1,7 @@
 
-
 'use server';
 
-import { unstable_cache as cache, revalidateTag } from 'next/cache';
+import { unstable_revalidateTag, revalidateTag } from 'next/cache';
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, orderBy, runTransaction, writeBatch } from 'firebase/firestore';
 import { db, storage } from './firebase';
@@ -10,6 +9,8 @@ import { v4 as uuidv4 } from 'uuid';
 import type { TestAudioMetadata, BirdLog, PromptSystem, PromptVersion, AppAIVersion, AppAIConfig, PromptContent, AnalysisRun, AppMode } from './types';
 import { EmailAuthProvider, linkWithCredential, type User } from 'firebase/auth';
 import { kebabCase } from 'lodash';
+import { cache } from 'react';
+
 
 interface UploadMasterAudioInput {
     birdId: string; // e.g., 'australian-magpie'
@@ -228,6 +229,19 @@ export async function createAnalysisRun(
 // Three-Tiered Prompt Versioning System Actions
 // =================================================================
 
+export const getActiveAIConfig = cache(
+  async (): Promise<AppAIConfig | null> => {
+    const configRef = doc(db, 'app_ai_config', 'main');
+    const snapshot = await getDoc(configRef);
+    if (!snapshot.exists()) {
+      return null;
+    }
+    return snapshot.data() as AppAIConfig;
+  },
+  ['ai-config'],
+  { tags: ['prompts-v7'] }
+);
+
 export async function getPromptSystems(): Promise<PromptSystem[]> {
     const systemsRef = collection(db, 'prompt_systems');
     const initialSnapshot = await getDocs(query(systemsRef, orderBy('name')));
@@ -300,7 +314,6 @@ export async function getPromptContentForSystem(systemId: string): Promise<Promp
     return contents;
 }
 
-
 export async function getAppAIConfig(): Promise<AppAIConfig | null> {
     const configRef = doc(db, 'app_ai_config', 'main');
     const snapshot = await getDoc(configRef);
@@ -311,47 +324,56 @@ export async function getAppAIConfig(): Promise<AppAIConfig | null> {
 }
 
 export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Promise<AppAIVersion[]> {
+    const configRef = doc(db, 'app_ai_config', 'main');
+
+    // Run a transaction to atomically check and create the default config if needed.
+    await runTransaction(db, async (transaction) => {
+        const configSnap = await transaction.get(configRef);
+        if (configSnap.exists()) {
+            return; // Config already exists, do nothing.
+        }
+
+        console.log("No App AI Systems found. Creating complete default configuration atomically.");
+
+        const birdSystemId = 'bird-identifier-ai-newbie';
+        const themeSystemId = 'theme-generator-ai';
+        const birdVersionId = 'v1.0.0';
+        const themeVersionId = 'v1.0.0';
+
+        // Consistent ID generation
+        const birdContentId = `${birdSystemId}_base_instruction_${birdVersionId}`;
+        const birdVersionDocId = `${birdSystemId}_${birdVersionId}`;
+        const themeContentId = `${themeSystemId}_base_instruction_${themeVersionId}`;
+        const themeVersionDocId = `${themeSystemId}_${themeVersionId}`;
+
+        // Create bird identifier system
+        transaction.set(doc(db, 'prompt_systems', birdSystemId), { name: "Bird Identifier AI (Newbie)", description: "Manages prompts for identifying birds in Newbie mode.", activeVersion: birdVersionId });
+        transaction.set(doc(db, 'prompt_content', birdContentId), { systemId: birdSystemId, categoryId: 'base_instruction', version: birdVersionId, promptText: `You are an expert ornithologist. Your primary goal is to identify bird species from audio recordings. The user will provide an audio file and optional location data. You MUST analyze this audio to determine if a bird song is present. If it is, identify the bird's common name, scientific name, taxonomic family, and order. If no bird song is discernible, you MUST set 'isBirdSong' to false. You must also generate a simple, descriptive prompt for a text-to-image model to create a photorealistic image of the identified bird.`, timestamp: new Date().toISOString() });
+        transaction.set(doc(db, 'prompt_versions', birdVersionDocId), { systemId: birdSystemId, version: birdVersionId, composedPrompts: { base_instruction: birdContentId }, timestamp: new Date().toISOString() });
+        
+        // Create theme generator system
+        transaction.set(doc(db, 'prompt_systems', themeSystemId), { name: "AI Theme Generator", description: "Manages prompts for generating UI color themes.", activeVersion: themeVersionId });
+        transaction.set(doc(db, 'prompt_content', themeContentId), { systemId: themeSystemId, categoryId: 'base_instruction', version: themeVersionId, promptText: `You are a professional UI/UX designer specializing in color theory and accessibility. Your task is to generate a color palette for a web application based on three inspirational words and a 'mood'. The output must be a JSON object with 'background', 'foreground', 'primary', and 'ring' colors in HSL format. You must ensure that the contrast ratios between background, foreground, and primary colors are WCAG AA compliant at a minimum, aiming for AAA where possible, especially for 'High Contrast' mood. The 'ring' color must be a perceptibly lighter or darker shade of the 'primary' color to be visible as a selection indicator. The mood provides the artistic direction and accessibility constraints. For color-blindness-friendly moods, you must avoid color combinations that are difficult to distinguish for that specific type of color vision deficiency.`, timestamp: new Date().toISOString() });
+        transaction.set(doc(db, 'prompt_versions', themeVersionDocId), { systemId: themeSystemId, version: themeVersionId, composedPrompts: { base_instruction: themeContentId }, timestamp: new Date().toISOString() });
+
+        // Create top-level App AI Versions with links to the new systems
+        const defaultSystems = { [birdSystemId]: birdVersionDocId, [themeSystemId]: themeVersionDocId };
+        
+        const defaultLiveVersion = 'v1.0.0';
+        const defaultDevVersion = 'v1.0.0-dev';
+
+        transaction.set(doc(db, 'app_ai_versions', defaultLiveVersion), { version: defaultLiveVersion, isDevelopment: false, timestamp: new Date().toISOString(), systems: defaultSystems });
+        transaction.set(doc(db, 'app_ai_versions', defaultDevVersion), { version: defaultDevVersion, isDevelopment: true, timestamp: new Date().toISOString(), systems: defaultSystems });
+        
+        // Finally, create the main config to point to these new versions
+        transaction.set(configRef, { activeAppAIVersion: defaultLiveVersion, developmentAppAIVersion: defaultDevVersion });
+    });
+    
+    // Now that we're sure the config exists, fetch and return the versions.
     const versionsRef = collection(db, 'app_ai_versions');
     let q = query(versionsRef, orderBy('timestamp', 'desc'));
-
     const snapshot = await getDocs(q);
-    
-    if (snapshot.empty && (type === 'all' || type === 'dev')) {
-        console.log("No App AI Systems found. Creating complete default configuration atomically.");
-        
-        await runTransaction(db, async (transaction) => {
-            const birdSystemId = 'bird-identifier-ai-newbie';
-            const themeSystemId = 'theme-generator-ai';
 
-            // Create bird identifier system
-            transaction.set(doc(db, 'prompt_systems', birdSystemId), { name: "Bird Identifier AI (Newbie)", description: "Manages prompts for identifying birds in Newbie mode.", activeVersion: 'v1.0.0' });
-            const birdContentId = `${birdSystemId}_base_instruction_v1-0-0`.replace(/\./g, '-');
-            transaction.set(doc(db, 'prompt_content', birdContentId), { systemId: birdSystemId, categoryId: 'base_instruction', version: 'v1.0.0', promptText: `This is the default prompt for the bird identifier.`, timestamp: new Date().toISOString() });
-            const birdVersionId = `${birdSystemId}-v1-0-0`;
-            transaction.set(doc(db, 'prompt_versions', birdVersionId), { systemId: birdSystemId, version: 'v1.0.0', composedPrompts: { base_instruction: birdContentId }, timestamp: new Date().toISOString() });
-            
-            // Create theme generator system
-            transaction.set(doc(db, 'prompt_systems', themeSystemId), { name: "AI Theme Generator", description: "Manages prompts for generating UI color themes.", activeVersion: 'v1.0.0' });
-            const themeContentId = `${themeSystemId}_base_instruction_v1-0-0`.replace(/\./g, '-');
-            transaction.set(doc(db, 'prompt_content', themeContentId), { systemId: themeSystemId, categoryId: 'base_instruction', version: 'v1.0.0', promptText: `This is the default prompt for the theme generator.`, timestamp: new Date().toISOString() });
-            const themeVersionId = `${themeSystemId}-v1-0-0`;
-            transaction.set(doc(db, 'prompt_versions', themeVersionId), { systemId: themeSystemId, version: 'v1.0.0', composedPrompts: { base_instruction: themeContentId }, timestamp: new Date().toISOString() });
-
-            // Create top-level App AI Versions with links to the new systems
-            const defaultSystems = { [birdSystemId]: birdVersionId, [themeSystemId]: themeVersionId };
-            
-            transaction.set(doc(db, 'app_ai_versions', 'v1.0.0'), { version: 'v1.0.0', isDevelopment: false, timestamp: new Date().toISOString(), systems: defaultSystems });
-            transaction.set(doc(db, 'app_ai_versions', 'v1.0.0-dev'), { version: 'v1.0.0-dev', isDevelopment: true, timestamp: new Date().toISOString(), systems: defaultSystems });
-            
-            // Create the main config to point to these new versions
-            transaction.set(doc(db, 'app_ai_config', 'main'), { activeAppAIVersion: 'v1.0.0', developmentAppAIVersion: 'v1.0.0-dev' });
-        });
-
-        // Re-fetch after creation
-        const finalSnapshot = await getDocs(query(versionsRef, orderBy('timestamp', 'desc')));
-        return finalSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
-    }
-    
     let filteredVersions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AppAIVersion));
     if (type === 'dev') {
         filteredVersions = filteredVersions.filter(v => v.isDevelopment);
@@ -364,7 +386,7 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
 
 
 export async function publishNewAppAIVersion(version: string, systems: { [systemId: string]: string }, isDevelopment: boolean): Promise<AppAIVersion> {
-    const newVersionId = version.replace(/\./g, '-');
+    const newVersionId = version;
     const versionRef = doc(db, 'app_ai_versions', newVersionId);
     
     const newVersionData: Omit<AppAIVersion, 'id'> = {
@@ -421,7 +443,7 @@ export async function promoteDevelopmentVersionToLive(
         timestamp: new Date().toISOString(),
     };
 
-    const newLiveVersionId = newLiveVersionString.replace(/\./g, '-');
+    const newLiveVersionId = newLiveVersionString;
     const liveVersionRef = doc(db, 'app_ai_versions', newLiveVersionId);
     
     const batch = writeBatch(db);
@@ -441,7 +463,7 @@ export async function setLivePromptSystemVersion(systemId: string, version: stri
 }
 
 export async function publishNewPromptVersion(systemId: string, version: string, composedPrompts: { [categoryId: string]: string }): Promise<PromptVersion> {
-    const newId = `${systemId}-${version.replace(/\./g, '-')}`;
+    const newId = `${systemId}_${version}`;
     const versionRef = doc(db, 'prompt_versions', newId);
     
     const newVersionData: Omit<PromptVersion, 'id'> = {
@@ -466,7 +488,7 @@ interface PublishNewPromptContentInput {
 
 export async function publishNewPromptContent(input: PublishNewPromptContentInput): Promise<PromptContent> {
     const { systemId, categoryId, version, promptText, previousVersionId } = input;
-    const newId = `${systemId}_${categoryId}_${version.replace(/\./g, '-')}`;
+    const newId = `${systemId}_${categoryId}_${version}`;
     const contentRef = doc(db, 'prompt_content', newId);
     const newContentData: Omit<PromptContent, 'id'> = {
         systemId, categoryId, version, promptText,
@@ -477,80 +499,3 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
     revalidateTag('prompts-v7');
     return { id: newId, ...newContentData };
 }
-
-export const getComposedPrompt = cache(
-    async (systemId: string): Promise<{ prompt: string; version: string } | null> => {
-        const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
-        console.log(`Composing prompt for AI Type '${systemId}' (Mode: ${isDevMode ? 'Development' : 'Live'}).`);
-
-        try {
-            // 1. Get the global AI config. If it doesn't exist, create it and retry.
-            let appAIConfig = await getAppAIConfig();
-            if (!appAIConfig) {
-                console.log("App AI config not found. Triggering initial data creation.");
-                await getAppAIVersions('all'); // This function contains the transactional creation logic.
-                appAIConfig = await getAppAIConfig(); // Retry fetching after creation.
-                if (!appAIConfig) {
-                    throw new Error("Fatal: App AI Systems config not found even after atomic creation.");
-                }
-            }
-
-            // 2. Determine which top-level version to use.
-            const appAIVersionId = isDevMode 
-                ? appAIConfig.developmentAppAIVersion 
-                : appAIConfig.activeAppAIVersion;
-            
-            if (!appAIVersionId) {
-                throw new Error(`No ${isDevMode ? 'development' : 'active'} App AI Version is set in the config.`);
-            }
-
-            // 3. Get the App AI System document (the manifest).
-            const appAIVersionRef = doc(db, 'app_ai_versions', appAIVersionId);
-            const appAIVersionSnap = await getDoc(appAIVersionRef);
-            if (!appAIVersionSnap.exists()) {
-                throw new Error(`App AI Version document '${appAIVersionId}' not found.`);
-            }
-            const appAIVersion = appAIVersionSnap.data() as AppAIVersion;
-
-            // 4. From that, find the ID of the AI Type Version for the requested systemId.
-            const promptSystemVersionId = appAIVersion.systems[systemId];
-            if (!promptSystemVersionId) {
-                throw new Error(`AI Type '${systemId}' is not defined in App AI Version '${appAIVersionId}'. Check the 'systems' map in that document.`);
-            }
-            
-            // 5. Get the AI Type Version document (the "recipe").
-            const promptVersionRef = doc(db, 'prompt_versions', promptSystemVersionId);
-            const promptVersionSnap = await getDoc(promptVersionRef);
-            if (!promptVersionSnap.exists()) {
-                throw new Error(`AI Type Version document '${promptSystemVersionId}' not found.`);
-            }
-            const promptVersionData = promptVersionSnap.data() as PromptVersion;
-
-            // 6. Get all the individual Prompt Content documents from the recipe.
-            const contentIds = Object.values(promptVersionData.composedPrompts);
-            if (contentIds.length === 0) {
-                 throw new Error(`AI Type Version '${promptSystemVersionId}' has no prompt content defined.`);
-            }
-            const contentPromises = contentIds.map(id => getDoc(doc(db, 'prompt_content', id)));
-            const contentSnaps = await Promise.all(contentPromises);
-
-            // 7. Assemble the final prompt text.
-            const composedText = contentSnaps.map(snap => {
-                if (!snap.exists()) throw new Error(`Required prompt content document with ID '${snap.ref.id}' is missing.`);
-                return (snap.data() as PromptContent).promptText;
-            }).join('\n\n');
-            
-            // 8. Return both the prompt and the top-level version string for logging.
-            return { prompt: composedText, version: appAIVersionId };
-
-        } catch (error) {
-            console.error(`Failed to get composed prompt for '${systemId}':`, error);
-            return null; 
-        }
-    },
-    ['prompts-v7'], { revalidate: 30, tags: ['prompts-v7'] }
-);
-
-
-    
-

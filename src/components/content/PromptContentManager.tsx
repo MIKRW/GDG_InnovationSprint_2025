@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
@@ -107,7 +108,7 @@ export function PromptContentManager({ systemId, content, onUpdate, isLoading }:
   };
 
   const handleCreateNewCategory = async () => {
-    if (!newCategoryName.trim()) {
+    if (!systemId || !newCategoryName.trim()) {
         toast({ variant: 'destructive', title: 'Invalid Name', description: 'Category name cannot be empty.' });
         return;
     }
@@ -121,7 +122,7 @@ export function PromptContentManager({ systemId, content, onUpdate, isLoading }:
     
     // Publish a dummy first version to create the category in the DB
     await publishNewPromptContent({
-        systemId: systemId!,
+        systemId: systemId,
         categoryId: formattedCategoryName,
         version: 'v1.0.0',
         promptText: 'Enter prompt here...'

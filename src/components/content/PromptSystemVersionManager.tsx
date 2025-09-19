@@ -211,7 +211,9 @@ export function PromptSystemVersionManager({ system, versions, content, onUpdate
 
         const finalComposedPrompts: { [categoryId: string]: string } = {};
         for(const categoryId of enabledCategoryIds) {
-            finalComposedPrompts[categoryId] = selections[categoryId].contentVersion!;
+            const contentVersion = selections[categoryId].contentVersion!;
+            const contentId = `${system.id}_${categoryId}_${contentVersion}`;
+            finalComposedPrompts[categoryId] = contentId;
         }
         
         await publishNewPromptVersion(system.id, nextVersionString, finalComposedPrompts);

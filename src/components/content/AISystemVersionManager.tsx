@@ -160,9 +160,9 @@ function VersionPublisher({
 
   const Content = (
      <>
-        <CardContent>
+        <CardContent className="pt-6">
             {isLive ? (
-                <div className="flex flex-col items-center space-y-4 pt-8">
+                <div className="flex flex-col items-center space-y-4">
                     <Label htmlFor="dev-version-select" className="mb-2">Development Version to Promote</Label>
                     <Select value={devVersionToPromote} onValueChange={setDevVersionToPromote}>
                         <SelectTrigger id="dev-version-select" className="w-full max-w-xs">
@@ -233,7 +233,7 @@ function VersionPublisher({
                 </Table>
             )}
         </CardContent>
-        <CardFooter className="pt-6">
+        <CardFooter className="border-t pt-6">
              <div className="flex w-full flex-wrap items-center justify-between gap-6">
                 <div className="flex items-center gap-8">
                 <div className="space-y-2">
@@ -453,9 +453,9 @@ export function AISystemVersionManager({ onUpdate }: { onUpdate: () => void }) {
             <VersionPublisher
                 idPrefix="dev"
                 title="Development Version"
+                currentVersionId={developmentVersionId}
                 systems={systems}
                 publishedVersions={devPublishedVersions}
-                currentVersionId={developmentVersionId}
                 saveType={devSaveType}
                 onSaveTypeChange={setDevSaveType}
                 nextVersionString={nextDevVersionString}

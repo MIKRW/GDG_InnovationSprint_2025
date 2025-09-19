@@ -1,6 +1,5 @@
 
 'use server';
-
 /**
  * @fileOverview An AI flow for generating a custom theme palette from three words.
  *
@@ -11,9 +10,14 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import type { ThemeColor } from '@/lib/types';
 import { logErrorToFirestore } from '@/lib/error-logging';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { AppAIVersion, PromptVersion, PromptContent } from '@/lib/types';
+import { getActiveAIConfig } from '@/lib/actions';
+import { cache } from 'react';
 
+// A local utitlity does not need to be exported unlike the next two const.
 const ThemeColorSchema = z.object({
   h: z.number().describe('The hue value (0-360).'),
   s: z.number().describe('The saturation value (0-100).'),
@@ -22,10 +26,19 @@ const ThemeColorSchema = z.object({
 
 const GenerateThemeOutputSchema = z.object({
   background: ThemeColorSchema.describe('The background color of the theme.'),
-  foreground: ThemeColorSchema.describe('The primary text/content color, ensuring high contrast with the background.'),
-  primary: ThemeColorSchema.describe('The main accent color for buttons and highlights, ensuring high contrast with the background.'),
-  ring: ThemeColorSchema.describe("A color for UI highlights like selections. It should be a shade of the 'primary' color, with a lightness value that is at least 10-15% lighter or darker to ensure it is always visible as a selection state."),
-  promptVersion: z.string().optional().describe('The version of the AI system used for this generation.'),
+  foreground: ThemeColorSchema.describe(
+    'The primary text/content color, ensuring high contrast with the background.'
+  ),
+  primary: ThemeColorSchema.describe(
+    'The main accent color for buttons and highlights, ensuring high contrast with the background.'
+  ),
+  ring: ThemeColorSchema.describe(
+    "A color for UI highlights like selections. It should be a shade of the 'primary' color, with a lightness value that is at least 10-15% lighter or darker to ensure it is always visible as a selection state."
+  ),
+  promptVersion: z
+    .string()
+    .optional()
+    .describe('The version of the AI system used for this generation.'),
 });
 export type GenerateThemeOutput = z.infer<typeof GenerateThemeOutputSchema>;
 
@@ -33,7 +46,9 @@ const GenerateThemeInputSchema = z.object({
   word1: z.string().optional().describe('A word to inspire a color.'),
   word2: z.string().optional().describe('A second word to inspire a color.'),
   word3: z.string().optional().describe('A third word to inspire a color.'),
-  mood: z.string().describe('A keyword that defines the desired aesthetic and accessibility constraints (e.g., "High Contrast", "Tritanopia-Friendly", "Vibrant", "Dark").'),
+  mood: z.string().describe(
+    'A keyword that defines the desired aesthetic and accessibility constraints (e.g., "High Contrast", "Tritanopia-Friendly", "Vibrant", "Dark").'
+  ),
 });
 export type GenerateThemeInput = z.infer<typeof GenerateThemeInputSchema>;
 
@@ -43,56 +58,114 @@ export async function generateTheme(
   return await generateThemeFlow(words);
 }
 
+// A map to hold different versions of the prompt text.
+const THEME_GENERATOR_PROMPTS: Record<string, string> = {
+  'v1.0.0': `You are a professional UI/UX designer specializing in color theory and accessibility. Your task is to generate a color palette for a web application based on three inspirational words and a 'mood'. The output must be a JSON object with 'background', 'foreground', 'primary', and 'ring' colors in HSL format.
+
+While maintaining accessibility, strive for creative and colorful palettes. High contrast does not exclusively mean using white or near-white backgrounds; explore a wider range of base colors that can still provide good readability.
+
+You must ensure that the contrast ratios between background, foreground, and primary colors are WCAG AA compliant at a minimum, aiming for AAA where possible, especially for 'High Contrast' mood. The 'ring' color must be a perceptibly lighter or darker shade of the 'primary' color to be visible as a selection indicator. The mood provides the artistic direction and accessibility constraints. For color-blindness-friendly moods, you must avoid color combinations that are difficult to distinguish for that specific type of color vision deficiency.
+
+Here is the user's input:
+- Word 1: {{{word1}}}
+- Word 2: {{{word2}}}
+- Word 3: {{{word3}}}
+- Mood: {{{mood}}}`,
+  // Future prompt versions can be added here, e.g. 'v1.1.0': `... a new prompt ...`
+};
+
+const DEFAULT_PROMPT = THEME_GENERATOR_PROMPTS['v1.0.0'];
+
 const generateThemeFlow = ai.defineFlow(
   {
     name: 'generateThemeFlow',
     inputSchema: GenerateThemeInputSchema,
     outputSchema: GenerateThemeOutputSchema,
-    retries: 3, // Automatically retry up to 3 times on failure
+    config: {
+      retries: 3, // Automatically retry up to 3 times on failure
+    },
   },
   async (input) => {
     try {
-      // Define the prompt object inside the flow to ensure it has the correct context.
+      // Determine if we're in dev mode.
+      const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+      const systemId = 'theme-generator-ai';
+
+      let promptText = DEFAULT_PROMPT;
+      let promptVersion = 'v1.0.0-default';
+
+      const appConfig = await getActiveAIConfig();
+
+      if (appConfig) {
+        const activeAppVersionId = isDevMode
+          ? appConfig.developmentAppAIVersion
+          : appConfig.activeAppAIVersion;
+        const appVersionDoc = await getDoc(
+          doc(db, 'app_ai_versions', activeAppVersionId)
+        );
+
+        if (appVersionDoc.exists()) {
+          const appVersionData = appVersionDoc.data() as AppAIVersion;
+          const systemVersionId = appVersionData.systems[systemId];
+
+          if (systemVersionId) {
+            const versionDoc = await getDoc(
+              doc(db, 'prompt_versions', systemVersionId)
+            );
+            if (versionDoc.exists()) {
+              const versionData = versionDoc.data() as PromptVersion;
+              promptVersion = versionData.version;
+
+              const contentId =
+                versionData.composedPrompts['base_instruction'];
+              if (contentId) {
+                const contentDoc = await getDoc(
+                  doc(db, 'prompt_content', contentId)
+                );
+                if (contentDoc.exists()) {
+                  let text = (contentDoc.data() as PromptContent).promptText;
+                   text += `
+Here is the user's input:
+- Word 1: {{{word1}}}
+- Word 2: {{{word2}}}
+- Word 3: {{{word3}}}
+- Mood: {{{mood}}}`;
+                  promptText = text;
+                }
+              }
+            }
+          }
+        }
+      }
+
       const themePrompt = ai.definePrompt({
-          name: 'themePrompt',
-          input: { schema: GenerateThemeInputSchema },
-          output: { schema: GenerateThemeOutputSchema },
-          prompt: `You are an expert UI/UX designer with a deep understanding of color theory and accessibility. Your task is to generate a color theme for a web application based on three inspirational words and a mood.
-
-You MUST return a JSON object with four HSL color objects: 'background', 'foreground', 'primary', and 'ring'. Each object must have 'h' (0-360), 's' (0-100), and 'l' (0-100) values.
-
-Follow these rules precisely:
-1.  **Word Association**: Use the three words ({{word1}}, {{word2}}, {{word3}}) as the primary inspiration. The AI should intelligently assign these words to the background, foreground, and primary color roles based on design best practices. Research how established color brands (like Pantone or paint companies) name their colors to derive realistic and aesthetically pleasing shades.
-2.  **Mood Application**: Use the '{{mood}}' keyword to adjust the final palette. For example, 'Vibrant' should increase saturation, 'Calm' should be desaturated, and 'Dark' should use a dark background with light text. Accessibility moods like 'High Contrast' or color-blind-friendly options must be strictly followed.
-3.  **Contrast and Accessibility**: The 'foreground' color MUST have a high contrast ratio with the 'background' color. The 'primary' color must also be highly visible against the 'background'.
-4.  **Ring Color**: The 'ring' color is for focus indicators. It MUST be a derivative of the 'primary' color, but with a lightness value that is at least 15% lighter or darker to ensure it stands out clearly.
-5.  **Derived Color Safety**: The app's CSS will automatically create secondary and muted colors by adjusting the lightness of your chosen primary and background colors. You MUST select base colors that will produce readable and accessible derived colors. For example, a mid-range grey background is dangerous because adding lightness might make it too close to white text.
-
-Do not add any explanations. Only return the JSON object.`,
+        name: 'themePrompt',
+        prompt: promptText,
+        input: { schema: GenerateThemeInputSchema },
+        output: { schema: GenerateThemeOutputSchema },
+        config: {
+          temperature: 0.7, // Increase creativity and reduce repetition.
+        },
       });
 
-      // 1. Send the prompt to the AI and get the result.
       const response = await themePrompt(input);
       const output = response.output;
 
       if (!output) {
-        throw new Error('The AI model failed to return a valid theme. This has been logged.');
+        throw new Error(
+          'The AI model failed to return a valid theme. This has been logged.'
+        );
       }
-      
-      // 2. Send the AI result (and version info) to the frontend.
-      output.promptVersion = "static-v1.1"; // Indicate that a static prompt was used
-      return output;
 
+      output.promptVersion = promptVersion;
+      return output;
     } catch (error) {
-        console.error("Error in generateThemeFlow:", error);
-        // Log the specific error to Firestore for better debugging.
-        await logErrorToFirestore(error as Error, 'theme-generation-failure', {
-            input: input,
-            flow: 'generateThemeFlow',
-        });
-        // Re-throw the error to be caught by the calling client component
-        // so it can display a message to the user.
-        throw error;
+      console.error('Error in generateThemeFlow:', error);
+      await logErrorToFirestore(error as Error, 'theme-generation-failure', {
+        input: input,
+        flow: 'generateThemeFlow',
+      });
+      throw error;
     }
   }
 );
