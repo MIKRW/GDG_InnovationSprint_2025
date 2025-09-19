@@ -541,7 +541,7 @@ export const getComposedPrompt = cache(
             }).join('\n\n');
             
             // 8. Return both the prompt and the top-level version string for logging.
-            return { prompt: composedText, version: appAIVersionId };
+            return { prompt: composedText, version: appAIVersion.version };
 
         } catch (error) {
             console.error(`Failed to get composed prompt for '${systemId}':`, error);
@@ -553,4 +553,5 @@ export const getComposedPrompt = cache(
 
 
     
+
 
