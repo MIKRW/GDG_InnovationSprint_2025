@@ -5,7 +5,7 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
-# Expose the GEMINI_API_KEY secret to the production server.
-# When deploying, you will be prompted to create the secret and set its value.
-secrets:
-  - GEMINI_API_KEY
+# The backend's service account does not have the required IAM permissions to
+# access the Vertex AI API automatically. We must provide a GEMINI_API_KEY
+# as a secret for the production environment.
+secrets: [GEMINI_API_KEY]

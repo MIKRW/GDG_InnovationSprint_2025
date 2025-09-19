@@ -7,10 +7,9 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * A simple utility function to check if the app is running in development mode.
- * It checks the `NEXT_PUBLIC_DEV_MODE` environment variable.
- * This function can be used in both client and server components.
+ * It checks the `NODE_ENV` environment variable.
  * @returns {boolean} `true` if in development mode, otherwise `false`.
  */
 export function isDevMode(): boolean {
-  return process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+  return process.env.NODE_ENV === 'development';
 }
