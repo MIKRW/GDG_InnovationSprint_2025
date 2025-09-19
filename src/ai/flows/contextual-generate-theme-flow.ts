@@ -150,12 +150,25 @@ Here is the user's input:
 
     } catch (generationError) {
       console.error('Error in generateThemeFlow during AI generation:', generationError);
+      
+      let errorMessage = 'Could not generate the theme. This error has been logged.';
+      const rawError = (generationError as Error).message || '';
+      if (rawError.includes('429') || rawError.includes('RESOURCE_EXHAUSTED')) {
+          errorMessage = 'The AI service is currently busy. Please try again in a moment.';
+      } else if (rawError.includes('503') || rawError.toLowerCase().includes('overloaded')) {
+          errorMessage = 'The AI service is temporarily overloaded. Please try again shortly.';
+      } else if (rawError.toLowerCase().includes('failed precondition')) {
+          errorMessage = 'A cloud configuration error occurred. Please ensure billing and the Vertex AI API are enabled on the project.';
+      }
+      
       await logErrorToFirestore(generationError as Error, 'theme-generation-failure', {
         input: input,
         flow: 'generateThemeFlow',
         promptVersionUsed: promptVersion,
       });
-      throw generationError; // Re-throw to let the caller handle it.
+
+      // Re-throw a more user-friendly error to be displayed in the toast.
+      throw new Error(errorMessage);
     }
   }
 );
