@@ -480,6 +480,7 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
 
 export const getComposedPrompt = cache(
     async (systemId: string): Promise<{ prompt: string; version: string } | null> => {
+        // Use the explicit dev mode flag from environment variables for consistency.
         const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
         console.log(`Composing prompt for AI Type '${systemId}' (Mode: ${isDevMode ? 'Development' : 'Live'}).`);
 
@@ -495,7 +496,7 @@ export const getComposedPrompt = cache(
                 }
             }
 
-            // 2. Determine which top-level version to use.
+            // 2. Determine which top-level version to use based on the consistent dev mode flag.
             const appAIVersionId = isDevMode 
                 ? appAIConfig.developmentAppAIVersion 
                 : appAIConfig.activeAppAIVersion;
@@ -522,7 +523,8 @@ export const getComposedPrompt = cache(
             const promptVersionRef = doc(db, 'prompt_versions', promptSystemVersionId);
             const promptVersionSnap = await getDoc(promptVersionRef);
             if (!promptVersionSnap.exists()) {
-                throw new Error(`AI Type Version document '${promptSystemVersionId}' not found.`);
+                // This is a common error point. Let's make the error more specific.
+                throw new Error(`AI Type Version document '${promptSystemVersionId}' (for system '${systemId}') not found. This ID comes from the 'systems' map in App AI Version '${appAIVersionId}'.`);
             }
             const promptVersionData = promptVersionSnap.data() as PromptVersion;
 
@@ -553,5 +555,6 @@ export const getComposedPrompt = cache(
 
 
     
+
 
 
