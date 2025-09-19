@@ -493,15 +493,14 @@ export const getComposedPrompt = cache(
                     throw new Error("Fatal: App AI Systems config not found even after atomic creation.");
                 }
             }
-
-            let appAIVersionId: string | undefined;
             
-            // Robust fallback logic, handling the live/production case first for clarity.
+            let appAIVersionId: string | undefined;
+
             if (!isDevMode) {
-                // LIVE MODE: Prefer the active version, but fall back to dev.
+                // LIVE MODE: Prefer active version, but fall back to development.
                 appAIVersionId = appAIConfig.activeAppAIVersion || appAIConfig.developmentAppAIVersion;
             } else {
-                // DEV MODE: Prefer the development version, but fall back to live.
+                // DEV MODE: Prefer development version, but fall back to active.
                 appAIVersionId = appAIConfig.developmentAppAIVersion || appAIConfig.activeAppAIVersion;
             }
             
@@ -552,6 +551,7 @@ export const getComposedPrompt = cache(
 
 
     
+
 
 
 
