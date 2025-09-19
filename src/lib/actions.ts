@@ -495,32 +495,18 @@ export const getComposedPrompt = cache(
             }
 
             let appAIVersionId: string | undefined;
-            let usedFallback = false;
-
+            
+            // Robust fallback logic
             if (isDevMode) {
-                appAIVersionId = appAIConfig.developmentAppAIVersion;
-                if (!appAIVersionId) {
-                    console.warn("Development version not set, falling back to live version.");
-                    appAIVersionId = appAIConfig.activeAppAIVersion;
-                    usedFallback = true;
-                }
+                appAIVersionId = appAIConfig.developmentAppAIVersion || appAIConfig.activeAppAIVersion;
             } else {
-                appAIVersionId = appAIConfig.activeAppAIVersion;
-                if (!appAIVersionId) {
-                    console.warn("Live version not set, falling back to development version.");
-                    appAIVersionId = appAIConfig.developmentAppAIVersion;
-                    usedFallback = true;
-                }
+                appAIVersionId = appAIConfig.activeAppAIVersion || appAIConfig.developmentAppAIVersion;
             }
             
             if (!appAIVersionId) {
                 throw new Error(`No active or development App AI Version is set in the config.`);
             }
             
-            if (usedFallback) {
-                console.log(`Using fallback App AI Version: ${appAIVersionId}`);
-            }
-
             const appAIVersionRef = doc(db, 'app_ai_versions', appAIVersionId);
             const appAIVersionSnap = await getDoc(appAIVersionRef);
             if (!appAIVersionSnap.exists()) {
@@ -564,6 +550,7 @@ export const getComposedPrompt = cache(
 
 
     
+
 
 
 
