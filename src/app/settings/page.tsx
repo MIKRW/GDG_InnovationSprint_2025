@@ -90,7 +90,6 @@ export default function SettingsPage() {
                 </Button>
             </div>
 
-
             {isDevMode && (
               <div className="pt-8 w-full max-w-sm">
                   <h2 className="text-lg font-semibold mb-2">Developer</h2>
