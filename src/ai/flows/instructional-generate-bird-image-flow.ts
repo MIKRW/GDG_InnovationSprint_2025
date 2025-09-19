@@ -11,7 +11,6 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { googleAI } from '@genkit-ai/googleai';
-import { isDevMode } from '@/lib/utils';
 
 const GenerateBirdImageInputSchema = z.object({
   prompt: z.string().describe('A descriptive text prompt for generating a bird image, e.g., "photo of an American Robin on a branch".'),

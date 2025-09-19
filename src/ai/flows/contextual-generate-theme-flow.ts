@@ -15,9 +15,6 @@ import { getActiveAIConfig } from '@/lib/actions';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppAIVersion, PromptVersion, PromptContent } from '@/lib/types';
-import { isDevMode } from '@/lib/utils';
-import { googleAI } from '@genkit-ai/googleai';
-
 
 // A local utitlity does not need to be exported unlike the next two const.
 const ThemeColorSchema = z.object({
@@ -81,13 +78,12 @@ const generateThemeFlow = ai.defineFlow(
 
 While maintaining accessibility, strive for creative and colorful palettes. High contrast does not exclusively mean using white or near-white backgrounds; explore a wider range of base colors that can still provide good readability.
 
-You must ensure that the contrast ratios between background, foreground, and primary colors are WCAG AA compliant at a minimum, aiming for AAA where possible, especially for 'High Contrast' mood. The 'ring' color must be a perceptibly lighter or darker shade of the 'primary' color to be visible as a selection indicator. The mood provides the artistic direction and accessibility constraints. For color-blindness-friendly moods, you must avoid color combinations that are difficult to distinguish for that specific type of color vision deficiency.`;
-
+You must ensure that the contrast ratios between background, foreground, and primary colors are WCAG AA compliant at a minimum, aiming for AAA where possible, especially for 'High-Contrast' mood. The 'ring' color must be a perceptibly lighter or darker shade of the 'primary' color to be visible as a selection indicator. The mood provides the artistic direction and accessibility constraints. For color-blindness-friendly moods, you must avoid color combinations that are difficult to distinguish for that specific type of color vision deficiency.`;
 
       if (appConfig) {
-        const activeAppVersionId = isDevMode()
-          ? appConfig.developmentAppAIVersion
-          : appConfig.activeAppAIVersion;
+        // Since this is a server action, we assume it's running in a production-like environment
+        // and always use the active (live) version.
+        const activeAppVersionId = appConfig.activeAppAIVersion;
         
         if (activeAppVersionId) {
             const appVersionDoc = await getDoc(

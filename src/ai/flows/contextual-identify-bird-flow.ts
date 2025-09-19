@@ -16,9 +16,6 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppAIVersion, PromptVersion, PromptContent } from '@/lib/types';
 import { getActiveAIConfig } from '@/lib/actions';
-import { isDevMode } from '@/lib/utils';
-import { googleAI } from '@genkit-ai/googleai';
-
 
 const IdentifyBirdInputSchema = z.object({
   audioDataUri: z
@@ -191,7 +188,7 @@ const identifyBirdFlow = ai.defineFlow(
     const appConfig = await getActiveAIConfig();
 
     if (appConfig) {
-      const activeAppVersionId = isDevMode() ? appConfig.developmentAppAIVersion : appConfig.activeAppAIVersion;
+      const activeAppVersionId = input.isDeveloperData ? appConfig.developmentAppAIVersion : appConfig.activeAppAIVersion;
       
       if (activeAppVersionId) {
         const appVersionDoc = await getDoc(doc(db, 'app_ai_versions', activeAppVersionId));
