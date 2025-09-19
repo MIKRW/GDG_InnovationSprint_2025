@@ -14,7 +14,8 @@ import { getStorage } from 'firebase-admin/storage';
 import wavDecoder from 'wav-decoder';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { AppAIConfig, AppAIVersion, PromptVersion, PromptContent } from '@/lib/types';
+import type { AppAIVersion, PromptVersion, PromptContent } from '@/lib/types';
+import { getActiveAIConfig } from '@/lib/actions';
 
 
 const IdentifyBirdInputSchema = z.object({
@@ -186,13 +187,12 @@ const identifyBirdFlow = ai.defineFlow(
     
     // Determine if we're in dev mode.
     const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
-
-    const configDoc = await getDoc(doc(db, 'app_ai_config', 'main'));
-    const appConfig = configDoc.data() as AppAIConfig;
     const systemId = 'bird-identifier-ai-newbie';
 
     let promptText = DEFAULT_BIRD_PROMPT;
     let promptVersion = 'v1.0.0-default';
+
+    const appConfig = await getActiveAIConfig();
 
     if (appConfig) {
       const activeAppVersionId = isDevMode ? appConfig.developmentAppAIVersion : appConfig.activeAppAIVersion;

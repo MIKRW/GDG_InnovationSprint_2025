@@ -1,7 +1,7 @@
 
 'use server';
 
-import { unstable_revalidateTag } from 'next/cache';
+import { unstable_revalidateTag, revalidateTag } from 'next/cache';
 import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, orderBy, runTransaction, writeBatch } from 'firebase/firestore';
 import { db, storage } from './firebase';
@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { TestAudioMetadata, BirdLog, PromptSystem, PromptVersion, AppAIVersion, AppAIConfig, PromptContent, AnalysisRun, AppMode } from './types';
 import { EmailAuthProvider, linkWithCredential, type User } from 'firebase/auth';
 import { kebabCase } from 'lodash';
+import { cache } from 'react';
 
 
 interface UploadMasterAudioInput {
@@ -228,6 +229,19 @@ export async function createAnalysisRun(
 // Three-Tiered Prompt Versioning System Actions
 // =================================================================
 
+export const getActiveAIConfig = cache(
+  async (): Promise<AppAIConfig | null> => {
+    const configRef = doc(db, 'app_ai_config', 'main');
+    const snapshot = await getDoc(configRef);
+    if (!snapshot.exists()) {
+      return null;
+    }
+    return snapshot.data() as AppAIConfig;
+  },
+  ['ai-config'],
+  { tags: ['prompts-v7'] }
+);
+
 export async function getPromptSystems(): Promise<PromptSystem[]> {
     const systemsRef = collection(db, 'prompt_systems');
     const initialSnapshot = await getDocs(query(systemsRef, orderBy('name')));
@@ -299,7 +313,6 @@ export async function getPromptContentForSystem(systemId: string): Promise<Promp
     });
     return contents;
 }
-
 
 export async function getAppAIConfig(): Promise<AppAIConfig | null> {
     const configRef = doc(db, 'app_ai_config', 'main');
@@ -391,7 +404,7 @@ export async function publishNewAppAIVersion(version: string, systems: { [system
         await setDoc(configRef, { activeAppAIVersion: newVersionId }, { merge: true });
     }
     
-    unstable_revalidateTag('prompts-v7');
+    revalidateTag('prompts-v7');
     return { id: newVersionId, ...newVersionData };
 }
 
@@ -438,7 +451,7 @@ export async function promoteDevelopmentVersionToLive(
     batch.update(doc(db, 'app_ai_config', 'main'), { activeAppAIVersion: newLiveVersionId });
     await batch.commit();
     
-    unstable_revalidateTag('prompts-v7');
+    revalidateTag('prompts-v7');
     return { id: newLiveVersionId, ...newLiveVersion };
 }
 
@@ -446,7 +459,7 @@ export async function promoteDevelopmentVersionToLive(
 export async function setLivePromptSystemVersion(systemId: string, version: string): Promise<void> {
     const systemRef = doc(db, 'prompt_systems', systemId);
     await updateDoc(systemRef, { activeVersion: version });
-    unstable_revalidateTag('prompts-v7');
+    revalidateTag('prompts-v7');
 }
 
 export async function publishNewPromptVersion(systemId: string, version: string, composedPrompts: { [categoryId: string]: string }): Promise<PromptVersion> {
@@ -461,7 +474,7 @@ export async function publishNewPromptVersion(systemId: string, version: string,
     
     await setLivePromptSystemVersion(systemId, version);
     
-    unstable_revalidateTag('prompts-v7');
+    revalidateTag('prompts-v7');
     return { id: newId, ...newVersionData };
 }
 
@@ -483,6 +496,6 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
     };
     if (previousVersionId) (newContentData as PromptContent).previousVersionId = previousVersionId;
     await setDoc(contentRef, newContentData);
-    unstable_revalidateTag('prompts-v7');
+    revalidateTag('prompts-v7');
     return { id: newId, ...newContentData };
 }
