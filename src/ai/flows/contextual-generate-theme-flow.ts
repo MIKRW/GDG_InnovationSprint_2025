@@ -16,15 +16,15 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { logErrorToFirestore } from '@/lib/error-logging';
+// No import firebase-admin/storage as generated themes are saved outside of this flow
 import { getComposedPrompt } from '@/lib/actions';
 
-
+// A local utitlity does not need to be exported unlike the next two const. 
 const ThemeColorSchema = z.object({
   h: z.number().describe('The hue value (0-360).'),
   s: z.number().describe('The saturation value (0-100).'),
   l: z.number().describe('The lightness value (0-100).'),
 });
-
 
 const GenerateThemeOutputSchema = z.object({
   background: ThemeColorSchema.describe('The background color of the theme.'),
