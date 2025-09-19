@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -13,6 +12,7 @@ import { Card } from '../ui/card';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { useIsDevMode } from '@/hooks/useIsDevMode';
 
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 
@@ -20,7 +20,7 @@ export function SettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const isAnonymous = user?.isAnonymous;
-  const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+  const isDevMode = useIsDevMode();
   const [hardware, setHardware] = useState('');
 
   useEffect(() => {

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -11,6 +10,7 @@ import { groupBy } from 'lodash';
 import type { BirdLog, SortOption } from '@/lib/types';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { useIsDevMode } from '@/hooks/useIsDevMode';
 
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { PageTitle } from '../content/PageTitle';
@@ -28,7 +28,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+  const isDevMode = useIsDevMode();
 
   useEffect(() => {
     if (authLoading) {

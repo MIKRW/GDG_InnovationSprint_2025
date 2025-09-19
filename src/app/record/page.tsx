@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -25,6 +24,7 @@ import { logErrorToFirestore } from '@/lib/error-logging';
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
 import { createAnalysisRun } from '@/lib/actions';
 import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
+import { useIsDevMode } from '@/hooks/useIsDevMode';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
@@ -41,7 +41,7 @@ export default function RecordPage() {
   const [isTestAudioDialogOpen, setIsTestAudioDialogOpen] = useState(false);
   const [testAudioLibrary, setTestAudioLibrary] = useState<TestAudioMetadata[]>([]);
   const [isLibraryLoading, setIsLibraryLoading] = useState(false);
-  const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+  const isDevMode = useIsDevMode();
 
   // Refs for managing state across async operations
   const currentSessionId = useRef<string | null>(null);
@@ -151,7 +151,6 @@ export default function RecordPage() {
                 audioStoragePath: storagePath,
                 timestamp: currentTimestamp.current,
                 mode: appSettings.mode,
-                isDeveloperData: isDeveloperRun,
                 ...locationData
             });
             const analysisDurationMs = Date.now() - analysisStartTime;
@@ -196,7 +195,7 @@ export default function RecordPage() {
     if (!user) return;
     setIsProcessing(true);
 
-    const isDevTest = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+    const isDevTest = isDevMode;
     const testContext = isDevTest ? { birdId: 'live-test', testAudioId: uuidv4() } : undefined;
 
     // 1. Upload the blob to Firebase Storage

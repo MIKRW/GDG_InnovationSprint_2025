@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -10,6 +9,7 @@ import { db } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { notFound } from 'next/navigation';
+import { useIsDevMode } from '@/hooks/useIsDevMode';
 
 interface ErrorInstance {
     id: string;
@@ -23,7 +23,12 @@ interface ErrorInstance {
 export default function ErrorLogPage() {
   const [errorInstances, setErrorInstances] = useState<ErrorInstance[]>([]);
   const [loading, setLoading] = useState(true);
-  const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+  const isDevMode = useIsDevMode();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     if (!isDevMode) {
@@ -47,8 +52,12 @@ export default function ErrorLogPage() {
   }, [isDevMode]);
 
 
-  if (!isDevMode && !loading) {
+  if (isClient && !isDevMode && !loading) {
     notFound();
+  }
+
+  if (!isClient) {
+    return null;
   }
 
   return (
