@@ -480,32 +480,47 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
 
 export const getComposedPrompt = cache(
     async (systemId: string): Promise<{ prompt: string; version: string } | null> => {
-        // Use the explicit dev mode flag from environment variables for consistency.
         const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
         console.log(`Composing prompt for AI Type '${systemId}' (Mode: ${isDevMode ? 'Development' : 'Live'}).`);
 
         try {
-            // 1. Get the global AI config. If it doesn't exist, create it and retry.
             let appAIConfig = await getAppAIConfig();
             if (!appAIConfig) {
                 console.log("App AI config not found. Triggering initial data creation.");
-                await getAppAIVersions('all'); // This function contains the transactional creation logic.
-                appAIConfig = await getAppAIConfig(); // Retry fetching after creation.
+                await getAppAIVersions('all');
+                appAIConfig = await getAppAIConfig();
                 if (!appAIConfig) {
                     throw new Error("Fatal: App AI Systems config not found even after atomic creation.");
                 }
             }
 
-            // 2. Determine which top-level version to use based on the consistent dev mode flag.
-            const appAIVersionId = isDevMode 
-                ? appAIConfig.developmentAppAIVersion 
-                : appAIConfig.activeAppAIVersion;
+            let appAIVersionId: string | undefined;
+            let usedFallback = false;
+
+            if (isDevMode) {
+                appAIVersionId = appAIConfig.developmentAppAIVersion;
+                if (!appAIVersionId) {
+                    console.warn("Development version not set, falling back to live version.");
+                    appAIVersionId = appAIConfig.activeAppAIVersion;
+                    usedFallback = true;
+                }
+            } else {
+                appAIVersionId = appAIConfig.activeAppAIVersion;
+                if (!appAIVersionId) {
+                    console.warn("Live version not set, falling back to development version.");
+                    appAIVersionId = appAIConfig.developmentAppAIVersion;
+                    usedFallback = true;
+                }
+            }
             
             if (!appAIVersionId) {
-                throw new Error(`No ${isDevMode ? 'development' : 'active'} App AI Version is set in the config.`);
+                throw new Error(`No active or development App AI Version is set in the config.`);
+            }
+            
+            if (usedFallback) {
+                console.log(`Using fallback App AI Version: ${appAIVersionId}`);
             }
 
-            // 3. Get the App AI System document (the manifest).
             const appAIVersionRef = doc(db, 'app_ai_versions', appAIVersionId);
             const appAIVersionSnap = await getDoc(appAIVersionRef);
             if (!appAIVersionSnap.exists()) {
@@ -513,22 +528,18 @@ export const getComposedPrompt = cache(
             }
             const appAIVersion = appAIVersionSnap.data() as AppAIVersion;
 
-            // 4. From that, find the ID of the AI Type Version for the requested systemId.
             const promptSystemVersionId = appAIVersion.systems[systemId];
             if (!promptSystemVersionId) {
-                throw new Error(`AI Type '${systemId}' is not defined in App AI Version '${appAIVersionId}'. Check the 'systems' map in that document.`);
+                throw new Error(`AI Type '${systemId}' is not defined in App AI Version '${appAIVersionId}'.`);
             }
             
-            // 5. Get the AI Type Version document (the "recipe").
             const promptVersionRef = doc(db, 'prompt_versions', promptSystemVersionId);
             const promptVersionSnap = await getDoc(promptVersionRef);
             if (!promptVersionSnap.exists()) {
-                // This is a common error point. Let's make the error more specific.
-                throw new Error(`AI Type Version document '${promptSystemVersionId}' (for system '${systemId}') not found. This ID comes from the 'systems' map in App AI Version '${appAIVersionId}'.`);
+                throw new Error(`AI Type Version document '${promptSystemVersionId}' (for system '${systemId}') not found.`);
             }
             const promptVersionData = promptVersionSnap.data() as PromptVersion;
 
-            // 6. Get all the individual Prompt Content documents from the recipe.
             const contentIds = Object.values(promptVersionData.composedPrompts);
             if (contentIds.length === 0) {
                  throw new Error(`AI Type Version '${promptSystemVersionId}' has no prompt content defined.`);
@@ -536,13 +547,11 @@ export const getComposedPrompt = cache(
             const contentPromises = contentIds.map(id => getDoc(doc(db, 'prompt_content', id)));
             const contentSnaps = await Promise.all(contentPromises);
 
-            // 7. Assemble the final prompt text.
             const composedText = contentSnaps.map(snap => {
                 if (!snap.exists()) throw new Error(`Required prompt content document with ID '${snap.ref.id}' is missing.`);
                 return (snap.data() as PromptContent).promptText;
             }).join('\n\n');
             
-            // 8. Return both the prompt and the top-level version string for logging.
             return { prompt: composedText, version: appAIVersion.version };
 
         } catch (error) {
@@ -555,6 +564,7 @@ export const getComposedPrompt = cache(
 
 
     
+
 
 
 
