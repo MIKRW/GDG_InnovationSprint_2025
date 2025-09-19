@@ -19,7 +19,7 @@ const inter = Inter({
 // This script runs immediately to prevent a flash of unstyled content (FOUC).
 const themeScript = `
   (function() {
-    // 1. Set theme from localStorage
+    // Set theme from localStorage
     try {
       const savedThemeClass = localStorage.getItem('theme') || 'light';
       document.documentElement.className = savedThemeClass;
@@ -50,20 +50,6 @@ const themeScript = `
       }
     } catch (e) {
       console.error('Failed to apply theme from localStorage', e);
-    }
-
-    // 2. Securely detect developer mode for this session only.
-    // This checks if the app is running inside an iframe within the Firebase Studio IDE.
-    // If so, it sets a sessionStorage key. This key is NOT shared across tabs or users.
-    try {
-      if (window.self !== window.top) { // Check if in an iframe
-        const url = new URL(document.referrer);
-        if (url.hostname === 'studio.firebase.google.com') {
-          sessionStorage.setItem('isFirebaseStudioDev', 'true');
-        }
-      }
-    } catch (e) {
-      // SecurityError may occur in some cross-origin iframe scenarios. Fail silently.
     }
   })();
 `;

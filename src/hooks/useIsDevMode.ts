@@ -2,26 +2,22 @@
 
 import { useState, useEffect } from 'react';
 
-const DEV_MODE_SESSION_KEY = 'isFirebaseStudioDev';
-
 /**
- * A client-side hook to reliably determine if the application is running in the developer's
- * specific Firebase Studio IDE session.
+ * A client-side hook to reliably determine if the application is running in
+ * the development environment provided by the IDE.
  *
- * It works by checking for a sessionStorage key ('isFirebaseStudioDev') that is set
- * by the root layout only when the app is rendered inside the IDE's iframe.
- * This method is secure because sessionStorage is not shared across tabs or users,
- * ensuring that public preview links do not expose developer tools.
+ * It works by checking the `NEXT_PUBLIC_DEV_MODE` environment variable, which
+ * is set to 'true' by the local development server in the IDE but is not
+ * present in the production build.
  *
- * @returns {boolean} `true` if in the developer's IDE session, otherwise `false`.
+ * @returns {boolean} `true` if in the development environment, otherwise `false`.
  */
 export function useIsDevMode(): boolean {
   const [isDevMode, setIsDevMode] = useState(false);
 
   useEffect(() => {
-    // This check only runs on the client-side after hydration.
-    const isDevSession = sessionStorage.getItem(DEV_MODE_SESSION_KEY) === 'true';
-    setIsDevMode(isDevSession);
+    // This check runs on the client-side after hydration.
+    setIsDevMode(process.env.NEXT_PUBLIC_DEV_MODE === 'true');
   }, []);
 
   return isDevMode;
