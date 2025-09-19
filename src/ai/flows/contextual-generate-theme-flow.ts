@@ -15,7 +15,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppAIVersion, PromptVersion, PromptContent } from '@/lib/types';
 import { getActiveAIConfig } from '@/lib/actions';
-import { cache } from 'react';
+import { useIsDevMode } from '@/hooks/useIsDevMode';
 
 // A local utitlity does not need to be exported unlike the next two const.
 const ThemeColorSchema = z.object({
@@ -58,24 +58,6 @@ export async function generateTheme(
   return await generateThemeFlow(words);
 }
 
-// A map to hold different versions of the prompt text.
-const THEME_GENERATOR_PROMPTS: Record<string, string> = {
-  'v1.0.0': `You are a professional UI/UX designer specializing in color theory and accessibility. Your task is to generate a color palette for a web application based on three inspirational words and a 'mood'. The output must be a JSON object with 'background', 'foreground', 'primary', and 'ring' colors in HSL format.
-
-While maintaining accessibility, strive for creative and colorful palettes. High contrast does not exclusively mean using white or near-white backgrounds; explore a wider range of base colors that can still provide good readability.
-
-You must ensure that the contrast ratios between background, foreground, and primary colors are WCAG AA compliant at a minimum, aiming for AAA where possible, especially for 'High Contrast' mood. The 'ring' color must be a perceptibly lighter or darker shade of the 'primary' color to be visible as a selection indicator. The mood provides the artistic direction and accessibility constraints. For color-blindness-friendly moods, you must avoid color combinations that are difficult to distinguish for that specific type of color vision deficiency.
-
-Here is the user's input:
-- Word 1: {{{word1}}}
-- Word 2: {{{word2}}}
-- Word 3: {{{word3}}}
-- Mood: {{{mood}}}`,
-  // Future prompt versions can be added here, e.g. 'v1.1.0': `... a new prompt ...`
-};
-
-const DEFAULT_PROMPT = THEME_GENERATOR_PROMPTS['v1.0.0'];
-
 const generateThemeFlow = ai.defineFlow(
   {
     name: 'generateThemeFlow',
@@ -87,14 +69,19 @@ const generateThemeFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      // Determine if we're in dev mode.
+      // Determine if we're in dev mode by checking the process env variable on the server.
       const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
       const systemId = 'theme-generator-ai';
 
-      let promptText = DEFAULT_PROMPT;
-      let promptVersion = 'v1.0.0-default';
-
       const appConfig = await getActiveAIConfig();
+
+      let promptVersion = 'v1.0.0-default';
+      let promptText = `You are a professional UI/UX designer specializing in color theory and accessibility. Your task is to generate a color palette for a web application based on three inspirational words and a 'mood'. The output must be a JSON object with 'background', 'foreground', 'primary', and 'ring' colors in HSL format.
+
+While maintaining accessibility, strive for creative and colorful palettes. High contrast does not exclusively mean using white or near-white backgrounds; explore a wider range of base colors that can still provide good readability.
+
+You must ensure that the contrast ratios between background, foreground, and primary colors are WCAG AA compliant at a minimum, aiming for AAA where possible, especially for 'High Contrast' mood. The 'ring' color must be a perceptibly lighter or darker shade of the 'primary' color to be visible as a selection indicator. The mood provides the artistic direction and accessibility constraints. For color-blindness-friendly moods, you must avoid color combinations that are difficult to distinguish for that specific type of color vision deficiency.`;
+
 
       if (appConfig) {
         const activeAppVersionId = isDevMode
@@ -123,24 +110,24 @@ const generateThemeFlow = ai.defineFlow(
                   doc(db, 'prompt_content', contentId)
                 );
                 if (contentDoc.exists()) {
-                  let text = (contentDoc.data() as PromptContent).promptText;
-                   text += `
-Here is the user's input:
-- Word 1: {{{word1}}}
-- Word 2: {{{word2}}}
-- Word 3: {{{word3}}}
-- Mood: {{{mood}}}`;
-                  promptText = text;
+                  promptText = (contentDoc.data() as PromptContent).promptText;
                 }
               }
             }
           }
         }
       }
+      
+      const fullPrompt = `${promptText}
+Here is the user's input:
+- Word 1: {{{word1}}}
+- Word 2: {{{word2}}}
+- Word 3: {{{word3}}}
+- Mood: {{{mood}}}`;
 
       const themePrompt = ai.definePrompt({
         name: 'themePrompt',
-        prompt: promptText,
+        prompt: fullPrompt,
         input: { schema: GenerateThemeInputSchema },
         output: { schema: GenerateThemeOutputSchema },
         config: {
