@@ -12,10 +12,10 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useIsDevMode } from '@/hooks/useIsDevMode';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
+import { isDevMode } from '@/lib/utils';
 
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 
@@ -23,10 +23,11 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const isAnonymous = user?.isAnonymous;
-  const isDevMode = useIsDevMode();
   const [hardware, setHardware] = useState('');
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
     const savedHardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
     if (savedHardware) {
       setHardware(savedHardware);
@@ -50,6 +51,8 @@ export default function SettingsPage() {
       description: 'Your recording hardware preference has been updated.',
     });
   };
+
+  const showDevTools = isClient && isDevMode();
 
   return (
     <AppLayout header={<SecondaryHeader title="Settings" />} >
@@ -90,7 +93,7 @@ export default function SettingsPage() {
                 </Button>
             </div>
 
-            {isDevMode && (
+            {showDevTools && (
               <div className="pt-8 w-full max-w-sm">
                   <h2 className="text-lg font-semibold mb-2">Developer</h2>
                     <Card className="bg-hazard-stripes p-1 rounded-lg">

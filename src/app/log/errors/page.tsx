@@ -9,7 +9,7 @@ import { db } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { notFound } from 'next/navigation';
-import { useIsDevMode } from '@/hooks/useIsDevMode';
+import { isDevMode } from '@/lib/utils';
 
 interface ErrorInstance {
     id: string;
@@ -23,7 +23,6 @@ interface ErrorInstance {
 export default function ErrorLogPage() {
   const [errorInstances, setErrorInstances] = useState<ErrorInstance[]>([]);
   const [loading, setLoading] = useState(true);
-  const isDevMode = useIsDevMode();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -31,28 +30,30 @@ export default function ErrorLogPage() {
   }, []);
 
   useEffect(() => {
-    if (!isDevMode) {
+    if (isClient && !isDevMode()) {
         setLoading(false);
         return;
     };
 
-    const errorInstancesCollectionRef = collection(db, 'error_instances');
-    const q = query(errorInstancesCollectionRef, orderBy('timestamp', 'desc'));
+    if (isClient) {
+        const errorInstancesCollectionRef = collection(db, 'error_instances');
+        const q = query(errorInstancesCollectionRef, orderBy('timestamp', 'desc'));
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-        const instances: ErrorInstance[] = [];
-        querySnapshot.forEach((doc) => {
-            instances.push({ id: doc.id, ...doc.data() } as ErrorInstance);
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const instances: ErrorInstance[] = [];
+            querySnapshot.forEach((doc) => {
+                instances.push({ id: doc.id, ...doc.data() } as ErrorInstance);
+            });
+            setErrorInstances(instances);
+            setLoading(false);
         });
-        setErrorInstances(instances);
-        setLoading(false);
-    });
 
-    return () => unsubscribe();
-  }, [isDevMode]);
+        return () => unsubscribe();
+    }
+  }, [isClient]);
 
 
-  if (isClient && !isDevMode && !loading) {
+  if (isClient && !isDevMode() && !loading) {
     notFound();
   }
 

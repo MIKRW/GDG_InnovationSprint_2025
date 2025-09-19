@@ -14,7 +14,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { notFound } from 'next/navigation';
-import { useIsDevMode } from '@/hooks/useIsDevMode';
+import { isDevMode } from '@/lib/utils';
 
 interface MasterTestRun extends AnalysisRun {
   actualBirdName?: string;
@@ -212,14 +212,13 @@ function LiveRecordingTestLog() {
 
 
 export default function MasterAudioTestLogPage() {
-  const isDevMode = useIsDevMode();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  if (isClient && !isDevMode) {
+  if (isClient && !isDevMode()) {
     notFound();
   }
 
