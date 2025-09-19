@@ -29,6 +29,7 @@ import { PageTitle } from '../content/PageTitle';
 import { db } from '@/lib/firebase';
 import { logErrorToFirestore } from '@/lib/error-logging';
 import { useAuth } from '../providers/AuthProvider';
+import { useIsDevMode } from '@/hooks/useIsDevMode';
 
 const formSchema = z.object({
   word1: z.string(),
@@ -82,6 +83,7 @@ const MAX_SAVED_THEMES = 6;
 export function ThemeGenerator() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
+  const isDevMode = useIsDevMode();
   const [isLoading, setIsLoading] = useState(false);
   const [isApiOverloaded, setIsApiOverloaded] = useState(false);
   const [showEmptyInputInfo, setShowEmptyInputInfo] = useState(false);
@@ -325,14 +327,14 @@ export function ThemeGenerator() {
     }
     
     const mood = MOODS[currentMoodIndex];
-    const inputForAI = { ...values, mood };
+    const inputForAI = { ...values, mood, isDevelopment: isDevMode };
 
     try {
       const newColors = await generateTheme(inputForAI);
       
       const newTheme: Theme = {
         id: uuidv4(),
-        words: inputForAI,
+        words: { ...values, mood },
         colors: newColors,
         isActive: false,
       };
