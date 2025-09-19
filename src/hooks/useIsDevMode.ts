@@ -3,20 +3,19 @@
 import { useState, useEffect } from 'react';
 
 /**
- * A client-side hook to reliably determine if the application is running in
- * the development environment provided by the IDE.
+ * A client-side hook to reliably determine if the application is running
+ * in a development or preview environment provided by Firebase Studio.
  *
- * It works by checking the `NEXT_PUBLIC_DEV_MODE` environment variable, which
- * is set to 'true' by the local development server in the IDE but is not
- * present in the production build.
+ * It checks for the `NEXT_PUBLIC_DEV_MODE` environment variable, which is
+ * automatically set to 'true' by the IDE's development server.
  *
- * @returns {boolean} `true` if in the development environment, otherwise `false`.
+ * @returns {boolean} `true` if in a dev/preview environment, otherwise `false`.
  */
 export function useIsDevMode(): boolean {
   const [isDevMode, setIsDevMode] = useState(false);
 
   useEffect(() => {
-    // This check runs on the client-side after hydration.
+    // This check must run on the client-side after hydration to access process.env.
     setIsDevMode(process.env.NEXT_PUBLIC_DEV_MODE === 'true');
   }, []);
 
