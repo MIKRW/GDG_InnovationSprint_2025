@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -8,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { db } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { notFound } from 'next/navigation';
 
 interface ErrorInstance {
     id: string;
@@ -24,7 +26,10 @@ export default function ErrorLogPage() {
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
   useEffect(() => {
-    if (!isDevMode) return;
+    if (!isDevMode) {
+        setLoading(false);
+        return;
+    };
 
     const errorInstancesCollectionRef = collection(db, 'error_instances');
     const q = query(errorInstancesCollectionRef, orderBy('timestamp', 'desc'));
@@ -42,12 +47,8 @@ export default function ErrorLogPage() {
   }, [isDevMode]);
 
 
-  if (!isDevMode) {
-    return (
-        <div className="flex-1 p-4 text-center">
-            <p>This page is not available.</p>
-        </div>
-    )
+  if (!isDevMode && !loading) {
+    notFound();
   }
 
   return (
@@ -68,7 +69,7 @@ export default function ErrorLogPage() {
                     <p className="text-muted-foreground">No errors have been logged yet. Any failures in operations like AI analysis will appear here.</p>
                 </Card>
             )}
-            {errorInstances.map((error) => (
+            {!loading && errorInstances.map((error) => (
                 <Card key={error.id}>
                     <CardHeader>
                         <CardTitle className="text-xl flex justify-between items-center">
