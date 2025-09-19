@@ -8,15 +8,15 @@
  * - GenerateThemeOutput - The return type for the generateTheme function.
  */
 
-import { ai } from '@/ai/init';
+import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { logErrorToFirestore } from '@/lib/error-logging';
+import { getActiveAIConfig } from '@/lib/actions';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppAIVersion, PromptVersion, PromptContent } from '@/lib/types';
-import { getActiveAIConfig } from '@/lib/actions';
-import { googleAI } from '@genkit-ai/googleai';
 import { isDevMode } from '@/lib/utils';
+
 
 // A local utitlity does not need to be exported unlike the next two const.
 const ThemeColorSchema = z.object({
