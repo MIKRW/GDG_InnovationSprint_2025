@@ -88,12 +88,12 @@ export function SettingsPage() {
 
         {isDevMode && (
           <div className="pt-8 w-full max-w-sm">
-              <h2 className="text-lg font-semibold mb-2">Developer Tools</h2>
+              <h2 className="text-lg font-semibold mb-2">Developer</h2>
                 <Card className="bg-hazard-stripes p-1 rounded-lg">
                     <Button asChild variant="outline" className="w-full">
-                        <Link href="/settings/prompts" className="bg-background rounded-sm p-4 flex items-center justify-center w-full">
+                        <Link href="/settings/developer" className="bg-background rounded-sm p-4 flex items-center justify-center w-full">
                             <FlaskConical className="mr-2 h-4 w-4" />
-                            <span>Prompt Management</span>
+                            <span>Developer Tools</span>
                         </Link>
                     </Button>
                 </Card>

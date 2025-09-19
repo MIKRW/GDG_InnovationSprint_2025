@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useRouter } from 'next/navigation';
 
@@ -15,7 +15,8 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { logErrorToFirestore } from '@/lib/error-logging';
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
 import { createAnalysisRun } from '@/lib/actions';
-import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
+import { storage } from '@/lib/firebase';
+import { ref as storageRef, uploadBytes } from 'firebase/storage';
 import { useIsDevMode } from '@/hooks/useIsDevMode';
 import type { AppMode, LocationSettings } from '@/lib/types';
 
@@ -176,8 +177,8 @@ export default function RecordPage() {
               isProcessing={isProcessing}
             />
 
-            <div className="absolute left-full ml-16 w-96 space-y-4">
-              {showPermissionError && (
+             {showPermissionError && (
+              <div className="absolute left-full ml-16 w-96">
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle className="text-2xl">Microphone Access Required</AlertTitle>
@@ -185,8 +186,8 @@ export default function RecordPage() {
                     This app needs access to your microphone. Please enable permissions in your browser settings and refresh the page.
                   </AlertDescription>
                 </Alert>
-              )}
-            </div>
+              </div>
+            )}
         </div>
       </main>
       <SecondaryPageFooter />

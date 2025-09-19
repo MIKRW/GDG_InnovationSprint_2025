@@ -4,26 +4,22 @@
 import { useState, useRef, useEffect } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
-import { useRouter } from 'next/navigation';
-
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useRouter, notFound } from 'next/navigation';
+import Link from 'next/link';
+import { useIsDevMode } from '@/hooks/useIsDevMode';
 import { Library, Loader2, Music, PlusSquare, Upload, FlaskConical, ShieldAlert, TestTube2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { db, storage } from '@/lib/firebase';
-import type { AppMode, AppSettings, LocationSettings, TestAudioMetadata } from '@/lib/types';
+import { db } from '@/lib/firebase';
+import type { AppMode, LocationSettings, TestAudioMetadata } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NewMasterAudioForm } from '@/components/content/NewMasterAudioForm';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { logErrorToFirestore } from '@/lib/error-logging';
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
 import { createAnalysisRun } from '@/lib/actions';
-import { getDownloadURL, ref as storageRef, uploadBytes } from 'firebase/storage';
-import { useIsDevMode } from '@/hooks/useIsDevMode';
-import { notFound } from 'next/navigation';
 import { PageTitle } from '@/components/content/PageTitle';
-import Link from 'next/link';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
