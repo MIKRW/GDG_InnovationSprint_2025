@@ -36,11 +36,6 @@ const generateBirdImageFlow = ai.defineFlow(
     outputSchema: GenerateBirdImageOutputSchema,
   },
   async (input) => {
-    // For production, initialize the plugin within the flow to ensure access to runtime environment variables.
-    if (!isDevMode()) {
-      ai.registerPlugin(googleAI());
-    }
-    
     // Using a specific image generation model
     const { media } = await ai.generate({
         model: googleAI.model('imagen-4.0-fast-generate-001'),

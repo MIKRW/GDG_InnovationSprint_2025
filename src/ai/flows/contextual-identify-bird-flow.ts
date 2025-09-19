@@ -16,8 +16,8 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppAIVersion, PromptVersion, PromptContent } from '@/lib/types';
 import { getActiveAIConfig } from '@/lib/actions';
-import { googleAI } from '@genkit-ai/googleai';
 import { isDevMode } from '@/lib/utils';
+import { googleAI } from '@genkit-ai/googleai';
 
 
 const IdentifyBirdInputSchema = z.object({
@@ -35,7 +35,6 @@ const IdentifyBirdInputSchema = z.object({
     mode: z.enum(['newbie', 'twitcher']).describe('The application mode selected by the user, which may determine the expected audio quality and analysis depth.'),
     habitatPhotoDataUri: z.string().optional().describe("An optional photo of the bird's habitat, as a data URI."),
     habitatDescription: z.string().optional().describe("A user-provided text description of the habitat."),
-    isDevelopment: z.boolean().describe('Whether to use the development or live AI configuration.'),
 });
 export type IdentifyBirdInput = z.infer<typeof IdentifyBirdInputSchema>;
 
@@ -183,12 +182,7 @@ const identifyBirdFlow = ai.defineFlow(
     },
   },
   async (input) => {
-    // For production, initialize the plugin within the flow to ensure access to runtime environment variables.
-    if (!isDevMode()) {
-      ai.registerPlugin(googleAI());
-    }
-    
-    const { isDevelopment, ...flowInput } = input;
+    const flowInput = input;
     const systemId = 'bird-identifier-ai-newbie';
 
     let promptText = DEFAULT_BIRD_PROMPT;
@@ -197,7 +191,7 @@ const identifyBirdFlow = ai.defineFlow(
     const appConfig = await getActiveAIConfig();
 
     if (appConfig) {
-      const activeAppVersionId = isDevelopment ? appConfig.developmentAppAIVersion : appConfig.activeAppAIVersion;
+      const activeAppVersionId = isDevMode() ? appConfig.developmentAppAIVersion : appConfig.activeAppAIVersion;
       
       if (activeAppVersionId) {
         const appVersionDoc = await getDoc(doc(db, 'app_ai_versions', activeAppVersionId));
@@ -225,12 +219,10 @@ const identifyBirdFlow = ai.defineFlow(
       }
     }
 
-    const flowInputSchema = IdentifyBirdInputSchema.omit({ isDevelopment: true });
-
     const identifyBirdPrompt = ai.definePrompt({
         name: 'identifyBirdPrompt',
         prompt: promptText,
-        input: { schema: flowInputSchema },
+        input: { schema: IdentifyBirdInputSchema },
         output: { schema: IdentifyBirdOutputSchema },
         tools: [getCurrentWeather],
     });

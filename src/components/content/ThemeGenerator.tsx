@@ -325,7 +325,7 @@ export function ThemeGenerator() {
     }
     
     const mood = MOODS[currentMoodIndex];
-    const inputForAI = { ...values, mood, isDevelopment: isDevMode() };
+    const inputForAI = { ...values, mood };
 
     try {
       const newColors = await generateTheme(inputForAI);

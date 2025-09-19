@@ -1,19 +1,13 @@
+
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
-import { isDevMode } from '@/lib/utils';
 
-// This file exports a conditionally configured Genkit object.
-// In the IDE (dev mode), it initializes the googleAI plugin immediately,
-// allowing it to use Application Default Credentials for local development.
-// In production, it exports a base object, and the plugin is initialized
-// within the flows to access runtime environment variables.
-
-const plugins = [];
-if (isDevMode()) {
-  plugins.push(googleAI());
-}
+// This file configures and exports the Genkit 'ai' object.
+// It does NOT contain 'use server' because it exports an object, not an async function.
+// This single configuration works for both local development (using ADC) and
+// the deployed environment (using the GEMINI_API_KEY secret).
 
 export const ai = genkit({
-  plugins,
+  plugins: [googleAI()],
   model: 'googleai/gemini-2.5-flash',
 });
