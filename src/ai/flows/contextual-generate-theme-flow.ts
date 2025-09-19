@@ -54,7 +54,9 @@ const generateThemeFlow = ai.defineFlow(
     name: 'generateThemeFlow',
     inputSchema: GenerateThemeInputSchema,
     outputSchema: GenerateThemeOutputSchema,
-    retries: 3, // Automatically retry up to 3 times on failure
+    config: {
+      retries: 3, // Automatically retry up to 3 times on failure
+    },
   },
   async (input) => {
     try {

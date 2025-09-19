@@ -169,7 +169,9 @@ const identifyBirdFlow = ai.defineFlow(
     name: 'identifyBirdFlow',
     inputSchema: IdentifyBirdInputSchema,
     outputSchema: IdentifyBirdOutputSchema,
-    retries: 3,
+    config: {
+      retries: 3,
+    },
   },
   async (input) => {
     
