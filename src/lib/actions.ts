@@ -480,6 +480,7 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
 
 export const getComposedPrompt = cache(
     async (systemId: string): Promise<{ prompt: string; version: string } | null> => {
+        // This asks "is the app in dev mode?" and stores the true/false answer.
         const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
         console.log(`Composing prompt for AI Type '${systemId}' (Mode: ${isDevMode ? 'Development' : 'Live'}).`);
 
@@ -487,7 +488,7 @@ export const getComposedPrompt = cache(
             let appAIConfig = await getAppAIConfig();
             if (!appAIConfig) {
                 console.log("App AI config not found. Triggering initial data creation.");
-                await getAppAIVersions('all');
+                await getAppAIVersions('all'); // This will atomically create the default config if needed.
                 appAIConfig = await getAppAIConfig();
                 if (!appAIConfig) {
                     throw new Error("Fatal: App AI Systems config not found even after atomic creation.");
@@ -496,11 +497,12 @@ export const getComposedPrompt = cache(
             
             let appAIVersionId: string | undefined;
 
+            // This is the robust if/else block that correctly determines the version ID.
             if (!isDevMode) {
-                // LIVE MODE: Prefer active version, but fall back to development.
+                // LIVE MODE: Prioritize the active/live version, but fall back to dev if not set.
                 appAIVersionId = appAIConfig.activeAppAIVersion || appAIConfig.developmentAppAIVersion;
             } else {
-                // DEV MODE: Prefer development version, but fall back to active.
+                // DEV MODE: Prioritize the development version, but fall back to live if not set.
                 appAIVersionId = appAIConfig.developmentAppAIVersion || appAIConfig.activeAppAIVersion;
             }
             
@@ -508,6 +510,7 @@ export const getComposedPrompt = cache(
                 throw new Error(`No active or development App AI Version is set in the config.`);
             }
             
+            // The rest of the function proceeds with the determined ID.
             const appAIVersionRef = doc(db, 'app_ai_versions', appAIVersionId);
             const appAIVersionSnap = await getDoc(appAIVersionRef);
             if (!appAIVersionSnap.exists()) {
@@ -543,6 +546,8 @@ export const getComposedPrompt = cache(
 
         } catch (error) {
             console.error(`Failed to get composed prompt for '${systemId}':`, error);
+            // In a production app, you might want to log this to a dedicated error service.
+            // For now, returning null allows the calling flow to handle the failure gracefully.
             return null; 
         }
     },
@@ -551,6 +556,7 @@ export const getComposedPrompt = cache(
 
 
     
+
 
 
 
