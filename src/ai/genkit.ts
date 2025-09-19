@@ -3,17 +3,15 @@ import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
 
 // This file configures and exports the Genkit 'ai' object.
-// By initializing the googleAI() plugin without any parameters, we are telling
-// Genkit to use Application Default Credentials (ADC).
+// It uses a robust pattern to handle authentication for both local development and production.
 //
-// - In the deployed App Hosting environment, it will use the backend's
-//   runtime service account, which has been granted permission to access the AI APIs.
-// - In the local development environment, it will use the credentials from the
-//   local gcloud CLI setup (`gcloud auth application-default login`).
-//
-// This is the most secure and robust authentication method.
+// - In the local development environment, it expects a `GEMINI_API_KEY` to be loaded
+//   from the `.env.local` file by the `dev.ts` entrypoint.
+// - In the deployed App Hosting environment, the environment variable will NOT be present.
+//   In this case, the googleAI() plugin automatically uses Application Default Credentials (ADC)
+//   and the backend's runtime service account, which has been granted the necessary permissions.
 
-const plugins = [googleAI()];
+const plugins = [googleAI({ apiKey: process.env.GEMINI_API_KEY })];
 
 export const ai = genkit({
   plugins,
