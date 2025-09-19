@@ -11,12 +11,10 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { getStorage } from 'firebase-admin/storage';
-import { Readable } from 'stream';
 import wavDecoder from 'wav-decoder';
-import { getActiveAIConfig } from '@/lib/actions';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { PromptVersion, PromptContent } from '@/lib/types';
+import type { AppAIConfig, AppAIVersion, PromptVersion, PromptContent } from '@/lib/types';
 
 
 const IdentifyBirdInputSchema = z.object({
@@ -189,31 +187,39 @@ const identifyBirdFlow = ai.defineFlow(
     // Determine if we're in dev mode.
     const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
 
-    // Get the active AI configuration.
-    const config = await getActiveAIConfig();
-    const activeConfig = isDevMode ? config.dev : config.live;
+    const configDoc = await getDoc(doc(db, 'app_ai_config', 'main'));
+    const appConfig = configDoc.data() as AppAIConfig;
     const systemId = 'bird-identifier-ai-newbie';
 
     let promptText = DEFAULT_BIRD_PROMPT;
     let promptVersion = 'v1.0.0-default';
 
-    if (activeConfig && activeConfig.systems[systemId]) {
-      const promptVersionId = activeConfig.systems[systemId];
-      const versionDoc = await getDoc(doc(db, 'prompt_versions', promptVersionId));
-      
-      if (versionDoc.exists()) {
-          const versionData = versionDoc.data() as PromptVersion;
-          promptVersion = versionData.version;
-          
-          const contentId = versionData.composedPrompts['base_instruction'];
-          if(contentId) {
+    if (appConfig) {
+      const activeAppVersionId = isDevMode ? appConfig.developmentAppAIVersion : appConfig.activeAppAIVersion;
+      const appVersionDoc = await getDoc(doc(db, 'app_ai_versions', activeAppVersionId));
+
+      if (appVersionDoc.exists()) {
+        const appVersionData = appVersionDoc.data() as AppAIVersion;
+        const systemVersionId = appVersionData.systems[systemId];
+
+        if (systemVersionId) {
+          const versionDoc = await getDoc(doc(db, 'prompt_versions', systemVersionId));
+          if (versionDoc.exists()) {
+            const versionData = versionDoc.data() as PromptVersion;
+            promptVersion = versionData.version;
+
+            const contentId = versionData.composedPrompts['base_instruction'];
+            if (contentId) {
               const contentDoc = await getDoc(doc(db, 'prompt_content', contentId));
               if (contentDoc.exists()) {
-                  promptText = (contentDoc.data() as PromptContent).promptText;
+                promptText = (contentDoc.data() as PromptContent).promptText;
               }
+            }
           }
+        }
       }
     }
+
 
     const identifyBirdPrompt = ai.definePrompt({
         name: 'identifyBirdPrompt',

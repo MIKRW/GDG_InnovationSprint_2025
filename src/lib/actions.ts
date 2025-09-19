@@ -11,48 +11,6 @@ import { EmailAuthProvider, linkWithCredential, type User } from 'firebase/auth'
 import { kebabCase } from 'lodash';
 
 
-/**
- * Retrieves the active configuration for both live and development environments.
- * This function is cached to prevent excessive Firestore reads.
- * @returns An object containing the live and development AppAIVersion configurations.
- */
-export const getActiveAIConfig = cache(
-  async (): Promise<{ live: AppAIVersion | null, dev: AppAIVersion | null }> => {
-    
-    const configDoc = await getDoc(doc(db, 'app_ai_config', 'main'));
-    if (!configDoc.exists()) {
-      console.error("CRITICAL: Main AI config document not found.");
-      return { live: null, dev: null };
-    }
-    const config = configDoc.data() as AppAIConfig;
-
-    const liveVersionId = config.activeAppAIVersion;
-    const devVersionId = config.developmentAppAIVersion;
-
-    let liveVersion: AppAIVersion | null = null;
-    let devVersion: AppAIVersion | null = null;
-
-    if (liveVersionId) {
-      const liveDoc = await getDoc(doc(db, 'app_ai_versions', liveVersionId));
-      if (liveDoc.exists()) {
-        liveVersion = { id: liveDoc.id, ...liveDoc.data() } as AppAIVersion;
-      }
-    }
-
-    if (devVersionId) {
-      const devDoc = await getDoc(doc(db, 'app_ai_versions', devVersionId));
-      if (devDoc.exists()) {
-        devVersion = { id: devDoc.id, ...devDoc.data() } as AppAIVersion;
-      }
-    }
-    
-    return { live: liveVersion, dev: devVersion };
-  },
-  ['ai-config'],
-  { tags: ['prompts-v7'], revalidate: 3600 }
-);
-
-
 interface UploadMasterAudioInput {
     birdId: string; // e.g., 'australian-magpie'
     commonName: string;
