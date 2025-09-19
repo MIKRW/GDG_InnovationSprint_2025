@@ -6,7 +6,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { useRouter, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Library, Loader2, Music, PlusSquare, Upload, FlaskConical, ShieldAlert, TestTube2 } from 'lucide-react';
+import { Library, Loader2, Music, PlusSquare, Upload, FlaskConical, ShieldAlert, TestTube2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -281,11 +281,25 @@ export default function DeveloperPage() {
                 <Link href="/log/test" className="block h-full">
                     <Card className="h-full hover:bg-muted/50 transition-colors">
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><FlaskConical /> Test & Error Logs</CardTitle>
-                            <CardDescription>View historical AI test results and application error logs.</CardDescription>
+                            <CardTitle className="flex items-center gap-2"><FlaskConical /> AI Test Log</CardTitle>
+                            <CardDescription>View historical results from running master audio and live recordings through the AI.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-sm text-primary underline">Go to Logs &rarr;</p>
+                            <p className="text-sm text-primary underline">View AI Test Log &rarr;</p>
+                        </CardContent>
+                    </Card>
+                </Link>
+            </Card>
+
+             <Card className="bg-hazard-stripes p-1">
+                <Link href="/log/errors" className="block h-full">
+                    <Card className="h-full hover:bg-muted/50 transition-colors">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2"><AlertCircle /> Error Log</CardTitle>
+                            <CardDescription>View all captured application errors, such as failed AI generations or database writes.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-sm text-primary underline">View Error Log &rarr;</p>
                         </CardContent>
                     </Card>
                 </Link>

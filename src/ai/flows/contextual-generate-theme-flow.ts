@@ -15,6 +15,8 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppAIVersion, PromptVersion, PromptContent } from '@/lib/types';
 import { getActiveAIConfig } from '@/lib/actions';
+import { googleAI } from '@genkit-ai/googleai';
+import { isDevMode } from '@/lib/utils';
 
 // A local utitlity does not need to be exported unlike the next two const.
 const ThemeColorSchema = z.object({
@@ -68,6 +70,11 @@ const generateThemeFlow = ai.defineFlow(
     },
   },
   async (input) => {
+    // For production, initialize the plugin within the flow to ensure access to runtime environment variables.
+    if (!isDevMode()) {
+      ai.registerPlugin(googleAI());
+    }
+
     try {
       const { isDevelopment, ...themeInput } = input;
       const systemId = 'theme-generator-ai';
