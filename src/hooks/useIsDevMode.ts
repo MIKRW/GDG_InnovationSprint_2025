@@ -13,21 +13,21 @@ import { useState, useEffect } from 'react';
  * @returns {boolean} `true` if in the Firebase Studio environment, otherwise `false`.
  */
 export function useIsDevMode(): boolean {
-  const [isDevMode, setIsDevMode] = useState(process.env.NEXT_PUBLIC_DEV_MODE === 'true');
+  // Default to false on the server and for the initial client render.
+  const [isDevMode, setIsDevMode] = useState(false);
 
   useEffect(() => {
     // This check must run on the client-side after hydration to access window properties.
+    // The try/catch block handles potential cross-origin errors.
     try {
-      // Check if the window is inside an iframe and if the parent's origin is Firebase Studio.
       const inIframe = window.self !== window.top;
       const isStudio = inIframe && window.parent.location.origin === 'https://studio.firebase.google.com';
       setIsDevMode(isStudio);
     } catch (e) {
-      // Accessing window.parent.location can throw a cross-origin error if not handled.
       // If an error occurs, we are not in a friendly iframe, so it's not dev mode.
       setIsDevMode(false);
     }
-  }, []);
+  }, []); // The empty dependency array ensures this runs only once on the client.
 
   return isDevMode;
 }
