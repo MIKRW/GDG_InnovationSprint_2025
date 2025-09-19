@@ -13,6 +13,11 @@ import { z } from 'zod';
 import { getStorage } from 'firebase-admin/storage';
 import { Readable } from 'stream';
 import wavDecoder from 'wav-decoder';
+import { getActiveAIConfig } from '@/lib/actions';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import type { PromptVersion, PromptContent } from '@/lib/types';
+
 
 const IdentifyBirdInputSchema = z.object({
   audioDataUri: z
@@ -49,7 +54,12 @@ const IdentifyBirdOutputSchema = z.object({
 });
 export type IdentifyBirdOutput = z.infer<typeof IdentifyBirdOutputSchema>;
 
-const BIRD_IDENTIFIER_PROMPT = `You are an expert ornithologist. Your primary goal is to identify bird species from audio recordings. The user will provide an audio file and optional location data. You MUST analyze this audio to determine if a bird song is present. If it is, identify the bird's common name, scientific name, taxonomic family, and order. If no bird song is discernible, you MUST set 'isBirdSong' to false. You must also generate a simple, descriptive prompt for a text-to-image model to create a photorealistic image of the identified bird.`;
+const BIRD_IDENTIFIER_PROMPTS: Record<string, string> = {
+    'v1.0.0': `You are an expert ornithologist. Your primary goal is to identify bird species from audio recordings. The user will provide an audio file and optional location data. You MUST analyze this audio to determine if a bird song is present. If it is, identify the bird's common name, scientific name, taxonomic family, and order. If no bird song is discernible, you MUST set 'isBirdSong' to false. You must also generate a simple, descriptive prompt for a text-to-image model to create a photorealistic image of the identified bird.`,
+};
+
+const DEFAULT_BIRD_PROMPT = BIRD_IDENTIFIER_PROMPTS['v1.0.0'];
+
 
 const getCurrentWeather = ai.defineTool(
     {
@@ -176,9 +186,38 @@ const identifyBirdFlow = ai.defineFlow(
   },
   async (input) => {
     
+    // Determine if we're in dev mode.
+    const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+
+    // Get the active AI configuration.
+    const config = await getActiveAIConfig();
+    const activeConfig = isDevMode ? config.dev : config.live;
+    const systemId = 'bird-identifier-ai-newbie';
+
+    let promptText = DEFAULT_BIRD_PROMPT;
+    let promptVersion = 'v1.0.0-default';
+
+    if (activeConfig && activeConfig.systems[systemId]) {
+      const promptVersionId = activeConfig.systems[systemId];
+      const versionDoc = await getDoc(doc(db, 'prompt_versions', promptVersionId));
+      
+      if (versionDoc.exists()) {
+          const versionData = versionDoc.data() as PromptVersion;
+          promptVersion = versionData.version;
+          
+          const contentId = versionData.composedPrompts['base_instruction'];
+          if(contentId) {
+              const contentDoc = await getDoc(doc(db, 'prompt_content', contentId));
+              if (contentDoc.exists()) {
+                  promptText = (contentDoc.data() as PromptContent).promptText;
+              }
+          }
+      }
+    }
+
     const identifyBirdPrompt = ai.definePrompt({
         name: 'identifyBirdPrompt',
-        prompt: BIRD_IDENTIFIER_PROMPT,
+        prompt: promptText,
         input: { schema: IdentifyBirdInputSchema },
         output: { schema: IdentifyBirdOutputSchema },
         tools: [getCurrentWeather],
@@ -190,7 +229,7 @@ const identifyBirdFlow = ai.defineFlow(
       throw new Error('The model failed to return a valid analysis.');
     }
     
-    output.promptVersion = "hardcoded-v1";
+    output.promptVersion = promptVersion;
 
     // If no bird song was detected, fill in placeholder text.
     if (output.isBirdSong === false) {
