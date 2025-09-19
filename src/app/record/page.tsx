@@ -17,7 +17,7 @@ import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
 import { createAnalysisRun } from '@/lib/actions';
 import { storage } from '@/lib/firebase';
 import { ref as storageRef, uploadBytes } from 'firebase/storage';
-import { useIsDevMode } from '@/hooks/useIsDevMode';
+import { useIsLiveSite } from '@/hooks/useIsLiveSite';
 import type { AppMode, LocationSettings } from '@/lib/types';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
@@ -32,7 +32,7 @@ export default function RecordPage() {
   const [showPermissionError, setShowPermissionError] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
-  const isDevMode = useIsDevMode();
+  const isLiveSite = useIsLiveSite();
 
   // Refs for managing state across async operations
   const currentSessionId = useRef<string | null>(null);
@@ -97,7 +97,7 @@ export default function RecordPage() {
                 audioStoragePath: storagePath,
                 timestamp: currentTimestamp.current,
                 mode: appSettings.mode,
-                isDevelopment: isDevMode,
+                isDevelopment: !isLiveSite,
                 ...locationData
             });
             const analysisDurationMs = Date.now() - analysisStartTime;
@@ -142,7 +142,7 @@ export default function RecordPage() {
     if (!user) return;
     setIsProcessing(true);
 
-    const isDevTest = isDevMode;
+    const isDevTest = !isLiveSite;
     const testContext = isDevTest ? { birdId: 'live-test', testAudioId: uuidv4() } : undefined;
 
     // 1. Upload the blob to Firebase Storage

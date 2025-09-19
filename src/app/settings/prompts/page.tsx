@@ -22,10 +22,10 @@ import { ChevronDown, Loader2 } from 'lucide-react';
 import { kebabCase } from 'lodash';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { notFound } from 'next/navigation';
-import { useIsDevMode } from '@/hooks/useIsDevMode';
+import { useIsLiveSite } from '@/hooks/useIsLiveSite';
 
 export default function PromptManagementPage() {
-  const isDevMode = useIsDevMode();
+  const isLiveSite = useIsLiveSite();
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
@@ -80,10 +80,10 @@ setContentForSelectedSystem(content);
 
   useEffect(() => {
     setIsClient(true);
-    if (isDevMode) {
+    if (!isLiveSite) {
       fetchAllData(selectedSystemId);
     }
-  }, [isDevMode, selectedSystemId, fetchAllData]);
+  }, [isLiveSite, selectedSystemId, fetchAllData]);
 
   const handleSystemChange = (systemId: string) => {
     setSelectedSystemId(systemId);
@@ -126,7 +126,7 @@ setContentForSelectedSystem(content);
   };
 
 
-  if (isClient && !isDevMode) {
+  if (isClient && isLiveSite) {
     notFound();
   }
 

@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { useIsDevMode } from '@/hooks/useIsDevMode';
+import { useIsLiveSite } from '@/hooks/useIsLiveSite';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
@@ -23,7 +23,7 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const isAnonymous = user?.isAnonymous;
-  const isDevMode = useIsDevMode();
+  const isLiveSite = useIsLiveSite();
   const [hardware, setHardware] = useState('');
 
   useEffect(() => {
@@ -90,7 +90,7 @@ export default function SettingsPage() {
                 </Button>
             </div>
 
-            {isDevMode && (
+            {!isLiveSite && (
               <div className="pt-8 w-full max-w-sm">
                   <h2 className="text-lg font-semibold mb-2">Developer</h2>
                     <Card className="bg-hazard-stripes p-1 rounded-lg">

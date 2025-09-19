@@ -6,7 +6,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { useRouter, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { useIsDevMode } from '@/hooks/useIsDevMode';
+import { useIsLiveSite } from '@/hooks/useIsLiveSite';
 import { Library, Loader2, Music, PlusSquare, Upload, FlaskConical, ShieldAlert, TestTube2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,7 +29,7 @@ const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 export default function DeveloperPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const isDevMode = useIsDevMode();
+  const isLiveSite = useIsLiveSite();
   const [isClient, setIsClient] = useState(false);
   
   const [isProcessing, setIsProcessing] = useState(false);
@@ -86,10 +86,10 @@ export default function DeveloperPage() {
   };
 
   useEffect(() => {
-    if (isTestAudioDialogOpen && isDevMode) {
+    if (isTestAudioDialogOpen && !isLiveSite) {
       fetchTestAudioLibrary();
     }
-  }, [isTestAudioDialogOpen, isDevMode]);
+  }, [isTestAudioDialogOpen, isLiveSite]);
   
   const getAppSettings = (): { mode: AppMode } => {
     const savedSettingsJson = localStorage.getItem(APP_MODE_SETTINGS_KEY);
@@ -149,7 +149,7 @@ export default function DeveloperPage() {
                 audioStoragePath: storagePath,
                 timestamp: currentTimestamp.current,
                 mode: appSettings.mode,
-                isDevelopment: isDevMode,
+                isDevelopment: !isLiveSite,
                 ...locationData
             });
             const analysisDurationMs = Date.now() - analysisStartTime;
@@ -198,7 +198,7 @@ export default function DeveloperPage() {
     await handleSelectTestAudio(metadata);
   }
 
-  if (isClient && !isDevMode) {
+  if (isClient && isLiveSite) {
     notFound();
   }
 
