@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -21,10 +22,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { ChevronDown, Loader2 } from 'lucide-react';
 import { kebabCase } from 'lodash';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
+import { notFound } from 'next/navigation';
 
 export default function PromptManagementPage() {
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
 
   const [allSystems, setAllSystems] = useState<PromptSystem[]>([]);
   const [selectedSystemId, setSelectedSystemId] = useState<string | null>(null);
@@ -76,6 +79,7 @@ setContentForSelectedSystem(content);
   }, [toast]);
 
   useEffect(() => {
+    setIsClient(true);
     if (isDevMode) {
       fetchAllData(selectedSystemId);
     }
@@ -122,12 +126,12 @@ setContentForSelectedSystem(content);
   };
 
 
-  if (!isDevMode) {
-    return (
-      <div className="flex-1 p-4 text-center">
-        <p>This page is not available.</p>
-      </div>
-    );
+  if (isClient && !isDevMode) {
+    notFound();
+  }
+
+  if (!isClient) {
+      return null;
   }
   
   const selectedSystem = allSystems.find(s => s.id === selectedSystemId) || null;

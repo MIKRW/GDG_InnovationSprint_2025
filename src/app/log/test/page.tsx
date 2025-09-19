@@ -14,6 +14,7 @@ import type { AnalysisRun, BirdSpeciesData } from '@/lib/types';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { notFound } from 'next/navigation';
 
 interface MasterTestRun extends AnalysisRun {
   actualBirdName?: string;
@@ -212,13 +213,18 @@ function LiveRecordingTestLog() {
 
 export default function MasterAudioTestLogPage() {
   const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+  const [isClient, setIsClient] = useState(false);
 
-  if (!isDevMode) {
-    return (
-        <div className="flex-1 p-4 text-center">
-            <p>This page is not available.</p>
-        </div>
-    )
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (isClient && !isDevMode) {
+    notFound();
+  }
+
+  if (!isClient) {
+    return null; // Or a loading skeleton
   }
 
   return (

@@ -249,7 +249,7 @@ export function LogPage({ searchQuery, sortOption }: LogPageProps) {
                 </div>
             )}
 
-            {allLogs.length === 0 && !hasMysteryLogs && !loading && (
+            {allLogs.length === 0 && !hasMysteryLogs && !loading && !isDevMode && (
                  <div className="text-center py-16">
                     <PageTitle>Your Bird Book is Empty</PageTitle>
                     <p className="mt-4 text-muted-foreground">You haven't identified any birds yet.</p>
