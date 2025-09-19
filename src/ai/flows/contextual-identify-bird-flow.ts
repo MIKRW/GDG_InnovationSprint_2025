@@ -33,6 +33,7 @@ const IdentifyBirdInputSchema = z.object({
     mode: z.enum(['newbie', 'twitcher']).describe('The application mode selected by the user, which may determine the expected audio quality and analysis depth.'),
     habitatPhotoDataUri: z.string().optional().describe("An optional photo of the bird's habitat, as a data URI."),
     habitatDescription: z.string().optional().describe("A user-provided text description of the habitat."),
+    isDevelopment: z.boolean().describe('Whether to use the development or live AI configuration.'),
 });
 export type IdentifyBirdInput = z.infer<typeof IdentifyBirdInputSchema>;
 
@@ -53,11 +54,7 @@ const IdentifyBirdOutputSchema = z.object({
 });
 export type IdentifyBirdOutput = z.infer<typeof IdentifyBirdOutputSchema>;
 
-const BIRD_IDENTIFIER_PROMPTS: Record<string, string> = {
-    'v1.0.0': `You are an expert ornithologist. Your primary goal is to identify bird species from audio recordings. The user will provide an audio file and optional location data. You MUST analyze this audio to determine if a bird song is present. If it is, identify the bird's common name, scientific name, taxonomic family, and order. If no bird song is discernible, you MUST set 'isBirdSong' to false. You must also generate a simple, descriptive prompt for a text-to-image model to create a photorealistic image of the identified bird.`,
-};
-
-const DEFAULT_BIRD_PROMPT = BIRD_IDENTIFIER_PROMPTS['v1.0.0'];
+const DEFAULT_BIRD_PROMPT = `You are an expert ornithologist. Your primary goal is to identify bird species from audio recordings. The user will provide an audio file and optional location data. You MUST analyze this audio to determine if a bird song is present. If it is, identify the bird's common name, scientific name, taxonomic family, and order. If no bird song is discernible, you MUST set 'isBirdSong' to false. You must also generate a simple, descriptive prompt for a text-to-image model to create a photorealistic image of the identified bird.`;
 
 
 const getCurrentWeather = ai.defineTool(
@@ -185,8 +182,7 @@ const identifyBirdFlow = ai.defineFlow(
   },
   async (input) => {
     
-    // Determine if we're in dev mode.
-    const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+    const { isDevelopment, ...flowInput } = input;
     const systemId = 'bird-identifier-ai-newbie';
 
     let promptText = DEFAULT_BIRD_PROMPT;
@@ -195,7 +191,7 @@ const identifyBirdFlow = ai.defineFlow(
     const appConfig = await getActiveAIConfig();
 
     if (appConfig) {
-      const activeAppVersionId = isDevMode ? appConfig.developmentAppAIVersion : appConfig.activeAppAIVersion;
+      const activeAppVersionId = isDevelopment ? appConfig.developmentAppAIVersion : appConfig.activeAppAIVersion;
       const appVersionDoc = await getDoc(doc(db, 'app_ai_versions', activeAppVersionId));
 
       if (appVersionDoc.exists()) {
@@ -220,16 +216,17 @@ const identifyBirdFlow = ai.defineFlow(
       }
     }
 
+    const flowInputSchema = IdentifyBirdInputSchema.omit({ isDevelopment: true });
 
     const identifyBirdPrompt = ai.definePrompt({
         name: 'identifyBirdPrompt',
         prompt: promptText,
-        input: { schema: IdentifyBirdInputSchema },
+        input: { schema: flowInputSchema },
         output: { schema: IdentifyBirdOutputSchema },
         tools: [getCurrentWeather],
     });
 
-    const { output } = await identifyBirdPrompt(input);
+    const { output } = await identifyBirdPrompt(flowInput);
 
     if (!output) {
       throw new Error('The model failed to return a valid analysis.');
