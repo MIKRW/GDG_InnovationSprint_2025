@@ -6,7 +6,7 @@ This document summarizes the troubleshooting process for the AI Theme Generator,
 
 ## Initial State & The Performance Problem
 
-Initially, the AI theme generator flow (`contextual-generate-theme-flow.ts`) was designed to be highly reliable and self-contained. To achieve this, it directly queried the Firestore database on every single execution to fetch the active AI prompt configuration.
+When the AI versioning system was first implemented, the theme generator flow (`contextual-generate-theme-flow.ts`) was designed to be highly reliable and self-contained. To achieve this, it directly queried the Firestore database on every single execution to fetch the active AI prompt configuration.
 
 -   **Problem:** This approach, while robust, introduced significant latency. Every time a user clicked "Generate Theme," the server had to perform multiple round-trips to the database to determine which prompt version to use. The result was a noticeably slow user experience.
 
