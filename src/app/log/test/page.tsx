@@ -14,7 +14,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { notFound } from 'next/navigation';
-import { useIsLiveSite } from '@/hooks/useIsLiveSite';
+import { isDevMode } from '@/lib/utils';
 
 interface MasterTestRun extends AnalysisRun {
   actualBirdName?: string;
@@ -212,14 +212,13 @@ function LiveRecordingTestLog() {
 
 
 export default function MasterAudioTestLogPage() {
-  const isLiveSite = useIsLiveSite();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  if (isClient && isLiveSite) {
+  if (isClient && !isDevMode()) {
     notFound();
   }
 

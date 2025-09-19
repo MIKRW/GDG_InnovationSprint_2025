@@ -79,10 +79,12 @@ setContentForSelectedSystem(content);
 
   useEffect(() => {
     setIsClient(true);
-    if (isDevMode()) {
+    if (isClient && isDevMode()) {
       fetchAllData(selectedSystemId);
+    } else if (isClient && !isDevMode()) {
+        setLoading(false);
     }
-  }, [selectedSystemId, fetchAllData]);
+  }, [selectedSystemId, fetchAllData, isClient]);
 
   const handleSystemChange = (systemId: string) => {
     setSelectedSystemId(systemId);
