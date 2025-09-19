@@ -184,9 +184,8 @@ const identifyBirdFlow = ai.defineFlow(
   },
   async (input) => {
     // For production, initialize the plugin within the flow to ensure access to runtime environment variables.
-    if (!isDevMode()) {
-      ai.registerPlugin(googleAI());
-    }
+    // In development, this is a harmless re-registration.
+    ai.registerPlugin(googleAI());
     
     const { isDevelopment, ...flowInput } = input;
     const systemId = 'bird-identifier-ai-newbie';
