@@ -314,7 +314,6 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
     const configRef = doc(db, 'app_ai_config', 'main');
 
     // Run a transaction to atomically check and create the default config if needed.
-    // This prevents a race condition where multiple concurrent requests try to create it.
     await runTransaction(db, async (transaction) => {
         const configSnap = await transaction.get(configRef);
         if (configSnap.exists()) {
@@ -326,30 +325,36 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
         const birdSystemId = 'bird-identifier-ai-newbie';
         const themeSystemId = 'theme-generator-ai';
 
+        const birdVersion = 'v1.0.0';
+        const themeVersion = 'v1.0.0';
+
+        // Consistent ID generation
+        const birdContentId = `${birdSystemId}_base_instruction_${birdVersion}`;
+        const birdVersionId = `${birdSystemId}_${birdVersion}`;
+        const themeContentId = `${themeSystemId}_base_instruction_${themeVersion}`;
+        const themeVersionId = `${themeSystemId}_${themeVersion}`;
+
         // Create bird identifier system
-        transaction.set(doc(db, 'prompt_systems', birdSystemId), { name: "Bird Identifier AI (Newbie)", description: "Manages prompts for identifying birds in Newbie mode.", activeVersion: 'v1.0.0' });
-        const birdContentId = `${birdSystemId}_base_instruction_v1-0-0`.replace(/\./g, '-');
-        transaction.set(doc(db, 'prompt_content', birdContentId), { systemId: birdSystemId, categoryId: 'base_instruction', version: 'v1.0.0', promptText: `You are an expert ornithologist. Your primary goal is to identify bird species from audio recordings. The user will provide an audio file and optional location data. You MUST analyze this audio to determine if a bird song is present. If it is, identify the bird's common name, scientific name, taxonomic family, and order. If no bird song is discernible, you MUST set 'isBirdSong' to false. You must also generate a simple, descriptive prompt for a text-to-image model to create a photorealistic image of the identified bird.`, timestamp: new Date().toISOString() });
-        const birdVersionId = `${birdSystemId}-v1-0-0`;
-        transaction.set(doc(db, 'prompt_versions', birdVersionId), { systemId: birdSystemId, version: 'v1.0.0', composedPrompts: { base_instruction: birdContentId }, timestamp: new Date().toISOString() });
+        transaction.set(doc(db, 'prompt_systems', birdSystemId), { name: "Bird Identifier AI (Newbie)", description: "Manages prompts for identifying birds in Newbie mode.", activeVersion: birdVersion });
+        transaction.set(doc(db, 'prompt_content', birdContentId), { systemId: birdSystemId, categoryId: 'base_instruction', version: birdVersion, promptText: `You are an expert ornithologist. Your primary goal is to identify bird species from audio recordings. The user will provide an audio file and optional location data. You MUST analyze this audio to determine if a bird song is present. If it is, identify the bird's common name, scientific name, taxonomic family, and order. If no bird song is discernible, you MUST set 'isBirdSong' to false. You must also generate a simple, descriptive prompt for a text-to-image model to create a photorealistic image of the identified bird.`, timestamp: new Date().toISOString() });
+        transaction.set(doc(db, 'prompt_versions', birdVersionId), { systemId: birdSystemId, version: birdVersion, composedPrompts: { base_instruction: birdContentId }, timestamp: new Date().toISOString() });
         
         // Create theme generator system
-        transaction.set(doc(db, 'prompt_systems', themeSystemId), { name: "AI Theme Generator", description: "Manages prompts for generating UI color themes.", activeVersion: 'v1.0.0' });
-        const themeContentId = `${themeSystemId}_base_instruction_v1-0-0`.replace(/\./g, '-');
-        transaction.set(doc(db, 'prompt_content', themeContentId), { systemId: themeSystemId, categoryId: 'base_instruction', version: 'v1.0.0', promptText: `You are a professional UI/UX designer specializing in color theory and accessibility. Your task is to generate a color palette for a web application based on three inspirational words and a 'mood'. The output must be a JSON object with 'background', 'foreground', 'primary', and 'ring' colors in HSL format. You must ensure that the contrast ratios between background, foreground, and primary colors are WCAG AA compliant at a minimum, aiming for AAA where possible, especially for 'High Contrast' mood. The 'ring' color must be a perceptibly lighter or darker shade of the 'primary' color to be visible as a selection indicator. The mood provides the artistic direction and accessibility constraints. For color-blindness-friendly moods, you must avoid color combinations that are difficult to distinguish for that specific type of color vision deficiency.`, timestamp: new Date().toISOString() });
-        const themeVersionId = `${themeSystemId}-v1-0-0`;
-        transaction.set(doc(db, 'prompt_versions', themeVersionId), { systemId: themeSystemId, version: 'v1.0.0', composedPrompts: { base_instruction: themeContentId }, timestamp: new Date().toISOString() });
+        transaction.set(doc(db, 'prompt_systems', themeSystemId), { name: "AI Theme Generator", description: "Manages prompts for generating UI color themes.", activeVersion: themeVersion });
+        transaction.set(doc(db, 'prompt_content', themeContentId), { systemId: themeSystemId, categoryId: 'base_instruction', version: themeVersion, promptText: `You are a professional UI/UX designer specializing in color theory and accessibility. Your task is to generate a color palette for a web application based on three inspirational words and a 'mood'. The output must be a JSON object with 'background', 'foreground', 'primary', and 'ring' colors in HSL format. You must ensure that the contrast ratios between background, foreground, and primary colors are WCAG AA compliant at a minimum, aiming for AAA where possible, especially for 'High Contrast' mood. The 'ring' color must be a perceptibly lighter or darker shade of the 'primary' color to be visible as a selection indicator. The mood provides the artistic direction and accessibility constraints. For color-blindness-friendly moods, you must avoid color combinations that are difficult to distinguish for that specific type of color vision deficiency.`, timestamp: new Date().toISOString() });
+        transaction.set(doc(db, 'prompt_versions', themeVersionId), { systemId: themeSystemId, version: themeVersion, composedPrompts: { base_instruction: themeContentId }, timestamp: new Date().toISOString() });
 
         // Create top-level App AI Versions with links to the new systems
         const defaultSystems = { [birdSystemId]: birdVersionId, [themeSystemId]: themeVersionId };
         
-        const defaultLiveVersionId = 'v1-0-0';
-        const defaultDevVersionId = 'v1-0-0-dev';
-        transaction.set(doc(db, 'app_ai_versions', defaultLiveVersionId), { version: 'v1.0.0', isDevelopment: false, timestamp: new Date().toISOString(), systems: defaultSystems });
-        transaction.set(doc(db, 'app_ai_versions', defaultDevVersionId), { version: 'v1.0.0-dev', isDevelopment: true, timestamp: new Date().toISOString(), systems: defaultSystems });
+        const defaultLiveVersion = 'v1.0.0';
+        const defaultDevVersion = 'v1.0.0-dev';
+
+        transaction.set(doc(db, 'app_ai_versions', defaultLiveVersion), { version: defaultLiveVersion, isDevelopment: false, timestamp: new Date().toISOString(), systems: defaultSystems });
+        transaction.set(doc(db, 'app_ai_versions', defaultDevVersion), { version: defaultDevVersion, isDevelopment: true, timestamp: new Date().toISOString(), systems: defaultSystems });
         
         // Finally, create the main config to point to these new versions
-        transaction.set(doc(db, 'app_ai_config', 'main'), { activeAppAIVersion: defaultLiveVersionId, developmentAppAIVersion: defaultDevVersionId });
+        transaction.set(configRef, { activeAppAIVersion: defaultLiveVersion, developmentAppAIVersion: defaultDevVersion });
     });
     
     // Now that we're sure the config exists, fetch and return the versions.
@@ -446,7 +451,7 @@ export async function setLivePromptSystemVersion(systemId: string, version: stri
 }
 
 export async function publishNewPromptVersion(systemId: string, version: string, composedPrompts: { [categoryId: string]: string }): Promise<PromptVersion> {
-    const newId = `${systemId}-${version.replace(/\./g, '-')}`;
+    const newId = `${systemId}_${version}`;
     const versionRef = doc(db, 'prompt_versions', newId);
     
     const newVersionData: Omit<PromptVersion, 'id'> = {
@@ -471,7 +476,7 @@ interface PublishNewPromptContentInput {
 
 export async function publishNewPromptContent(input: PublishNewPromptContentInput): Promise<PromptContent> {
     const { systemId, categoryId, version, promptText, previousVersionId } = input;
-    const newId = `${systemId}_${categoryId}_${version.replace(/\./g, '-')}`;
+    const newId = `${systemId}_${categoryId}_${version}`;
     const contentRef = doc(db, 'prompt_content', newId);
     const newContentData: Omit<PromptContent, 'id'> = {
         systemId, categoryId, version, promptText,
@@ -490,21 +495,22 @@ export const getComposedPrompt = cache(
         console.log(`Composing prompt for AI Type '${systemId}' (Mode: ${isDevMode ? 'Development' : 'Live'}).`);
 
         try {
-            // This function now guarantees the config exists.
             const appAIConfig = await getAppAIConfig();
 
             if (!appAIConfig) {
-                throw new Error("Fatal: App AI Systems config not found even after atomic creation.");
+                // The getAppAIVersions function (called on page load) has a transaction to create this.
+                // If it's still missing, something is fundamentally wrong.
+                throw new Error("Fatal: App AI Systems config not found even after atomic creation check.");
             }
             
             let appAIVersionId: string | undefined;
 
             // This is the robust if/else block that correctly determines the version ID.
             if (!isDevMode) {
-                // LIVE MODE: Prioritize the active/live version, but fall back to dev if not set.
+                // LIVE MODE: Prefer active/live version, but fall back to dev if not set.
                 appAIVersionId = appAIConfig.activeAppAIVersion || appAIConfig.developmentAppAIVersion;
             } else {
-                // DEV MODE: Prioritize the development version, but fall back to live if not set.
+                // DEV MODE: Prefer development version, but fall back to live if not set.
                 appAIVersionId = appAIConfig.developmentAppAIVersion || appAIConfig.activeAppAIVersion;
             }
             
@@ -552,6 +558,7 @@ export const getComposedPrompt = cache(
     },
     ['prompts-v7'], { revalidate: 30, tags: ['prompts-v7'] }
 );
+
 
 
 
