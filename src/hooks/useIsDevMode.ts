@@ -13,7 +13,7 @@ import { useState, useEffect } from 'react';
  * @returns {boolean} `true` if in the Firebase Studio environment, otherwise `false`.
  */
 export function useIsDevMode(): boolean {
-  const [isDevMode, setIsDevMode] = useState(false);
+  const [isDevMode, setIsDevMode] = useState(process.env.NEXT_PUBLIC_DEV_MODE === 'true');
 
   useEffect(() => {
     // This check must run on the client-side after hydration to access window properties.
