@@ -8,7 +8,7 @@
  * - GenerateBirdImageOutput - The return type for the generateBirdImage function.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai } from '@/ai/init';
 import { z } from 'zod';
 import { googleAI } from '@genkit-ai/googleai';
 import { isDevMode } from '@/lib/utils';

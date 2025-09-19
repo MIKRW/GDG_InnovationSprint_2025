@@ -8,7 +8,7 @@
  * - IdentifyBirdOutput - The return type for the identifyBirdBySound function.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai } from '@/ai/init';
 import { z } from 'zod';
 import { getStorage } from 'firebase-admin/storage';
 import wavDecoder from 'wav-decoder';

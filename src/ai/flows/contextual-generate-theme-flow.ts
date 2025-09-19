@@ -8,7 +8,7 @@
  * - GenerateThemeOutput - The return type for the generateTheme function.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai } from '@/ai/init';
 import { z } from 'zod';
 import { logErrorToFirestore } from '@/lib/error-logging';
 import { doc, getDoc } from 'firebase/firestore';
