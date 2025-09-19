@@ -16,6 +16,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppAIVersion, PromptVersion, PromptContent } from '@/lib/types';
 import { isDevMode } from '@/lib/utils';
+import { googleAI } from '@genkit-ai/googleai';
 
 
 // A local utitlity does not need to be exported unlike the next two const.

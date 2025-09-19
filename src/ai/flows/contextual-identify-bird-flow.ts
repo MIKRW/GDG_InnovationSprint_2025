@@ -17,6 +17,7 @@ import { db } from '@/lib/firebase';
 import type { AppAIVersion, PromptVersion, PromptContent } from '@/lib/types';
 import { getActiveAIConfig } from '@/lib/actions';
 import { isDevMode } from '@/lib/utils';
+import { googleAI } from '@genkit-ai/googleai';
 
 
 const IdentifyBirdInputSchema = z.object({
