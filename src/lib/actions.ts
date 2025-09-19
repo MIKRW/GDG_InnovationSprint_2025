@@ -496,13 +496,13 @@ export const getComposedPrompt = cache(
 
             let appAIVersionId: string | undefined;
             
-            // Robust fallback logic.
-            if (isDevMode) {
-                // In dev mode, prefer the development version, but fall back to live.
-                appAIVersionId = appAIConfig.developmentAppAIVersion || appAIConfig.activeAppAIVersion;
-            } else {
-                // In live mode, prefer the live version, but fall back to development.
+            // Robust fallback logic, handling the live/production case first for clarity.
+            if (!isDevMode) {
+                // LIVE MODE: Prefer the active version, but fall back to dev.
                 appAIVersionId = appAIConfig.activeAppAIVersion || appAIConfig.developmentAppAIVersion;
+            } else {
+                // DEV MODE: Prefer the development version, but fall back to live.
+                appAIVersionId = appAIConfig.developmentAppAIVersion || appAIConfig.activeAppAIVersion;
             }
             
             if (!appAIVersionId) {
@@ -552,6 +552,7 @@ export const getComposedPrompt = cache(
 
 
     
+
 
 
 
