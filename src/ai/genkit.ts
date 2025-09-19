@@ -1,7 +1,8 @@
 import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/googleai';
 
+// This file exports the base genkit object.
+// Plugins, such as googleAI, should be initialized within the specific
+// flows that use them to ensure access to runtime environment variables.
 export const ai = genkit({
-  plugins: [googleAI({apiKey: process.env.GEMINI_API_KEY})],
   model: 'googleai/gemini-2.5-flash',
 });

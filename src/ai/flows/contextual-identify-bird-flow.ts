@@ -16,6 +16,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppAIVersion, PromptVersion, PromptContent } from '@/lib/types';
 import { getActiveAIConfig } from '@/lib/actions';
+import { googleAI } from '@genkit-ai/googleai';
 
 
 const IdentifyBirdInputSchema = z.object({
@@ -181,6 +182,8 @@ const identifyBirdFlow = ai.defineFlow(
     },
   },
   async (input) => {
+    // Initialize the plugin within the flow to ensure access to runtime environment variables.
+    ai.registerPlugin(googleAI());
     
     const { isDevelopment, ...flowInput } = input;
     const systemId = 'bird-identifier-ai-newbie';
