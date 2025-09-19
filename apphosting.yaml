@@ -5,7 +5,7 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
-# The backend's service account has been granted IAM permissions to access
-# the Vertex AI API, so a GEMINI_API_KEY secret is no longer required.
-# Genkit will use Application Default Credentials automatically.
-secrets: []
+# The backend's service account does not have the required IAM permissions to
+# access the Vertex AI API automatically. We must provide a GEMINI_API_KEY
+# as a secret for the production environment.
+secrets: [GEMINI_API_KEY]
