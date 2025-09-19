@@ -3,21 +3,31 @@
 import { useState, useEffect } from 'react';
 
 /**
- * A client-side hook to reliably determine if the application is running in
- * the development environment provided by the IDE.
+ * A client-side hook to reliably and securely determine if the application is
+ * being viewed by a developer within the Firebase Studio IDE.
  *
- * It works by checking the `NEXT_PUBLIC_DEV_MODE` environment variable, which
- * is set to 'true' by the local development server in the IDE but is not
- * present in the production build.
+ * It works by checking the `document.referrer`. When the app preview is loaded
+ * inside the Firebase Studio iframe, the referrer will be the Studio URL.
+ * This is secure because this condition is only met within the IDE and cannot
+ * be replicated by simply sharing a preview link.
  *
- * @returns {boolean} `true` if in the development environment, otherwise `false`.
+ * @returns {boolean} `true` if inside the Firebase Studio IDE, otherwise `false`.
  */
 export function useIsDevMode(): boolean {
   const [isDevMode, setIsDevMode] = useState(false);
 
   useEffect(() => {
-    // This check runs on the client-side after hydration.
-    setIsDevMode(process.env.NEXT_PUBLIC_DEV_MODE === 'true');
+    // This check must run on the client-side after hydration.
+    if (typeof window !== 'undefined') {
+      try {
+        // The app is inside an iframe, and the parent frame is Firebase Studio.
+        const isInsideStudio = window.self !== window.top && document.referrer.startsWith('https://studio.firebase.google.com/');
+        setIsDevMode(isInsideStudio);
+      } catch (e) {
+        // If there's a cross-origin error, we are definitely not in the right context.
+        setIsDevMode(false);
+      }
+    }
   }, []);
 
   return isDevMode;
