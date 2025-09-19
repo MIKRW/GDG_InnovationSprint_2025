@@ -148,21 +148,6 @@ Here is the user's input:
       return output;
     } catch (error) {
       console.error('Error in generateThemeFlow:', error);
-      const errorMessage = (error as Error).message || '';
-
-      // Check for the specific "failed precondition" error
-      if (errorMessage.toLowerCase().includes('failed precondition')) {
-          const specificError = new Error(
-              'Project configuration error: Please ensure Billing and the Vertex AI API are enabled for your Google Cloud project.'
-          );
-          await logErrorToFirestore(specificError, 'gcp-precondition-failure', {
-              input: input,
-              flow: 'generateThemeFlow',
-              originalMessage: errorMessage,
-          });
-          throw specificError;
-      }
-
       // Log and throw generic error for all other cases
       await logErrorToFirestore(error as Error, 'theme-generation-failure', {
         input: input,
