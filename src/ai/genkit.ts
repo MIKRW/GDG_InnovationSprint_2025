@@ -1,8 +1,19 @@
-import {genkit} from 'genkit';
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
+import { isDevMode } from '@/lib/utils';
 
-// This file exports the base genkit object.
-// Plugins, such as googleAI, should be initialized within the specific
-// flows that use them to ensure access to runtime environment variables.
+// This file exports a conditionally configured Genkit object.
+// In the IDE (dev mode), it initializes the googleAI plugin immediately,
+// allowing it to use Application Default Credentials for local development.
+// In production, it exports a base object, and the plugin is initialized
+// within the flows to access runtime environment variables.
+
+const plugins = [];
+if (isDevMode()) {
+  plugins.push(googleAI());
+}
+
 export const ai = genkit({
+  plugins,
   model: 'googleai/gemini-2.5-flash',
 });

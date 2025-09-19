@@ -11,6 +11,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { googleAI } from '@genkit-ai/googleai';
+import { isDevMode } from '@/lib/utils';
 
 const GenerateBirdImageInputSchema = z.object({
   prompt: z.string().describe('A descriptive text prompt for generating a bird image, e.g., "photo of an American Robin on a branch".'),
@@ -35,8 +36,10 @@ const generateBirdImageFlow = ai.defineFlow(
     outputSchema: GenerateBirdImageOutputSchema,
   },
   async (input) => {
-    // Initialize the plugin within the flow to ensure access to runtime environment variables.
-    ai.registerPlugin(googleAI());
+    // For production, initialize the plugin within the flow to ensure access to runtime environment variables.
+    if (!isDevMode()) {
+      ai.registerPlugin(googleAI());
+    }
     
     // Using a specific image generation model
     const { media } = await ai.generate({
