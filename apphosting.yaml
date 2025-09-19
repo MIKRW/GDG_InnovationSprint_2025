@@ -6,6 +6,7 @@ runConfig:
   # more instances in response to increased traffic.
   maxInstances: 1
 # The backend's service account does not have the required IAM permissions to
-# access the Vertex AI API automatically. We must provide a GEMINI_API_KEY
-# as a secret for the production environment.
-secrets: [GEMINI_API_KEY]
+# access the Vertex AI API automatically. The GEMINI_API_KEY secret must be
+# created in Google Cloud Secret Manager before it can be used here.
+#
+# secrets: [GEMINI_API_KEY]
