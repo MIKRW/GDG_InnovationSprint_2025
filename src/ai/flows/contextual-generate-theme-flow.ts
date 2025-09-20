@@ -63,7 +63,7 @@ const generateThemeFlow = ai.defineFlow(
         prompt: THEME_PROMPT,
         input: { schema: GenerateThemeInputSchema },
         output: { schema: GenerateThemeOutputSchema },
-        model: googleAI.model('gemini-2.5-flash-preview'),
+        model: googleAI.model('gemini-1.5-flash-latest'),
         config: {
           temperature: 0.7, // Increase creativity
         },
