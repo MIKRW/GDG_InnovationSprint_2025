@@ -6,7 +6,7 @@ import { Volume2 } from 'lucide-react';
 export function SpeakerButton() {
   return (
     <Button variant="ghost" size="icon" aria-label="Toggle Sound">
-      <Volume2 className="h-5 w-5" />
+      <Volume2 className="h-10 w-10" strokeWidth={2.5} />
     </Button>
   );
 }

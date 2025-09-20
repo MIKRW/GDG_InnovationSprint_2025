@@ -22,7 +22,7 @@ export function HomePageFooter() {
               variant={pathname === href ? 'secondary' : 'ghost'}
               className="flex flex-col items-center h-auto py-2 px-4 rounded-lg"
             >
-              <Icon className="h-8 w-8" strokeWidth={2.5} />
+              <Icon className="h-10 w-10" strokeWidth={2.5} />
               <span className="text-sm mt-1">{label}</span>
             </Button>
           </Link>
