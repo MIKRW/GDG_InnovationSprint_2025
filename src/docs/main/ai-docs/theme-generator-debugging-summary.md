@@ -8,20 +8,19 @@ This document summarizes the troubleshooting process for the AI Theme Generator,
 
 When the AI versioning system was first implemented, the theme generator flow (`contextual-generate-theme-flow.ts`) was designed to be highly reliable and self-contained. To achieve this, it directly queried the Firestore database on every single execution to fetch the active AI prompt configuration.
 
--   **Problem:** This approach, while robust, introduced significant latency. Every time a user clicked "Generate Theme," the server had to perform multiple round-trips to the database to determine which prompt version to use. The result was a noticeably slow user experience.
+-   **Problem:** This approach, while robust in theory, introduced significant latency and instability. Every time a user clicked "Generate Theme," the server had to perform multiple round-trips to the database to determine which prompt version to use. The result was a noticeably slow and error-prone user experience, as the dynamic prompt fetching conflicted with how Genkit expects prompts to be defined.
 
 ---
 
-## Solution 1: Implementing Server-Side Caching
+## The New Approach: Master Prompts in Code
 
-To solve the performance issue, we implemented a standard Next.js server-side caching pattern.
+To solve the performance and stability issues, we have moved to a "master prompt" system.
 
-1.  **Re-introduce `getActiveAIConfig`:** A dedicated function, `getActiveAIConfig`, was created in `src/lib/actions.ts`.
-2.  **Wrap in `cache`:** This function was wrapped with `import { cache } from 'react'`. This tells Next.js to cache the function's return value on the server. The first time it's called, it queries Firestore; all subsequent calls during the request lifecycle instantly receive the cached result, eliminating database latency.
-3.  **Targeted Invalidation:** The publishing functions (`publishNewAppAIVersion`, etc.) were updated to use `revalidateTag('prompts-v7')`. This ensures that whenever a developer publishes a new AI configuration, the specific cache for `getActiveAIConfig` is immediately cleared, forcing it to fetch the new configuration on the next run.
-4.  **Update AI Flow:** The theme generator flow was updated to call the fast, cached `getActiveAIConfig` function instead of querying the database directly.
+1.  **Removed Firestore Versioning:** All logic for fetching prompt text from Firestore has been removed from the AI flows.
+2.  **Embedded Prompts:** The canonical, complete prompt text is now defined as a constant string directly within the code of each AI flow (`contextual-generate-theme-flow.ts`, `contextual-identify-bird-flow.ts`, etc.).
+3.  **Versioning via Git:** Prompt versioning is now handled simply and robustly through standard source control (Git). Changes to prompts are committed just like any other code change.
 
--   **Outcome:** This restored the application's high performance. Theme generation became near-instantaneous after the first call, as subsequent requests were served from the cache.
+-   **Outcome:** This change massively simplifies the architecture, making the AI flows significantly faster, more stable, and easier to debug. It aligns with standard software development practices and removes a major source of complexity and error.
 
 ---
 
