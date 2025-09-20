@@ -1,4 +1,11 @@
 
+
+
+
+
+
+
+
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
 import { firebaseConfig } from '@/lib/firebase-config';
