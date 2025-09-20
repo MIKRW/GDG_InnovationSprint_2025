@@ -162,8 +162,8 @@ export default function Home() {
       <main className="flex flex-1 flex-col items-center justify-center bg-muted p-4">
         {isProcessing ? (
           <div className="flex flex-col items-center justify-center gap-4 text-foreground/50">
-            <Loader2 className="w-16 h-16 animate-spin" />
-            <p className="text-xl font-mono font-bold">Analyzing...</p>
+            <Loader2 className="w-32 h-32 animate-spin" />
+            <p className="text-4xl font-mono font-bold">Analyzing...</p>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center gap-0">
