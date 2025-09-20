@@ -5,8 +5,6 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 import Link from 'next/link';
-import { SpeakerButton } from '../content/SpeakerButton';
-import { ContrastButton } from '../content/ContrastButton';
 
 export function HomePageFooter() {
   const pathname = usePathname();
@@ -14,9 +12,8 @@ export function HomePageFooter() {
   return (
     <footer className="border-t">
       <nav className="flex justify-between items-center py-4 px-4">
+        {/* Empty div for spacing */}
         <div className="flex gap-4">
-            <SpeakerButton />
-            <ContrastButton />
         </div>
         <div className="absolute left-1/2 -translate-x-1/2 pl-4">
             <Link href="/log/test">
