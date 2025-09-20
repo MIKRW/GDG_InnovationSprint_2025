@@ -35,7 +35,15 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
-    // Cleanup interval on component unmount
+    // This effect handles the state changes from the parent component
+    if (isRecording && recordingState !== 'recording') {
+        handleStartRecording();
+    } else if (!isRecording && recordingState === 'recording') {
+        handleStopRecording();
+    }
+  }, [isRecording]);
+
+  useEffect(() => {
     return () => {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
@@ -44,7 +52,6 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
   }, []);
 
   const handleStartRecording = async () => {
-    onStartRecording?.();
     if (recordingState === 'denied') {
         onPermissionDenied?.();
         return;
@@ -91,15 +98,14 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
         timerIntervalRef.current = null;
       }
       setRecordingState('idle');
-      onStopRecording?.();
     }
   };
 
   const handleClick = () => {
-    if (recordingState === 'recording') {
-      handleStopRecording();
+    if (isRecording) {
+      onStopRecording?.();
     } else {
-      handleStartRecording();
+      onStartRecording?.();
     }
   };
 
@@ -136,8 +142,8 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
             aria-label="Record Audio"
             onClick={handleClick}
         >
-            <div className={cn("transition-all duration-300", isRecording ? 'w-80 h-80' : 'w-[32rem] h-[32rem]')}>
-              <div className={cn("w-full h-full p-12 transition-all duration-300")}>
+            <div className={cn("transition-all duration-300 w-[32rem] h-[32rem]")}>
+              <div className={cn("w-full h-full p-12 transition-all duration-300", isRecording && "w-80 h-80")}>
                   {icon}
               </div>
             </div>

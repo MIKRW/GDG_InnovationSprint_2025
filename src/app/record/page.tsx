@@ -10,7 +10,7 @@ import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import { logErrorToFirestore } from '@/lib/error-logging';
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
 import { createAnalysisRun } from '@/lib/actions';
@@ -27,8 +27,9 @@ export default function RecordPage() {
   const router = useRouter();
   
   const [showPermissionError, setShowPermissionError] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessing, setIsProcessing]_useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   
   useEffect(() => {
     setIsClient(true);
@@ -86,8 +87,6 @@ export default function RecordPage() {
             const analysisDurationMs = Date.now() - analysisStartTime;
             const wasSuccessful = result && result.isBirdSong && !!result.commonName;
 
-            // Since we are not saving logs, we create a temporary analysis run for the result page
-            // The user ID is a placeholder now.
             analysisRunId = await createAnalysisRun(
                 'anonymous', storagePath, result, wasSuccessful, locationData, hardware, 'newbie',
                 isDeveloperRun, testContext,
@@ -119,28 +118,30 @@ export default function RecordPage() {
   
   const handleStartRecording = () => {
     setShowPermissionError(false);
+    setIsRecording(true);
     currentSessionId.current = uuidv4();
     currentTimestamp.current = new Date().toISOString();
   }
+  
+  const handleStopRecording = () => {
+    setIsRecording(false);
+    setIsProcessing(true);
+  }
 
   const handleRecordingComplete = async (audioBlob: Blob) => {
+    setIsRecording(false);
     setIsProcessing(true);
 
     const isDevTest = isClient && isDevMode();
     const testContext = isDevTest ? { birdId: 'live-test', testAudioId: uuidv4() } : undefined;
-
-    // We use a placeholder user ID as we are no longer authenticating users.
     const tempUserId = 'anonymous';
 
-    // 1. Upload the blob to Firebase Storage
     const recordingId = uuidv4();
     const filePath = `users/${tempUserId}/recordings/${recordingId}.webm`;
     const fileRef = storageRef(storage, filePath);
 
     try {
         await uploadBytes(fileRef, audioBlob);
-        
-        // 2. Once uploaded, call processAudio with the storage path
         processAudio(filePath, isDevTest, testContext);
 
     } catch (error) {
@@ -157,13 +158,21 @@ export default function RecordPage() {
     <AppLayout header={<SecondaryHeader title="Microphone" />}>
       <main className="flex-1 flex items-center justify-center p-4 bg-muted relative">
         <div className="relative flex items-center justify-center w-80 h-[32rem]">
+            {isProcessing ? (
+              <div className="flex flex-col items-center justify-center gap-4 text-foreground/50">
+                <Loader2 className="w-32 h-32 animate-spin" />
+                <p className="text-4xl font-mono font-bold">Analyzing...</p>
+              </div>
+            ) : (
+                <RecordButton 
+                  onPermissionDenied={() => setShowPermissionError(true)} 
+                  onStartRecording={handleStartRecording}
+                  onRecordingComplete={handleRecordingComplete}
+                  isRecording={isRecording}
+                  onStopRecording={handleStopRecording}
+                />
+            )}
 
-            <RecordButton 
-              onPermissionDenied={() => setShowPermissionError(true)} 
-              onStartRecording={handleStartRecording}
-              onRecordingComplete={handleRecordingComplete}
-              isProcessing={isProcessing}
-            />
 
              {showPermissionError && (
               <div className="absolute left-full ml-16 w-96">

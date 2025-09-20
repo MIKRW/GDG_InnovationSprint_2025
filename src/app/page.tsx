@@ -62,7 +62,6 @@ export default function Home() {
     isDeveloperRun: boolean,
     testContext?: { birdId: string; testAudioId: string }
   ) => {
-      let analysisRunId: string | null = null;
       getLocationForAIShot(async (locationData) => {
         setIsProcessing(true);
         if (!currentTimestamp.current) {
@@ -71,6 +70,7 @@ export default function Home() {
         }
         
         const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
+        let analysisRunId: string | null = null;
         
         try {
             const analysisStartTime = Date.now();
@@ -103,10 +103,9 @@ export default function Home() {
                 currentSessionId.current!, currentTimestamp.current!
             );
         } finally {
+            setIsProcessing(false);
             if (analysisRunId) {
                 router.push(`/record/confirm/${analysisRunId}`);
-            } else {
-                setIsProcessing(false);
             }
         }
       });
