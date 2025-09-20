@@ -16,6 +16,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppAIVersion, PromptVersion, PromptContent } from '@/lib/types';
 import { getActiveAIConfig } from '@/lib/actions';
+import { googleAI } from '@genkit-ai/googleai';
 
 const IdentifyBirdInputSchema = z.object({
   audioDataUri: z
@@ -32,6 +33,7 @@ const IdentifyBirdInputSchema = z.object({
     mode: z.enum(['newbie', 'twitcher']).describe('The application mode selected by the user, which may determine the expected audio quality and analysis depth.'),
     habitatPhotoDataUri: z.string().optional().describe("An optional photo of the bird's habitat, as a data URI."),
     habitatDescription: z.string().optional().describe("A user-provided text description of the habitat."),
+    isDeveloperData: z.boolean().optional(),
 });
 export type IdentifyBirdInput = z.infer<typeof IdentifyBirdInputSchema>;
 
@@ -186,9 +188,13 @@ const identifyBirdFlow = ai.defineFlow(
     let promptVersion = 'v1.0.0-default';
 
     const appConfig = await getActiveAIConfig();
+    
+    // Determine if we're in a dev test context from the input, not a separate param
+    const isDeveloperRun = input.isDeveloperData === true;
+
 
     if (appConfig) {
-      const activeAppVersionId = input.isDeveloperData ? appConfig.developmentAppAIVersion : appConfig.activeAppAIVersion;
+      const activeAppVersionId = isDeveloperRun ? appConfig.developmentAppAIVersion : appConfig.activeAppAIVersion;
       
       if (activeAppVersionId) {
         const appVersionDoc = await getDoc(doc(db, 'app_ai_versions', activeAppVersionId));
@@ -221,6 +227,7 @@ const identifyBirdFlow = ai.defineFlow(
         prompt: promptText,
         input: { schema: IdentifyBirdInputSchema },
         output: { schema: IdentifyBirdOutputSchema },
+        model: googleAI.model('gemini-1.5-flash-latest'),
         tools: [getCurrentWeather],
     });
 
