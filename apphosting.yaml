@@ -5,7 +5,7 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
-# The backend's service account must be granted the "Vertex AI User" role in
-# the Google Cloud IAM console for the application to access Google AI services.
+# The backend's service account must be granted the "Secret Manager Secret Accessor"
+# role in the Google Cloud IAM console for it to access the specified secrets.
 #
-# secrets: [GEMINI_API_KEY]
+secrets: [AI_GEN_MIRACLE_KEY]
