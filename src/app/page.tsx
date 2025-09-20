@@ -160,7 +160,7 @@ export default function Home() {
                     isProcessing={isProcessing}
                 />
             </div>
-            <p className="text-2xl text-center text-foreground">{recordButtonLabel}</p>
+            <p className="text-2xl font-bold italic text-foreground/50 text-center">{recordButtonLabel}</p>
         </div>
       </main>
       <HomePageFooter />
