@@ -104,11 +104,11 @@ export default function Home() {
                 currentSessionId.current!, currentTimestamp.current!
             );
         } finally {
+            setIsProcessing(false);
+            setRecordButtonLabel('Press to Record');
             if (analysisRunId) {
                 router.push(`/record/confirm/${analysisRunId}`);
             }
-            setIsProcessing(false);
-            setRecordButtonLabel('Press to Record');
         }
       });
   };

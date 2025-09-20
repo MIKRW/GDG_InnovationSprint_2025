@@ -109,10 +109,10 @@ export default function RecordPage() {
                 currentSessionId.current!, currentTimestamp.current!
             );
         } finally {
+            setIsProcessing(false);
             if (analysisRunId) {
                 router.push(`/record/confirm/${analysisRunId}`);
             }
-            setIsProcessing(false);
         }
       });
   };
