@@ -146,7 +146,7 @@ export async function createAnalysisRun(
     analysisTimings: AnalysisRun['analysisTimings'] = {},
     sessionId: string,
     timestamp: string,
-  ) {
+  ): Promise<string> {
     
     const analysisRunId = uuidv4();
     const collectionName = 'all_analysis_runs';
