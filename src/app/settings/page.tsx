@@ -30,11 +30,13 @@ export default function SettingsPage() {
   }, []);
   
   const handleSaveHardware = () => {
-    localStorage.setItem(HARDWARE_SETTINGS_KEY, hardware);
-    toast({
-      title: 'Settings Saved',
-      description: 'Your recording hardware preference has been updated.',
-    });
+    if (hardware) {
+      localStorage.setItem(HARDWARE_SETTINGS_KEY, hardware);
+      toast({
+        title: 'Settings Saved',
+        description: 'Your recording hardware preference has been updated.',
+      });
+    }
   };
 
   return (
