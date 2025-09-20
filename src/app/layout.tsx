@@ -2,9 +2,8 @@ import type { ReactNode } from 'react';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
-import { Toaster } from '@/components/ui/toaster';
 import type { Metadata, Viewport } from 'next';
-import { ThemeManager } from '@/components/layout/ThemeManager';
+import { ClientProviders } from '@/components/layout/ClientProviders';
 
 // This is the root layout for the entire application.
 // It sets up the basic HTML structure, fonts, and global styles.
@@ -37,17 +36,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <ThemeManager />
-      </head>
+      <head />
       <body
         className={cn(
           'min-h-screen bg-background font-sans antialiased',
           inter.variable
         )}
       >
-        {children}
-        <Toaster />
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );

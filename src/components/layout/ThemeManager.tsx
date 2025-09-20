@@ -1,6 +1,8 @@
 
 'use client';
 
+import { useLayoutEffect } from 'react';
+
 // This script runs immediately to prevent a flash of unstyled content (FOUC).
 const themeScript = `
   (function() {
@@ -45,7 +47,15 @@ const themeScript = `
  * root layout to remain a server component.
  */
 export function ThemeManager() {
-    return (
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-    );
+    useLayoutEffect(() => {
+        const script = document.createElement('script');
+        script.innerHTML = themeScript;
+        document.head.appendChild(script);
+        
+        return () => {
+            document.head.removeChild(script);
+        }
+    }, []);
+
+    return null;
 }
