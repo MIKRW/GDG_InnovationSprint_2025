@@ -15,6 +15,7 @@ import { ref as storageRef, uploadBytes } from 'firebase/storage';
 import type { LocationSettings } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { ColorableLogo } from '@/components/content/ColorableLogo';
+import { Loader2 } from 'lucide-react';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
