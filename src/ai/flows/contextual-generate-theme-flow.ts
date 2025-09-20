@@ -139,7 +139,21 @@ Here is the user's input:
       const response = await themePrompt(input);
       const output = response.output;
 
+      // This is the critical change: check for valid output.
       if (!output) {
+        // Log the full response to see the finish reason.
+        console.error('Theme generation returned no output.', response);
+        
+        const finishReason = response.finishReason;
+
+        if (finishReason === 'safety') {
+            await logErrorToFirestore(new Error('AI safety filters triggered'), 'theme-gen-safety-failure', {
+                input,
+                finishReason,
+            });
+            throw new Error('The AI refused to generate a theme due to its safety filters. Please try different words.');
+        }
+
         throw new Error(
           'The AI model failed to return a valid theme. This has been logged.'
         );
@@ -151,8 +165,14 @@ Here is the user's input:
     } catch (generationError) {
       console.error('Error in generateThemeFlow during AI generation:', generationError);
       
+      // Re-throw user-facing errors directly.
+      if ((generationError as Error).message.includes('safety filters')) {
+        throw generationError;
+      }
+      
       let errorMessage = 'Could not generate the theme. This error has been logged.';
       const rawError = (generationError as Error).message || '';
+      
       if (rawError.includes('429') || rawError.includes('RESOURCE_EXHAUSTED')) {
           errorMessage = 'The AI service is currently busy. Please try again in a moment.';
       } else if (rawError.includes('503') || rawError.toLowerCase().includes('overloaded')) {
