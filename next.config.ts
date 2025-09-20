@@ -25,7 +25,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  generateEtags: false,
 };
 
 export default nextConfig;

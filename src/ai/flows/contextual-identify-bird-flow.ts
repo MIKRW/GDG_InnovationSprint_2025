@@ -187,9 +187,13 @@ const identifyBirdFlow = ai.defineFlow(
     let promptVersion = 'v1.0.0-default';
 
     const appConfig = await getActiveAIConfig();
+    
+    // Determine if we're in a dev test context from the input, not a separate param
+    const isDeveloperRun = 'isDeveloperData' in input && (input as any).isDeveloperData === true;
+
 
     if (appConfig) {
-      const activeAppVersionId = input.isDeveloperData ? appConfig.developmentAppAIVersion : appConfig.activeAppAIVersion;
+      const activeAppVersionId = isDeveloperRun ? appConfig.developmentAppAIVersion : appConfig.activeAppAIVersion;
       
       if (activeAppVersionId) {
         const appVersionDoc = await getDoc(doc(db, 'app_ai_versions', activeAppVersionId));
