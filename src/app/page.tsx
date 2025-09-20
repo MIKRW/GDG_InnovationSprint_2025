@@ -26,7 +26,6 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [recordButtonLabel, setRecordButtonLabel] = useState('Press to Record');
 
   useEffect(() => {
     setIsClient(true);
@@ -66,10 +65,8 @@ export default function Home() {
       let analysisRunId: string | null = null;
       getLocationForAIShot(async (locationData) => {
         setIsProcessing(true);
-        setRecordButtonLabel('Analyzing...');
         if (!currentTimestamp.current) {
             setIsProcessing(false);
-            setRecordButtonLabel('Press to Record');
             return;
         }
         
@@ -110,7 +107,6 @@ export default function Home() {
                 router.push(`/record/confirm/${analysisRunId}`);
             } else {
                 setIsProcessing(false);
-                setRecordButtonLabel('Press to Record');
             }
         }
       });
@@ -120,13 +116,11 @@ export default function Home() {
     setIsRecording(true);
     currentSessionId.current = uuidv4();
     currentTimestamp.current = new Date().toISOString();
-    setRecordButtonLabel('Press to Stop');
   }
 
   const handleRecordingComplete = async (audioBlob: Blob) => {
     setIsRecording(false);
     setIsProcessing(true);
-    setRecordButtonLabel('Processing...');
 
     const isDevTest = isClient && isDevMode();
     const testContext = isDevTest ? { birdId: 'live-test', testAudioId: uuidv4() } : undefined;
@@ -147,13 +141,12 @@ export default function Home() {
             filePath: filePath,
         });
         setIsProcessing(false);
-        setRecordButtonLabel('Press to Record');
     }
   }
   
   const handleStopRecording = () => {
     setIsRecording(false);
-    setRecordButtonLabel('Processing...');
+    setIsProcessing(true);
   }
 
 
@@ -167,16 +160,12 @@ export default function Home() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center gap-0 pb-16">
-              <div className="w-[32rem]">
-                  <RecordButton
-                      onStartRecording={handleStartRecording}
-                      onRecordingComplete={handleRecordingComplete}
-                      onStopRecording={handleStopRecording}
-                      onPermissionDenied={() => setRecordButtonLabel('Mic Access Denied')}
-                      isRecording={isRecording}
-                  />
-              </div>
-              <p className="text-6xl font-mono font-bold text-foreground/50 text-center -mt-8">{recordButtonLabel}</p>
+              <RecordButton
+                  onStartRecording={handleStartRecording}
+                  onRecordingComplete={handleRecordingComplete}
+                  onStopRecording={handleStopRecording}
+                  isRecording={isRecording}
+              />
           </div>
         )}
       </main>

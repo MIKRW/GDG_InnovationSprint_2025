@@ -108,35 +108,45 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
       case 'recording':
         return {
           icon: <Square className="w-full h-full text-foreground" />,
+          label: 'Press to Stop',
           timer: `${String(Math.floor(elapsedTime / 60)).padStart(2, '0')}:${String(elapsedTime % 60).padStart(2, '0')}`,
         };
       case 'denied':
          return {
           icon: <MicOff className="w-full h-full text-foreground/50" />,
+          label: 'Mic Access Denied',
         };
       default: // idle
         return {
           icon: <ColorableLogo className="text-foreground/50" />,
+          label: 'Press to Record',
         };
     }
   };
 
-  const { icon, timer } = getButtonContent();
+  const { icon, label, timer } = getButtonContent();
 
   return (
-      <Button
-        ref={ref}
-        variant="ghost"
-        size="icon"
-        className="w-full h-full rounded-full flex flex-col justify-center items-center gap-8 transition-all duration-300 ease-in-out hover:bg-transparent"
-        aria-label="Record Audio"
-        onClick={handleClick}
-      >
-        <div className={cn("w-full h-full p-12 transition-all duration-300")}>
-            {icon}
-        </div>
-        {timer && <p className="absolute bottom-16 text-4xl font-mono mt-2 text-foreground">{timer}</p>}
-      </Button>
+      <div className="flex flex-col items-center justify-center gap-0 w-full">
+        <Button
+            ref={ref}
+            variant="ghost"
+            size="icon"
+            className="w-full h-full rounded-full flex flex-col justify-center items-center gap-8 transition-all duration-300 ease-in-out hover:bg-transparent"
+            aria-label="Record Audio"
+            onClick={handleClick}
+        >
+            <div className={cn("transition-all duration-300", isRecording ? 'w-80 h-80' : 'w-[32rem] h-[32rem]')}>
+              <div className={cn("w-full h-full p-12 transition-all duration-300")}>
+                  {icon}
+              </div>
+            </div>
+        </Button>
+        <p className={cn("text-6xl font-mono font-bold text-foreground/50 text-center -mt-8", isRecording && "text-4xl")}>
+            {label}
+        </p>
+        {timer && <p className="text-4xl font-mono mt-2 text-foreground">{timer}</p>}
+      </div>
   );
 });
 RecordButton.displayName = "RecordButton";
