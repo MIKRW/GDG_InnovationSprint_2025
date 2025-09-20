@@ -9,121 +9,23 @@ import { useState, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { logErrorToFirestore } from '@/lib/error-logging';
 import { identifyBirdBySound, type IdentifyBirdOutput } from '@/ai/flows/contextual-identify-bird-flow';
-import { createAnalysisRun, saveCanonicalImage } from '@/lib/actions';
-import { storage, db } from '@/lib/firebase';
+import { createAnalysisRun } from '@/lib/actions';
+import { storage } from '@/lib/firebase';
 import { ref as storageRef, uploadBytes } from 'firebase/storage';
-import { doc, getDoc }from 'firebase/firestore';
 import { isDevMode } from '@/lib/utils';
 import type { LocationSettings } from '@/lib/types';
-import { Loader2, Bird } from 'lucide-react';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction } from '@/components/ui/alert-dialog';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import Image from 'next/image';
-import { kebabCase } from 'lodash';
-import { useToast } from '@/hooks/use-toast';
-import { generateBirdImage } from '@/ai/flows/instructional-generate-bird-image-flow';
+import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
-
-
-function AnalysisResultDialog({ result, open, onOpenChange }: { result: IdentifyBirdOutput | null, open: boolean, onOpenChange: (open: boolean) => void }) {
-    const { toast } = useToast();
-    const [generatedImageDataUri, setGeneratedImageDataUri] = useState<string | null>(null);
-    const [isImageLoading, setIsImageLoading] = useState(false);
-
-    useEffect(() => {
-        if (open && result?.isBirdSong && result.imagePrompt) {
-            const findOrCreateBirdImage = async () => {
-                if (!result.commonName) return;
-
-                setIsImageLoading(true);
-                setGeneratedImageDataUri(null);
-                const birdId = kebabCase(result.commonName);
-                const birdDocRef = doc(db, 'birds', birdId);
-
-                try {
-                    const birdDocSnap = await getDoc(birdDocRef);
-
-                    if (birdDocSnap.exists() && birdDocSnap.data().canonicalImageUrls?.key) {
-                        setGeneratedImageDataUri(birdDocSnap.data().canonicalImageUrls.key);
-                    } else {
-                        const { imageDataUri } = await generateBirdImage({ prompt: result.imagePrompt! });
-                        setGeneratedImageDataUri(imageDataUri);
-                        
-                        saveCanonicalImage(
-                            result.commonName,
-                            result.scientificName || 'N/A',
-                            imageDataUri,
-                            'key'
-                        ).catch(err => console.error("Failed to save canonical image in background:", err));
-                    }
-                } catch (error) {
-                    console.error("Image generation/fetching failed:", error);
-                    toast({ variant: 'destructive', title: 'Image Failed', description: 'Could not load an image for this bird.' });
-                } finally {
-                    setIsImageLoading(false);
-                }
-            };
-            
-            findOrCreateBirdImage();
-        }
-    }, [result, open, toast]);
-
-    if (!result) return null;
-
-    const { commonName, scientificName, description } = result;
-    const title = commonName || "Not Identified";
-
-    return (
-        <AlertDialog open={open} onOpenChange={onOpenChange}>
-            <AlertDialogContent>
-                <Card className="border-0 shadow-none">
-                     <CardHeader>
-                        <div className="aspect-square relative w-full rounded-md overflow-hidden bg-muted">
-                            {isImageLoading ? (
-                                <div className="flex flex-col items-center justify-center h-full">
-                                    <Loader2 className="w-12 h-12 animate-spin" />
-                                    <p className="mt-4">Generating image...</p>
-                                </div>
-                            ) : generatedImageDataUri ? (
-                                <Image
-                                    src={generatedImageDataUri}
-                                    alt={commonName || 'Bird image'}
-                                    fill
-                                    className="object-cover"
-                                    unoptimized={generatedImageDataUri.includes('firebasestorage')}
-                                />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-secondary">
-                                    <Bird className="w-24 h-24 text-muted-foreground" />
-                                </div>
-                            )}
-                        </div>
-                        <CardTitle className="pt-4 text-3xl">{title}</CardTitle>
-                        {scientificName && <p className="text-lg text-muted-foreground italic">{scientificName}</p>}
-                    </CardHeader>
-                    <CardContent>
-                        <AlertDialogDescription>
-                            {description || "The AI could not identify a bird song in this recording."}
-                        </AlertDialogDescription>
-                    </CardContent>
-                </Card>
-                <AlertDialogFooter>
-                    <AlertDialogAction onClick={() => onOpenChange(false)}>New Recording</AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-    );
-}
 
 
 export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<IdentifyBirdOutput | null>(null);
-  const [showResultDialog, setShowResultDialog] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setIsClient(true);
@@ -169,6 +71,7 @@ export default function Home() {
         
         const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
         let result: IdentifyBirdOutput | null = null;
+        let analysisRunId: string | null = null;
         
         try {
             const analysisStartTime = Date.now();
@@ -180,7 +83,7 @@ export default function Home() {
             const analysisDurationMs = Date.now() - analysisStartTime;
             const wasSuccessful = result && result.isBirdSong && !!result.commonName;
 
-            await createAnalysisRun(
+            analysisRunId = await createAnalysisRun(
                 'anonymous', storagePath, result, wasSuccessful, locationData, hardware, 'newbie',
                 isDeveloperRun, testContext,
                 { primaryIdentificationMs: analysisDurationMs },
@@ -195,7 +98,7 @@ export default function Home() {
                 locationData: locationData, userId: 'anonymous'
             });
             
-            await createAnalysisRun(
+            analysisRunId = await createAnalysisRun(
                 'anonymous', storagePath, result, false,
                 locationData, hardware, 'newbie', isDeveloperRun, testContext,
                 { primaryIdentificationMs: analysisDurationMs },
@@ -203,9 +106,8 @@ export default function Home() {
             );
         } finally {
             setIsProcessing(false);
-            if (result) {
-                setAnalysisResult(result);
-                setShowResultDialog(true);
+            if (analysisRunId) {
+                router.push(`/record/result/${analysisRunId}`);
             }
         }
       });
@@ -268,7 +170,6 @@ export default function Home() {
           </div>
         )}
       </main>
-      <AnalysisResultDialog result={analysisResult} open={showResultDialog} onOpenChange={setShowResultDialog} />
       <HomePageFooter />
     </AppLayout>
   );
