@@ -12,10 +12,6 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { getStorage } from 'firebase-admin/storage';
 import wavDecoder from 'wav-decoder';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import type { AppAIVersion, PromptVersion, PromptContent } from '@/lib/types';
-import { getActiveAIConfig } from '@/lib/actions';
 
 const IdentifyBirdInputSchema = z.object({
   audioDataUri: z
@@ -180,58 +176,22 @@ const identifyBirdFlow = ai.defineFlow(
     },
   },
   async (input) => {
-    const flowInput = input;
-    const systemId = 'bird-identifier-ai-newbie';
-
-    let promptText = DEFAULT_BIRD_PROMPT;
-    let promptVersion = 'v1.0.0-default';
-
-    const appConfig = await getActiveAIConfig();
-
-    if (appConfig) {
-      const activeAppVersionId = input.isDeveloperData ? appConfig.developmentAppAIVersion : appConfig.activeAppAIVersion;
-      
-      if (activeAppVersionId) {
-        const appVersionDoc = await getDoc(doc(db, 'app_ai_versions', activeAppVersionId));
-
-        if (appVersionDoc.exists()) {
-          const appVersionData = appVersionDoc.data() as AppAIVersion;
-          const systemVersionId = appVersionData.systems[systemId];
-
-          if (systemVersionId) {
-            const versionDoc = await getDoc(doc(db, 'prompt_versions', systemVersionId));
-            if (versionDoc.exists()) {
-              const versionData = versionDoc.data() as PromptVersion;
-              promptVersion = versionData.version;
-
-              const contentId = versionData.composedPrompts['base_instruction'];
-              if (contentId) {
-                const contentDoc = await getDoc(doc(db, 'prompt_content', contentId));
-                if (contentDoc.exists()) {
-                  promptText = (contentDoc.data() as PromptContent).promptText;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
+    
     const identifyBirdPrompt = ai.definePrompt({
         name: 'identifyBirdPrompt',
-        prompt: promptText,
+        prompt: DEFAULT_BIRD_PROMPT,
         input: { schema: IdentifyBirdInputSchema },
         output: { schema: IdentifyBirdOutputSchema },
         tools: [getCurrentWeather],
     });
 
-    const { output } = await identifyBirdPrompt(flowInput);
+    const { output } = await identifyBirdPrompt(input);
 
     if (!output) {
       throw new Error('The model failed to return a valid analysis.');
     }
     
-    output.promptVersion = promptVersion;
+    output.promptVersion = 'v1.0.0-simplified';
 
     // If no bird song was detected, fill in placeholder text.
     if (output.isBirdSong === false) {
@@ -247,7 +207,7 @@ const identifyBirdFlow = ai.defineFlow(
             confidence: 0,
             season: output.season || "Unknown",
             weather: output.weather || "Unknown",
-aiGeneratedHabitatTags: [],
+            aiGeneratedHabitatTags: [],
             duration: output.duration,
             promptVersion: output.promptVersion,
         };
