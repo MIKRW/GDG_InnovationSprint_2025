@@ -73,8 +73,8 @@ export default function Home() {
         const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
         let analysisRunId: string | null = null;
         
-        const analysisStartTime = Date.now();
         try {
+            const analysisStartTime = Date.now();
             const result = await identifyBirdBySound({
                 audioStoragePath: storagePath,
                 timestamp: currentTimestamp.current,
@@ -91,7 +91,7 @@ export default function Home() {
             );
 
         } catch (error) {
-            const analysisDurationMs = Date.now() - analysisStartTime;
+            const analysisDurationMs = Date.now() - (currentTimestamp.current ? new Date(currentTimestamp.current).getTime() : Date.now());
             logErrorToFirestore(error as Error, 'ai-identification-failure', {
                 sessionId: currentSessionId.current, timestamp: currentTimestamp.current,
                 locationData: locationData, userId: 'anonymous'
@@ -152,7 +152,7 @@ export default function Home() {
       <main className="flex flex-1 flex-col items-center justify-between bg-muted p-4">
         <div />
         <div className="flex flex-col items-center justify-center gap-0">
-            <div className="w-[32rem] h-[32rem] flex items-center justify-center">
+            <div className="w-[32rem] flex items-center justify-center">
                 <RecordButton
                     onStartRecording={handleStartRecording}
                     onRecordingComplete={handleRecordingComplete}
