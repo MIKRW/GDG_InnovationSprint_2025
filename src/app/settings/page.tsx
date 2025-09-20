@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -6,16 +7,14 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { PageTitle } from '@/components/content/PageTitle';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { LogOut, FlaskConical, Save } from 'lucide-react';
+import { LogOut, Save } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
-import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
-import { isDevMode } from '@/lib/utils';
 
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 
@@ -51,8 +50,6 @@ export default function SettingsPage() {
       description: 'Your recording hardware preference has been updated.',
     });
   };
-
-  const showDevTools = isClient && isDevMode();
 
   return (
     <AppLayout header={<SecondaryHeader title="Settings" />} >
@@ -92,20 +89,6 @@ export default function SettingsPage() {
                     Save Hardware
                 </Button>
             </div>
-
-            {showDevTools && (
-              <div className="pt-8 w-full max-w-sm">
-                  <h2 className="text-lg font-semibold mb-2">Developer</h2>
-                    <Card className="bg-hazard-stripes p-1 rounded-lg">
-                        <Button asChild variant="outline" className="w-full">
-                            <Link href="/settings/developer" className="bg-background rounded-sm p-4 flex items-center justify-center w-full">
-                                <FlaskConical className="mr-2 h-4 w-4" />
-                                <span>Developer Tools</span>
-                            </Link>
-                        </Button>
-                    </Card>
-              </div>
-            )}
 
             <div className="pt-8 w-full max-w-sm">
                 <h2 className="text-lg font-semibold mb-2">Account</h2>

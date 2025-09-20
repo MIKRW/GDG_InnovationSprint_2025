@@ -24,12 +24,6 @@ export default function LogLayout({
     if (pathname.startsWith('/log/mystery')) {
       return 'Mystery Recordings';
     }
-    if (pathname.startsWith('/log/test')) {
-        return 'Developer Test Logs'
-    }
-    if (pathname.startsWith('/log/errors')) {
-        return 'Error Logs'
-    }
     return 'Bird Book';
   }, [pathname]);
   
