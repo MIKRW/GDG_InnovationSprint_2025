@@ -6,7 +6,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { useRouter, notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Library, Loader2, Music, PlusSquare, Upload, FlaskConical, ShieldAlert, TestTube2, AlertCircle } from 'lucide-react';
+import { Library, Loader2, Music, PlusSquare, Upload, FlaskConical, AlertCircle, TestTube2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -299,20 +299,6 @@ export default function DeveloperPage() {
                         </CardHeader>
                         <CardContent>
                             <p className="text-sm text-primary underline">View Error Log &rarr;</p>
-                        </CardContent>
-                    </Card>
-                </Link>
-            </Card>
-
-            <Card className="bg-hazard-stripes p-1">
-                <Link href="/settings/prompts" className="block h-full">
-                    <Card className="h-full hover:bg-muted/50 transition-colors">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><ShieldAlert /> Prompt Management</CardTitle>
-                            <CardDescription>Manage AI system versions, edit prompt text, and publish new configurations.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-primary underline">Go to AI Systems &rarr;</p>
                         </CardContent>
                     </Card>
                 </Link>
