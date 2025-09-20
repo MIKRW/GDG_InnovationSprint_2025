@@ -3,11 +3,10 @@
 
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Mic, Settings } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import Link from 'next/link';
 
 const navItems = [
-  { href: '/record', label: 'Record', icon: Mic },
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 

@@ -17,10 +17,9 @@ import { createAnalysisRun } from '@/lib/actions';
 import { storage } from '@/lib/firebase';
 import { ref as storageRef, uploadBytes } from 'firebase/storage';
 import { isDevMode } from '@/lib/utils';
-import type { AppMode, LocationSettings } from '@/lib/types';
+import type { LocationSettings } from '@/lib/types';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
-const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 
 
@@ -38,21 +37,6 @@ export default function RecordPage() {
   // Refs for managing state across async operations
   const currentSessionId = useRef<string | null>(null);
   const currentTimestamp = useRef<string | null>(null);
-
-  
-  const getAppSettings = (): { mode: AppMode } => {
-    const savedSettingsJson = localStorage.getItem(APP_MODE_SETTINGS_KEY);
-    const defaultSettings: { mode: AppMode } = { mode: 'newbie' };
-    if (savedSettingsJson) {
-        try {
-            const parsed = JSON.parse(savedSettingsJson);
-            if (parsed.mode === 'newbie' || parsed.mode === 'twitcher') {
-                return { mode: parsed.mode };
-            }
-        } catch { return defaultSettings; }
-    }
-    return defaultSettings;
-  }
 
   const getLocationForAIShot = (
     callback: (locationData?: { latitude?: number; longitude?: number, locationDescription?: string }) => void
@@ -88,7 +72,7 @@ export default function RecordPage() {
             setIsProcessing(false);
             return;
         }
-        const appSettings = getAppSettings();
+        
         const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
         let analysisRunId: string | null = null;
         
@@ -97,7 +81,6 @@ export default function RecordPage() {
             const result = await identifyBirdBySound({
                 audioStoragePath: storagePath,
                 timestamp: currentTimestamp.current,
-                mode: appSettings.mode,
                 ...locationData
             });
             const analysisDurationMs = Date.now() - analysisStartTime;
@@ -106,8 +89,8 @@ export default function RecordPage() {
             // Since we are not saving logs, we create a temporary analysis run for the result page
             // The user ID is a placeholder now.
             analysisRunId = await createAnalysisRun(
-                'anonymous', storagePath, result, wasSuccessful, locationData, hardware,
-                appSettings.mode, isDeveloperRun, testContext,
+                'anonymous', storagePath, result, wasSuccessful, locationData, hardware, 'newbie',
+                isDeveloperRun, testContext,
                 { primaryIdentificationMs: analysisDurationMs },
                 currentSessionId.current!, currentTimestamp.current!
             );
@@ -116,12 +99,12 @@ export default function RecordPage() {
             const analysisDurationMs = Date.now() - analysisStartTime;
             logErrorToFirestore(error as Error, 'ai-identification-failure', {
                 sessionId: currentSessionId.current, timestamp: currentTimestamp.current,
-                locationData: locationData, appMode: appSettings.mode, userId: 'anonymous'
+                locationData: locationData, userId: 'anonymous'
             });
             
             analysisRunId = await createAnalysisRun(
                 'anonymous', storagePath, { error: (error as Error).message, isBirdSong: false }, false,
-                locationData, hardware, appSettings.mode, isDeveloperRun, testContext,
+                locationData, hardware, 'newbie', isDeveloperRun, testContext,
                 { primaryIdentificationMs: analysisDurationMs },
                 currentSessionId.current!, currentTimestamp.current!
             );
@@ -173,7 +156,7 @@ export default function RecordPage() {
   return (
     <AppLayout header={<SecondaryHeader title="Microphone" />}>
       <main className="flex-1 flex items-center justify-center p-4 bg-muted relative">
-        <div className="relative flex items-center justify-center">
+        <div className="relative flex items-center justify-center w-80 h-[32rem]">
 
             <RecordButton 
               onPermissionDenied={() => setShowPermissionError(true)} 

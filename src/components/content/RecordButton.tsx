@@ -4,8 +4,8 @@
 import { useState, useRef, forwardRef, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { MicrophoneIcon } from './MicrophoneIcon';
 import { Loader2, MicOff, Square } from 'lucide-react';
+import { ColorableLogo } from './ColorableLogo';
 
 type RecordingState =
   | 'idle'
@@ -121,7 +121,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
         };
       default: // idle
         return {
-          icon: <MicrophoneIcon />,
+          icon: <ColorableLogo className="text-background/50" />,
           label: 'Press to Record',
         };
     }
@@ -135,7 +135,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
         ref={ref}
         variant="default"
         size="icon"
-        className="w-96 h-[36rem] rounded-full bg-foreground hover:bg-foreground/90 flex flex-col-reverse justify-center items-center gap-8 transition-all duration-300 ease-in-out"
+        className="w-full h-full rounded-full bg-foreground hover:bg-foreground/90 flex flex-col-reverse justify-center items-center gap-8 transition-all duration-300 ease-in-out"
         aria-label="Record Audio"
         onClick={handleClick}
         disabled={isDisabled}
@@ -144,7 +144,9 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
           <p className="text-xl">{label}</p>
           {timer && <p className="text-4xl font-mono mt-2">{timer}</p>}
         </div>
-        {icon}
+        <div className="w-40 h-40">
+            {icon}
+        </div>
       </Button>
   );
 });
