@@ -149,7 +149,8 @@ export default function Home() {
 
   return (
     <AppLayout header={<PrimaryHeader />}>
-      <main className="flex flex-1 flex-col items-center justify-center bg-muted p-4">
+      <main className="flex flex-1 flex-col items-center justify-between bg-muted p-4">
+        <div />
         <div className="flex flex-col items-center justify-center gap-0">
             <div className="w-[32rem] h-[32rem] flex items-center justify-center">
                 <RecordButton
@@ -162,6 +163,7 @@ export default function Home() {
             </div>
             <p className="text-6xl font-mono font-bold text-foreground/50 text-center">{recordButtonLabel}</p>
         </div>
+        <div />
       </main>
       <HomePageFooter />
     </AppLayout>
