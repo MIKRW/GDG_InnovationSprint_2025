@@ -29,7 +29,6 @@ export default function Home() {
         <div className="w-[31.2rem] h-[31.2rem]">
           <Logo />
         </div>
-        <PageTitle className="text-4xl">Lyre</PageTitle>
       </main>
       <HomePageFooter />
     </AppLayout>
