@@ -1,12 +1,11 @@
 
-import { genkit, configureGenkit } from 'genkit';
+import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
-import { firebaseConfig } from '@/lib/firebase-config';
 
 const plugins = [googleAI()];
 
-configureGenkit({
+// In Genkit v1.x, plugins are passed directly to the `genkit()` constructor.
+// The `configureGenkit` function is no longer used for this purpose.
+export const ai = genkit({
   plugins,
 });
-
-export const ai = genkit();
