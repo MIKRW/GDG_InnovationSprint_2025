@@ -22,11 +22,11 @@ export function HomePageFooter({ centerButtonLabel = "Bird Book", centerButtonHr
         {/* Empty div for spacing */}
         <div className="flex gap-4">
         </div>
-        <div className="absolute left-1/2 -translate-x-1/2 pl-4">
+        <div className="absolute left-1/2 -translate-x-1/2">
             <Link href={centerButtonHref}>
               {isHomePageLink ? (
                 <Button variant="ghost" size="icon" className="h-20 w-20">
-                  <Home className="h-12 w-12 text-foreground/50" />
+                  <Home className="h-10 w-10 text-foreground/50" strokeWidth={2.5} />
                 </Button>
               ) : (
                 <Button variant="ghost" className="text-6xl font-mono font-bold text-foreground/50 hover:no-underline hover:bg-transparent hover:text-foreground/70">
@@ -40,7 +40,7 @@ export function HomePageFooter({ centerButtonLabel = "Bird Book", centerButtonHr
             variant={pathname === '/settings' ? 'secondary' : 'ghost'}
             className="flex flex-col items-center h-auto py-2 px-4 rounded-lg"
           >
-            <Settings className="h-10 w-10" strokeWidth={2.5} />
+            <Settings className="h-10 w-10 text-foreground/50" strokeWidth={2.5} />
             <span className="text-sm mt-1">Settings</span>
           </Button>
         </Link>
