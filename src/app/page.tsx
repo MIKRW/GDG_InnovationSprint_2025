@@ -25,7 +25,7 @@ export default function Home() {
   return (
     <AppLayout header={<PrimaryHeader />}>
       <main className="flex flex-1 flex-col items-center justify-center bg-muted p-4">
-        <div className="w-[31.2rem] h-[36rem]">
+        <div className="w-96 h-[36rem]">
           <Logo />
         </div>
       </main>
