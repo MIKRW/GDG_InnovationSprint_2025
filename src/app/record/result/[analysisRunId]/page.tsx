@@ -179,7 +179,7 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
                     </Button>
                 </div>
                 <Button className="w-full mt-4" onClick={() => router.push('/')}>
-                    <Home className="mr-2 h-4 w-4" /> Exit
+                    <Home className="mr-2 h-4 w-4" /> New Recording
                 </Button>
             </CardFooter>
         </Card>
@@ -219,7 +219,7 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
                                 </div>
                             </div>
                             <Button className="w-full mt-4" onClick={() => router.push('/')}>
-                               <Home className="mr-2 h-4 w-4" /> Exit
+                               <Home className="mr-2 h-4 w-4" /> New Recording
                             </Button>
                         </CardFooter>
                     </Card>
