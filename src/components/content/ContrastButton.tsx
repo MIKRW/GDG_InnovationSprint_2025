@@ -35,19 +35,21 @@ export function ContrastButton() {
             try {
                 const root = document.documentElement;
                 const theme = JSON.parse(lastActiveTheme);
-                root.style.setProperty('--custom-background-h', `${theme.colors.background.h}`);
-                root.style.setProperty('--custom-background-s', `${theme.colors.background.s}%`);
-                root.style.setProperty('--custom-background-l', `${theme.colors.background.l}%`);
-                root.style.setProperty('--custom-foreground-h', `${theme.colors.foreground.h}`);
-                root.style.setProperty('--custom-foreground-s', `${theme.colors.foreground.s}%`);
-                root.style.setProperty('--custom-foreground-l', `${theme.colors.foreground.l}%`);
-                root.style.setProperty('--custom-primary-h', `${theme.colors.primary.h}`);
-                root.style.setProperty('--custom-primary-s', `${theme.colors.primary.s}%`);
-                root.style.setProperty('--custom-primary-l', `${theme.colors.primary.l}%`);
-                const ringColor = theme.colors.ring || theme.colors.primary;
-                root.style.setProperty('--custom-ring-h', `${ringColor.h}`);
-                root.style.setProperty('--custom-ring-s', `${ringColor.s}%`);
-                root.style.setProperty('--custom-ring-l', `${ringColor.l}%`);
+                if (theme) {
+                    root.style.setProperty('--custom-background-h', `${theme.colors.background.h}`);
+                    root.style.setProperty('--custom-background-s', `${theme.colors.background.s}%`);
+                    root.style.setProperty('--custom-background-l', `${theme.colors.background.l}%`);
+                    root.style.setProperty('--custom-foreground-h', `${theme.colors.foreground.h}`);
+                    root.style.setProperty('--custom-foreground-s', `${theme.colors.foreground.s}%`);
+                    root.style.setProperty('--custom-foreground-l', `${theme.colors.foreground.l}%`);
+                    root.style.setProperty('--custom-primary-h', `${theme.colors.primary.h}`);
+                    root.style.setProperty('--custom-primary-s', `${theme.colors.primary.s}%`);
+                    root.style.setProperty('--custom-primary-l', `${theme.colors.primary.l}%`);
+                    const ringColor = theme.colors.ring || theme.colors.primary;
+                    root.style.setProperty('--custom-ring-h', `${ringColor.h}`);
+                    root.style.setProperty('--custom-ring-s', `${ringColor.s}%`);
+                    root.style.setProperty('--custom-ring-l', `${ringColor.l}%`);
+                }
             } catch (e) {
                 console.error("Failed to parse active theme from localStorage", e);
             }

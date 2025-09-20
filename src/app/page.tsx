@@ -44,7 +44,12 @@ export default function Home() {
     const savedSettingsJson = localStorage.getItem(LOCATION_SETTINGS_KEY);
     let settings: LocationSettings = { mode: 'device', manual: { latitude: 0, longitude: 0 }, description: '', privacy: { isOutside: true } };
     if (savedSettingsJson) {
-      try { settings = JSON.parse(savedSettingsJson); } catch { /* Fallback to default */ }
+      try { 
+        const parsed = JSON.parse(savedSettingsJson);
+        if (parsed) {
+          settings = parsed;
+        }
+      } catch { /* Fallback to default */ }
     }
 
     if (settings.mode === 'device') {
