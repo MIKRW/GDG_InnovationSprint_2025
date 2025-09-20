@@ -12,6 +12,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { getStorage } from 'firebase-admin/storage';
 import wavDecoder from 'wav-decoder';
+import { devTestPrompt } from '@/ai/prompts/dev-test-prompt';
 
 const IdentifyBirdInputSchema = z.object({
   audioDataUri: z
@@ -48,9 +49,6 @@ const IdentifyBirdOutputSchema = z.object({
   promptVersion: z.string().optional().describe('The version of the prompt system used for this analysis.'),
 });
 export type IdentifyBirdOutput = z.infer<typeof IdentifyBirdOutputSchema>;
-
-const DEFAULT_BIRD_PROMPT = `You are an expert ornithologist. Your primary goal is to identify bird species from audio recordings. The user will provide an audio file and optional location data. You MUST analyze this audio to determine if a bird song is present. If it is, identify the bird's common name, scientific name, taxonomic family, and order. If no bird song is discernible, you MUST set 'isBirdSong' to false. You must also generate a simple, descriptive prompt for a text-to-image model to create a photorealistic image of the identified bird.`;
-
 
 const getCurrentWeather = ai.defineTool(
     {
@@ -179,7 +177,7 @@ const identifyBirdFlow = ai.defineFlow(
     
     const identifyBirdPrompt = ai.definePrompt({
         name: 'identifyBirdPrompt',
-        prompt: DEFAULT_BIRD_PROMPT,
+        prompt: devTestPrompt,
         input: { schema: IdentifyBirdInputSchema },
         output: { schema: IdentifyBirdOutputSchema },
         tools: [getCurrentWeather],
