@@ -166,7 +166,7 @@ export default function Home() {
             <p className="text-4xl font-mono font-bold">Analyzing...</p>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center gap-0">
+          <div className="flex flex-col items-center justify-center gap-0 pb-16">
               <div className="w-[32rem] flex items-center justify-center">
                   <RecordButton
                       onStartRecording={handleStartRecording}
