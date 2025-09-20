@@ -151,7 +151,7 @@ export default function Home() {
     <AppLayout header={<PrimaryHeader />}>
       <main className="flex flex-1 flex-col items-center justify-center bg-muted p-4">
         <div className="flex flex-col items-center justify-center gap-8">
-            <div className="w-80 h-[32rem] flex items-center justify-center">
+            <div className="w-[26rem] h-[32rem] flex items-center justify-center">
                 <RecordButton
                     onStartRecording={handleStartRecording}
                     onRecordingComplete={handleRecordingComplete}
