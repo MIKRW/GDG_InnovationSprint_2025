@@ -11,7 +11,7 @@ interface HomePageFooterProps {
   centerButtonHref?: string;
 }
 
-export function HomePageFooter({ centerButtonLabel = "Bird Book", centerButtonHref = "/log/test" }: HomePageFooterProps) {
+export function HomePageFooter({ centerButtonLabel = "Bird Book", centerButtonHref = "/log" }: HomePageFooterProps) {
   const pathname = usePathname();
 
   return (
