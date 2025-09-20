@@ -4,7 +4,7 @@
 import { useState, useRef, forwardRef, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
-import { Loader2, MicOff, Square } from 'lucide-react';
+import { MicOff, Square } from 'lucide-react';
 import { ColorableLogo } from './ColorableLogo';
 
 type RecordingState =
@@ -17,15 +17,13 @@ interface RecordButtonProps {
     onStartRecording?: () => void;
     onStopRecording?: () => void;
     onRecordingComplete: (audioBlob: Blob, duration?: number) => void;
-    isProcessing: boolean;
 }
 
 const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
     onPermissionDenied,
     onStartRecording,
     onStopRecording,
-    onRecordingComplete,
-    isProcessing
+    onRecordingComplete
 }, ref) => {
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -104,11 +102,6 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
   };
 
   const getButtonContent = () => {
-    if (isProcessing) {
-        return {
-          icon: <Loader2 className="w-full h-full text-foreground/50 animate-spin" />,
-        };
-    }
     switch (recordingState) {
       case 'recording':
         return {
@@ -127,7 +120,6 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
   };
 
   const { icon, timer } = getButtonContent();
-  const isDisabled = isProcessing;
 
   return (
       <Button
@@ -137,7 +129,6 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
         className="w-full h-full rounded-full flex flex-col justify-center items-center gap-8 transition-all duration-300 ease-in-out hover:bg-transparent"
         aria-label="Record Audio"
         onClick={handleClick}
-        disabled={isDisabled}
       >
         <div className="w-full h-full p-12">
             {icon}

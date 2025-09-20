@@ -15,6 +15,7 @@ import { storage } from '@/lib/firebase';
 import { ref as storageRef, uploadBytes } from 'firebase/storage';
 import { isDevMode } from '@/lib/utils';
 import type { LocationSettings } from '@/lib/types';
+import { Loader2 } from 'lucide-react';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
@@ -104,10 +105,11 @@ export default function Home() {
                 currentSessionId.current!, currentTimestamp.current!
             );
         } finally {
-            setIsProcessing(false);
-            setRecordButtonLabel('Press to Record');
             if (analysisRunId) {
                 router.push(`/record/confirm/${analysisRunId}`);
+            } else {
+                setIsProcessing(false);
+                setRecordButtonLabel('Press to Record');
             }
         }
       });
@@ -149,21 +151,25 @@ export default function Home() {
 
   return (
     <AppLayout header={<PrimaryHeader />}>
-      <main className="flex flex-1 flex-col items-center justify-between bg-muted p-4">
-        <div />
-        <div className="flex flex-col items-center justify-center gap-0">
-            <div className="w-[32rem] flex items-center justify-center">
-                <RecordButton
-                    onStartRecording={handleStartRecording}
-                    onRecordingComplete={handleRecordingComplete}
-                    onStopRecording={() => setRecordButtonLabel('Processing...')}
-                    onPermissionDenied={() => setRecordButtonLabel('Mic Access Denied')}
-                    isProcessing={isProcessing}
-                />
-            </div>
-            <p className="text-6xl font-mono font-bold text-foreground/50 text-center -mt-8">{recordButtonLabel}</p>
-        </div>
-        <div />
+      <main className="flex flex-1 flex-col items-center justify-center bg-muted p-4">
+        {isProcessing ? (
+          <div className="flex flex-col items-center justify-center gap-4 text-foreground/50">
+            <Loader2 className="w-16 h-16 animate-spin" />
+            <p className="text-xl font-mono font-bold">Analyzing...</p>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center gap-0">
+              <div className="w-[32rem] flex items-center justify-center">
+                  <RecordButton
+                      onStartRecording={handleStartRecording}
+                      onRecordingComplete={handleRecordingComplete}
+                      onStopRecording={() => setRecordButtonLabel('Processing...')}
+                      onPermissionDenied={() => setRecordButtonLabel('Mic Access Denied')}
+                  />
+              </div>
+              <p className="text-6xl font-mono font-bold text-foreground/50 text-center -mt-8">{recordButtonLabel}</p>
+          </div>
+        )}
       </main>
       <HomePageFooter />
     </AppLayout>
