@@ -156,11 +156,11 @@ export default function Home() {
     <AppLayout header={<PrimaryHeader />}>
       <main className="flex flex-1 flex-col items-center justify-center bg-muted p-4">
         {isProcessing ? (
-          <div className="flex flex-col items-center justify-center gap-4 text-foreground/50">
-             <div className="w-80 h-80">
+          <div className="flex flex-col items-center justify-center gap-0 pb-16">
+             <div className="w-[32rem] h-[32rem] p-12">
                 <ColorableLogo className="w-full h-full animate-color-cycle" />
              </div>
-            <p className="text-4xl font-mono font-bold">Analyzing...</p>
+            <p className="text-6xl font-mono font-bold text-foreground/50 text-center -mt-16">Analyzing...</p>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center gap-0 pb-16">
