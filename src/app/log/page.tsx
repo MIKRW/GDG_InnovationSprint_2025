@@ -71,7 +71,7 @@ export default function BirdBookPage() {
     return (
         <AppLayout header={<PrimaryHeader />}>
             <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden">
-                <Carousel className="w-full max-w-lg" opts={{ loop: true }}>
+                <Carousel className="w-full max-w-2xl" opts={{ loop: true }}>
                     <CarouselContent>
                         <CarouselItem>
                             <div className="p-1">
