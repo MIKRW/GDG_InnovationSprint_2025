@@ -160,7 +160,7 @@ export default function Home() {
              <div className="w-[32rem] h-[32rem] p-12">
                 <ColorableLogo className="w-full h-full animate-color-cycle" />
              </div>
-            <p className="text-6xl font-mono font-bold text-foreground/50 text-center -mt-16">Analyzing...</p>
+            <p className="text-6xl font-mono font-bold text-foreground/50 text-center -mt-16 animate-color-cycle">Analyzing...</p>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center gap-0 pb-16">
