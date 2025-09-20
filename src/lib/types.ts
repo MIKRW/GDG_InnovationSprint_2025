@@ -1,5 +1,9 @@
 
 
+import { type IdentifyBirdOutput as IdentifyBirdOutputType } from "@/ai/flows/contextual-identify-bird-flow";
+export type IdentifyBirdOutput = IdentifyBirdOutputType & { error?: string };
+
+
 // This file can be used to define shared types and interfaces.
 
 export type ThemeColor = {
@@ -40,20 +44,7 @@ export type AnalysisRun = {
   };
   hardware?: string; // User-specified recording hardware
   analysisMethod: string; // The specific AI system and version used, e.g., 'bird-identifier-newbie-v1.1'
-  aiResult: {
-    isBirdSong: boolean;
-    commonName?: string;
-    scientificName?: string;
-    family?: string;
-    order?: string;
-    description?: string;
-    imagePrompt?: string;
-    weather?: string;
-    season?: string;
-    confidence?: number;
-    aiGeneratedHabitatTags?: string[];
-    duration?: number;
-  };
+  aiResult: IdentifyBirdOutput;
   wasSuccessful: boolean;
   wasSavedByUser: boolean;
   isDeveloperData: boolean;

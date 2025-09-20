@@ -6,7 +6,7 @@ import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'fi
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, orderBy, runTransaction, writeBatch } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
-import type { TestAudioMetadata, PromptSystem, PromptVersion, AppAIVersion, AppAIConfig, PromptContent, AnalysisRun, AppMode } from './types';
+import type { TestAudioMetadata, PromptSystem, PromptVersion, AppAIVersion, AppAIConfig, PromptContent, AnalysisRun, AppMode, IdentifyBirdOutput } from './types';
 import { kebabCase } from 'lodash';
 import { cache } from 'react';
 
@@ -138,7 +138,7 @@ export async function saveCanonicalImage(
 export async function createAnalysisRun(
     userId: string,
     audioStoragePath: string,
-    aiResult: any,
+    aiResult: IdentifyBirdOutput,
     wasSuccessful: boolean,
     locationData: any,
     hardware: string | null,
