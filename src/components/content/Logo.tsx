@@ -1,9 +1,16 @@
-import { Circle } from 'lucide-react';
+
+import Image from 'next/image';
 
 export function Logo() {
   return (
-    <div data-component="Logo" className="flex justify-center items-center w-full h-full">
-      <Circle className="w-full h-full text-primary" />
+    <div data-component="Logo" className="relative flex justify-center items-center w-full h-full">
+      <Image
+        src="/logo.png"
+        alt="Lyre app logo - a lyrebird singing into a vintage microphone"
+        fill
+        className="object-contain"
+        priority
+      />
     </div>
   );
 }
