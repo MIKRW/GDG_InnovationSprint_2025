@@ -12,11 +12,9 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { getStorage } from 'firebase-admin/storage';
 import wavDecoder from 'wav-decoder';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import type { AppAIVersion, PromptVersion, PromptContent } from '@/lib/types';
-import { getActiveAIConfig } from '@/lib/actions';
 import { googleAI } from '@genkit-ai/googleai';
+import { BIRD_ID_PROMPT } from '@/ai/prompts/bird-identifier-prompt';
+
 
 const IdentifyBirdInputSchema = z.object({
   audioDataUri: z
@@ -42,7 +40,7 @@ const IdentifyBirdOutputSchema = z.object({
   commonName: z.string().optional().describe("The common name of the identified bird (e.g., 'American Robin')."),
   scientificName: z.string().optional().describe("The scientific name of the identified bird (e.g., 'Turdus migratorius')."),
   family: z.string().optional().describe("The taxonomic family of the bird (e.g., 'Psittacidae' for parrots)."),
-  order: z.string().optional().describe("The taxonomic order of the bird (e.g., 'Passeriformes' for perching birds)."),
+  order: z.string().optional().describe("The taxonomic order of the bird (eg., 'Passeriformes' for perching birds)."),
   description: z.string().optional().describe('A brief, interesting fact or description about the bird.'),
   imagePrompt: z.string().optional().describe('A simple, descriptive prompt for a text-to-image model to generate a picture of the bird (e.g., "photo of an American Robin on a branch").'),
   confidence: z.number().optional().describe('A number between 0 and 1 representing the AI\'s confidence in the identification.'),
@@ -53,9 +51,6 @@ const IdentifyBirdOutputSchema = z.object({
   promptVersion: z.string().optional().describe('The version of the prompt system used for this analysis.'),
 });
 export type IdentifyBirdOutput = z.infer<typeof IdentifyBirdOutputSchema>;
-
-const DEFAULT_BIRD_PROMPT = `You are an expert ornithologist. Your primary goal is to identify bird species from audio recordings. The user will provide an audio file and optional location data. You MUST analyze this audio to determine if a bird song is present. If it is, identify the bird's common name, scientific name, taxonomic family, and order. If no bird song is discernible, you MUST set 'isBirdSong' to false. You must also generate a simple, descriptive prompt for a text-to-image model to create a photorealistic image of the identified bird.`;
-
 
 const getCurrentWeather = ai.defineTool(
     {
@@ -176,69 +171,30 @@ const identifyBirdFlow = ai.defineFlow(
     name: 'identifyBirdFlow',
     inputSchema: IdentifyBirdInputSchema,
     outputSchema: IdentifyBirdOutputSchema,
-    config: {
-      retries: 3,
-    },
   },
   async (input) => {
-    const flowInput = input;
-    const systemId = 'bird-identifier-ai-newbie';
-
-    let promptText = DEFAULT_BIRD_PROMPT;
-    let promptVersion = 'v1.0.0-default';
-
-    const appConfig = await getActiveAIConfig();
-    
-    // Determine if we're in a dev test context from the input, not a separate param
-    const isDeveloperRun = input.isDeveloperData === true;
-
-
-    if (appConfig) {
-      const activeAppVersionId = isDeveloperRun ? appConfig.developmentAppAIVersion : appConfig.activeAppAIVersion;
-      
-      if (activeAppVersionId) {
-        const appVersionDoc = await getDoc(doc(db, 'app_ai_versions', activeAppVersionId));
-
-        if (appVersionDoc.exists()) {
-          const appVersionData = appVersionDoc.data() as AppAIVersion;
-          const systemVersionId = appVersionData.systems[systemId];
-
-          if (systemVersionId) {
-            const versionDoc = await getDoc(doc(db, 'prompt_versions', systemVersionId));
-            if (versionDoc.exists()) {
-              const versionData = versionDoc.data() as PromptVersion;
-              promptVersion = versionData.version;
-
-              const contentId = versionData.composedPrompts['base_instruction'];
-              if (contentId) {
-                const contentDoc = await getDoc(doc(db, 'prompt_content', contentId));
-                if (contentDoc.exists()) {
-                  promptText = (contentDoc.data() as PromptContent).promptText;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
 
     const identifyBirdPrompt = ai.definePrompt({
         name: 'identifyBirdPrompt',
-        prompt: promptText,
+        prompt: BIRD_ID_PROMPT,
         input: { schema: IdentifyBirdInputSchema },
         output: { schema: IdentifyBirdOutputSchema },
         model: googleAI.model('gemini-1.5-flash-latest'),
         tools: [getCurrentWeather],
+        config: {
+            temperature: 0.3,
+        }
     });
 
-    const { output } = await identifyBirdPrompt(flowInput);
+    const { output, finishReason } = await identifyBirdPrompt(input);
 
     if (!output) {
+      if (finishReason === 'safety') {
+        throw new Error('The AI refused to process the audio due to its safety filters.');
+      }
       throw new Error('The model failed to return a valid analysis.');
     }
     
-    output.promptVersion = promptVersion;
-
     // If no bird song was detected, fill in placeholder text.
     if (output.isBirdSong === false) {
         return {
@@ -253,7 +209,7 @@ const identifyBirdFlow = ai.defineFlow(
             confidence: 0,
             season: output.season || "Unknown",
             weather: output.weather || "Unknown",
-aiGeneratedHabitatTags: [],
+            aiGeneratedHabitatTags: [],
             duration: output.duration,
             promptVersion: output.promptVersion,
         };
