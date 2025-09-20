@@ -2,7 +2,7 @@
 'use-client';
 
 import { useState, useRef, forwardRef, useEffect } from 'react';
-
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { MicOff, Square } from 'lucide-react';
 import { ColorableLogo } from './ColorableLogo';
@@ -17,13 +17,15 @@ interface RecordButtonProps {
     onStartRecording?: () => void;
     onStopRecording?: () => void;
     onRecordingComplete: (audioBlob: Blob, duration?: number) => void;
+    isRecording: boolean;
 }
 
 const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
     onPermissionDenied,
     onStartRecording,
     onStopRecording,
-    onRecordingComplete
+    onRecordingComplete,
+    isRecording,
 }, ref) => {
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -130,7 +132,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
         aria-label="Record Audio"
         onClick={handleClick}
       >
-        <div className="w-full h-full p-12">
+        <div className={cn("w-full h-full p-12 transition-all duration-300", isRecording && "w-80 h-80")}>
             {icon}
         </div>
         {timer && <p className="absolute bottom-16 text-4xl font-mono mt-2 text-foreground">{timer}</p>}

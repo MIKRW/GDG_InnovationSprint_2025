@@ -25,6 +25,7 @@ export default function Home() {
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [recordButtonLabel, setRecordButtonLabel] = useState('Press to Record');
 
   useEffect(() => {
@@ -62,6 +63,7 @@ export default function Home() {
     isDeveloperRun: boolean,
     testContext?: { birdId: string; testAudioId: string }
   ) => {
+      let analysisRunId: string | null = null;
       getLocationForAIShot(async (locationData) => {
         setIsProcessing(true);
         setRecordButtonLabel('Analyzing...');
@@ -72,7 +74,6 @@ export default function Home() {
         }
         
         const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
-        let analysisRunId: string | null = null;
         
         try {
             const analysisStartTime = Date.now();
@@ -116,12 +117,14 @@ export default function Home() {
   };
 
   const handleStartRecording = () => {
+    setIsRecording(true);
     currentSessionId.current = uuidv4();
     currentTimestamp.current = new Date().toISOString();
     setRecordButtonLabel('Press to Stop');
   }
 
   const handleRecordingComplete = async (audioBlob: Blob) => {
+    setIsRecording(false);
     setIsProcessing(true);
     setRecordButtonLabel('Processing...');
 
@@ -147,6 +150,11 @@ export default function Home() {
         setRecordButtonLabel('Press to Record');
     }
   }
+  
+  const handleStopRecording = () => {
+    setIsRecording(false);
+    setRecordButtonLabel('Processing...');
+  }
 
 
   return (
@@ -163,8 +171,9 @@ export default function Home() {
                   <RecordButton
                       onStartRecording={handleStartRecording}
                       onRecordingComplete={handleRecordingComplete}
-                      onStopRecording={() => setRecordButtonLabel('Processing...')}
+                      onStopRecording={handleStopRecording}
                       onPermissionDenied={() => setRecordButtonLabel('Mic Access Denied')}
+                      isRecording={isRecording}
                   />
               </div>
               <p className="text-6xl font-mono font-bold text-foreground/50 text-center -mt-8">{recordButtonLabel}</p>
