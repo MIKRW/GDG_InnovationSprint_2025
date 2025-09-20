@@ -4,7 +4,7 @@
 import { useState, useRef, forwardRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { MicOff, Square } from 'lucide-react';
+import { MicOff } from 'lucide-react';
 import { ColorableLogo } from './ColorableLogo';
 
 type RecordingState =
@@ -113,7 +113,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
     switch (recordingState) {
       case 'recording':
         return {
-          icon: <Square className="w-full h-full text-foreground" />,
+          icon: <ColorableLogo className="text-foreground/50" />,
           label: 'Press to Stop',
           timer: `${String(Math.floor(elapsedTime / 60)).padStart(2, '0')}:${String(elapsedTime % 60).padStart(2, '0')}`,
         };
@@ -142,13 +142,13 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
             aria-label="Record Audio"
             onClick={handleClick}
         >
-            <div className={cn("transition-all duration-300 w-[32rem] h-[32rem]", isRecording && "w-80 h-80")}>
-              <div className={cn("w-full h-full p-12 transition-all duration-300")}>
+            <div className="transition-all duration-300 w-[32rem] h-[32rem]">
+              <div className="w-full h-full p-12 transition-all duration-300">
                   {icon}
               </div>
             </div>
         </Button>
-        <p className={cn("text-6xl font-mono font-bold text-foreground/50 text-center -mt-8", isRecording && "text-4xl")}>
+        <p className="text-6xl font-mono font-bold text-foreground/50 text-center -mt-8">
             {label}
         </p>
         {timer && <p className="text-4xl font-mono mt-2 text-foreground">{timer}</p>}
