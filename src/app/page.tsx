@@ -167,7 +167,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center gap-0 pb-16">
-              <div className="w-[32rem] flex items-center justify-center">
+              <div className="w-[32rem]">
                   <RecordButton
                       onStartRecording={handleStartRecording}
                       onRecordingComplete={handleRecordingComplete}

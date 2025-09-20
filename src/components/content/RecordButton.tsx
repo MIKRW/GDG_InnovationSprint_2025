@@ -132,7 +132,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
         aria-label="Record Audio"
         onClick={handleClick}
       >
-        <div className={cn("w-full h-full p-12 transition-all duration-300", isRecording && "w-80 h-80")}>
+        <div className={cn("w-full h-full p-12 transition-all duration-300")}>
             {icon}
         </div>
         {timer && <p className="absolute bottom-16 text-4xl font-mono mt-2 text-foreground">{timer}</p>}
