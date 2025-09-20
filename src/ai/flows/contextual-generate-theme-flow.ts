@@ -51,27 +51,54 @@ const GenerateThemeInputSchema = z.object({
 });
 export type GenerateThemeInput = z.infer<typeof GenerateThemeInputSchema>;
 
+// This is now defined statically. The dynamic content will be passed into it.
+const themePrompt = ai.definePrompt({
+  name: 'themePrompt',
+  input: {
+    schema: GenerateThemeInputSchema.extend({
+      baseInstruction: z.string(),
+    }),
+  },
+  output: { schema: GenerateThemeOutputSchema },
+  config: {
+    temperature: 0.7, // Increase creativity and reduce repetition.
+  },
+  prompt: `{{{baseInstruction}}}
+
+Here is the user's input:
+- Word 1: {{{word1}}}
+- Word 2: {{{word2}}}
+- Word 3: {{{word3}}}
+- Mood: {{{mood}}}`,
+});
+
 const DEFAULT_THEME_PROMPT = `You are a professional UI/UX designer specializing in color theory and accessibility. Your task is to generate a color palette for a web application based on three inspirational words and a 'mood'. The output must be a JSON object with 'background', 'foreground', 'primary', and 'ring' colors in HSL format.
 
 While maintaining accessibility, strive for creative and colorful palettes. High contrast does not exclusively mean using white or near-white backgrounds; explore a wider range of base colors that can still provide good readability.
 
 You must ensure that the contrast ratios between background, foreground, and primary colors are WCAG AA compliant at a minimum, aiming for AAA where possible, especially for 'High-Contrast' mood. The 'ring' color must be a perceptibly lighter or darker shade of the 'primary' color to be visible as a selection indicator. The mood provides the artistic direction and accessibility constraints. For color-blindness-friendly moods, you must avoid color combinations that are difficult to distinguish for that specific type of color vision deficiency.`;
 
-const themePrompt = ai.definePrompt(
+export async function generateTheme(
+  input: GenerateThemeInput
+): Promise<GenerateThemeOutput> {
+  return await generateThemeFlow(input);
+}
+
+const generateThemeFlow = ai.defineFlow(
   {
-    name: 'themePrompt',
-    input: { schema: GenerateThemeInputSchema },
-    output: { schema: GenerateThemeOutputSchema },
+    name: 'generateThemeFlow',
+    inputSchema: GenerateThemeInputSchema,
+    outputSchema: GenerateThemeOutputSchema,
     config: {
-      temperature: 0.7, // Increase creativity and reduce repetition.
+      retries: 3, // Automatically retry up to 3 times on failure
     },
   },
   async (input) => {
-    // This function now dynamically builds the prompt text *before* calling the model.
     let promptVersion = 'v1.0.0-fallback';
-    let promptText = DEFAULT_THEME_PROMPT;
-
+    let baseInstruction = DEFAULT_THEME_PROMPT;
+    
     try {
+      // Logic to fetch dynamic prompt is now correctly inside the flow
       const appConfig = await getActiveAIConfig();
       const systemId = 'theme-generator-ai';
 
@@ -98,7 +125,7 @@ const themePrompt = ai.definePrompt(
                   doc(db, 'prompt_content', contentId)
                 );
                 if (contentDoc.exists()) {
-                  promptText = (
+                  baseInstruction = (
                     contentDoc.data() as PromptContent
                   ).promptText;
                 }
@@ -114,35 +141,9 @@ const themePrompt = ai.definePrompt(
       );
       // Non-fatal error, we will proceed with the default prompt.
     }
-
-    return `${promptText}
-Here is the user's input:
-- Word 1: {{{word1}}}
-- Word 2: {{{word2}}}
-- Word 3: {{{word3}}}
-- Mood: {{{mood}}}`;
-  }
-);
-
-
-export async function generateTheme(
-  input: GenerateThemeInput
-): Promise<GenerateThemeOutput> {
-  return await generateThemeFlow(input);
-}
-
-const generateThemeFlow = ai.defineFlow(
-  {
-    name: 'generateThemeFlow',
-    inputSchema: GenerateThemeInputSchema,
-    outputSchema: GenerateThemeOutputSchema,
-    config: {
-      retries: 3, // Automatically retry up to 3 times on failure
-    },
-  },
-  async (input) => {
+    
     try {
-      const response = await themePrompt(input);
+      const response = await themePrompt({ ...input, baseInstruction });
       const output = response.output;
 
       if (!output) {
@@ -161,13 +162,8 @@ const generateThemeFlow = ai.defineFlow(
         );
       }
 
-      // We manually add the prompt version to the output, as it's determined inside the prompt logic.
-      // A cleaner way in the future would be to pass it as part of the prompt context.
-      const promptData = await (themePrompt as any).__internal.getPromptAndConfig(input);
-      const versionMatch = promptData.prompt.match(/promptVersion: (v[\d.]+)/);
-      if (versionMatch) {
-          output.promptVersion = versionMatch[1];
-      }
+      // Manually add the determined prompt version to the final output
+      output.promptVersion = promptVersion;
 
       return output;
 
