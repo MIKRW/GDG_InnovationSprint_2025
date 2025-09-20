@@ -5,10 +5,13 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 import Link from 'next/link';
-import { SpeakerButton } from '../content/SpeakerButton';
-import { ContrastButton } from '../content/ContrastButton';
 
-export function HomePageFooter() {
+interface HomePageFooterProps {
+  centerButtonLabel?: string;
+  centerButtonHref?: string;
+}
+
+export function HomePageFooter({ centerButtonLabel = "Bird Book", centerButtonHref = "/log/test" }: HomePageFooterProps) {
   const pathname = usePathname();
 
   return (
@@ -18,9 +21,9 @@ export function HomePageFooter() {
         <div className="flex gap-4">
         </div>
         <div className="absolute left-1/2 -translate-x-1/2 pl-4">
-            <Link href="/log/test">
+            <Link href={centerButtonHref}>
                 <Button variant="ghost" className="text-6xl font-mono font-bold text-foreground/50 hover:no-underline hover:bg-transparent hover:text-foreground/70">
-                    Bird Book
+                    {centerButtonLabel}
                 </Button>
             </Link>
         </div>
