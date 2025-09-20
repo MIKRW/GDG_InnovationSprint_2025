@@ -17,15 +17,15 @@ if (isProduction) {
   // In production, force the use of Application Default Credentials.
   // This will use the service account identity ('firebase-app-hosting-compute@...')
   // and its assigned IAM roles. We explicitly provide the project ID to avoid ambiguity.
-  plugins.push(googleAI({ projectId: firebaseConfig.projectId }));
+  plugins.push(googleAI());
 } else {
   // In local development, first check for an API key in .env.
-  if (process.env.AI_GEN_MIRACLE_KEY) {
-    plugins.push(googleAI({ apiKey: process.env.AI_GEN_MIRACLE_KEY }));
+  if (process.env.GEMINI_API_KEY) {
+    plugins.push(googleAI({ apiKey: process.env.GEMINI_API_KEY}));
   } else {
     // If no API key, fall back to Application Default Credentials for local development.
     // This works if you've run `gcloud auth application-default login`.
-    plugins.push(googleAI({ projectId: firebaseConfig.projectId }));
+    plugins.push(googleAI());
   }
 }
 
