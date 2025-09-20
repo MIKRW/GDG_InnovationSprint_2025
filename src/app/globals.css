@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,7 +6,6 @@
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
-    --logo-color: hsla(222.2 84% 4.9% / 0.5);
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --card-header: 222.2 47.4% 95%;
@@ -50,7 +48,6 @@
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-    --logo-color: hsla(210 40% 98% / 0.5);
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
     --card-header: 222.2 84% 10%;
@@ -79,7 +76,6 @@
   .custom {
     --background: var(--custom-background-h) var(--custom-background-s) var(--custom-background-l);
     --foreground: var(--custom-foreground-h) var(--custom-foreground-s) var(--custom-foreground-l);
-    --logo-color: hsla(var(--custom-foreground-h) var(--custom-foreground-s) var(--custom-foreground-l) / 0.5);
     --card: var(--custom-background-h) var(--custom-background-s) var(--custom-background-l);
     --card-foreground: var(--custom-foreground-h) var(--custom-foreground-s) var(--custom-foreground-l);
     --card-header: var(--custom-primary-h) var(--custom-primary-s) calc(var(--custom-primary-l) + 40%);
