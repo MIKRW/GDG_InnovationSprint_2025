@@ -6,22 +6,18 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { PageTitle } from '@/components/content/PageTitle';
-import { useAuth } from '@/components/providers/AuthProvider';
-import { LogOut, Save } from 'lucide-react';
-import { getAuth, signOut } from 'firebase/auth';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Save } from 'lucide-react';
 
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 
 export default function SettingsPage() {
-  const { user } = useAuth();
   const { toast } = useToast();
-  const isAnonymous = user?.isAnonymous;
   const [hardware, setHardware] = useState('');
   const [isClient, setIsClient] = useState(false);
 
@@ -32,16 +28,6 @@ export default function SettingsPage() {
       setHardware(savedHardware);
     }
   }, []);
-
-  const handleSignOut = async () => {
-    try {
-      const auth = getAuth();
-      await signOut(auth);
-      window.location.reload();
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
   
   const handleSaveHardware = () => {
     localStorage.setItem(HARDWARE_SETTINGS_KEY, hardware);
@@ -88,23 +74,6 @@ export default function SettingsPage() {
                     <Save className="mr-2 h-4 w-4" />
                     Save Hardware
                 </Button>
-            </div>
-
-            <div className="pt-8 w-full max-w-sm">
-                <h2 className="text-lg font-semibold mb-2">Account</h2>
-                {isAnonymous ? (
-                    <Button asChild variant="outline">
-                        <Link href="/settings/register">Create Account</Link>
-                    </Button>
-                ) : (
-                    <div className="space-y-4">
-                        <p className="text-muted-foreground">You are signed in as {user?.email}.</p>
-                        <Button variant="destructive" onClick={handleSignOut}>
-                            <LogOut className="mr-2 h-4 w-4" />
-                            Sign Out
-                        </Button>
-                    </div>
-                )}
             </div>
           </div>
         </div>

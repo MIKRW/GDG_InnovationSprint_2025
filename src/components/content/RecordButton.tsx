@@ -1,8 +1,7 @@
 
 'use-client';
 
-import { useState, useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
-import { useAuth } from '@/components/providers/AuthProvider';
+import { useState, useRef, forwardRef, useEffect } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { MicrophoneIcon } from './MicrophoneIcon';
@@ -26,7 +25,6 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
     onRecordingComplete,
     isProcessing
 }, ref) => {
-  const { user } = useAuth();
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [elapsedTime, setElapsedTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -45,9 +43,8 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
 
   const handleStartRecording = async () => {
     onStartRecording?.();
-    if (recordingState === 'denied' || !user) {
-        if (!user) console.error("Cannot record: User not authenticated.");
-        if (recordingState === 'denied') onPermissionDenied?.();
+    if (recordingState === 'denied') {
+        onPermissionDenied?.();
         return;
     }
 
@@ -131,7 +128,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
   };
 
   const { icon, label, timer } = getButtonContent();
-  const isDisabled = isProcessing || !user;
+  const isDisabled = isProcessing;
 
   return (
       <Button

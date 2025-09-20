@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-import { collection, doc, getDocs, setDoc, query, orderBy } from 'firebase/firestore';
+import { doc, setDoc, getDocs, query, orderBy } from 'firebase/firestore';
 
 import {
   Form,
@@ -28,7 +28,6 @@ import { ManualThemeEditor } from './ManualThemeEditor';
 import { PageTitle } from '../content/PageTitle';
 import { db } from '@/lib/firebase';
 import { logErrorToFirestore } from '@/lib/error-logging';
-import { useAuth } from '../providers/AuthProvider';
 
 const formSchema = z.object({
   word1: z.string(),
@@ -81,7 +80,6 @@ const MAX_SAVED_THEMES = 6;
 
 export function ThemeGenerator() {
   const { toast } = useToast();
-  const { user, loading: authLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isApiOverloaded, setIsApiOverloaded] = useState(false);
   const [showEmptyInputInfo, setShowEmptyInputInfo] = useState(false);
@@ -128,87 +126,47 @@ export function ThemeGenerator() {
     root.style.setProperty('--custom-ring-l', `${ringColor.l}%`);
   }, []);
 
-    // Load themes from Firestore
+    // Load themes from localStorage
     useEffect(() => {
-        if (authLoading) return;
-        if (!user) {
-            setIsFirestoreLoading(false);
-            // Even if logged out, try to load from local storage
-            const localSavedThemes = localStorage.getItem('saved-themes');
-             if (localSavedThemes) {
-                try {
-                    setSavedThemes(JSON.parse(localSavedThemes));
-                } catch (e) {
-                    console.error("Failed to parse saved themes from localStorage", e);
-                }
+        setIsFirestoreLoading(true);
+        const localSavedThemes = localStorage.getItem('saved-themes');
+        let themesToSet: (Theme | null)[] = [];
+        if (localSavedThemes) {
+            try {
+                themesToSet = JSON.parse(localSavedThemes);
+            } catch (e) {
+                console.error("Failed to parse saved themes from localStorage", e);
             }
-            return;
+        }
+        
+        let activeIndex = themesToSet.findIndex(t => t?.isActive);
+        
+        if (themesToSet.length < MAX_SAVED_THEMES) {
+            themesToSet = themesToSet.concat(Array(MAX_SAVED_THEMES - themesToSet.length).fill(null));
         }
 
-        const fetchThemes = async () => {
-            setIsFirestoreLoading(true);
-            try {
-                const themesCollectionRef = collection(db, 'users', user.uid, 'themes');
-                const q = query(themesCollectionRef, orderBy('id'));
-                const querySnapshot = await getDocs(q);
-                
-                let themesFromFirestore: Theme[] = [];
-                querySnapshot.forEach((doc) => {
-                    themesFromFirestore.push(doc.data() as Theme);
-                });
-                
-                let themesToSet = themesFromFirestore;
-                let activeIndex = themesToSet.findIndex(t => t.isActive);
-                
-                // If no active theme is found in Firestore, check localStorage as the source of truth
-                if (activeIndex === -1) {
-                  const localActiveThemeJson = localStorage.getItem('active-theme-json');
-                  if (localActiveThemeJson) {
-                    try {
-                        const localActiveTheme = JSON.parse(localActiveThemeJson);
-                        const localActiveIndex = themesToSet.findIndex(t => t.id === localActiveTheme.id);
-                        if (localActiveIndex !== -1) {
-                          activeIndex = localActiveIndex;
-                        }
-                    } catch (e) { console.error("Failed to parse active theme from localStorage", e); }
-                  }
-                }
-                
-                if (themesToSet.length < MAX_SAVED_THEMES) {
-                    themesToSet = themesToSet.concat(Array(MAX_SAVED_THEMES - themesToSet.length).fill(null));
-                }
+        if (activeIndex === -1 && themesToSet.length > 0) {
+            activeIndex = 0;
+        }
 
-                if (activeIndex === -1 && themesToSet.length > 0) {
-                    activeIndex = 0;
-                }
+        const finalThemes = themesToSet.map((theme, i) => {
+            const currentTheme = theme || { ...DEFAULTS, id: `${i}`, words: { word1: 'new', word2: 'theme', word3: 'slot', mood: 'default' } };
+            return { ...currentTheme, isActive: i === activeIndex };
+        });
 
-                const finalThemes = themesToSet.map((theme, i) => {
-                    const currentTheme = theme || { ...DEFAULTS, id: `${i}`, words: { word1: 'new', word2: 'theme', word3: 'slot', mood: 'default' } };
-                    return { ...currentTheme, isActive: i === activeIndex };
-                });
-
-                setSelectedSlot(activeIndex === -1 ? 0 : activeIndex);
-                setSavedThemes(finalThemes);
-                localStorage.setItem('saved-themes', JSON.stringify(finalThemes)); // Sync to local storage
-                
-                const activeTheme = finalThemes.find(t => t.isActive);
-                if (activeTheme) {
-                    localStorage.setItem('active-theme-json', JSON.stringify(activeTheme));
-                    if (localStorage.getItem('theme') === 'custom') {
-                       updateCSSVariables(activeTheme.colors);
-                    }
-                }
-
-            } catch (error) {
-                console.error("Error fetching themes from Firestore:", error);
-                 toast({ variant: 'destructive', title: 'Load Failed', description: 'Could not load themes from the cloud.' });
-            } finally {
-                setIsFirestoreLoading(false);
+        setSelectedSlot(activeIndex === -1 ? 0 : activeIndex);
+        setSavedThemes(finalThemes);
+        
+        const activeTheme = finalThemes.find(t => t.isActive);
+        if (activeTheme) {
+            localStorage.setItem('active-theme-json', JSON.stringify(activeTheme));
+            if (localStorage.getItem('theme') === 'custom') {
+                updateCSSVariables(activeTheme.colors);
             }
-        };
+        }
 
-        fetchThemes();
-    
+        setIsFirestoreLoading(false);
+
         const lastGeneratedJson = localStorage.getItem('generated-theme');
         if (lastGeneratedJson) {
             try {
@@ -226,7 +184,7 @@ export function ThemeGenerator() {
             } catch (e) { console.error('Failed to parse manual theme', e); }
         }
 
-    }, [user, authLoading, updateCSSVariables, toast]);
+    }, [updateCSSVariables, toast]);
 
 
   useEffect(() => {
@@ -263,48 +221,16 @@ export function ThemeGenerator() {
     const themeId = `${selectedSlot}`;
     const themeToSaveToSlot = { ...themeToSave, id: themeId, isActive: savedThemes[selectedSlot]?.isActive ?? false };
     
-    // Optimistically update UI
     const newSavedThemes = savedThemes.map((theme, index) => 
         index === selectedSlot ? themeToSaveToSlot : theme
     );
     setSavedThemes(newSavedThemes);
-    localStorage.setItem('saved-themes', JSON.stringify(newSavedThemes)); // also save to local
+    localStorage.setItem('saved-themes', JSON.stringify(newSavedThemes));
     
-    // If the user is logged in, sync to firestore
-    if (user) {
-        try {
-            const themeDocRef = doc(db, 'users', user.uid, 'themes', themeId);
-            await setDoc(themeDocRef, themeToSaveToSlot);
-
-            if(themeToSaveToSlot.isActive) {
-                updateCSSVariables(themeToSaveToSlot.colors);
-                localStorage.setItem('active-theme-json', JSON.stringify(themeToSaveToSlot));
-            }
-
-            toast({
-              title: 'Theme Saved!',
-              description: `Theme saved to slot ${selectedSlot + 1}.`,
-            });
-        } catch (error) {
-           console.error("Error saving theme to Firestore: ", error);
-           logErrorToFirestore(error as Error, 'firestore-write-failure', {
-             collection: 'user_themes',
-             operation: 'setDoc',
-             documentId: themeId,
-             userId: user.uid,
-           });
-           toast({
-             variant: 'destructive',
-             title: 'Cloud Sync Failed',
-             description: 'Theme saved locally, but failed to sync to the cloud.',
-           });
-        }
-    } else {
-         toast({
-          title: 'Theme Saved Locally',
-          description: `Theme saved to slot ${selectedSlot + 1}. Sign in to sync across devices.`,
-        });
-    }
+    toast({
+        title: 'Theme Saved Locally',
+        description: `Theme saved to slot ${selectedSlot + 1}.`,
+    });
 
     if (isPreviewingGenerated || isPreviewingManual) {
         setIsPreviewingGenerated(false);
@@ -383,19 +309,6 @@ export function ThemeGenerator() {
     localStorage.setItem('theme', 'custom');
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add('custom');
-  
-    if (user) {
-        try {
-          // Update the status of all themes for this user in a batch
-          for (const theme of newSavedThemes) {
-              if (!theme) continue;
-              const themeDocRef = doc(db, 'users', user.uid, 'themes', theme.id);
-              await setDoc(themeDocRef, theme, { merge: true });
-          }
-        } catch (error) {
-          console.error("Error updating active theme in Firestore: ", error);
-        }
-    }
   
     setIsPreviewingGenerated(false);
     setIsPreviewingManual(false);

@@ -6,8 +6,7 @@ import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'fi
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, orderBy, runTransaction, writeBatch } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
-import type { TestAudioMetadata, BirdLog, PromptSystem, PromptVersion, AppAIVersion, AppAIConfig, PromptContent, AnalysisRun, AppMode } from './types';
-import { EmailAuthProvider, linkWithCredential, type User } from 'firebase/auth';
+import type { TestAudioMetadata, PromptSystem, PromptVersion, AppAIVersion, AppAIConfig, PromptContent, AnalysisRun, AppMode } from './types';
 import { kebabCase } from 'lodash';
 import { cache } from 'react';
 
@@ -107,35 +106,6 @@ export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<T
         duration: duration,
     };
 }
-
-interface RegisterUserInput {
-    email: string;
-    pass: string;
-}
-
-export async function upgradeAnonymousUser(currentUser: User, { email, pass }: RegisterUserInput) {
-    if (!currentUser || !currentUser.isAnonymous) {
-        throw new Error("No anonymous user is currently signed in.");
-    }
-    
-    try {
-        const credential = EmailAuthProvider.credential(email, pass);
-        const userCredential = await linkWithCredential(currentUser, credential);
-        return { success: true, user: userCredential.user };
-    } catch (error: any) {
-        console.error("Error upgrading anonymous user:", error.code, error.message);
-        return { success: false, error: { code: error.code, message: error.message } };
-    }
-}
-
-
-export async function trashLog(log: BirdLog) {
-    const userLogRef = doc(db, 'users', log.userId, 'identifications', log.id);
-    await updateDoc(userLogRef, { status: 'trashed' });
-
-    return { success: true };
-}
-
 
 export async function saveCanonicalImage(
     commonName: string,

@@ -3,58 +3,50 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { doc, getDoc, updateDoc, setDoc, addDoc, collection, onSnapshot, getDocs, query, where } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { notFound, useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { v4 as uuidv4 } from 'uuid';
 import { kebabCase } from 'lodash';
 
-import type { AnalysisRun, BirdLog, BirdSpeciesData } from '@/lib/types';
+import type { AnalysisRun, BirdSpeciesData } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { useAuth } from '@/components/providers/AuthProvider';
 
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { ThumbsUp, ThumbsDown, Loader2, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Loader2, Bird } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { generateBirdImage } from '@/ai/flows/instructional-generate-bird-image-flow';
 import { saveCanonicalImage } from '@/lib/actions';
+import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 
 
-type PageState = 'loading' | 'confirmingId' | 'confirmingImage' | 'saving' | 'done';
+type PageState = 'loading' | 'showingResult';
 
-export default function ConfirmIdentificationPage() {
+export default function IdentificationResultPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
   const analysisRunId = Array.isArray(params.analysisRunId) ? params.analysisRunId[0] : params.analysisRunId;
-  const { user, loading: authLoading } = useAuth();
   
   const [pageState, setPageState] = useState<PageState>('loading');
-  const [analysisRun, setAnalysisRun] = useState<AnalysisRun | null>(undefined);
-  const [birdSpeciesData, setBirdSpeciesData] = useState<BirdSpeciesData | null>(null);
+  const [analysisRun, setAnalysisRun] = useState<AnalysisRun | null>(null);
   const [generatedImageDataUri, setGeneratedImageDataUri] = useState<string | null>(null);
+  const [isImageLoading, setIsImageLoading] = useState(false);
 
-
-  // Effect to load the initial analysis run data from either collection
+  // Effect to load the analysis run data
   useEffect(() => {
-    if (authLoading || !user) {
-      setPageState('loading');
-      return;
-    }
-
     const fetchAnalysisRun = async () => {
+      // The analysis run might be in either collection if it's a dev test
       const collectionsToTry = ['all_analysis_runs', 'all_test_runs'];
       let foundRun: AnalysisRun | null = null;
       
       for (const collectionName of collectionsToTry) {
         const docRef = doc(db, collectionName, analysisRunId);
         const docSnap = await getDoc(docRef);
-        if (docSnap.exists() && docSnap.data().userId === user.uid) {
+        if (docSnap.exists()) {
           foundRun = { id: docSnap.id, ...docSnap.data() } as AnalysisRun;
           break;
         }
@@ -62,141 +54,60 @@ export default function ConfirmIdentificationPage() {
       
       if(foundRun) {
         setAnalysisRun(foundRun);
-        setPageState('confirmingId');
+        setPageState('showingResult');
+        // If the analysis was successful and gave an image prompt, generate the image
+        if(foundRun.aiResult?.isBirdSong && foundRun.aiResult.imagePrompt) {
+            findOrCreateBirdImage(foundRun);
+        }
       } else {
-        setAnalysisRun(null);
-        setPageState('loading'); // Will result in a notFound() if it stays null
+        setAnalysisRun(null); // This will trigger the notFound() call
       }
     };
 
     fetchAnalysisRun().catch(error => {
       console.error("Error fetching analysis run:", error);
-      setPageState('loading');
+      setAnalysisRun(null);
     });
 
-  }, [analysisRunId, user, authLoading]);
+  }, [analysisRunId]);
 
 
-  const handleIdConfirmation = async (wasCorrect: boolean) => {
-    if (!analysisRun) return;
+  const findOrCreateBirdImage = async (run: AnalysisRun) => {
+    if (!run.aiResult.commonName) return;
 
-    setPageState('saving');
-
-    const collectionName = analysisRun.isDeveloperData ? 'all_test_runs' : 'all_analysis_runs';
-    const analysisRunRef = doc(db, collectionName, analysisRunId);
-    
-    await updateDoc(analysisRunRef, { 
-        'userFeedback.aiWasCorrect': wasCorrect,
-        'userFeedback.timestamp': new Date().toISOString()
-    });
-    
-    if (analysisRun.isDeveloperData) {
-        toast({ title: 'Test Feedback Recorded' });
-        router.push('/log/test');
-        return;
-    }
-    
-    if (!wasCorrect) {
-        // User said AI was wrong, no image needed. Just give thanks.
-        toast({ title: "Feedback Recorded", description: "Thank you for helping improve the AI!" });
-        router.push('/record');
-        return;
-    }
-
-    // AI was correct, move to image confirmation phase
-    await findOrCreateBirdImage();
-  };
-
-  const findOrCreateBirdImage = async () => {
-    if (!analysisRun?.aiResult.commonName) return;
-
-    setPageState('confirmingImage');
-    const birdId = kebabCase(analysisRun.aiResult.commonName);
+    setIsImageLoading(true);
+    const birdId = kebabCase(run.aiResult.commonName);
     const birdDocRef = doc(db, 'birds', birdId);
-    const birdDocSnap = await getDoc(birdDocRef);
 
-    if (birdDocSnap.exists() && birdDocSnap.data().canonicalImageUrls?.key) {
-        // Found an existing canonical image
-        setBirdSpeciesData(birdDocSnap.data() as BirdSpeciesData);
-        setGeneratedImageDataUri(birdDocSnap.data().canonicalImageUrls.key);
-    } else {
-        // No image exists, generate one
-        await handleGenerateImage();
+    try {
+        const birdDocSnap = await getDoc(birdDocRef);
+
+        if (birdDocSnap.exists() && birdDocSnap.data().canonicalImageUrls?.key) {
+            setGeneratedImageDataUri(birdDocSnap.data().canonicalImageUrls.key);
+        } else {
+            const { imageDataUri } = await generateBirdImage({ prompt: run.aiResult.imagePrompt! });
+            setGeneratedImageDataUri(imageDataUri);
+            
+            // In the background, save this new image as the canonical one
+            // We don't wait for this to finish to show the user the result
+            saveCanonicalImage(
+                run.aiResult.commonName,
+                run.aiResult.scientificName || 'N/A',
+                imageDataUri,
+                'key'
+            ).catch(err => console.error("Failed to save canonical image in background:", err));
+        }
+    } catch (error) {
+        console.error("Image generation/fetching failed:", error);
+        toast({ variant: 'destructive', title: 'Image Failed', description: 'Could not load an image for this bird.' });
+    } finally {
+        setIsImageLoading(false);
     }
-  };
-
-  const handleGenerateImage = async () => {
-     if (!analysisRun?.aiResult.imagePrompt) return;
-     setGeneratedImageDataUri(null); // Clear old image while generating new one
-
-     try {
-        const { imageDataUri } = await generateBirdImage({ prompt: analysisRun.aiResult.imagePrompt });
-        setGeneratedImageDataUri(imageDataUri);
-     } catch (error) {
-        console.error("Image generation failed:", error);
-        toast({ variant: 'destructive', title: 'Image Generation Failed' });
-        // Allow user to proceed without an image for now
-        setGeneratedImageDataUri('error');
-     }
-  };
-
-  const handleImageApproval = async () => {
-    if (!analysisRun || !user || !generatedImageDataUri || !analysisRun.aiResult.commonName) return;
-
-    setPageState('saving');
-
-    let finalImageUrl = generatedImageDataUri;
-
-    // If this is a newly generated image (not a URL), save it and get the URL
-    if (generatedImageDataUri.startsWith('data:image')) {
-        finalImageUrl = await saveCanonicalImage(
-            analysisRun.aiResult.commonName,
-            analysisRun.aiResult.scientificName || 'N/A',
-            generatedImageDataUri,
-            'key' // For now, we only handle the 'key' image
-        );
-    }
-    
-    // Now create the final user log
-    const logId = uuidv4();
-    const logDocRef = doc(db, 'users', user.uid, 'identifications', logId);
-    const aiResult = analysisRun.aiResult;
-
-    const finalLog: Omit<BirdLog, 'id'> = {
-        sessionId: analysisRun.sessionId,
-        analysisRunId: analysisRun.id,
-        userId: user.uid,
-        timestamp: analysisRun.timestamp,
-        commonName: aiResult.commonName || 'Unknown',
-        scientificName: aiResult.scientificName || 'Unknown',
-        family: aiResult.family,
-        order: aiResult.order,
-        description: aiResult.description || '',
-        imageUrl: finalImageUrl,
-        imagePrompt: aiResult.imagePrompt || '',
-        audioUrl: analysisRun.inputAudioUrl,
-        isMystery: false,
-        status: 'active',
-        latitude: analysisRun.locationData?.latitude,
-        longitude: analysisRun.locationData?.longitude,
-        locationDescription: analysisRun.locationData?.locationDescription,
-        weather: aiResult.weather,
-        season: aiResult.season,
-        mode: analysisRun.mode,
-    };
-
-    await setDoc(logDocRef, finalLog);
-    
-    const collectionName = analysisRun.isDeveloperData ? 'all_test_runs' : 'all_analysis_runs';
-    await updateDoc(doc(db, collectionName, analysisRun.id), { wasSavedByUser: true });
-    
-    toast({ title: 'Log Saved!', description: `${aiResult.commonName} has been added to your Bird Book.` });
-    router.push('/record');
   };
 
 
   const renderLoading = () => (
-     <AppLayout header={<SecondaryHeader title="Confirming..." />}>
+     <AppLayout header={<SecondaryHeader title="Analyzing..." />}>
         <main className="flex-1 p-4 flex items-center justify-center">
             <Loader2 className="w-12 h-12 animate-spin text-muted-foreground" />
         </main>
@@ -207,119 +118,61 @@ export default function ConfirmIdentificationPage() {
     if (!analysisRun) return notFound();
 
     const { aiResult, inputAudioUrl } = analysisRun;
+    const { commonName, scientificName, description } = aiResult;
+    const title = commonName || "Not Identified";
 
-    if (pageState === 'confirmingId') {
-        const title = aiResult.isBirdSong ? "Is this identification correct?" : "The AI found no bird song. Is that correct?";
-        const description = aiResult.isBirdSong ? "Your feedback helps improve the AI. If the AI is wrong, you'll have a chance to correct it." : "If you believe there was a bird in the recording, please mark this as incorrect. Your feedback is valuable.";
-
-        return (
-            <>
-                {aiResult.isBirdSong && (
-                    <CardHeader>
-                        <div className="aspect-square relative w-full rounded-md overflow-hidden bg-muted">
-                            <Skeleton className="w-full h-full" />
-                        </div>
-                        <CardTitle className="pt-4 text-3xl">{aiResult.commonName}</CardTitle>
-                        <p className="text-lg text-muted-foreground italic">{aiResult.scientificName}</p>
-                    </CardHeader>
-                )}
-                 <CardContent className="space-y-4">
-                    {aiResult.isBirdSong && <p className="text-base">{aiResult.description}</p>}
-                     {inputAudioUrl && (
+    return (
+      <AppLayout header={<SecondaryHeader title={title} />}>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 flex justify-center">
+          <div className="w-full max-w-2xl">
+            <Card>
+                <CardHeader>
+                    <div className="aspect-square relative w-full rounded-md overflow-hidden bg-muted">
+                        {isImageLoading ? (
+                             <div className="flex flex-col items-center justify-center h-full">
+                               <Loader2 className="w-12 h-12 animate-spin" />
+                               <p className="mt-4">Generating image...</p>
+                           </div>
+                        ) : generatedImageDataUri ? (
+                            <Image
+                                src={generatedImageDataUri}
+                                alt={commonName || 'Bird image'}
+                                fill
+                                className="object-cover"
+                                unoptimized={generatedImageDataUri.includes('firebasestorage')}
+                            />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-secondary">
+                                <Bird className="w-24 h-24 text-muted-foreground" />
+                            </div>
+                        )}
+                    </div>
+                    <CardTitle className="pt-4 text-3xl">{title}</CardTitle>
+                    {scientificName && <p className="text-lg text-muted-foreground italic">{scientificName}</p>}
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <p className="text-base">{description || "The AI could not identify a bird song in this recording."}</p>
+                    {inputAudioUrl && (
                       <div className="pt-4">
-                        <h3 className="font-semibold mb-2">Analyzed Recording</h3>
+                        <h3 className="font-semibold mb-2">Your Recording</h3>
                         <audio controls src={inputAudioUrl} className="w-full">
                           Your browser does not support the audio element.
                         </audio>
                       </div>
                     )}
-                    <Alert>
-                        <AlertTitle className="text-xl">{title}</AlertTitle>
-                        <AlertDescription>{description}</AlertDescription>
-                    </Alert>
                 </CardContent>
-                <CardFooter className="flex-col sm:flex-row gap-4 border-t pt-6">
-                    <Button variant="outline" size="lg" className="w-full" onClick={() => handleIdConfirmation(false)}>
-                        <ThumbsDown className="mr-2 h-5 w-5" /> No, that's not it
-                    </Button>
-                    <Button size="lg" className="w-full" onClick={() => handleIdConfirmation(true)}>
-                        <ThumbsUp className="mr-2 h-5 w-5" /> Yes, that's correct
+                <CardFooter>
+                    <Button className="w-full" onClick={() => router.push('/record')}>
+                        Make a New Recording
                     </Button>
                 </CardFooter>
-            </>
-        )
-    }
-
-     if (pageState === 'confirmingImage') {
-        return (
-            <>
-                <CardHeader>
-                    <div className="aspect-square relative w-full rounded-md overflow-hidden bg-muted">
-                       {generatedImageDataUri === 'error' ? (
-                           <div className="flex flex-col items-center justify-center h-full text-destructive">
-                               <p>Image generation failed.</p>
-                           </div>
-                       ) : generatedImageDataUri ? (
-                            <Image
-                                src={generatedImageDataUri}
-                                alt={aiResult.commonName || 'Generated image of bird'}
-                                fill
-                                className="object-cover"
-                                unoptimized={generatedImageDataUri.includes('firebasestorage')}
-                            />
-                       ) : (
-                           <div className="flex flex-col items-center justify-center h-full">
-                               <Loader2 className="w-12 h-12 animate-spin" />
-                               <p className="mt-4">Generating image...</p>
-                           </div>
-                       )}
-                    </div>
-                    <CardTitle className="pt-4 text-3xl">{aiResult.commonName}</CardTitle>
-                </CardHeader>
-                 <CardContent>
-                    <Alert>
-                        <AlertTitle className="text-xl">Approve this image?</AlertTitle>
-                        <AlertDescription>
-                            This image will be saved to your log and will become the default image for this species.
-                        </AlertDescription>
-                    </Alert>
-                </CardContent>
-                <CardFooter className="flex-col sm:flex-row gap-4 border-t pt-6">
-                    <Button variant="outline" size="lg" className="w-full" onClick={handleGenerateImage} disabled={!generatedImageDataUri}>
-                         <RefreshCw className="mr-2 h-5 w-5" /> Regenerate
-                    </Button>
-                    <Button size="lg" className="w-full" onClick={handleImageApproval} disabled={!generatedImageDataUri || generatedImageDataUri === 'error'}>
-                        <CheckCircle2 className="mr-2 h-5 w-5" /> Approve and Save Log
-                    </Button>
-                </CardFooter>
-            </>
-        )
-    }
-
-     if (pageState === 'saving') {
-        return (
-            <CardContent className="flex flex-col items-center justify-center p-12">
-                <Loader2 className="w-12 h-12 animate-spin text-muted-foreground" />
-                <p className="mt-4 text-muted-foreground">Saving to your log...</p>
-            </CardContent>
-        );
-    }
-  }
-
-
-  if (pageState === 'loading' || !analysisRun) {
-    return renderLoading();
-  }
-
-  return (
-    <AppLayout header={<SecondaryHeader title="Confirm Identification" />}>
-      <main className="flex-1 overflow-y-auto p-4 md:p-6 flex justify-center">
-        <div className="w-full max-w-2xl">
-            <Card>
-                {renderContent()}
             </Card>
-        </div>
-      </main>
-    </AppLayout>
-  );
+          </div>
+        </main>
+        <SecondaryPageFooter />
+      </AppLayout>
+    );
+  }
+
+  return pageState === 'loading' ? renderLoading() : renderContent();
 }

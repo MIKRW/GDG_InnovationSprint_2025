@@ -6,7 +6,6 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
-import { AuthProvider } from '@/components/providers/AuthProvider';
 
 // This is the root layout for the entire application.
 // It sets up the basic HTML structure, fonts, and global styles.
@@ -78,9 +77,7 @@ export default function RootLayout({
           inter.variable
         )}
       >
-        <AuthProvider>
-            {children}
-        </AuthProvider>
+        {children}
         <Toaster />
       </body>
     </html>

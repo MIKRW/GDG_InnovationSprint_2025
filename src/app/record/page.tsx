@@ -11,7 +11,6 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
-import { useAuth } from '@/components/providers/AuthProvider';
 import { logErrorToFirestore } from '@/lib/error-logging';
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
 import { createAnalysisRun } from '@/lib/actions';
@@ -27,7 +26,6 @@ const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 
 export default function RecordPage() {
   const router = useRouter();
-  const { user } = useAuth();
   
   const [showPermissionError, setShowPermissionError] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -86,7 +84,7 @@ export default function RecordPage() {
   ) => {
       getLocationForAIShot(async (locationData) => {
         setIsProcessing(true);
-        if (!currentTimestamp.current || !user) {
+        if (!currentTimestamp.current) {
             setIsProcessing(false);
             return;
         }
@@ -105,8 +103,10 @@ export default function RecordPage() {
             const analysisDurationMs = Date.now() - analysisStartTime;
             const wasSuccessful = result && result.isBirdSong && !!result.commonName;
 
+            // Since we are not saving logs, we create a temporary analysis run for the result page
+            // The user ID is a placeholder now.
             analysisRunId = await createAnalysisRun(
-                user.uid, storagePath, result, wasSuccessful, locationData, hardware,
+                'anonymous', storagePath, result, wasSuccessful, locationData, hardware,
                 appSettings.mode, isDeveloperRun, testContext,
                 { primaryIdentificationMs: analysisDurationMs },
                 currentSessionId.current!, currentTimestamp.current!
@@ -116,11 +116,11 @@ export default function RecordPage() {
             const analysisDurationMs = Date.now() - analysisStartTime;
             logErrorToFirestore(error as Error, 'ai-identification-failure', {
                 sessionId: currentSessionId.current, timestamp: currentTimestamp.current,
-                locationData: locationData, appMode: appSettings.mode, userId: user?.uid
+                locationData: locationData, appMode: appSettings.mode, userId: 'anonymous'
             });
             
             analysisRunId = await createAnalysisRun(
-                user.uid, storagePath, { error: (error as Error).message, isBirdSong: false }, false,
+                'anonymous', storagePath, { error: (error as Error).message, isBirdSong: false }, false,
                 locationData, hardware, appSettings.mode, isDeveloperRun, testContext,
                 { primaryIdentificationMs: analysisDurationMs },
                 currentSessionId.current!, currentTimestamp.current!
@@ -141,15 +141,17 @@ export default function RecordPage() {
   }
 
   const handleRecordingComplete = async (audioBlob: Blob) => {
-    if (!user) return;
     setIsProcessing(true);
 
     const isDevTest = isClient && isDevMode();
     const testContext = isDevTest ? { birdId: 'live-test', testAudioId: uuidv4() } : undefined;
 
+    // We use a placeholder user ID as we are no longer authenticating users.
+    const tempUserId = 'anonymous';
+
     // 1. Upload the blob to Firebase Storage
     const recordingId = uuidv4();
-    const filePath = `users/${user.uid}/recordings/${recordingId}.webm`;
+    const filePath = `users/${tempUserId}/recordings/${recordingId}.webm`;
     const fileRef = storageRef(storage, filePath);
 
     try {
@@ -161,7 +163,7 @@ export default function RecordPage() {
     } catch (error) {
         console.error("Failed to upload live recording:", error);
         logErrorToFirestore(error as Error, 'live-audio-upload-failure', {
-            userId: user.uid,
+            userId: tempUserId,
             filePath: filePath,
         });
         setIsProcessing(false);
