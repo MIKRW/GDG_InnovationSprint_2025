@@ -133,7 +133,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
   const { icon, label, timer } = getButtonContent();
 
   return (
-      <div className="flex flex-col items-center justify-center gap-0 w-full">
+      <div className="flex flex-col items-center justify-center gap-0 w-full h-full">
         <Button
             ref={ref}
             variant="ghost"
@@ -142,22 +142,19 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
             aria-label="Record Audio"
             onClick={handleClick}
         >
-            <div className="transition-all duration-300 w-[32rem] h-[32rem]">
-              <div className="w-full h-full p-12 transition-all duration-300">
+            <div className="transition-all duration-300 w-full h-full">
+              <div className="w-full h-full p-2 sm:p-4 md:p-12 transition-all duration-300">
                   {icon}
               </div>
             </div>
         </Button>
-        <div className="pl-4">
-            <p className="text-6xl font-mono font-bold text-foreground/50 text-center -mt-16">
-                {label}
-            </p>
-            {timer && <p className="text-4xl font-mono mt-2 text-foreground text-center">{timer}</p>}
-        </div>
+        <p className="text-xl sm:text-3xl md:text-6xl font-mono font-bold text-foreground/50 text-center -mt-4 sm:-mt-8 md:-mt-16">
+            {label}
+        </p>
+        {timer && <p className="text-lg sm:text-2xl md:text-4xl font-mono mt-2 text-foreground text-center">{timer}</p>}
       </div>
   );
 });
 RecordButton.displayName = "RecordButton";
 
 export { RecordButton };
-
