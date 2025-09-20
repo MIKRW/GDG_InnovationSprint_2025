@@ -119,15 +119,20 @@ const generateThemeFlow = ai.defineFlow(
               const versionData = versionDoc.data() as PromptVersion;
               promptVersion = versionData.version;
 
-              const contentId = versionData.composedPrompts['base_instruction'];
-              if (contentId) {
-                const contentDoc = await getDoc(
-                  doc(db, 'prompt_content', contentId)
-                );
-                if (contentDoc.exists()) {
-                  baseInstruction = (
-                    contentDoc.data() as PromptContent
-                  ).promptText;
+              // Use the first available prompt category in the composition map.
+              // This makes the flow more robust and not tied to 'base_instruction'.
+              const promptCategories = Object.keys(versionData.composedPrompts);
+              if (promptCategories.length > 0) {
+                const contentId = versionData.composedPrompts[promptCategories[0]];
+                 if (contentId) {
+                  const contentDoc = await getDoc(
+                    doc(db, 'prompt_content', contentId)
+                  );
+                  if (contentDoc.exists()) {
+                    baseInstruction = (
+                      contentDoc.data() as PromptContent
+                    ).promptText;
+                  }
                 }
               }
             }
