@@ -10,7 +10,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { logErrorToFirestore } from '@/lib/error-logging';
 
 // A local utitlity does not need to be exported unlike the next two const.
 const ThemeColorSchema = z.object({
@@ -96,10 +95,7 @@ const generateThemeFlow = ai.defineFlow(
         const finishReason = response.finishReason;
 
         if (finishReason === 'safety') {
-            await logErrorToFirestore(new Error('AI safety filters triggered'), 'theme-gen-safety-failure', {
-                input,
-                finishReason,
-            });
+            console.error('AI safety filters triggered', { input, finishReason });
             throw new Error('The AI refused to generate a theme due to its safety filters. Please try different words.');
         }
 
@@ -130,7 +126,7 @@ const generateThemeFlow = ai.defineFlow(
           errorMessage = 'A cloud configuration error occurred. Please ensure billing and the Vertex AI API are enabled on the project.';
       }
       
-      await logErrorToFirestore(generationError as Error, 'theme-generation-failure', {
+      console.error('Theme generation failure', {
         input: input,
         flow: 'generateThemeFlow',
       });

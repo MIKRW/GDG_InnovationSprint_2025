@@ -15,7 +15,6 @@ import type { AppMode, LocationSettings, TestAudioMetadata } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NewMasterAudioForm } from '@/components/content/NewMasterAudioForm';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { logErrorToFirestore } from '@/lib/error-logging';
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
 import { createAnalysisRun } from '@/lib/actions';
 import { PageTitle } from '@/components/content/PageTitle';
@@ -163,10 +162,7 @@ export default function DeveloperPage() {
 
         } catch (error) {
             const analysisDurationMs = Date.now() - analysisStartTime;
-            logErrorToFirestore(error as Error, 'ai-identification-failure', {
-                sessionId: currentSessionId.current, timestamp: currentTimestamp.current,
-                locationData: locationData, appMode: appSettings.mode, userId: user?.uid
-            });
+            console.error('AI identification failed:', error);
             
             analysisRunId = await createAnalysisRun(
                 user.uid, storagePath, { error: (error as Error).message, isBirdSong: false }, false,
@@ -285,20 +281,6 @@ export default function DeveloperPage() {
                         </CardHeader>
                         <CardContent>
                             <p className="text-sm text-primary underline">View AI Test Log &rarr;</p>
-                        </CardContent>
-                    </Card>
-                </Link>
-            </Card>
-
-             <Card className="bg-hazard-stripes p-1">
-                <Link href="/log/errors" className="block h-full">
-                    <Card className="h-full hover:bg-muted/50 transition-colors">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2"><AlertCircle /> Error Log</CardTitle>
-                            <CardDescription>View all captured application errors, such as failed AI generations or database writes.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm text-primary underline">View Error Log &rarr;</p>
                         </CardContent>
                     </Card>
                 </Link>

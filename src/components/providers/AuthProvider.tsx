@@ -4,7 +4,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, signInAnonymously, type User, getAuth } from 'firebase/auth';
 import { app } from '@/lib/firebase';
-import { logErrorToFirestore } from '@/lib/error-logging';
 
 interface AuthContextType {
   user: User | null;
@@ -34,9 +33,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           })
           .catch((error) => {
             console.error('Anonymous sign-in failed:', error);
-            logErrorToFirestore(error, 'firebase-auth-signin-failure', {
-                type: 'anonymous'
-            });
           })
           .finally(() => {
             setLoading(false);
@@ -44,7 +40,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }, (error) => {
         console.error('Auth state change error:', error);
-        logErrorToFirestore(error, 'firebase-auth-state-change-failure', {});
         setLoading(false);
     });
 

@@ -12,7 +12,6 @@ import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { logErrorToFirestore } from '@/lib/error-logging';
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
 import { createAnalysisRun } from '@/lib/actions';
 import { storage } from '@/lib/firebase';
@@ -114,9 +113,13 @@ export default function RecordPage() {
 
         } catch (error) {
             const analysisDurationMs = Date.now() - analysisStartTime;
-            logErrorToFirestore(error as Error, 'ai-identification-failure', {
-                sessionId: currentSessionId.current, timestamp: currentTimestamp.current,
-                locationData: locationData, appMode: appSettings.mode, userId: user?.uid
+            console.error('AI identification failed:', {
+                error,
+                sessionId: currentSessionId.current,
+                timestamp: currentTimestamp.current,
+                locationData,
+                appMode: appSettings.mode,
+                userId: user?.uid,
             });
             
             analysisRunId = await createAnalysisRun(
@@ -160,10 +163,6 @@ export default function RecordPage() {
 
     } catch (error) {
         console.error("Failed to upload live recording:", error);
-        logErrorToFirestore(error as Error, 'live-audio-upload-failure', {
-            userId: user.uid,
-            filePath: filePath,
-        });
         setIsProcessing(false);
     }
   }

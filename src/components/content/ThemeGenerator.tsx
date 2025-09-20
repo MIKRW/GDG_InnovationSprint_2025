@@ -27,7 +27,6 @@ import { cn, isDevMode } from '@/lib/utils';
 import { ManualThemeEditor } from './ManualThemeEditor';
 import { PageTitle } from '../content/PageTitle';
 import { db } from '@/lib/firebase';
-import { logErrorToFirestore } from '@/lib/error-logging';
 import { useAuth } from '../providers/AuthProvider';
 
 const formSchema = z.object({
@@ -287,12 +286,6 @@ export function ThemeGenerator() {
             });
         } catch (error) {
            console.error("Error saving theme to Firestore: ", error);
-           logErrorToFirestore(error as Error, 'firestore-write-failure', {
-             collection: 'user_themes',
-             operation: 'setDoc',
-             documentId: themeId,
-             userId: user.uid,
-           });
            toast({
              variant: 'destructive',
              title: 'Cloud Sync Failed',
@@ -345,11 +338,7 @@ export function ThemeGenerator() {
         description: 'Click a save slot, then "Save Theme".',
       });
     } catch (error) {
-      console.error(error);
-      logErrorToFirestore(error as Error, 'theme-generation-failure', {
-        words: { word1: values.word1, word2: values.word2, word3: values.word3 },
-        mood: mood,
-      });
+      console.error('Theme generation failed:', error);
 
       const errorMessage = (error as Error).message || '';
       if (errorMessage.includes('503') || errorMessage.toLowerCase().includes('overloaded')) {
@@ -358,7 +347,7 @@ export function ThemeGenerator() {
         toast({
             variant: 'destructive',
             title: 'Generation Failed',
-            description: 'Could not generate the theme. This error has been logged.',
+            description: 'Could not generate the theme. Please try again.',
         });
       }
     } finally {
