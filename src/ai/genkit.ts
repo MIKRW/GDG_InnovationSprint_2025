@@ -3,16 +3,19 @@ import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
 
 // This file configures and exports the Genkit 'ai' object.
-// It uses Application Default Credentials (ADC) for authentication.
+// It is configured to use an API key.
 //
-// - In the local development environment, it relies on the user being logged
-//   in via `gcloud auth application-default login`.
-// - In the deployed App Hosting environment, it relies on the backend's
-//   service account having the "Vertex AI User" role granted in IAM.
-//
-// This setup removes the need for managing API keys.
+// - In the local development environment, it reads the API key from
+//   the `AI_GEN_MIRACLE_KEY` variable in the `.env` file.
+// - In the deployed App Hosting environment, the `apphosting.yaml` file
+//   configures the backend to load the specified secret from Secret Manager
+//   and expose it as an environment variable with the same name.
 
-const plugins = [googleAI()];
+const plugins = [
+  googleAI({
+    apiKey: process.env.AI_GEN_MIRACLE_KEY,
+  }),
+];
 
 export const ai = genkit({
   plugins,
