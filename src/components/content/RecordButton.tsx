@@ -41,7 +41,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
     } else if (!isRecording && recordingState === 'recording') {
         handleStopRecording();
     }
-  }, [isRecording]);
+  }, [isRecording, recordingState]);
 
   useEffect(() => {
     return () => {
@@ -142,8 +142,8 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
             aria-label="Record Audio"
             onClick={handleClick}
         >
-            <div className={cn("transition-all duration-300 w-[32rem] h-[32rem]")}>
-              <div className={cn("w-full h-full p-12 transition-all duration-300", isRecording && "w-80 h-80")}>
+            <div className={cn("transition-all duration-300 w-[32rem] h-[32rem]", isRecording && "w-80 h-80")}>
+              <div className={cn("w-full h-full p-12 transition-all duration-300")}>
                   {icon}
               </div>
             </div>

@@ -77,11 +77,11 @@ export default function RecordPage() {
         let result: IdentifyBirdOutput | null = null;
         let analysisRunId: string | null = null;
         
-        const analysisStartTime = Date.now();
         try {
+            const analysisStartTime = Date.now();
             result = await identifyBirdBySound({
                 audioStoragePath: storagePath,
-                timestamp: currentTimestamp.current,
+                timestamp: currentTimestamp.current!,
                 ...locationData
             });
             const analysisDurationMs = Date.now() - analysisStartTime;
@@ -95,7 +95,7 @@ export default function RecordPage() {
             );
 
         } catch (error) {
-            const analysisDurationMs = Date.now() - analysisStartTime;
+            const analysisDurationMs = Date.now() - (currentTimestamp.current ? new Date(currentTimestamp.current).getTime() : Date.now());
             result = { error: (error as Error).message, isBirdSong: false };
             logErrorToFirestore(error as Error, 'ai-identification-failure', {
                 sessionId: currentSessionId.current, timestamp: currentTimestamp.current,
@@ -161,7 +161,7 @@ export default function RecordPage() {
         <div className="relative flex items-center justify-center w-full h-full">
             {isProcessing ? (
               <div className="flex flex-col items-center justify-center gap-4 text-foreground/50">
-                <Loader2 className="w-32 h-32 animate-spin" />
+                <Loader2 className="w-80 h-80 animate-spin" />
                 <p className="text-4xl font-mono font-bold">Analyzing...</p>
               </div>
             ) : (

@@ -77,7 +77,7 @@ export default function Home() {
             const analysisStartTime = Date.now();
             result = await identifyBirdBySound({
                 audioStoragePath: storagePath,
-                timestamp: currentTimestamp.current,
+                timestamp: currentTimestamp.current!,
                 ...locationData
             });
             const analysisDurationMs = Date.now() - analysisStartTime;
