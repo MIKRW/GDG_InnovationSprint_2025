@@ -7,7 +7,7 @@
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
-    --logo-color: hsl(var(--foreground), 0.5);
+    --logo-color: hsla(var(--foreground), 0.5);
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --card-header: 222.2 47.4% 95%;
@@ -50,7 +50,7 @@
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-    --logo-color: hsl(var(--foreground), 0.5);
+    --logo-color: hsla(var(--foreground), 0.5);
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
     --card-header: 222.2 84% 10%;
@@ -110,7 +110,3 @@
     @apply bg-background text-foreground;
   }
 }
-
-    
-
-    
