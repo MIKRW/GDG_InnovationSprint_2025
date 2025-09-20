@@ -97,10 +97,22 @@ export default {
             height: '0',
           },
         },
+        'color-cycle': {
+          '0%, 100%': {
+            color: 'hsl(var(--primary))',
+          },
+          '33%': {
+            color: 'hsl(var(--accent-foreground))',
+          },
+          '66%': {
+            color: 'hsl(var(--secondary-foreground))',
+          },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'color-cycle': 'color-cycle 4s ease-in-out infinite',
       },
     },
   },

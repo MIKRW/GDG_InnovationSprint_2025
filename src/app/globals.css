@@ -106,3 +106,17 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  @keyframes color-cycle {
+    0%, 100% {
+      color: hsl(var(--primary));
+    }
+    33% {
+      color: hsl(var(--accent-foreground));
+    }
+    66% {
+      color: hsl(var(--secondary-foreground));
+    }
+  }
+}

@@ -14,8 +14,8 @@ import { storage } from '@/lib/firebase';
 import { ref as storageRef, uploadBytes } from 'firebase/storage';
 import { isDevMode } from '@/lib/utils';
 import type { LocationSettings } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { ColorableLogo } from '@/components/content/ColorableLogo';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
@@ -105,9 +105,10 @@ export default function Home() {
                 currentSessionId.current!, currentTimestamp.current!
             );
         } finally {
-            setIsProcessing(false);
             if (analysisRunId) {
                 router.push(`/record/result/${analysisRunId}`);
+            } else {
+                setIsProcessing(false);
             }
         }
       });
@@ -156,7 +157,9 @@ export default function Home() {
       <main className="flex flex-1 flex-col items-center justify-center bg-muted p-4">
         {isProcessing ? (
           <div className="flex flex-col items-center justify-center gap-4 text-foreground/50">
-            <Loader2 className="w-80 h-80 animate-spin" />
+             <div className="w-80 h-80">
+                <ColorableLogo className="w-full h-full animate-color-cycle" />
+             </div>
             <p className="text-4xl font-mono font-bold">Analyzing...</p>
           </div>
         ) : (
