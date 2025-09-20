@@ -1,12 +1,9 @@
 
 'use client';
 
-import { useLayoutEffect } from 'react';
-
 // This script runs immediately to prevent a flash of unstyled content (FOUC).
 const themeScript = `
   (function() {
-    // Set theme from localStorage
     try {
       const savedThemeClass = localStorage.getItem('theme') || 'light';
       document.documentElement.className = savedThemeClass;
@@ -43,19 +40,9 @@ const themeScript = `
 
 /**
  * This component is responsible for injecting the theme script into the <head>.
- * It's a client component because it needs to run a script, but it allows the
- * root layout to remain a server component.
+ * It's a client component, but it renders the script directly to avoid React hooks
+ * that run after the initial paint, thus preventing FOUC.
  */
 export function ThemeManager() {
-    useLayoutEffect(() => {
-        const script = document.createElement('script');
-        script.innerHTML = themeScript;
-        document.head.appendChild(script);
-        
-        return () => {
-            document.head.removeChild(script);
-        }
-    }, []);
-
-    return null;
+    return <script dangerouslySetInnerHTML={{ __html: themeScript }} />;
 }
