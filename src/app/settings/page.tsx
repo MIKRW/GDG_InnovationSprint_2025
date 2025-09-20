@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { PageTitle } from '@/components/content/PageTitle';
 import { useToast } from '@/hooks/use-toast';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
-import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
+import { PrimaryHeader } from '@/components/layout/PrimaryHeader';
+import { HomePageFooter } from '@/components/layout/HomePageFooter';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Save } from 'lucide-react';
@@ -38,8 +38,8 @@ export default function SettingsPage() {
   };
 
   return (
-    <AppLayout header={<SecondaryHeader title="Settings" />} >
-      <main className="flex-1 overflow-y-auto p-4 md:p-6">
+    <AppLayout header={<PrimaryHeader />} >
+      <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-muted">
         <div className="container mx-auto">
           <PageTitle>Settings</PageTitle>
           <div className="space-y-4 flex flex-col items-start">
@@ -78,7 +78,7 @@ export default function SettingsPage() {
           </div>
         </div>
       </main>
-      <SecondaryPageFooter />
+      <HomePageFooter centerButtonLabel="Home Page" centerButtonHref="/" />
     </AppLayout>
   );
 }
