@@ -148,13 +148,16 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
               </div>
             </div>
         </Button>
-        <p className="text-6xl font-mono font-bold text-foreground/50 text-center -mt-8">
-            {label}
-        </p>
-        {timer && <p className="text-4xl font-mono mt-0 text-foreground">{timer}</p>}
+        <div className="pl-4">
+            <p className="text-6xl font-mono font-bold text-foreground/50 text-center -mt-16">
+                {label}
+            </p>
+            {timer && <p className="text-4xl font-mono mt-2 text-foreground text-center">{timer}</p>}
+        </div>
       </div>
   );
 });
 RecordButton.displayName = "RecordButton";
 
 export { RecordButton };
+
