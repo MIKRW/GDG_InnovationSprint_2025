@@ -119,4 +119,8 @@
       color: hsl(var(--secondary-foreground));
     }
   }
+
+  .animate-color-cycle {
+      animation: color-cycle 4s ease-in-out infinite;
+  }
 }
