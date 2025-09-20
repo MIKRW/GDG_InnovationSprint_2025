@@ -155,45 +155,75 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
         return notFound();
     }
 
-    const { commonName, scientificName, description, imagePrompt } = run.aiResult;
+    const { isBirdSong, commonName, scientificName, description, imagePrompt } = run.aiResult;
+
+    const NotIdentifiedCard = () => (
+        <Card className="w-full max-w-lg shadow-2xl">
+            <CardHeader>
+                <CardTitle className="text-3xl">Not Identified</CardTitle>
+                <CardDescription className="text-lg italic">No bird was identified in the recording.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>AI Analysis Result</AlertTitle>
+                    <AlertDescription>
+                        {description || "The AI could not confidently identify a bird song in the audio provided."}
+                    </AlertDescription>
+                </Alert>
+            </CardContent>
+            <CardFooter className="flex flex-col gap-4">
+                <div className="flex w-full justify-around">
+                    <Button variant="outline" onClick={handleReplay}>
+                        <PlayCircle className="mr-2 h-4 w-4" /> Replay Audio
+                    </Button>
+                </div>
+                <Button className="w-full mt-4" onClick={() => router.push('/')}>
+                    <Home className="mr-2 h-4 w-4" /> Exit
+                </Button>
+            </CardFooter>
+        </Card>
+    );
 
     return (
         <AppLayout header={<SecondaryHeader title="Analysis Result" />}>
             <main className="flex-1 flex items-center justify-center p-4 bg-muted">
-                <Card className="w-full max-w-lg shadow-2xl">
-                    {imagePrompt && <BirdImage prompt={imagePrompt} />}
-                    <CardHeader>
-                        <CardTitle className="text-3xl">{commonName}</CardTitle>
-                        <CardDescription className="text-lg italic">{scientificName}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground">{description}</p>
-                    </CardContent>
-                    <CardFooter className="flex flex-col gap-4">
-                        <div className="flex w-full justify-around">
-                            <Button variant="outline" onClick={handleReplay}>
-                                <PlayCircle className="mr-2 h-4 w-4" /> Replay Audio
-                            </Button>
-                            <Button variant="outline" onClick={handleDownload}>
-                                <Download className="mr-2 h-4 w-4" /> Download
-                            </Button>
-                        </div>
-                         <div className="flex w-full flex-col items-center gap-2 pt-4 border-t">
-                            <p className="text-sm text-muted-foreground">Was this identification correct?</p>
-                            <div className="flex gap-4">
-                                <Button variant="outline" size="sm" onClick={() => handleFeedback(true)} disabled={feedbackGiven}>
-                                    <ThumbsUp className="mr-2 h-4 w-4" /> Correct
+                {isBirdSong === false ? <NotIdentifiedCard /> : (
+                    <Card className="w-full max-w-lg shadow-2xl">
+                        {imagePrompt && <BirdImage prompt={imagePrompt} />}
+                        <CardHeader>
+                            <CardTitle className="text-3xl">{commonName}</CardTitle>
+                            <CardDescription className="text-lg italic">{scientificName}</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-muted-foreground">{description}</p>
+                        </CardContent>
+                        <CardFooter className="flex flex-col gap-4">
+                            <div className="flex w-full justify-around">
+                                <Button variant="outline" onClick={handleReplay}>
+                                    <PlayCircle className="mr-2 h-4 w-4" /> Replay Audio
                                 </Button>
-                                <Button variant="outline" size="sm" onClick={() => handleFeedback(false)} disabled={feedbackGiven}>
-                                    <ThumbsDown className="mr-2 h-4 w-4" /> Incorrect
+                                <Button variant="outline" onClick={handleDownload}>
+                                    <Download className="mr-2 h-4 w-4" /> Download
                                 </Button>
                             </div>
-                        </div>
-                        <Button className="w-full mt-4" onClick={() => router.push('/')}>
-                           <Home className="mr-2 h-4 w-4" /> Exit
-                        </Button>
-                    </CardFooter>
-                </Card>
+                             <div className="flex w-full flex-col items-center gap-2 pt-4 border-t">
+                                <p className="text-sm text-muted-foreground">Was this identification correct?</p>
+                                <div className="flex gap-4">
+                                    <Button variant="outline" size="sm" onClick={() => handleFeedback(true)} disabled={feedbackGiven}>
+                                        <ThumbsUp className="mr-2 h-4 w-4" /> Correct
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleFeedback(false)} disabled={feedbackGiven}>
+                                        <ThumbsDown className="mr-2 h-4 w-4" /> Incorrect
+                                    </Button>
+                                </div>
+                            </div>
+                            <Button className="w-full mt-4" onClick={() => router.push('/')}>
+                               <Home className="mr-2 h-4 w-4" /> Exit
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                )}
             </main>
         </AppLayout>
     );
