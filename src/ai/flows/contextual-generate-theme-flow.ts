@@ -11,6 +11,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { THEME_PROMPT } from '@/ai/prompts/theme-prompt';
+import { googleAI } from '@genkit-ai/googleai';
 
 const ThemeColorSchema = z.object({
   h: z.number().describe('The hue value (0-360).'),
@@ -62,6 +63,7 @@ const generateThemeFlow = ai.defineFlow(
         prompt: THEME_PROMPT,
         input: { schema: GenerateThemeInputSchema },
         output: { schema: GenerateThemeOutputSchema },
+        model: googleAI.model('gemini-2.5-flash-preview'),
         config: {
           temperature: 0.7, // Increase creativity
         },

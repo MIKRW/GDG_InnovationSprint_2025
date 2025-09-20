@@ -16,6 +16,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AppAIVersion, PromptVersion, PromptContent } from '@/lib/types';
 import { getActiveAIConfig } from '@/lib/actions';
+import { googleAI } from '@genkit-ai/googleai';
 
 const IdentifyBirdInputSchema = z.object({
   audioDataUri: z
@@ -221,6 +222,7 @@ const identifyBirdFlow = ai.defineFlow(
         prompt: promptText,
         input: { schema: IdentifyBirdInputSchema },
         output: { schema: IdentifyBirdOutputSchema },
+        model: googleAI.model('gemini-2.5-flash-preview'),
         tools: [getCurrentWeather],
     });
 
