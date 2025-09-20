@@ -1,7 +1,6 @@
 
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
-import { isDevMode } from '@/lib/utils';
 import { firebaseConfig } from '@/lib/firebase-config';
 
 // This file configures and exports the Genkit 'ai' object.
@@ -10,18 +9,26 @@ import { firebaseConfig } from '@/lib/firebase-config';
 
 const plugins = [];
 
-if (isDevMode() && process.env.AI_GEN_MIRACLE_KEY) {
-  // Use API key for local development if it's provided in .env
-  plugins.push(googleAI({ apiKey: process.env.AI_GEN_MIRACLE_KEY }));
-} else {
-  // Use Application Default Credentials for production and local fallback.
-  // In production, this automatically uses the service account identity.
-  // Locally, this works if you've run `gcloud auth application-default login`.
-  // We explicitly provide the project ID to ensure correctness in all environments.
+// Check if we are running in the deployed Firebase App Hosting environment.
+// process.env.APP_HOSTING_URL is a system-provided environment variable on App Hosting.
+const isProduction = !!process.env.APP_HOSTING_URL;
+
+if (isProduction) {
+  // In production, force the use of Application Default Credentials.
+  // This will use the service account identity ('firebase-app-hosting-compute@...')
+  // and its assigned IAM roles. We explicitly provide the project ID to avoid ambiguity.
   plugins.push(googleAI({ projectId: firebaseConfig.projectId }));
+} else {
+  // In local development, first check for an API key in .env.
+  if (process.env.AI_GEN_MIRACLE_KEY) {
+    plugins.push(googleAI({ apiKey: process.env.AI_GEN_MIRACLE_KEY }));
+  } else {
+    // If no API key, fall back to Application Default Credentials for local development.
+    // This works if you've run `gcloud auth application-default login`.
+    plugins.push(googleAI({ projectId: firebaseConfig.projectId }));
+  }
 }
 
 export const ai = genkit({
   plugins,
-  model: 'googleai/gemini-2.5-flash',
 });
