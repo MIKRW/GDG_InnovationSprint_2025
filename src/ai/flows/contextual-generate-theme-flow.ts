@@ -57,6 +57,73 @@ While maintaining accessibility, strive for creative and colorful palettes. High
 
 You must ensure that the contrast ratios between background, foreground, and primary colors are WCAG AA compliant at a minimum, aiming for AAA where possible, especially for 'High-Contrast' mood. The 'ring' color must be a perceptibly lighter or darker shade of the 'primary' color to be visible as a selection indicator. The mood provides the artistic direction and accessibility constraints. For color-blindness-friendly moods, you must avoid color combinations that are difficult to distinguish for that specific type of color vision deficiency.`;
 
+const themePrompt = ai.definePrompt(
+  {
+    name: 'themePrompt',
+    input: { schema: GenerateThemeInputSchema },
+    output: { schema: GenerateThemeOutputSchema },
+    config: {
+      temperature: 0.7, // Increase creativity and reduce repetition.
+    },
+  },
+  async (input) => {
+    // This function now dynamically builds the prompt text *before* calling the model.
+    let promptVersion = 'v1.0.0-fallback';
+    let promptText = DEFAULT_THEME_PROMPT;
+
+    try {
+      const appConfig = await getActiveAIConfig();
+      const systemId = 'theme-generator-ai';
+
+      if (appConfig?.activeAppAIVersion) {
+        const appVersionDoc = await getDoc(
+          doc(db, 'app_ai_versions', appConfig.activeAppAIVersion)
+        );
+
+        if (appVersionDoc.exists()) {
+          const appVersionData = appVersionDoc.data() as AppAIVersion;
+          const systemVersionId = appVersionData.systems[systemId];
+
+          if (systemVersionId) {
+            const versionDoc = await getDoc(
+              doc(db, 'prompt_versions', systemVersionId)
+            );
+            if (versionDoc.exists()) {
+              const versionData = versionDoc.data() as PromptVersion;
+              promptVersion = versionData.version;
+
+              const contentId = versionData.composedPrompts['base_instruction'];
+              if (contentId) {
+                const contentDoc = await getDoc(
+                  doc(db, 'prompt_content', contentId)
+                );
+                if (contentDoc.exists()) {
+                  promptText = (
+                    contentDoc.data() as PromptContent
+                  ).promptText;
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (configError) {
+      console.warn(
+        'Could not fetch dynamic AI config, using fallback prompt.',
+        configError
+      );
+      // Non-fatal error, we will proceed with the default prompt.
+    }
+
+    return `${promptText}
+Here is the user's input:
+- Word 1: {{{word1}}}
+- Word 2: {{{word2}}}
+- Word 3: {{{word3}}}
+- Mood: {{{mood}}}`;
+  }
+);
+
 
 export async function generateTheme(
   input: GenerateThemeInput
@@ -74,76 +141,11 @@ const generateThemeFlow = ai.defineFlow(
     },
   },
   async (input) => {
-    let promptVersion = 'v1.0.0-fallback';
-    let promptText = DEFAULT_THEME_PROMPT;
-
     try {
-        const appConfig = await getActiveAIConfig();
-        const systemId = 'theme-generator-ai';
-        
-        if (appConfig?.activeAppAIVersion) {
-            const appVersionDoc = await getDoc(
-                doc(db, 'app_ai_versions', appConfig.activeAppAIVersion)
-            );
-
-            if (appVersionDoc.exists()) {
-                const appVersionData = appVersionDoc.data() as AppAIVersion;
-                const systemVersionId = appVersionData.systems[systemId];
-
-                if (systemVersionId) {
-                    const versionDoc = await getDoc(
-                        doc(db, 'prompt_versions', systemVersionId)
-                    );
-                    if (versionDoc.exists()) {
-                        const versionData = versionDoc.data() as PromptVersion;
-                        promptVersion = versionData.version;
-
-                        const contentId = versionData.composedPrompts['base_instruction'];
-                        if (contentId) {
-                            const contentDoc = await getDoc(doc(db, 'prompt_content', contentId));
-                            if (contentDoc.exists()) {
-                                promptText = (contentDoc.data() as PromptContent).promptText;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    } catch (configError) {
-        console.warn('Could not fetch dynamic AI config, using fallback prompt.', configError);
-        await logErrorToFirestore(configError as Error, 'ai-config-fetch-failure', {
-            flow: 'generateThemeFlow',
-            fallbackUsed: true,
-        });
-        // Non-fatal error, we will proceed with the default promptText and version.
-    }
-      
-    try {
-      const fullPrompt = `${promptText}
-Here is the user's input:
-- Word 1: {{{word1}}}
-- Word 2: {{{word2}}}
-- Word 3: {{{word3}}}
-- Mood: {{{mood}}}`;
-      
-      const themePrompt = ai.definePrompt({
-        name: 'themePrompt',
-        prompt: fullPrompt,
-        input: { schema: GenerateThemeInputSchema },
-        output: { schema: GenerateThemeOutputSchema },
-        config: {
-          temperature: 0.7, // Increase creativity and reduce repetition.
-        },
-      });
-
       const response = await themePrompt(input);
       const output = response.output;
 
-      // This is the critical change: check for valid output.
       if (!output) {
-        // Log the full response to see the finish reason.
-        console.error('Theme generation returned no output.', response);
-        
         const finishReason = response.finishReason;
 
         if (finishReason === 'safety') {
@@ -159,13 +161,19 @@ Here is the user's input:
         );
       }
 
-      output.promptVersion = promptVersion;
+      // We manually add the prompt version to the output, as it's determined inside the prompt logic.
+      // A cleaner way in the future would be to pass it as part of the prompt context.
+      const promptData = await (themePrompt as any).__internal.getPromptAndConfig(input);
+      const versionMatch = promptData.prompt.match(/promptVersion: (v[\d.]+)/);
+      if (versionMatch) {
+          output.promptVersion = versionMatch[1];
+      }
+
       return output;
 
     } catch (generationError) {
       console.error('Error in generateThemeFlow during AI generation:', generationError);
       
-      // Re-throw user-facing errors directly.
       if ((generationError as Error).message.includes('safety filters')) {
         throw generationError;
       }
@@ -184,10 +192,8 @@ Here is the user's input:
       await logErrorToFirestore(generationError as Error, 'theme-generation-failure', {
         input: input,
         flow: 'generateThemeFlow',
-        promptVersionUsed: promptVersion,
       });
 
-      // Re-throw a more user-friendly error to be displayed in the toast.
       throw new Error(errorMessage);
     }
   }
