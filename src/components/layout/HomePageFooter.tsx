@@ -5,10 +5,8 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Settings } from 'lucide-react';
 import Link from 'next/link';
-
-const navItems = [
-  // The other items can be added here if needed in the future
-];
+import { SpeakerButton } from '../content/SpeakerButton';
+import { ContrastButton } from '../content/ContrastButton';
 
 export function HomePageFooter() {
   const pathname = usePathname();
@@ -16,12 +14,17 @@ export function HomePageFooter() {
   return (
     <footer className="border-t">
       <nav className="flex justify-between items-center py-4 px-4">
-        <div></div>
-        <Link href="/log/test">
-            <Button variant="link" className="text-6xl font-mono font-bold text-foreground/50 hover:no-underline hover:text-foreground/70">
-                Bird Book
-            </Button>
-        </Link>
+        <div className="flex gap-4">
+            <SpeakerButton />
+            <ContrastButton />
+        </div>
+        <div className="absolute left-1/2 -translate-x-1/2 pl-4">
+            <Link href="/log/test">
+                <Button variant="link" className="text-6xl font-mono font-bold text-foreground/50 hover:no-underline hover:text-foreground/70">
+                    Bird Book
+                </Button>
+            </Link>
+        </div>
         <Link href="/settings">
           <Button
             variant={pathname === '/settings' ? 'secondary' : 'ghost'}
