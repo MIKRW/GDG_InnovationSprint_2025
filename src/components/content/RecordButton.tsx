@@ -15,6 +15,7 @@ type RecordingState =
 interface RecordButtonProps {
     onPermissionDenied?: () => void;
     onStartRecording?: () => void;
+    onStopRecording?: () => void;
     onRecordingComplete: (audioBlob: Blob, duration?: number) => void;
     isProcessing: boolean;
 }
@@ -22,6 +23,7 @@ interface RecordButtonProps {
 const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
     onPermissionDenied,
     onStartRecording,
+    onStopRecording,
     onRecordingComplete,
     isProcessing
 }, ref) => {
@@ -89,6 +91,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
         timerIntervalRef.current = null;
       }
       setRecordingState('idle');
+      onStopRecording?.();
     }
   };
 
@@ -103,50 +106,43 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
   const getButtonContent = () => {
     if (isProcessing) {
         return {
-          icon: <Loader2 className="w-40 h-40 text-background animate-spin" />,
-          label: 'Analyzing...',
+          icon: <Loader2 className="w-full h-full text-foreground/50 animate-spin" />,
         };
     }
     switch (recordingState) {
       case 'recording':
         return {
-          icon: <Square className="w-40 h-40 text-background" />,
-          label: 'Press to Stop',
+          icon: <Square className="w-full h-full text-foreground" />,
           timer: `${String(Math.floor(elapsedTime / 60)).padStart(2, '0')}:${String(elapsedTime % 60).padStart(2, '0')}`,
         };
       case 'denied':
          return {
-          icon: <MicOff className="w-40 h-40 text-background" />,
-          label: 'Microphone Access Denied',
+          icon: <MicOff className="w-full h-full text-foreground/50" />,
         };
       default: // idle
         return {
-          icon: <ColorableLogo className="text-background/50" />,
-          label: 'Press to Record',
+          icon: <ColorableLogo className="text-foreground/50" />,
         };
     }
   };
 
-  const { icon, label, timer } = getButtonContent();
+  const { icon, timer } = getButtonContent();
   const isDisabled = isProcessing;
 
   return (
       <Button
         ref={ref}
-        variant="default"
+        variant="ghost"
         size="icon"
-        className="w-full h-full rounded-full bg-foreground hover:bg-foreground/90 flex flex-col-reverse justify-center items-center gap-8 transition-all duration-300 ease-in-out"
+        className="w-full h-full rounded-full flex flex-col justify-center items-center gap-8 transition-all duration-300 ease-in-out hover:bg-transparent"
         aria-label="Record Audio"
         onClick={handleClick}
         disabled={isDisabled}
       >
-        <div className="text-background text-center text-2xl">
-          <p className="text-xl">{label}</p>
-          {timer && <p className="text-4xl font-mono mt-2">{timer}</p>}
-        </div>
-        <div className="w-40 h-40">
+        <div className="w-full h-full p-12">
             {icon}
         </div>
+        {timer && <p className="absolute bottom-16 text-4xl font-mono mt-2 text-foreground">{timer}</p>}
       </Button>
   );
 });

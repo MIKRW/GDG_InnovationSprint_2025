@@ -24,6 +24,7 @@ export default function Home() {
   const router = useRouter();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [recordButtonLabel, setRecordButtonLabel] = useState('Press to Record');
 
   useEffect(() => {
     setIsClient(true);
@@ -62,8 +63,10 @@ export default function Home() {
   ) => {
       getLocationForAIShot(async (locationData) => {
         setIsProcessing(true);
+        setRecordButtonLabel('Analyzing...');
         if (!currentTimestamp.current) {
             setIsProcessing(false);
+            setRecordButtonLabel('Press to Record');
             return;
         }
         
@@ -105,6 +108,7 @@ export default function Home() {
                 router.push(`/record/confirm/${analysisRunId}`);
             }
             setIsProcessing(false);
+            setRecordButtonLabel('Press to Record');
         }
       });
   };
@@ -112,10 +116,12 @@ export default function Home() {
   const handleStartRecording = () => {
     currentSessionId.current = uuidv4();
     currentTimestamp.current = new Date().toISOString();
+    setRecordButtonLabel('Press to Stop');
   }
 
   const handleRecordingComplete = async (audioBlob: Blob) => {
     setIsProcessing(true);
+    setRecordButtonLabel('Processing...');
 
     const isDevTest = isClient && isDevMode();
     const testContext = isDevTest ? { birdId: 'live-test', testAudioId: uuidv4() } : undefined;
@@ -136,6 +142,7 @@ export default function Home() {
             filePath: filePath,
         });
         setIsProcessing(false);
+        setRecordButtonLabel('Press to Record');
     }
   }
 
@@ -143,12 +150,17 @@ export default function Home() {
   return (
     <AppLayout header={<PrimaryHeader />}>
       <main className="flex flex-1 flex-col items-center justify-center bg-muted p-4">
-        <div className="w-80 h-[32rem] flex items-center justify-center">
-          <RecordButton
-            onStartRecording={handleStartRecording}
-            onRecordingComplete={handleRecordingComplete}
-            isProcessing={isProcessing}
-          />
+        <div className="flex flex-col items-center justify-center gap-8">
+            <div className="w-80 h-[32rem] flex items-center justify-center">
+                <RecordButton
+                    onStartRecording={handleStartRecording}
+                    onRecordingComplete={handleRecordingComplete}
+                    onStopRecording={() => setRecordButtonLabel('Processing...')}
+                    onPermissionDenied={() => setRecordButtonLabel('Mic Access Denied')}
+                    isProcessing={isProcessing}
+                />
+            </div>
+            <p className="text-2xl text-center text-foreground">{recordButtonLabel}</p>
         </div>
       </main>
       <HomePageFooter />
