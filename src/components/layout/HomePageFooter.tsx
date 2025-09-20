@@ -15,7 +15,13 @@ export function HomePageFooter() {
 
   return (
     <footer className="border-t">
-      <nav className="flex justify-end py-4 px-4">
+      <nav className="flex justify-between items-center py-4 px-4">
+        <div></div>
+        <Link href="/log/test">
+            <Button variant="link" className="text-6xl font-mono font-bold text-foreground/50 hover:no-underline hover:text-foreground/70">
+                Bird Book
+            </Button>
+        </Link>
         <Link href="/settings">
           <Button
             variant={pathname === '/settings' ? 'secondary' : 'ghost'}
