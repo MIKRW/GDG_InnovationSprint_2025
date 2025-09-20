@@ -15,7 +15,6 @@ import { identifyBirdBySound, type IdentifyBirdOutput } from '@/ai/flows/context
 import { createAnalysisRun } from '@/lib/actions';
 import { storage } from '@/lib/firebase';
 import { ref as storageRef, uploadBytes } from 'firebase/storage';
-import { isDevMode } from '@/lib/utils';
 import type { LocationSettings } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
@@ -41,6 +40,10 @@ export default function RecordPage() {
   const getLocationForAIShot = (
     callback: (locationData?: { latitude?: number; longitude?: number, locationDescription?: string }) => void
   ) => {
+    if (!isClient) {
+      callback();
+      return;
+    }
     const savedSettingsJson = localStorage.getItem(LOCATION_SETTINGS_KEY);
     let settings: LocationSettings = { mode: 'device', manual: { latitude: 0, longitude: 0 }, description: '', privacy: { isOutside: true } };
     if (savedSettingsJson) {
@@ -61,14 +64,10 @@ export default function RecordPage() {
     }
   };
 
-  const processAudio = (
-    storagePath: string,
-    isDeveloperRun: boolean,
-    testContext?: { birdId: string; testAudioId: string }
-  ) => {
+  const processAudio = (storagePath: string) => {
       getLocationForAIShot(async (locationData) => {
         setIsProcessing(true);
-        if (!currentTimestamp.current) {
+        if (!currentTimestamp.current || !currentSessionId.current) {
             setIsProcessing(false);
             return;
         }
@@ -89,9 +88,8 @@ export default function RecordPage() {
 
             analysisRunId = await createAnalysisRun(
                 'anonymous', storagePath, result, wasSuccessful, locationData, hardware, 'newbie',
-                isDeveloperRun, testContext,
                 { primaryIdentificationMs: analysisDurationMs },
-                currentSessionId.current!, currentTimestamp.current!
+                currentSessionId.current, currentTimestamp.current
             );
 
         } catch (error) {
@@ -104,14 +102,15 @@ export default function RecordPage() {
             
             analysisRunId = await createAnalysisRun(
                 'anonymous', storagePath, result, false,
-                locationData, hardware, 'newbie', isDeveloperRun, testContext,
+                locationData, hardware, 'newbie',
                 { primaryIdentificationMs: analysisDurationMs },
-                currentSessionId.current!, currentTimestamp.current!
+                currentSessionId.current, currentTimestamp.current
             );
         } finally {
-            setIsProcessing(false);
             if (analysisRunId) {
                 router.push(`/record/result/${analysisRunId}`);
+            } else {
+                setIsProcessing(false);
             }
         }
       });
@@ -133,8 +132,6 @@ export default function RecordPage() {
     setIsRecording(false);
     setIsProcessing(true);
 
-    const isDevTest = isClient && isDevMode();
-    const testContext = isDevTest ? { birdId: 'live-test', testAudioId: uuidv4() } : undefined;
     const tempUserId = 'anonymous';
 
     const recordingId = uuidv4();
@@ -143,7 +140,7 @@ export default function RecordPage() {
 
     try {
         await uploadBytes(fileRef, audioBlob);
-        processAudio(filePath, isDevTest, testContext);
+        processAudio(filePath);
 
     } catch (error) {
         console.error("Failed to upload live recording:", error);

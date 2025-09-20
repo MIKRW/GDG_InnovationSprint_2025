@@ -31,7 +31,6 @@ const IdentifyBirdInputSchema = z.object({
     mode: z.enum(['newbie', 'twitcher']).describe('The application mode selected by the user, which may determine the expected audio quality and analysis depth.'),
     habitatPhotoDataUri: z.string().optional().describe("An optional photo of the bird's habitat, as a data URI."),
     habitatDescription: z.string().optional().describe("A user-provided text description of the habitat."),
-    isDeveloperData: z.boolean().optional(),
 });
 export type IdentifyBirdInput = z.infer<typeof IdentifyBirdInputSchema>;
 

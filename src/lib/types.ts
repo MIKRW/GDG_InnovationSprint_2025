@@ -47,7 +47,6 @@ export type AnalysisRun = {
   aiResult: IdentifyBirdOutput;
   wasSuccessful: boolean;
   wasSavedByUser: boolean;
-  isDeveloperData: boolean;
   mode: AppMode;
   userFeedback?: {
       aiWasCorrect: boolean;

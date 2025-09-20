@@ -143,15 +143,13 @@ export async function createAnalysisRun(
     locationData: any,
     hardware: string | null,
     mode: AppMode,
-    isDeveloperRun: boolean,
-    testContext?: { birdId: string; testAudioId: string },
     analysisTimings: AnalysisRun['analysisTimings'] = {},
-    sessionId?: string,
-    timestamp?: string,
+    sessionId: string,
+    timestamp: string,
   ) {
     
     const analysisRunId = uuidv4();
-    const collectionName = isDeveloperRun ? 'all_test_runs' : 'all_analysis_runs';
+    const collectionName = 'all_analysis_runs';
     const analysisRunRef = doc(db, collectionName, analysisRunId);
 
     const fileRef = storageRef(storage, audioStoragePath);
@@ -159,9 +157,9 @@ export async function createAnalysisRun(
 
     const docToCreate: Partial<AnalysisRun> = {
       id: analysisRunId,
-      timestamp: timestamp!,
+      timestamp: timestamp,
       userId: userId,
-      sessionId: sessionId!,
+      sessionId: sessionId,
       inputAudioUrl: inputAudioUrl,
       inputAudioStoragePath: audioStoragePath,
       locationData: {
@@ -174,7 +172,6 @@ export async function createAnalysisRun(
       wasSuccessful: wasSuccessful,
       wasSavedByUser: false,
       mode: mode,
-      isDeveloperData: isDeveloperRun,
       analysisTimings: analysisTimings,
     };
     
@@ -185,10 +182,6 @@ export async function createAnalysisRun(
     
     if (hardware) {
         docToCreate.hardware = hardware;
-    }
-    if (isDeveloperRun && testContext) {
-      docToCreate.birdId = testContext.birdId;
-      docToCreate.testAudioId = testContext.testAudioId;
     }
 
     await setDoc(analysisRunRef, docToCreate);
