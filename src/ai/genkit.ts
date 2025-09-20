@@ -12,9 +12,10 @@ import { isDevMode } from '@/lib/utils';
 //   secure method, and it requires the service account to have the
 //   "Vertex AI User" role in IAM.
 //
-// - In the local development environment, it checks for an API key in the
-//   `AI_GEN_MIRACLE_KEY` environment variable (loaded from the .env file).
-//   This provides a simple way for developers to test using their own key.
+// - In the local development environment, it first tries to use credentials
+//   from `gcloud auth application-default login`. If that fails, it falls
+//   back to checking for an API key in the `AI_GEN_MIRACLE_KEY` environment
+//   variable (loaded from the .env file).
 
 const plugins = [];
 

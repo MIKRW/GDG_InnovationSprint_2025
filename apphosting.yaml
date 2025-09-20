@@ -8,4 +8,4 @@ runConfig:
 # The backend's service account must be granted the "Vertex AI User"
 # role in the Google Cloud IAM console for it to access the AI APIs.
 #
-# secrets: [AI_GEN_MIRACLE_KEY] # No longer needed with IAM roles
+# secrets: [] # No secrets needed for the IAM role-based approach
