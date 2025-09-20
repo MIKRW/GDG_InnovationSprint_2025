@@ -20,7 +20,7 @@ function AiAssistantCard() {
     }
 
     return (
-         <Card className="w-full h-[72rem] shadow-2xl flex flex-col">
+         <Card className="w-full h-[60rem] shadow-2xl flex flex-col">
             <CardHeader className="text-center">
                 <CardTitle className="text-3xl">Bird Book Assistant</CardTitle>
                 <CardDescription className="text-lg italic">Your personal ornithologist</CardDescription>
@@ -44,7 +44,7 @@ function AiAssistantCard() {
 
 function BirdResultCard({ seed }: { seed: string }) {
     return (
-        <Card className="w-full h-[72rem] shadow-2xl">
+        <Card className="w-full h-[60rem] shadow-2xl">
             <div className="relative w-full h-64">
                 <Image
                     src={`https://picsum.photos/seed/${seed}/600/400`}
@@ -70,7 +70,7 @@ function BirdResultCard({ seed }: { seed: string }) {
 export default function BirdBookPage() {
     return (
         <AppLayout header={<PrimaryHeader />}>
-            <main className="flex-1 flex flex-col items-center p-4 bg-muted overflow-hidden">
+            <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden">
                 <Carousel className="w-full max-w-lg" opts={{ loop: true }}>
                     <CarouselContent>
                         <CarouselItem>
