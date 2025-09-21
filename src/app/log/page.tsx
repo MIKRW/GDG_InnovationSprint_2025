@@ -141,7 +141,7 @@ const CarouselPrevious = React.forwardRef<
   return (
     <button
       ref={ref}
-      className={cn("absolute top-1/2 -translate-y-1/2 h-20 w-20 -left-24", className)}
+      className={cn("absolute top-1/2 -translate-y-1/2 h-32 w-32 -left-40", className)}
       disabled={!canScrollPrev}
       onClick={scrollPrev}
       aria-label="Previous slide"
@@ -163,7 +163,7 @@ const CarouselNext = React.forwardRef<
   return (
     <button
       ref={ref}
-      className={cn("absolute top-1/2 -translate-y-1/2 h-20 w-20 -right-24", className)}
+      className={cn("absolute top-1/2 -translate-y-1/2 h-32 w-32 -right-40", className)}
       disabled={!canScrollNext}
       onClick={scrollNext}
       aria-label="Next slide"
@@ -186,7 +186,8 @@ export default function BirdBookPage() {
 
     useEffect(() => {
         setIsClient(true);
-        setCurrentTheme(localStorage.getItem('theme') || 'light');
+        const theme = localStorage.getItem('theme') || 'light';
+        setCurrentTheme(theme);
     }, []);
 
     useEffect(() => {
@@ -234,8 +235,8 @@ export default function BirdBookPage() {
                     <ContrastButton key={currentTheme} />
                 </div>
 
-                <Carousel className="w-full max-w-lg" opts={{ loop: false }} setApi={setApi}>
-                    <CarouselContent className="h-[34rem]">
+                <Carousel className="w-full max-w-xl" opts={{ loop: false }} setApi={setApi}>
+                    <CarouselContent className="h-[42rem]">
                         <CarouselItem>
                             <div className="p-1 h-full">
                                 <AiAssistantCard 
