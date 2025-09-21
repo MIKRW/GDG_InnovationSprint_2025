@@ -97,6 +97,18 @@ export default function SettingsPage() {
     return null;
   }
 
+  const ControlButton = () => (
+    <div className="flex justify-center mt-4">
+        <Button
+            onClick={() => setControlMode(controlMode === 'voice' ? 'text' : 'voice')}
+            variant={controlMode === 'text' ? 'secondary' : 'default'}
+            className="rounded-full px-8 py-4 text-lg font-semibold transition-colors duration-300"
+        >
+            {controlMode === 'voice' ? 'Voice Controlled' : 'Text Controlled'}
+        </Button>
+    </div>
+  )
+
   return (
     <AppLayout>
       <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
@@ -112,8 +124,8 @@ export default function SettingsPage() {
                 <CarouselContent className="h-[42rem]">
                     {/* Intro Card */}
                     <CarouselItem>
-                        <div className="p-1 h-full">
-                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
+                       <div className="p-1 h-full">
+                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
                                 <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
                                     <CardHeader className="text-center">
                                         <Settings className="h-48 w-48 text-foreground mx-auto" />
@@ -121,6 +133,7 @@ export default function SettingsPage() {
                                         <CardDescription>Swipe to customize your app experience.</CardDescription>
                                     </CardHeader>
                                 </Card>
+                                <ControlButton />
                             </div>
                         </div>
                     </CarouselItem>
@@ -128,7 +141,7 @@ export default function SettingsPage() {
                     {/* Auto-play Narration Card */}
                     <CarouselItem>
                         <div className="p-1 h-full">
-                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
+                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
                                 <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
                                     <CardHeader className="text-center">
                                         <ToggleLeft className="h-48 w-48 text-foreground mx-auto" />
@@ -150,6 +163,7 @@ export default function SettingsPage() {
                                         </div>
                                     </CardContent>
                                 </Card>
+                                <ControlButton />
                             </div>
                         </div>
                     </CarouselItem>
@@ -157,7 +171,7 @@ export default function SettingsPage() {
                     {/* Theme Generator Card */}
                     <CarouselItem>
                         <div className="p-1 h-full">
-                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
+                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
                                 <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
                                     <CardHeader className="text-center">
                                         <Palette className="h-48 w-48 text-foreground mx-auto" />
@@ -169,6 +183,7 @@ export default function SettingsPage() {
                                         </Button>
                                     </CardContent>
                                 </Card>
+                                <ControlButton />
                             </div>
                         </div>
                     </CarouselItem>
@@ -176,7 +191,7 @@ export default function SettingsPage() {
                     {/* Location Settings Card */}
                      <CarouselItem>
                         <div className="p-1 h-full">
-                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
+                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
                                 <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
                                     <CardHeader className="text-center">
                                         <MapPin className="h-48 w-48 text-foreground mx-auto" />
@@ -188,6 +203,7 @@ export default function SettingsPage() {
                                         </Button>
                                     </CardContent>
                                 </Card>
+                                <ControlButton />
                             </div>
                         </div>
                     </CarouselItem>
@@ -195,7 +211,7 @@ export default function SettingsPage() {
                     {/* App Mode Card */}
                     <CarouselItem>
                         <div className="p-1 h-full">
-                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
+                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
                                 <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
                                     <CardHeader className="text-center">
                                         <AudioLines className="h-48 w-48 text-foreground mx-auto" />
@@ -207,6 +223,7 @@ export default function SettingsPage() {
                                         </Button>
                                     </CardContent>
                                 </Card>
+                                <ControlButton />
                             </div>
                         </div>
                     </CarouselItem>
@@ -214,7 +231,7 @@ export default function SettingsPage() {
                      {/* Recording Hardware Card */}
                     <CarouselItem>
                         <div className="p-1 h-full">
-                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
+                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
                                 <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center text-center">
                                     <CardHeader>
                                         <CardTitle className="text-4xl font-mono">Recording Hardware</CardTitle>
@@ -236,6 +253,7 @@ export default function SettingsPage() {
                                         </Button>
                                     </CardContent>
                                 </Card>
+                                <ControlButton />
                             </div>
                         </div>
                     </CarouselItem>
@@ -244,15 +262,6 @@ export default function SettingsPage() {
                 <CarouselPrevious />
                 <CarouselNext />
             </Carousel>
-             <div className="flex justify-center mt-4">
-                <Button
-                    onClick={() => setControlMode(controlMode === 'voice' ? 'text' : 'voice')}
-                    variant={controlMode === 'text' ? 'secondary' : 'default'}
-                    className="rounded-full px-8 py-4 text-lg font-semibold transition-colors duration-300"
-                >
-                    {controlMode === 'voice' ? 'Voice Controlled' : 'Text Controlled'}
-                </Button>
-            </div>
         </div>
 
         <div className="absolute bottom-4 left-4 opacity-50">
