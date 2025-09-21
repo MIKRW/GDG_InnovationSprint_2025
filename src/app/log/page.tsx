@@ -285,7 +285,7 @@ export default function BirdBookPage() {
     const [isClient, setIsClient] = useState(false);
     const [currentTheme, setCurrentTheme] = useState('light');
     const [narrationText, setNarrationText] = useState(PAGE_NARRATION);
-    const { playNarration, isLoading: isSpeakerLoading, ...speakerProps } = useSpeaker(narrationText);
+    const { playNarration, isLoading: isSpeakerLoading, isCarouselAutoPlayOn, ...speakerProps } = useSpeaker(narrationText, 'carousel');
     const [savedRuns, setSavedRuns] = useState<AnalysisRun[]>([]);
     const narrationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -323,10 +323,15 @@ export default function BirdBookPage() {
             if (narrationTimeoutRef.current) {
                 clearTimeout(narrationTimeoutRef.current);
             }
-            narrationTimeoutRef.current = setTimeout(() => {
-                const newNarration = getNarrationForSlide(api.selectedScrollSnap());
-                setNarrationText(newNarration);
-            }, 2000);
+            if (isCarouselAutoPlayOn) {
+                narrationTimeoutRef.current = setTimeout(() => {
+                    const newNarration = getNarrationForSlide(api.selectedScrollSnap());
+                    setNarrationText(newNarration);
+                }, 2000);
+            } else {
+                 const newNarration = getNarrationForSlide(api.selectedScrollSnap());
+                 setNarrationText(newNarration);
+            }
         };
 
         api.on("select", handleSelect);
@@ -337,7 +342,7 @@ export default function BirdBookPage() {
                 clearTimeout(narrationTimeoutRef.current);
             }
         };
-    }, [api, getNarrationForSlide]);
+    }, [api, getNarrationForSlide, isCarouselAutoPlayOn]);
     
     const startChat = () => {
         api?.scrollTo(0);

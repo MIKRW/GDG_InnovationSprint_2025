@@ -9,13 +9,15 @@ const FIRST_INTERACTION_KEY = 'user-has-interacted';
 
 interface SpeakerSettings {
     isSpeakerOn: boolean;
-    isAutoPlayOn: boolean;
+    isGeneralAutoPlayOn: boolean;
+    isCarouselAutoPlayOn: boolean;
 }
 
-export function useSpeaker(narrationText: string) {
+export function useSpeaker(narrationText: string, autoPlayType: 'general' | 'carousel') {
     const [settings, setSettings] = useState<SpeakerSettings>({
         isSpeakerOn: true,
-        isAutoPlayOn: false, // Default to off
+        isGeneralAutoPlayOn: false,
+        isCarouselAutoPlayOn: false,
     });
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -25,10 +27,8 @@ export function useSpeaker(narrationText: string) {
     const lastPlayedTextRef = useRef<string | null>(null);
     
     useEffect(() => {
-        // This ref should reflect the session storage, not be a separate boolean
         hasInteractedRef.current = !!sessionStorage.getItem(FIRST_INTERACTION_KEY);
         
-        // Initialize audio element on client
         audioRef.current = new Audio();
         
         const handlePlay = () => setIsPlaying(true);
@@ -44,29 +44,27 @@ export function useSpeaker(narrationText: string) {
         audioEl.addEventListener('ended', handleEnd);
         audioEl.addEventListener('pause', handleEnd);
 
-        // Load settings from localStorage
         const savedSettings = localStorage.getItem(SPEAKER_SETTINGS_KEY);
+        const defaultSettings = { isSpeakerOn: true, isGeneralAutoPlayOn: false, isCarouselAutoPlayOn: false };
+
         if (savedSettings) {
             try {
                 const parsed = JSON.parse(savedSettings);
-                setSettings(parsed);
+                setSettings({ ...defaultSettings, ...parsed });
             } catch (e) {
                 console.error("Failed to parse speaker settings:", e);
-                 // If parsing fails, set default
-                setSettings({ isSpeakerOn: true, isAutoPlayOn: false });
-                localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify({ isSpeakerOn: true, isAutoPlayOn: false }));
+                setSettings(defaultSettings);
+                localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(defaultSettings));
             }
         } else {
-            // If no settings, this is likely the first run, so set defaults
-            setSettings({ isSpeakerOn: true, isAutoPlayOn: false });
-            localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify({ isSpeakerOn: true, isAutoPlayOn: false }));
+            setSettings(defaultSettings);
+            localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(defaultSettings));
         }
 
         return () => {
             audioEl.removeEventListener('play', handlePlay);
             audioEl.removeEventListener('ended', handleEnd);
             audioEl.removeEventListener('pause', handleEnd);
-            // Ensure audio is stopped on unmount
             if (audioEl) {
               audioEl.pause();
               audioEl.src = '';
@@ -77,7 +75,6 @@ export function useSpeaker(narrationText: string) {
     const fetchAndCacheAudio = useCallback(async (textToPlay: string, shouldPlay: boolean) => {
         if (!textToPlay || !settings.isSpeakerOn) return;
 
-        // If we have the audio for the exact text cached, play it.
         if (audioDataUriRef.current && lastPlayedTextRef.current === textToPlay) {
             if (shouldPlay && hasInteractedRef.current && audioRef.current) {
                  if (audioRef.current.src !== audioDataUriRef.current) {
@@ -88,7 +85,6 @@ export function useSpeaker(narrationText: string) {
             return;
         }
 
-        // If not cached, fetch it.
         setIsLoading(true);
         try {
             const response = await textToSpeech(textToPlay);
@@ -106,13 +102,14 @@ export function useSpeaker(narrationText: string) {
     }, [settings.isSpeakerOn]);
 
     useEffect(() => {
-        if (settings.isAutoPlayOn && settings.isSpeakerOn && narrationText && hasInteractedRef.current) {
+        const isAutoPlayRelevant = (autoPlayType === 'general' && settings.isGeneralAutoPlayOn) || (autoPlayType === 'carousel' && settings.isCarouselAutoPlayOn);
+        
+        if (isAutoPlayRelevant && settings.isSpeakerOn && narrationText && hasInteractedRef.current) {
             fetchAndCacheAudio(narrationText, true);
         } else if (settings.isSpeakerOn && narrationText) {
-             // Pre-fetch audio even if autoplay is off, but don't play it
             fetchAndCacheAudio(narrationText, false);
         }
-    }, [narrationText, settings.isAutoPlayOn, settings.isSpeakerOn, fetchAndCacheAudio]);
+    }, [narrationText, settings.isGeneralAutoPlayOn, settings.isCarouselAutoPlayOn, settings.isSpeakerOn, autoPlayType, fetchAndCacheAudio]);
 
 
     const playNarration = useCallback(async (textToPlay: string) => {
@@ -127,7 +124,6 @@ export function useSpeaker(narrationText: string) {
                 localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
                 return newSettings;
             });
-            // After enabling, it will try to play.
              fetchAndCacheAudio(textToPlay, true);
             return;
         };
@@ -143,9 +139,17 @@ export function useSpeaker(narrationText: string) {
         }
     }, [settings.isSpeakerOn, isPlaying, fetchAndCacheAudio]);
 
-    const toggleAutoPlay = useCallback(() => {
+    const toggleGeneralAutoPlay = useCallback(() => {
         setSettings(prev => {
-            const newSettings = { ...prev, isAutoPlayOn: !prev.isAutoPlayOn };
+            const newSettings = { ...prev, isGeneralAutoPlayOn: !prev.isGeneralAutoPlayOn };
+            localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
+            return newSettings;
+        });
+    }, []);
+    
+    const toggleCarouselAutoPlay = useCallback(() => {
+        setSettings(prev => {
+            const newSettings = { ...prev, isCarouselAutoPlayOn: !prev.isCarouselAutoPlayOn };
             localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
             return newSettings;
         });
@@ -154,12 +158,12 @@ export function useSpeaker(narrationText: string) {
 
     return {
         isSpeakerOn: settings.isSpeakerOn,
-        isAutoPlayOn: settings.isAutoPlayOn,
+        isGeneralAutoPlayOn: settings.isGeneralAutoPlayOn,
+        isCarouselAutoPlayOn: settings.isCarouselAutoPlayOn,
         isPlaying,
         isLoading,
         playNarration,
-        toggleAutoPlay,
+        toggleGeneralAutoPlay,
+        toggleCarouselAutoPlay,
     };
 }
-
-    

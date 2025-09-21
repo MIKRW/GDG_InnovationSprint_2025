@@ -69,7 +69,7 @@ CarouselNext.displayName = "CarouselNext"
 
 const NARRATION_TEXTS = [
     "Settings introduction. Swipe to customize your app experience.",
-    "Auto-play Narration settings. Automatically play descriptive audio on each page.",
+    "Auto-play Narration settings. Automatically play descriptive audio for pages and carousel slides.",
     "Customize Theme settings. Open the theme editor to change colors.",
     "Location Settings. Manage how the app uses your location to improve identification.",
     "App Mode settings. Change the app mode between Newbie and Twitcher.",
@@ -82,7 +82,7 @@ export default function SettingsPage() {
   const [hardware, setHardware] = useState('');
   const [isClient, setIsClient] = useState(false);
   const [narrationText, setNarrationText] = useState(PAGE_NARRATION);
-  const { playNarration, toggleAutoPlay, isAutoPlayOn, ...speakerProps } = useSpeaker(narrationText);
+  const { playNarration, isGeneralAutoPlayOn, toggleGeneralAutoPlay, isCarouselAutoPlayOn, toggleCarouselAutoPlay, ...speakerProps } = useSpeaker(narrationText, 'general');
   const [api, setApi] = useState<CarouselApi>();
   const [controlMode, setControlMode] = useState<'voice' | 'text'>('text');
   const narrationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -118,7 +118,7 @@ export default function SettingsPage() {
             clearTimeout(narrationTimeoutRef.current);
         }
     };
-  }, [api]);
+  }, [api, isCarouselAutoPlayOn]);
   
   const handleSaveHardware = () => {
     if (hardware) {
@@ -179,24 +179,32 @@ export default function SettingsPage() {
                     <CarouselItem>
                         <div className="p-1 h-full">
                            <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
-                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
-                                    <CardHeader className="text-center">
-                                        <ToggleLeft className="h-48 w-48 text-foreground mx-auto" />
+                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center text-center">
+                                    <CardHeader>
+                                        <ToggleLeft className="h-32 w-32 text-foreground mx-auto" />
                                         <CardTitle className="text-4xl font-mono pt-4">Auto-play Narration</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="flex flex-col items-center gap-4">
                                          <CardDescription>
-                                            Automatically play descriptive audio on each page.
+                                            Automatically play descriptive audio. Defaults to off to reduce AI costs.
                                         </CardDescription>
-                                        <div className="flex items-center space-x-2 pt-4">
-                                            <Label htmlFor="auto-play-switch" className="text-lg">Off</Label>
+                                    </CardHeader>
+                                    <CardContent className="flex flex-col items-center gap-6">
+                                        <div className="flex items-center space-x-2">
+                                            <Label htmlFor="general-autoplay-switch" className="text-lg w-48 text-right">General Pages</Label>
                                             <Switch
-                                                id="auto-play-switch"
-                                                checked={isAutoPlayOn}
-                                                onCheckedChange={toggleAutoPlay}
+                                                id="general-autoplay-switch"
+                                                checked={isGeneralAutoPlayOn}
+                                                onCheckedChange={toggleGeneralAutoPlay}
                                                 className="h-8 w-16 [&>span]:h-6 [&>span]:w-6 [&>span[data-state=checked]]:translate-x-9"
                                             />
-                                            <Label htmlFor="auto-play-switch" className="text-lg">On</Label>
+                                        </div>
+                                         <div className="flex items-center space-x-2">
+                                            <Label htmlFor="carousel-autoplay-switch" className="text-lg w-48 text-right">Carousel Slides</Label>
+                                            <Switch
+                                                id="carousel-autoplay-switch"
+                                                checked={isCarouselAutoPlayOn}
+                                                onCheckedChange={toggleCarouselAutoPlay}
+                                                className="h-8 w-16 [&>span]:h-6 [&>span]:w-6 [&>span[data-state=checked]]:translate-x-9"
+                                            />
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -324,7 +332,3 @@ export default function SettingsPage() {
     </AppLayout>
   );
 }
-
-  
-
-    
