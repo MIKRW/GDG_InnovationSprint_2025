@@ -1,12 +1,13 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Volume2 } from 'lucide-react';
+import { Speaker } from 'lucide-react';
 
 export function SpeakerButton() {
   return (
-    <Button variant="ghost" size="icon" aria-label="Toggle Sound">
-      <Volume2 className="h-5 w-5" />
+    <Button variant="ghost" size="icon" aria-label="Toggle Sound" className="h-40 w-40">
+      <Speaker className="h-32 w-32" strokeWidth={2.5} />
     </Button>
   );
 }

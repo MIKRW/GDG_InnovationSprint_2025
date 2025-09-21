@@ -2,14 +2,39 @@
 'use server';
 
 import { revalidateTag } from 'next/cache';
-import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
-import { doc, setDoc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, orderBy, runTransaction, writeBatch } from 'firebase/firestore';
+import { getDownloadURL, ref as storageRef, uploadString } from 'firebase/storage';
+import {
+  arrayUnion,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  runTransaction,
+  setDoc,
+  updateDoc,
+  where,
+  writeBatch
+} from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
-import type { TestAudioMetadata, BirdLog, PromptSystem, PromptVersion, AppAIVersion, AppAIConfig, PromptContent, AnalysisRun, AppMode } from './types';
-import { EmailAuthProvider, linkWithCredential, type User } from 'firebase/auth';
+import type {
+  AnalysisRun,
+  AppAIConfig,
+  AppAIVersion,
+  AppMode,
+  IdentifyBirdOutput,
+  PromptContent,
+  PromptSystem,
+  PromptVersion,
+  TestAudioMetadata
+} from './types';
 import { kebabCase } from 'lodash';
 import { cache } from 'react';
+import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
+import { logErrorToFirestore } from './error-logging';
+import { adminApp, adminStorage } from './firebase-admin';
 
 
 interface UploadMasterAudioInput {
@@ -44,11 +69,7 @@ export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<T
     const filePath = `master-audio/${birdId}/${uniqueFileName}`;
     const fileRef = storageRef(storage, filePath);
 
-    // Convert data URI to blob
-    const fetchResponse = await fetch(audioFile);
-    const blob = await fetchResponse.blob();
-    
-    await uploadBytes(fileRef, blob);
+    await uploadString(fileRef, audioFile, 'data_url');
     await getDownloadURL(fileRef);
 
     // 2. Create or update the bird document in Firestore
@@ -108,35 +129,6 @@ export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<T
     };
 }
 
-interface RegisterUserInput {
-    email: string;
-    pass: string;
-}
-
-export async function upgradeAnonymousUser(currentUser: User, { email, pass }: RegisterUserInput) {
-    if (!currentUser || !currentUser.isAnonymous) {
-        throw new Error("No anonymous user is currently signed in.");
-    }
-    
-    try {
-        const credential = EmailAuthProvider.credential(email, pass);
-        const userCredential = await linkWithCredential(currentUser, credential);
-        return { success: true, user: userCredential.user };
-    } catch (error: any) {
-        console.error("Error upgrading anonymous user:", error.code, error.message);
-        return { success: false, error: { code: error.code, message: error.message } };
-    }
-}
-
-
-export async function trashLog(log: BirdLog) {
-    const userLogRef = doc(db, 'users', log.userId, 'identifications', log.id);
-    await updateDoc(userLogRef, { status: 'trashed' });
-
-    return { success: true };
-}
-
-
 export async function saveCanonicalImage(
     commonName: string,
     scientificName: string,
@@ -165,65 +157,99 @@ export async function saveCanonicalImage(
     return downloadURL;
 }
 
+
 export async function createAnalysisRun(
-    userId: string,
-    audioStoragePath: string,
-    aiResult: any,
-    wasSuccessful: boolean,
-    locationData: any,
-    hardware: string | null,
-    mode: AppMode,
-    isDeveloperRun: boolean,
-    testContext?: { birdId: string; testAudioId: string },
-    analysisTimings: AnalysisRun['analysisTimings'] = {},
-    sessionId?: string,
-    timestamp?: string,
-  ) {
-    
-    const analysisRunId = uuidv4();
-    const collectionName = isDeveloperRun ? 'all_test_runs' : 'all_analysis_runs';
-    const analysisRunRef = doc(db, collectionName, analysisRunId);
+  storagePath: string,
+  recordingId: string,
+  locationData: any,
+  hardware: string | null,
+  mode: AppMode,
+  analysisTimings: AnalysisRun['analysisTimings'] = {},
+  sessionId: string,
+  creationTime: string,
+  error?: Error
+): Promise<string> {
+  
+  const analysisRunId = uuidv4();
+  const collectionName = 'all_analysis_runs';
+  const analysisRunRef = doc(db, collectionName, analysisRunId);
+  
+  let aiResult: IdentifyBirdOutput;
+  let wasSuccessful: boolean;
+  
+  if (error) {
+    // If an error was passed in from the client (e.g., upload failed), log it directly.
+    wasSuccessful = false;
+    aiResult = { isBirdSong: false, error: error.message };
+    logErrorToFirestore(error, 'client-side-failure', { sessionId, recordingId, analysisRunId });
+  } else {
+    try {
+        const analysisStartTime = Date.now();
+        
+        // Use Admin SDK to download the file into a buffer on the server
+        const file = adminStorage.bucket().file(storagePath);
+        const [audioBuffer] = await file.download();
 
-    const fileRef = storageRef(storage, audioStoragePath);
-    const inputAudioUrl = await getDownloadURL(fileRef);
+        // Convert buffer to base64 and create data URI
+        const audioBase64 = audioBuffer.toString('base64');
+        const audioDataUri = `data:audio/wav;base64,${audioBase64}`;
 
-    const docToCreate: Partial<AnalysisRun> = {
-      id: analysisRunId,
-      timestamp: timestamp!,
-      userId: userId,
-      sessionId: sessionId!,
-      inputAudioUrl: inputAudioUrl,
-      inputAudioStoragePath: audioStoragePath,
-      locationData: {
-        latitude: locationData?.latitude ?? null,
-        longitude: locationData?.longitude ?? null,
-        locationDescription: locationData?.locationDescription ?? null,
-      },
-      analysisMethod: aiResult.promptVersion || 'unknown',
-      aiResult: aiResult,
-      wasSuccessful: wasSuccessful,
-      wasSavedByUser: false,
-      mode: mode,
-      isDeveloperData: isDeveloperRun,
-      analysisTimings: analysisTimings,
-    };
-    
-    // Only add recordingLengthSeconds if it's a valid number
-    if (typeof aiResult.duration === 'number') {
-        docToCreate.recordingLengthSeconds = aiResult.duration;
-    }
-    
-    if (hardware) {
-        docToCreate.hardware = hardware;
-    }
-    if (isDeveloperRun && testContext) {
-      docToCreate.birdId = testContext.birdId;
-      docToCreate.testAudioId = testContext.testAudioId;
-    }
+        aiResult = await identifyBirdBySound({
+            audioDataUri,
+            creationTime: creationTime,
+            ...locationData,
+            mode: mode
+        });
+        
+        wasSuccessful = !!aiResult && aiResult.isBirdSong !== false;
+        
+        const analysisDurationMs = Date.now() - analysisStartTime;
+        analysisTimings.primaryIdentificationMs = analysisDurationMs;
 
-    await setDoc(analysisRunRef, docToCreate);
-    return analysisRunId;
+    } catch (flowError) {
+        wasSuccessful = false;
+        aiResult = { isBirdSong: false, error: (flowError as Error).message };
+        logErrorToFirestore(flowError as Error, 'ai-flow-execution-failure', { sessionId, recordingId, analysisRunId });
+    }
   }
+  
+  const docToCreate: Partial<AnalysisRun> = {
+    id: analysisRunId,
+    creationTime: creationTime,
+    userId: 'anonymous',
+    sessionId: sessionId,
+    inputAudioStoragePath: storagePath,
+    locationData: {
+      latitude: locationData?.latitude ?? null,
+      longitude: locationData?.longitude ?? null,
+      locationDescription: locationData?.locationDescription ?? null,
+    },
+    analysisMethod: aiResult?.promptVersion || 'unknown',
+    aiResult: aiResult,
+    wasSuccessful: wasSuccessful,
+    wasSavedByUser: false,
+    mode: mode,
+    analysisTimings: analysisTimings,
+  };
+  
+  try {
+    docToCreate.inputAudioUrl = await getDownloadURL(storageRef(storage, storagePath));
+  } catch (urlError) {
+    docToCreate.inputAudioUrl = '';
+    console.warn(`Could not get download URL for ${storagePath}`, urlError);
+  }
+  
+  if (typeof aiResult?.duration === 'number') {
+      docToCreate.recordingLengthSeconds = aiResult.duration;
+  }
+  
+  if (hardware) {
+      docToCreate.hardware = hardware;
+  }
+
+  await setDoc(analysisRunRef, docToCreate);
+  return analysisRunId;
+}
 
 // =================================================================
 // Three-Tiered Prompt Versioning System Actions
@@ -348,7 +374,7 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
 
         // Create bird identifier system
         transaction.set(doc(db, 'prompt_systems', birdSystemId), { name: "Bird Identifier AI (Newbie)", description: "Manages prompts for identifying birds in Newbie mode.", activeVersion: birdVersionId });
-        transaction.set(doc(db, 'prompt_content', birdContentId), { systemId: birdSystemId, categoryId: 'base_instruction', version: birdVersionId, promptText: `You are an expert ornithologist. Your primary goal is to identify bird species from audio recordings. The user will provide an audio file and optional location data. You MUST analyze this audio to determine if a bird song is present. If it is, identify the bird's common name, scientific name, taxonomic family, and order. If no bird song is discernible, you MUST set 'isBirdSong' to false. You must also generate a simple, descriptive prompt for a text-to-image model to create a photorealistic image of the identified bird.`, timestamp: new Date().toISOString() });
+        transaction.set(doc(db, 'prompt_content', birdContentId), { systemId: birdSystemId, categoryId: 'base_instruction', version: birdVersionId, promptText: `You are an expert ornithologist. Your primary goal is to identify bird species from audio recordings. The user will provide an audio file and optional location data. You MUST analyze this audio to determine if a bird song is present. If it is, identify the bird's common name, scientificName, taxonomic family, and order. If no bird song is discernible, you MUST set 'isBirdSong' to false. You must also generate a simple, descriptive prompt for a text-to-image model to create a photorealistic image of the identified bird.`, timestamp: new Date().toISOString() });
         transaction.set(doc(db, 'prompt_versions', birdVersionDocId), { systemId: birdSystemId, version: birdVersionId, composedPrompts: { base_instruction: birdContentId }, timestamp: new Date().toISOString() });
         
         // Create theme generator system
@@ -447,7 +473,7 @@ export async function promoteDevelopmentVersionToLive(
     const liveVersionRef = doc(db, 'app_ai_versions', newLiveVersionId);
     
     const batch = writeBatch(db);
-    batch.set(liveVersionRef, newLiveVersion);
+batch.set(liveVersionRef, newLiveVersion);
     batch.update(doc(db, 'app_ai_config', 'main'), { activeAppAIVersion: newLiveVersionId });
     await batch.commit();
     
@@ -499,3 +525,7 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
     revalidateTag('prompts-v7');
     return { id: newId, ...newContentData };
 }
+
+    
+
+    

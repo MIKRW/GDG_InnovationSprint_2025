@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { googleAI } from '@genkit-ai/googleai';
 
 const GenerateBirdImageInputSchema = z.object({
-  prompt: z.string().describe('A descriptive text prompt for generating a bird image, e.g., "photo of an American Robin on a branch".'),
+  commonName: z.string().describe("The common name of the bird to generate, e.g., 'American Robin'."),
 });
 export type GenerateBirdImageInput = z.infer<typeof GenerateBirdImageInputSchema>;
 
@@ -38,7 +38,7 @@ const generateBirdImageFlow = ai.defineFlow(
     // Using a specific image generation model
     const { media } = await ai.generate({
         model: googleAI.model('imagen-4.0-fast-generate-001'),
-        prompt: input.prompt,
+        prompt: `photorealistic photo of a ${input.commonName} on a branch in its natural habitat`,
     });
 
     if (!media || !media.url) {

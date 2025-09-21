@@ -1,154 +1,231 @@
-
 'use-client';
 
-import { useState, useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
-import { useAuth } from '@/components/providers/AuthProvider';
-
+import { useState, useRef, forwardRef, useEffect, useCallback } from 'react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { MicrophoneIcon } from './MicrophoneIcon';
-import { Loader2, MicOff, Square } from 'lucide-react';
-
-type RecordingState =
-  | 'idle'
-  | 'denied'
-  | 'recording';
+import { MicOff } from 'lucide-react';
+import { ColorableLogo } from './ColorableLogo';
 
 interface RecordButtonProps {
-    onPermissionDenied?: () => void;
-    onStartRecording?: () => void;
-    onRecordingComplete: (audioBlob: Blob, duration?: number) => void;
-    isProcessing: boolean;
+    onStart?: () => void;
+    onStop?: () => void;
+    onRecordingComplete: (audioBlob: Blob | null) => void;
+    isRecording: boolean;
+    hasPermission: boolean | null;
 }
 
-const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
-    onPermissionDenied,
-    onStartRecording,
-    onRecordingComplete,
-    isProcessing
-}, ref) => {
-  const { user } = useAuth();
-  const [recordingState, setRecordingState] = useState<RecordingState>('idle');
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const recordingStartTimeRef = useRef<number | null>(null);
-  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
-  useEffect(() => {
-    // Cleanup interval on component unmount
-    return () => {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-      }
-    };
-  }, []);
+// Helper function to encode raw PCM audio data into a WAV blob
+const encodeWAV = (samples: Float32Array, sampleRate: number): Blob => {
+    const buffer = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(buffer);
 
-  const handleStartRecording = async () => {
-    onStartRecording?.();
-    if (recordingState === 'denied' || !user) {
-        if (!user) console.error("Cannot record: User not authenticated.");
-        if (recordingState === 'denied') onPermissionDenied?.();
+    const writeString = (view: DataView, offset: number, string: string) => {
+        for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+        }
+    };
+
+    const floatTo16BitPCM = (output: DataView, offset: number, input: Float32Array) => {
+        for (let i = 0; i < input.length; i++, offset += 2) {
+            const s = Math.max(-1, Math.min(1, input[i]));
+            output.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        }
+    };
+
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeString(view, 8, 'WAVE');
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // PCM
+    view.setUint16(22, 1, true); // Mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true); // sampleRate * numChannels * bitsPerSample/8
+    view.setUint16(32, 2, true); // numChannels * bitsPerSample/8
+    view.setUint16(34, 16, true); // 16 bits per sample
+    writeString(view, 36, 'data');
+    view.setUint32(40, samples.length * 2, true);
+    floatTo16BitPCM(view, 44, samples);
+
+    return new Blob([view], { type: 'audio/wav' });
+};
+
+
+const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
+    onStart,
+    onStop,
+    onRecordingComplete,
+    isRecording,
+    hasPermission,
+}, ref) => {
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const scriptProcessorNodeRef = useRef<ScriptProcessorNode | null>(null);
+  const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const rawAudioBufferRef = useRef<Float32Array[]>([]);
+  
+  const isRecordingRef = useRef(isRecording);
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
+
+  const stopRecordingAndProcess = useCallback(() => {
+    if (scriptProcessorNodeRef.current) {
+        scriptProcessorNodeRef.current.disconnect();
+        scriptProcessorNodeRef.current = null;
+    }
+    if (mediaStreamSourceRef.current) {
+        mediaStreamSourceRef.current.mediaStream.getTracks().forEach(track => track.stop());
+        mediaStreamSourceRef.current.disconnect();
+        mediaStreamSourceRef.current = null;
+    }
+    
+    // Check the context state before trying to close it
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(e => console.error("Error closing AudioContext:", e));
+    }
+    audioContextRef.current = null;
+
+    if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+    }
+    setElapsedTime(0);
+
+    if (rawAudioBufferRef.current.length === 0) {
+        onRecordingComplete(null);
         return;
     }
 
-    recordingStartTimeRef.current = Date.now();
+    const totalSamples = rawAudioBufferRef.current.reduce((acc, buf) => acc + buf.length, 0);
+    const concatenatedBuffer = new Float32Array(totalSamples);
+    let offset = 0;
+    for (const buffer of rawAudioBufferRef.current) {
+        concatenatedBuffer.set(buffer, offset);
+        offset += buffer.length;
+    }
+    
+    // We assume a common sample rate, as we can't get it from a closed context.
+    const sampleRate = 44100;
+    const wavBlob = encodeWAV(concatenatedBuffer, sampleRate);
+    onRecordingComplete(wavBlob);
+
+    rawAudioBufferRef.current = [];
+
+  }, [onRecordingComplete]);
+
+  const startRawRecording = useCallback(async () => {
     setElapsedTime(0);
+    rawAudioBufferRef.current = [];
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      audioChunksRef.current = [];
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioContextRef.current = context;
 
-      mediaRecorderRef.current.addEventListener('dataavailable', (event: BlobEvent) => {
-        audioChunksRef.current.push(event.data);
-      });
+        const source = context.createMediaStreamSource(stream);
+        mediaStreamSourceRef.current = source;
 
-      mediaRecorderRef.current.addEventListener('stop', () => {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          const recordingLengthSeconds = recordingStartTimeRef.current ? parseFloat(((Date.now() - recordingStartTimeRef.current) / 1000).toFixed(2)) : undefined;
-          onRecordingComplete(audioBlob, recordingLengthSeconds);
-      });
+        // Buffer size, input channels, output channels
+        const node = context.createScriptProcessor(4096, 1, 1);
+        scriptProcessorNodeRef.current = node;
 
-      mediaRecorderRef.current.start();
-      setRecordingState('recording');
+        node.onaudioprocess = (audioProcessingEvent) => {
+            if (!isRecordingRef.current) return;
+            const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+            rawAudioBufferRef.current.push(new Float32Array(inputData));
+        };
 
-      timerIntervalRef.current = setInterval(() => {
-        setElapsedTime(prev => prev + 1);
-      }, 1000);
+        source.connect(node);
+        node.connect(context.destination);
 
+        timerIntervalRef.current = setInterval(() => setElapsedTime(prev => prev + 1), 1000);
     } catch (err) {
-      console.error('Permission denied or no microphone found:', err);
-      setRecordingState('denied');
-      onPermissionDenied?.();
+        console.error('Error starting raw audio recording:', err);
+        onRecordingComplete(null);
     }
-  };
+  }, [onRecordingComplete]);
 
-  const handleStopRecording = () => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-        timerIntervalRef.current = null;
+  // This effect now correctly handles starting and stopping the recording
+  // based on the transition of the isRecording prop.
+  useEffect(() => {
+    if (isRecording) {
+      startRawRecording();
+    } else {
+      // Only call stop if there's actually a recording process to stop.
+      // This prevents the initial "stop" call on component mount.
+      if (audioContextRef.current) {
+        stopRecordingAndProcess();
       }
-      setRecordingState('idle');
     }
-  };
+    
+    // Cleanup on unmount
+    return () => {
+        if (audioContextRef.current) {
+            stopRecordingAndProcess();
+        }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRecording]);
+
 
   const handleClick = () => {
-    if (recordingState === 'recording') {
-      handleStopRecording();
+    if (isRecording) {
+      onStop?.();
     } else {
-      handleStartRecording();
+      onStart?.();
     }
   };
 
   const getButtonContent = () => {
-    if (isProcessing) {
-        return {
-          icon: <Loader2 className="w-40 h-40 text-background animate-spin" />,
-          label: 'Analyzing...',
-        };
+    if (hasPermission === false) {
+       return {
+        icon: <MicOff className="w-full h-full text-foreground/50" />,
+        title: 'Mic Disabled',
+        subtitle: 'Click to grant permission',
+      };
     }
-    switch (recordingState) {
-      case 'recording':
-        return {
-          icon: <Square className="w-40 h-40 text-background" />,
-          label: 'Press to Stop',
-          timer: `${String(Math.floor(elapsedTime / 60)).padStart(2, '0')}:${String(elapsedTime % 60).padStart(2, '0')}`,
-        };
-      case 'denied':
-         return {
-          icon: <MicOff className="w-40 h-40 text-background" />,
-          label: 'Microphone Access Denied',
-        };
-      default: // idle
-        return {
-          icon: <MicrophoneIcon />,
-          label: 'Press to Record',
-        };
+    if (isRecording) {
+       return {
+        icon: <ColorableLogo className="text-foreground" />,
+        title: 'Press to Stop',
+        timer: `${String(Math.floor(elapsedTime / 60)).padStart(2, '0')}:${String(elapsedTime % 60).padStart(2, '0')}`,
+      };
     }
+    return {
+      icon: <ColorableLogo className="text-foreground" />,
+      title: 'Name that Bird!',
+      subtitle: 'Press to record',
+    };
   };
 
-  const { icon, label, timer } = getButtonContent();
-  const isDisabled = isProcessing || !user;
+  const { icon, title, subtitle, timer } = getButtonContent();
 
   return (
-      <Button
-        ref={ref}
-        variant="default"
-        size="icon"
-        className="w-96 h-[36rem] rounded-full bg-foreground hover:bg-foreground/90 flex flex-col-reverse justify-center items-center gap-8 transition-all duration-300 ease-in-out"
-        aria-label="Record Audio"
-        onClick={handleClick}
-        disabled={isDisabled}
-      >
-        <div className="text-background text-center text-2xl">
-          <p className="text-xl">{label}</p>
-          {timer && <p className="text-4xl font-mono mt-2">{timer}</p>}
-        </div>
-        {icon}
-      </Button>
+      <div className="flex flex-col items-center justify-center gap-0 h-full w-full">
+        <Button
+            ref={ref}
+            variant="ghost"
+            size="icon"
+            className="w-full h-full rounded-full flex flex-col justify-center items-center gap-8 transition-all duration-300 ease-in-out hover:bg-transparent disabled:opacity-50"
+            aria-label="Record Audio"
+            onClick={handleClick}
+            disabled={hasPermission === null}
+        >
+            <div className="transition-all duration-300 w-full h-full">
+              <div className="w-full h-full p-12 transition-all duration-300">
+                  {icon}
+              </div>
+            </div>
+        </Button>
+        <p className="text-8xl font-mono font-bold text-foreground text-center -mt-16">
+            {title}
+        </p>
+        {subtitle && <p className="text-3xl font-mono text-foreground/80 text-center">{subtitle}</p>}
+        {timer && <p className="text-5xl font-mono mt-2 text-foreground text-center">{timer}</p>}
+      </div>
   );
 });
 RecordButton.displayName = "RecordButton";

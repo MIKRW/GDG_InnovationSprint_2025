@@ -1,6 +1,5 @@
 
 import type { ReactNode } from 'react';
-import { PrimaryHeader } from './PrimaryHeader';
 
 export function AppLayout({
   children,
@@ -11,7 +10,7 @@ export function AppLayout({
 }) {
   return (
     <div className="flex flex-col min-h-screen">
-      {header || <PrimaryHeader />}
+      {header}
       {children}
     </div>
   );

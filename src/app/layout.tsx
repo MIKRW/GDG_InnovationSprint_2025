@@ -1,12 +1,9 @@
-
-'use client';
-
 import type { ReactNode } from 'react';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
-import { Toaster } from '@/components/ui/toaster';
-import { AuthProvider } from '@/components/providers/AuthProvider';
+import type { Metadata, Viewport } from 'next';
+import { ClientProviders } from '@/components/layout/ClientProviders';
 
 // This is the root layout for the entire application.
 // It sets up the basic HTML structure, fonts, and global styles.
@@ -16,43 +13,20 @@ const inter = Inter({
   variable: '--font-sans',
 });
 
-// This script runs immediately to prevent a flash of unstyled content (FOUC).
-const themeScript = `
-  (function() {
-    // Set theme from localStorage
-    try {
-      const savedThemeClass = localStorage.getItem('theme') || 'light';
-      document.documentElement.className = savedThemeClass;
+// Metadata and viewport must be exported from a Server Component.
+export const metadata: Metadata = {
+  title: 'Lyre',
+  description: 'An AI-powered bird song identifier',
+  appleWebAppCapable: 'yes',
+  appleMobileWebAppStatusBarStyle: 'default',
+};
 
-      if (savedThemeClass === 'custom') {
-        const activeThemeJson = localStorage.getItem('active-theme-json');
-        if (activeThemeJson) {
-          const activeTheme = JSON.parse(activeThemeJson);
-          if (activeTheme && activeTheme.colors) {
-            const { colors } = activeTheme;
-            const ringColor = colors.ring || colors.primary;
-            const root = document.documentElement;
-
-            root.style.setProperty('--custom-background-h', '' + colors.background.h);
-            root.style.setProperty('--custom-background-s', colors.background.s + '%');
-            root.style.setProperty('--custom-background-l', colors.background.l + '%');
-            root.style.setProperty('--custom-foreground-h', '' + colors.foreground.h);
-            root.style.setProperty('--custom-foreground-s', colors.foreground.s + '%');
-            root.style.setProperty('--custom-foreground-l', colors.foreground.l + '%');
-            root.style.setProperty('--custom-primary-h', '' + colors.primary.h);
-            root.style.setProperty('--custom-primary-s', colors.primary.s + '%');
-            root.style.setProperty('--custom-primary-l', colors.primary.l + '%');
-            root.style.setProperty('--custom-ring-h', '' + (ringColor.h || colors.primary.h));
-            root.style.setProperty('--custom-ring-s', (ringColor.s || colors.primary.s) + '%');
-            root.style.setProperty('--custom-ring-l', (ringColor.l || colors.primary.l) + '%');
-          }
-        }
-      }
-    } catch (e) {
-      console.error('Failed to apply theme from localStorage', e);
-    }
-  })();
-`;
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 
 export default function RootLayout({
@@ -62,26 +36,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-          {/* Metadata and viewport can be placed here directly
-              or in a wrapping server component if needed. */}
-          <title>Lyre</title>
-          <meta name="description" content="An AI-powered bird song identifier" />
-          <meta name="apple-mobile-web-app-capable" content="yes" />
-          <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-          <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
+      <head />
       <body
         className={cn(
           'min-h-screen bg-background font-sans antialiased',
           inter.variable
         )}
       >
-        <AuthProvider>
-            {children}
-        </AuthProvider>
-        <Toaster />
+        <ClientProviders>{children}</ClientProviders>
       </body>
     </html>
   );

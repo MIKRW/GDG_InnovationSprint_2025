@@ -3,66 +3,64 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { useRouter } from 'next/navigation';
 
 import { RecordButton } from '@/components/content/RecordButton';
 import { SecondaryPageFooter } from '@/components/layout/SecondaryPageFooter';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
-import { useAuth } from '@/components/providers/AuthProvider';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import { logErrorToFirestore } from '@/lib/error-logging';
-import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
 import { createAnalysisRun } from '@/lib/actions';
-import { storage } from '@/lib/firebase';
+import type { LocationSettings } from '@/lib/types';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 import { ref as storageRef, uploadBytes } from 'firebase/storage';
-import { isDevMode } from '@/lib/utils';
-import type { AppMode, LocationSettings } from '@/lib/types';
+import { storage } from '@/lib/firebase';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
-const APP_MODE_SETTINGS_KEY = 'app-mode-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
+const ANALYSIS_TIMEOUT_MS = 90000; // 90 seconds
 
 
 export default function RecordPage() {
-  const router = useRouter();
-  const { user } = useAuth();
-  
-  const [showPermissionError, setShowPermissionError] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const router = useRouter();
+  const { toast } = useToast();
   
   useEffect(() => {
     setIsClient(true);
+    navigator.permissions.query({ name: 'microphone' as PermissionName }).then((permissionStatus) => {
+        setHasPermission(permissionStatus.state === 'granted');
+        permissionStatus.onchange = () => {
+            setHasPermission(permissionStatus.state === 'granted');
+        };
+    });
   }, []);
 
   // Refs for managing state across async operations
   const currentSessionId = useRef<string | null>(null);
-  const currentTimestamp = useRef<string | null>(null);
-
-  
-  const getAppSettings = (): { mode: AppMode } => {
-    const savedSettingsJson = localStorage.getItem(APP_MODE_SETTINGS_KEY);
-    const defaultSettings: { mode: AppMode } = { mode: 'newbie' };
-    if (savedSettingsJson) {
-        try {
-            const parsed = JSON.parse(savedSettingsJson);
-            if (parsed.mode === 'newbie' || parsed.mode === 'twitcher') {
-                return { mode: parsed.mode };
-            }
-        } catch { return defaultSettings; }
-    }
-    return defaultSettings;
-  }
+  const currentCreationTime = useRef<string | null>(null);
 
   const getLocationForAIShot = (
     callback: (locationData?: { latitude?: number; longitude?: number, locationDescription?: string }) => void
   ) => {
+    if (!isClient) {
+      callback();
+      return;
+    }
     const savedSettingsJson = localStorage.getItem(LOCATION_SETTINGS_KEY);
     let settings: LocationSettings = { mode: 'device', manual: { latitude: 0, longitude: 0 }, description: '', privacy: { isOutside: true } };
     if (savedSettingsJson) {
-      try { settings = JSON.parse(savedSettingsJson); } catch { /* Fallback to default */ }
+      try { 
+        const parsed = JSON.parse(savedSettingsJson);
+        if (parsed) {
+          settings = parsed;
+        }
+      } catch { /* Fallback to default */ }
     }
 
     if (settings.mode === 'device') {
@@ -79,114 +77,154 @@ export default function RecordPage() {
     }
   };
 
-  const processAudio = (
-    storagePath: string,
-    isDeveloperRun: boolean,
-    testContext?: { birdId: string; testAudioId: string }
-  ) => {
-      getLocationForAIShot(async (locationData) => {
-        setIsProcessing(true);
-        if (!currentTimestamp.current || !user) {
-            setIsProcessing(false);
-            return;
-        }
-        const appSettings = getAppSettings();
-        const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
-        let analysisRunId: string | null = null;
-        
-        const analysisStartTime = Date.now();
-        try {
-            const result = await identifyBirdBySound({
-                audioStoragePath: storagePath,
-                timestamp: currentTimestamp.current,
-                mode: appSettings.mode,
-                ...locationData
-            });
-            const analysisDurationMs = Date.now() - analysisStartTime;
-            const wasSuccessful = result && result.isBirdSong && !!result.commonName;
-
-            analysisRunId = await createAnalysisRun(
-                user.uid, storagePath, result, wasSuccessful, locationData, hardware,
-                appSettings.mode, isDeveloperRun, testContext,
-                { primaryIdentificationMs: analysisDurationMs },
-                currentSessionId.current!, currentTimestamp.current!
-            );
-
-        } catch (error) {
-            const analysisDurationMs = Date.now() - analysisStartTime;
-            logErrorToFirestore(error as Error, 'ai-identification-failure', {
-                sessionId: currentSessionId.current, timestamp: currentTimestamp.current,
-                locationData: locationData, appMode: appSettings.mode, userId: user?.uid
-            });
-            
-            analysisRunId = await createAnalysisRun(
-                user.uid, storagePath, { error: (error as Error).message, isBirdSong: false }, false,
-                locationData, hardware, appSettings.mode, isDeveloperRun, testContext,
-                { primaryIdentificationMs: analysisDurationMs },
-                currentSessionId.current!, currentTimestamp.current!
-            );
-        } finally {
-            if (analysisRunId) {
-                router.push(`/record/confirm/${analysisRunId}`);
+  const processAudio = (storagePath: string, recordingId: string): Promise<string | null> => {
+      return new Promise((resolve) => {
+        getLocationForAIShot(async (locationData) => {
+            if (!currentCreationTime.current || !currentSessionId.current) {
+                logErrorToFirestore(new Error("Missing session or timestamp for analysis."), 'internal-state-error', {});
+                resolve(null);
+                return;
             }
-            setIsProcessing(false);
-        }
+            
+            const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
+            
+            try {
+                const analysisRunId = await createAnalysisRun(
+                    storagePath, recordingId, locationData, hardware, 'newbie',
+                    {},
+                    currentSessionId.current, currentCreationTime.current!
+                );
+                resolve(analysisRunId);
+
+            } catch (error) {
+                logErrorToFirestore(error as Error, 'ai-identification-failure', {
+                    sessionId: currentSessionId.current, creationTime: currentCreationTime.current,
+                    locationData: locationData, userId: 'anonymous'
+                });
+                try {
+                    const failedRunId = await createAnalysisRun(
+                        storagePath, recordingId, locationData, hardware, 'newbie',
+                        {}, currentSessionId.current, currentCreationTime.current!, error as Error
+                    );
+                    resolve(failedRunId);
+                } catch (finalError) {
+                    logErrorToFirestore(finalError as Error, 'failed-run-creation-failure', { sessionId: currentSessionId.current });
+                    resolve(null);
+                }
+            }
+        });
       });
   };
   
-  const handleStartRecording = () => {
-    setShowPermissionError(false);
-    currentSessionId.current = uuidv4();
-    currentTimestamp.current = new Date().toISOString();
+  const handleStart = async () => {
+    if (hasPermission === false) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setHasPermission(true);
+        stream.getTracks().forEach(track => track.stop());
+        setIsRecording(true);
+      } catch (err) {
+        toast({
+          variant: 'destructive',
+          title: 'Microphone Required',
+          description: 'You must grant microphone access to record audio.',
+        });
+        setIsRecording(false);
+      }
+    } else {
+      setIsRecording(true);
+    }
+  };
+  
+  useEffect(() => {
+    if (isRecording) {
+      currentSessionId.current = uuidv4();
+      currentCreationTime.current = new Date().toISOString();
+    }
+  }, [isRecording]);
+  
+  const handleStop = () => {
+    setIsRecording(false);
   }
 
-  const handleRecordingComplete = async (audioBlob: Blob) => {
-    if (!user) return;
+  const handleRecordingComplete = async (audioBlob: Blob | null) => {
+    setIsRecording(false);
+    
+    if (!audioBlob) {
+        toast({
+            variant: 'destructive',
+            title: 'Recording Failed',
+            description: 'No audio was recorded. Please check microphone permissions.',
+        });
+        return;
+    }
+    
     setIsProcessing(true);
-
-    const isDevTest = isClient && isDevMode();
-    const testContext = isDevTest ? { birdId: 'live-test', testAudioId: uuidv4() } : undefined;
-
-    // 1. Upload the blob to Firebase Storage
     const recordingId = uuidv4();
-    const filePath = `users/${user.uid}/recordings/${recordingId}.webm`;
-    const fileRef = storageRef(storage, filePath);
+    let analysisRunId: string | null = null;
 
     try {
+        const audioStoragePath = `recordings/${recordingId}.wav`;
+        const fileRef = storageRef(storage, audioStoragePath);
         await uploadBytes(fileRef, audioBlob);
         
-        // 2. Once uploaded, call processAudio with the storage path
-        processAudio(filePath, isDevTest, testContext);
+        const timeoutPromise = new Promise<string | null>((_, reject) => 
+            setTimeout(() => reject(new Error('Analysis timed out')), ANALYSIS_TIMEOUT_MS)
+        );
 
-    } catch (error) {
-        console.error("Failed to upload live recording:", error);
-        logErrorToFirestore(error as Error, 'live-audio-upload-failure', {
-            userId: user.uid,
-            filePath: filePath,
+        analysisRunId = await Promise.race([
+            processAudio(audioStoragePath, recordingId),
+            timeoutPromise
+        ]);
+
+    } catch(error) {
+         console.error("Failed to process live recording:", error);
+        logErrorToFirestore(error as Error, 'live-audio-processing-failure', {
+            userId: 'anonymous',
+            recordingId,
         });
+        if ((error as Error).message.includes('timed out')) {
+            toast({
+                variant: 'destructive',
+                title: 'Analysis Timed Out',
+                description: `The analysis took too long to complete. Please try again.`,
+            });
+        }
+    } finally {
         setIsProcessing(false);
+        if (analysisRunId) {
+            router.push(`/record/result/${analysisRunId}`);
+        }
     }
   }
 
   return (
     <AppLayout header={<SecondaryHeader title="Microphone" />}>
       <main className="flex-1 flex items-center justify-center p-4 bg-muted relative">
-        <div className="relative flex items-center justify-center">
+        <div className="relative flex items-center justify-center w-full h-full">
+            {isProcessing ? (
+              <div className="flex flex-col items-center justify-center gap-4 text-foreground/50">
+                <Loader2 className="w-80 h-80 animate-spin" />
+                <p className="text-4xl font-mono font-bold">Analyzing...</p>
+              </div>
+            ) : (
+                <RecordButton 
+                  onStart={handleStart}
+                  onRecordingComplete={handleRecordingComplete}
+                  isRecording={isRecording}
+                  hasPermission={hasPermission}
+                  onStop={handleStop}
+                />
+            )}
 
-            <RecordButton 
-              onPermissionDenied={() => setShowPermissionError(true)} 
-              onStartRecording={handleStartRecording}
-              onRecordingComplete={handleRecordingComplete}
-              isProcessing={isProcessing}
-            />
 
-             {showPermissionError && (
+             {hasPermission === false && !isRecording && (
               <div className="absolute left-full ml-16 w-96">
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle className="text-2xl">Microphone Access Required</AlertTitle>
                   <AlertDescription className="text-base">
-                    This app needs access to your microphone. Please enable permissions in your browser settings and refresh the page.
+                    Click the record button to grant microphone access.
                   </AlertDescription>
                 </Alert>
               </div>

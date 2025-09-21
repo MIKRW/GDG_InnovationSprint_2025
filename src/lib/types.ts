@@ -1,5 +1,9 @@
 
 
+import { type IdentifyBirdOutput as IdentifyBirdOutputType } from "@/ai/flows/contextual-identify-bird-flow";
+export type IdentifyBirdOutput = IdentifyBirdOutputType & { error?: string };
+
+
 // This file can be used to define shared types and interfaces.
 
 export type ThemeColor = {
@@ -25,34 +29,9 @@ export type Theme = {
   isActive: boolean;
 };
 
-export type BirdLog = {
-    id: string;
-    sessionId: string; // All logs from one recording event share this ID
-    analysisRunId: string; // The ID of the corresponding document in `all_analysis_runs`
-    userId: string;
-    timestamp: string; // ISO 8601 string in UTC
-    commonName: string;
-    scientificName: string;
-    family?: string;
-    order?: string;
-    description: string;
-    imageUrl: string; // URL to the canonical image in Firebase Storage
-    userImageUrl?: string; // URL to a user-uploaded image for this specific log
-    imagePrompt: string; // The prompt used to generate the image, for metadata
-    audioUrl?: string;
-    isMystery: boolean;
-    status: 'active' | 'trashed'; // Replaces isDisowned
-    latitude?: number;
-    longitude?: number;
-    locationDescription?: string;
-    weather?: string; // e.g., 'Clear, 15°C, light breeze'
-    season?: string; // e.g., 'Summer'
-    mode: AppMode; // To differentiate between 'newbie' and 'twitcher' data
-}
-
 export type AnalysisRun = {
   id: string;
-  timestamp: string;
+  creationTime: string;
   userId: string;
   sessionId: string;
   inputAudioUrl: string;
@@ -65,23 +44,9 @@ export type AnalysisRun = {
   };
   hardware?: string; // User-specified recording hardware
   analysisMethod: string; // The specific AI system and version used, e.g., 'bird-identifier-newbie-v1.1'
-  aiResult: {
-    isBirdSong: boolean;
-    commonName?: string;
-    scientificName?: string;
-    family?: string;
-    order?: string;
-    description?: string;
-    imagePrompt?: string;
-    weather?: string;
-    season?: string;
-    confidence?: number;
-    aiGeneratedHabitatTags?: string[];
-    duration?: number;
-  };
+  aiResult: IdentifyBirdOutput;
   wasSuccessful: boolean;
   wasSavedByUser: boolean;
-  isDeveloperData: boolean;
   mode: AppMode;
   userFeedback?: {
       aiWasCorrect: boolean;

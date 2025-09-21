@@ -1,23 +1,26 @@
 # Task List
 
-- Integrate a live weather API (e.g., Open-Meteo) to replace the simulated weather data in the `getCurrentWeather` Genkit tool.
+- **Fix Recording Button Lifecycle**: The record button currently has a React lifecycle issue ("Maximum update depth exceeded") that prevents it from correctly starting and stopping. Investigate the cause of the infinite loop, research robust solutions for handling the component's state and audio processing callbacks, and implement the fix.
+
+- **Integrate Live Weather API**: Replace the simulated weather data in the `getCurrentWeather` Genkit tool with a real weather API (e.g., Open-Meteo).
 
 ---
 
 ## AI Prompt Enhancements
 
-- Update the `identify-bird-flow` prompt to intelligently use the new "Habitat Profile" data. The AI needs to be instructed on how to prioritize evidence: a user-provided habitat photo should be the primary source of truth, followed by the user's text description, and finally falling back to inferences from GPS coordinates and weather data. The prompt should also instruct the AI to generate a list of structured `aiGeneratedHabitatTags` based on its analysis of the habitat.
+- **Update Bird Identification Prompt**: Enhance the `identify-bird-flow` prompt to intelligently use the "Habitat Profile" data. The AI needs to prioritize evidence: a user-provided habitat photo should be the primary source, followed by the user's text description, and finally falling back to inferences from GPS coordinates and weather data. The prompt should also instruct the AI to generate a list of structured `aiGeneratedHabitatTags` based on its analysis of the habitat.
 
-## AI theme generator
+## AI Theme Generator
 
-- ** currently working, needs adjusting currently themes are consistnely using a off white as one of the colours, due to contrast being priotised, white is not the only colour that can make a good contrast for easy reading. 
+- **Improve Color Variety**: The AI theme generator sometimes defaults to off-white backgrounds to ensure high contrast. Adjust the prompt to encourage more creative and colorful palettes while still adhering to accessibility standards. White is not the only color that provides good contrast for readability.
+
 ---
 
 ## Audio & Recording
 
-- **Implement Lossless Recording**: For "Twitcher Mode", investigate and implement a high-fidelity recording system using the browser's `AudioWorklet` API. This would involve capturing raw audio buffers and manually encoding them into a lossless `.wav` file on the client-side before upload, providing the AI with the maximum possible data for analysis.
+- **Implement Lossless Recording for "Twitcher Mode"**: Investigate and implement a high-fidelity recording system using the browser's `AudioWorklet` API. This would involve capturing raw audio buffers and manually encoding them into a lossless `.wav` file on the client-side before upload, providing the AI with the maximum possible data for analysis.
 
-- **Setup bluetooth connection/regonition for external microphones. Benefit of external microphone is better audio quality then you can achieve with the hardware in mobile devices depending on which external microphone you use.  -- Make sure to be able to connect multiple external microphones for future features being planned. (use data from mutliple mics to predict bird location)
+- **External Microphone Support**: Add support for connecting and recognizing external Bluetooth microphones. This will allow for higher-quality audio capture and enable future features like using data from multiple microphones to predict bird locations.
 
 ---
 
@@ -25,7 +28,7 @@
 
 - **Review Deletion Logic**: Check the parameters being passed to the `onUserLogDisowned` Cloud Function and update the logic as needed to ensure file deletions are handled correctly and securely.
 
-- ** implement automatic, time based  cleanup of inactive annoymous accounts 
+- **Automated Cleanup**: Implement automatic, time-based cleanup of inactive anonymous user accounts and their associated data in Firestore and Firebase Storage.
 
 ---
 
@@ -43,7 +46,7 @@
 
 ## Future Tools & Extensions
 
-- **Browser Extension for Metadata Scraping**: Develop a browser extension that can automatically scrape metadata (author, license, location, etc.) from a source URL (like Xeno-canto or Macaulay Library) when a developer is uploading a new master audio file.
+- **Metadata Scraper Browser Extension**: Develop a browser extension that can automatically scrape metadata (author, license, location, etc.) from a source URL (like Xeno-canto or Macaulay Library) when a developer is uploading a new master audio file.
 
 - **Embedded Metadata Extraction**: Implement a feature to automatically parse and import embedded metadata (e.g., ID3 tags) from master audio files upon upload.
 
@@ -62,7 +65,6 @@
 - **Implement Anonymous User Upgrading**: Build the user registration flow to link new permanent credentials (e.g., email/password) to the user's existing anonymous account, ensuring a seamless transfer of all their data.
 - **Implement Data Retention Policy**: Create scheduled cloud functions to automatically clean up inactive and low-value anonymous user data from Firestore and Firebase Storage based on the rules defined in `docs/firestore-data-model.md`.
 
-## UI Features to add/ check 
+## UI Features to add/ check
 
-- ** Check for compatibiilty with screen readers/tech (look that up), make sure pages are consistent and the right cards/wrappers are being used across the app. 
-
+- **Screen Reader Compatibility**: Check for compatibility with screen readers and other assistive technologies. Ensure pages are consistent and use the correct cards/wrappers across the app for a uniform experience.
