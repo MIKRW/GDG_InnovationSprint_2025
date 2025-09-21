@@ -179,6 +179,8 @@ export default function Home() {
     try {
       const audioStoragePath = `recordings/${recordingId}.webm`;
       const fileRef = storageRef(storage, audioStoragePath);
+      
+      // Ensure the upload completes before proceeding
       await uploadBytes(fileRef, audioBlob);
       
       const timeoutPromise = new Promise<string | null>((_, reject) =>
@@ -214,7 +216,6 @@ export default function Home() {
       }
     } finally {
       setIsProcessing(false);
-      setIsRecording(false);
       if (analysisRunId) {
         router.push(`/record/result/${analysisRunId}`);
       } else {
