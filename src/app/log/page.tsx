@@ -2,7 +2,7 @@
 'use client';
 
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { Carousel, CarouselContent, CarouselItem, useCarousel } from '@/components/ui/carousel';
 import { useState } from 'react';
@@ -39,25 +39,30 @@ function AiAssistantCard() {
 function BirdResultCard({ seed }: { seed: string }) {
     return (
         <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
-            <Card className="w-full h-full shadow-2xl rounded-lg">
+            <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
                 <div className="relative w-full h-64">
                     <Image
                         src={`https://picsum.photos/seed/${seed}/600/400`}
                         alt="A picture of a bird"
                         fill
-                        className="object-cover rounded-lg"
+                        className="object-cover rounded-t-lg"
                         data-ai-hint="bird nature"
                     />
                 </div>
-                <CardHeader>
-                    <CardTitle className="text-3xl">Sparrow</CardTitle>
-                    <CardDescription className="text-lg italic">Passer domesticus</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-muted-foreground">
-                        A small, common bird found in most parts of the world. Sparrows are known for their cheerful chirping and social nature.
-                    </p>
-                </CardContent>
+                <div className="flex flex-col flex-1">
+                    <CardHeader>
+                        <CardTitle className="text-3xl">Sparrow</CardTitle>
+                        <CardDescription className="text-lg italic">Passer domesticus</CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex-1">
+                        <p className="text-muted-foreground">
+                            A small, common bird found in most parts of the world. Sparrows are known for their cheerful chirping and social nature.
+                        </p>
+                    </CardContent>
+                    <CardFooter>
+                        {/* Buttons will go here */}
+                    </CardFooter>
+                </div>
             </Card>
         </div>
     );
