@@ -9,7 +9,7 @@ import { createAnalysisRun } from '@/lib/actions';
 import type { LocationSettings } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { ColorableLogo } from '@/components/content/ColorableLogo';
-import { BookImage, Settings } from 'lucide-react';
+import { BookImage, Settings, AlertTriangle, MicOff } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { SpeakerButton } from '@/components/content/SpeakerButton';
@@ -17,7 +17,8 @@ import { ContrastButton } from '@/components/content/ContrastButton';
 import { useToast } from '@/hooks/use-toast';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { app, storage } from '@/lib/firebase';
-import { ref as storageRef, uploadBytes } from 'firebase/storage';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
@@ -28,11 +29,25 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
     setIsClient(true);
+    
+    // Request microphone permission on component mount
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        setHasPermission(true);
+        // Important: Stop the tracks immediately so the browser mic icon goes away
+        stream.getTracks().forEach(track => track.stop());
+      })
+      .catch(err => {
+        console.error("Microphone permission denied:", err);
+        setHasPermission(false);
+      });
+
     const auth = getAuth(app);
     onAuthStateChanged(auth, (user) => {
       if (!user) {
@@ -80,17 +95,21 @@ export default function Home() {
   };
   
   const processAudio = (storagePath: string, recordingId: string): Promise<string | null> => {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       getLocationForAIShot(async (locationData) => {
           if (!currentCreationTime.current || !currentSessionId.current) {
-              return reject(new Error("Missing session or timestamp for analysis."));
+              // This case should ideally not happen if logic is correct
+              logErrorToFirestore(new Error("Missing session or timestamp for analysis."), 'internal-state-error', {});
+              resolve(null);
+              return;
           }
           
           const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
           
           try {
+              const downloadUrl = await getDownloadURL(storageRef(storage, storagePath));
               const analysisRunId = await createAnalysisRun(
-                  storagePath, recordingId, locationData, hardware, 'newbie',
+                  downloadUrl, storagePath, recordingId, locationData, hardware, 'newbie',
                   {}, // analysisTimings - will be calculated on server
                   currentSessionId.current, currentCreationTime.current!
               );
@@ -101,15 +120,16 @@ export default function Home() {
                   sessionId: currentSessionId.current, creationTime: currentCreationTime.current,
                   locationData: locationData, userId: 'anonymous'
               });
-              // In case of error, we still want to create a log and navigate, so we try to create a failed run
+              // In case of error, we still want to create a failed run and navigate
               try {
                 const failedRunId = await createAnalysisRun(
-                    storagePath, recordingId, locationData, hardware, 'newbie',
+                    '', storagePath, recordingId, locationData, hardware, 'newbie',
                     {}, currentSessionId.current, currentCreationTime.current!, error as Error
                 );
                 resolve(failedRunId);
               } catch (finalError) {
-                reject(finalError);
+                logErrorToFirestore(finalError as Error, 'failed-run-creation-failure', { sessionId: currentSessionId.current });
+                resolve(null); // Last resort
               }
           }
       });
@@ -122,7 +142,17 @@ export default function Home() {
     currentCreationTime.current = new Date().toISOString();
   }
 
-  const handleRecordingComplete = async (audioBlob: Blob) => {
+  const handleRecordingComplete = async (audioBlob: Blob | null) => {
+    if (!audioBlob) {
+        toast({
+            variant: 'destructive',
+            title: 'Recording Failed',
+            description: 'No audio was recorded. Please check microphone permissions.',
+        });
+        setIsProcessing(false);
+        return;
+    }
+
     const recordingId = uuidv4();
     let analysisRunId: string | null = null;
   
@@ -166,9 +196,17 @@ export default function Home() {
       }
     } finally {
       setIsProcessing(false);
-      // ALWAYS navigate, even on failure. The result page will handle displaying the error.
+      // ALWAYS navigate, even on failure, if we have an ID.
       if (analysisRunId) {
         router.push(`/record/result/${analysisRunId}`);
+      } else {
+        // If we don't even have an ID, it's a critical failure.
+        // Reset the UI and inform the user.
+        toast({
+            variant: 'destructive',
+            title: 'Critical Failure',
+            description: 'Could not create an analysis log. The process has been stopped. This error has been logged.'
+        })
       }
     }
   }
@@ -198,12 +236,22 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          <div className="w-[60rem] h-[40rem] flex items-center justify-center">
+          <div className="w-[60rem] h-[40rem] flex flex-col items-center justify-center">
+            {hasPermission === false && (
+                 <Alert variant="destructive" className="max-w-lg mb-8">
+                  <MicOff className="h-4 w-4" />
+                  <AlertTitle>Microphone Access Required</AlertTitle>
+                  <AlertDescription>
+                    This app needs access to your microphone to record audio. Please enable microphone permissions in your browser settings and refresh the page.
+                  </AlertDescription>
+                </Alert>
+            )}
             <RecordButton
                 onStart={handleStart}
                 onStop={handleStop}
                 onRecordingComplete={handleRecordingComplete}
                 isRecording={isRecording}
+                disabled={hasPermission !== true}
             />
           </div>
         )}

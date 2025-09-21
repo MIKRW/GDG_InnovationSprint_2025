@@ -6,33 +6,30 @@ import { Button } from '@/components/ui/button';
 import { MicOff } from 'lucide-react';
 import { ColorableLogo } from './ColorableLogo';
 
-type RecordingState = 'idle' | 'denied';
+type RecordingState = 'idle' | 'recording';
 
 interface RecordButtonProps {
-    onPermissionDenied?: () => void;
     onStart?: () => void;
     onStop?: () => void;
-    onRecordingComplete: (audioBlob: Blob, duration?: number) => void;
+    onRecordingComplete: (audioBlob: Blob | null) => void;
     isRecording: boolean;
+    disabled?: boolean;
 }
 
 const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
-    onPermissionDenied,
     onStart,
     onStop,
     onRecordingComplete,
     isRecording,
+    disabled = false,
 }, ref) => {
-  const [permissionState, setPermissionState] = useState<RecordingState>('idle');
   const [elapsedTime, setElapsedTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const recordingStartTimeRef = useRef<number | null>(null);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
     const startRecording = async () => {
-        recordingStartTimeRef.current = Date.now();
         setElapsedTime(0);
 
         try {
@@ -41,37 +38,35 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
             audioChunksRef.current = [];
 
             mediaRecorderRef.current.addEventListener('dataavailable', (event: BlobEvent) => {
-                audioChunksRef.current.push(event.data);
+                if (event.data.size > 0) {
+                    audioChunksRef.current.push(event.data);
+                }
             });
 
             mediaRecorderRef.current.addEventListener('stop', () => {
                 const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-                const recordingLengthSeconds = recordingStartTimeRef.current ? parseFloat(((Date.now() - recordingStartTimeRef.current) / 1000).toFixed(2)) : undefined;
-                onRecordingComplete(audioBlob, recordingLengthSeconds);
+                onRecordingComplete(audioBlob.size > 0 ? audioBlob : null);
                 if (timerIntervalRef.current) {
                     clearInterval(timerIntervalRef.current);
+                }
+                 // Stop all tracks on the stream to turn off the mic indicator
+                if (mediaRecorderRef.current) {
+                    mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
                 }
             });
 
             mediaRecorderRef.current.start();
-            setPermissionState('idle'); // Success, ensure not in denied state
-
-            timerIntervalRef.current = setInterval(() => {
-                setElapsedTime(prev => prev + 1);
-            }, 1000);
+            timerIntervalRef.current = setInterval(() => setElapsedTime(prev => prev + 1), 1000);
 
         } catch (err) {
-            console.error('Permission denied or no microphone found:', err);
-            setPermissionState('denied');
-            onPermissionDenied?.();
+            console.error('Error starting recording in component:', err);
+            onRecordingComplete(null);
         }
     };
     
     const stopRecording = () => {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
             mediaRecorderRef.current.stop();
-            // Stop the tracks to turn off the microphone indicator
-            mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
         }
         if (timerIntervalRef.current) {
             clearInterval(timerIntervalRef.current);
@@ -86,29 +81,27 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
     }
 
     return () => {
-      // Cleanup function to stop recording if component unmounts
       stopRecording();
     };
-  }, [isRecording, onPermissionDenied, onRecordingComplete]);
+  }, [isRecording, onRecordingComplete]);
 
 
   const handleClick = () => {
+    if (disabled) return;
+    
     if (isRecording) {
       onStop?.();
     } else {
-      if (permissionState === 'denied') {
-          onPermissionDenied?.();
-          return;
-      }
       onStart?.();
     }
   };
 
   const getButtonContent = () => {
-    if (permissionState === 'denied') {
+    if (disabled) {
        return {
         icon: <MicOff className="w-full h-full text-foreground/50" />,
-        title: 'Mic Access Denied',
+        title: 'Mic Disabled',
+        subtitle: 'Check permissions',
       };
     }
     if (isRecording) {
@@ -133,9 +126,10 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
             ref={ref}
             variant="ghost"
             size="icon"
-            className="w-full h-full rounded-full flex flex-col justify-center items-center gap-8 transition-all duration-300 ease-in-out hover:bg-transparent"
+            className="w-full h-full rounded-full flex flex-col justify-center items-center gap-8 transition-all duration-300 ease-in-out hover:bg-transparent disabled:opacity-50"
             aria-label="Record Audio"
             onClick={handleClick}
+            disabled={disabled}
         >
             <div className="transition-all duration-300 w-full h-full">
               <div className="w-full h-full p-12 transition-all duration-300">
