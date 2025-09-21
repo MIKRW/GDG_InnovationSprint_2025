@@ -104,7 +104,7 @@ export default function SettingsPage() {
   const [narrationText, setNarrationText] = useState(NARRATION_TEXTS[0]);
   const [api, setApi] = useState<CarouselApi>();
 
-  const { playNarration, playSfx, ...speakerProps } = useSpeaker(narrationText, 'carousel');
+  const { playNarration, playSfx, isPlaying, ...speakerProps } = useSpeaker(narrationText, 'carousel');
   
   const [isLocationOn, setIsLocationOn] = useState(true);
 
@@ -127,7 +127,7 @@ export default function SettingsPage() {
 
   const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
       const newNarration = getNarrationForSlide(index);
-      if (newNarration) {
+      if (newNarration && isAutoPlayOn) {
           playNarration(newNarration);
       }
   }, 2000);
@@ -192,7 +192,7 @@ export default function SettingsPage() {
     <AppLayout>
       <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
         <div className="absolute top-4 left-4 opacity-50">
-            <SpeakerButton onClick={() => playNarration()} {...speakerProps} isSpeakerOn={speakerProps.isSpeakerOn} />
+            <SpeakerButton onClick={() => playNarration()} {...speakerProps} isPlaying={isPlaying} isSpeakerOn={speakerSettings.isSpeakerOn} />
         </div>
         <div className="absolute top-4 right-4 opacity-50">
             <ContrastButton />
