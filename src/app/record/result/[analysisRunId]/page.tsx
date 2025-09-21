@@ -42,12 +42,12 @@ function BirdImage({ prompt }: { prompt: string }) {
     }, [prompt]);
 
     if (isLoading) {
-        return <Skeleton className="w-full h-96" />;
+        return <Skeleton className="w-full h-full" />;
     }
 
     if (!imageUrl) {
         return (
-            <div className="w-full h-96 bg-muted flex items-center justify-center text-muted-foreground">
+            <div className="w-full h-full bg-muted flex items-center justify-center text-muted-foreground">
                 <AlertTriangle className="w-8 h-8" />
                 <p className="ml-2">Image could not be loaded.</p>
             </div>
@@ -55,14 +55,13 @@ function BirdImage({ prompt }: { prompt: string }) {
     }
 
     return (
-        <div className="relative w-full h-96">
-            <Image
-                src={imageUrl}
-                alt={prompt}
-                fill
-                className="object-cover rounded-t-lg"
-            />
-        </div>
+        <Image
+            src={imageUrl}
+            alt={prompt}
+            fill
+            className="object-contain rounded-t-lg"
+            data-ai-hint="bird nature"
+        />
     );
 }
 
@@ -72,6 +71,7 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
+        // Initialize Audio object only on the client side
         audioRef.current = new Audio();
     }, []);
 
@@ -119,12 +119,12 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
     const { isBirdSong, commonName, scientificName, description, imagePrompt, error } = run.aiResult;
 
     const NotIdentifiedCard = () => (
-        <Card className="w-full max-w-2xl shadow-2xl">
-            <CardHeader className="text-center">
-                <CardTitle className="text-4xl">Not Identified</CardTitle>
-                <CardDescription className="text-xl italic">No bird was identified in the recording.</CardDescription>
+        <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
+            <CardHeader className="text-center pt-12">
+                <CardTitle className="text-4xl font-mono">Not Identified</CardTitle>
+                <CardDescription className="text-xl italic font-mono">No bird was identified in the recording.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-1 items-center justify-center">
                 <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>AI Analysis Result</AlertTitle>
@@ -146,38 +146,44 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
     return (
         <>
             {isBirdSong === false || error ? <NotIdentifiedCard /> : (
-                <Card className="w-full max-w-2xl shadow-2xl">
-                    {imagePrompt && <BirdImage prompt={imagePrompt} />}
-                    <CardHeader className="text-center">
-                        <CardTitle className="text-4xl">{commonName}</CardTitle>
-                        <CardDescription className="text-xl italic">{scientificName}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground text-center">{description}</p>
-                    </CardContent>
-                    <CardFooter className="flex flex-col gap-4">
-                        <div className="flex w-full justify-around">
-                            {run.inputAudioUrl && (
-                                <Button variant="outline" onClick={handleReplay}>
-                                    <PlayCircle className="mr-2 h-4 w-4" /> Replay Audio
-                                </Button>
-                            )}
-                            <Button variant="outline" onClick={handleDownload}>
-                                <Download className="mr-2 h-4 w-4" /> Download
-                            </Button>
-                        </div>
-                         <div className="flex w-full flex-col items-center gap-2 pt-4 border-t">
-                            <p className="text-sm text-muted-foreground">Was this identification correct?</p>
-                            <div className="flex gap-4">
-                                <Button variant="outline" size="sm" onClick={() => handleFeedback(true)} disabled={feedbackGiven}>
-                                    <ThumbsUp className="mr-2 h-4 w-4" /> Correct
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={() => handleFeedback(false)} disabled={feedbackGiven}>
-                                    <ThumbsDown className="mr-2 h-4 w-4" /> Incorrect
+                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
+                    <div className="relative w-full flex-1 pt-4">
+                        {imagePrompt && <BirdImage prompt={imagePrompt} />}
+                    </div>
+                    <div className="flex flex-col flex-1">
+                        <CardHeader className="text-center">
+                            <CardTitle className="text-3xl font-mono">{commonName}</CardTitle>
+                            <CardDescription className="text-lg italic font-mono">{scientificName}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex-1">
+                            <p className="text-muted-foreground text-center">
+                                {description}
+                            </p>
+                        </CardContent>
+                        <CardFooter className="flex flex-col gap-4">
+                            <div className="flex w-full justify-around">
+                                {run.inputAudioUrl && (
+                                    <Button variant="outline" onClick={handleReplay}>
+                                        <PlayCircle className="mr-2 h-4 w-4" /> Replay Audio
+                                    </Button>
+                                )}
+                                <Button variant="outline" onClick={handleDownload}>
+                                    <Download className="mr-2 h-4 w-4" /> Download
                                 </Button>
                             </div>
-                        </div>
-                    </CardFooter>
+                            <div className="flex w-full flex-col items-center gap-2 pt-4 border-t">
+                                <p className="text-sm text-muted-foreground">Was this identification correct?</p>
+                                <div className="flex gap-4">
+                                    <Button variant="outline" size="sm" onClick={() => handleFeedback(true)} disabled={feedbackGiven}>
+                                        <ThumbsUp className="mr-2 h-4 w-4" /> Correct
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => handleFeedback(false)} disabled={feedbackGiven}>
+                                        <ThumbsDown className="mr-2 h-4 w-4" /> Incorrect
+                                    </Button>
+                                </div>
+                            </div>
+                        </CardFooter>
+                    </div>
                 </Card>
             )}
         </>
@@ -200,6 +206,7 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
 
         const unwrapParams = async () => {
             try {
+                // This correctly awaits the Promise-like params object
                 const resolvedParams = await params;
                 setAnalysisRunId(resolvedParams.analysisRunId);
             } catch (e) {
@@ -236,23 +243,9 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
 
     if (!isClient) return null;
 
-    if (loading) {
-        return (
-            <AppLayout>
-                <main className="flex-1 flex flex-col items-center justify-center bg-muted p-4 relative">
-                    <Skeleton className="h-[40rem] w-full max-w-2xl" />
-                </main>
-            </AppLayout>
-        );
-    }
-
-    if (!run) {
-        return notFound();
-    }
-
     return (
         <AppLayout>
-            <main className="flex-1 flex flex-col items-center justify-center bg-muted p-4 relative">
+            <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
                 <div className="absolute top-4 left-4 opacity-50">
                     <SpeakerButton />
                 </div>
@@ -260,7 +253,19 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
                     <ContrastButton />
                 </div>
                 
-                <ResultPageContent run={run} />
+                <div className="w-full max-w-3xl h-[60rem]">
+                    <div className="p-1 h-full">
+                         <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
+                            {loading ? (
+                                <Skeleton className="w-full h-full" />
+                            ) : run ? (
+                                <ResultPageContent run={run} />
+                            ) : (
+                                notFound()
+                            )}
+                        </div>
+                    </div>
+                </div>
 
                 <div className="absolute bottom-4 left-4 opacity-50">
                     <Link href="/log">
@@ -284,3 +289,5 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
         </AppLayout>
     );
 }
+
+    
