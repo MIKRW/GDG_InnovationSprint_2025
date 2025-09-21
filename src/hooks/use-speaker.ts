@@ -68,19 +68,26 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     const getAudioDataUri = useCallback(async (source: string): Promise<string | null> => {
         setIsLoading(true);
         try {
+            // If the source is a direct path to a pre-generated file, use it.
             if (source.endsWith('.wav')) {
                 return source;
             }
     
+            // If the source is dynamic text that we've already generated and cached, use the cached version.
             if (lastPlayedSourceRef.current === source && lastDataUriRef.current) {
                 return lastDataUriRef.current;
             }
     
+            // Otherwise, call the AI to generate the audio.
             const response = await textToSpeech(source);
+
+            // If the AI returns empty audio (e.g., due to quota), warn and abort.
             if (!response.audioDataUri) {
                 console.warn('TTS returned empty audio data, likely due to a quota limit. Aborting playback.');
                 return null;
             }
+
+            // Cache the newly generated audio URI.
             lastDataUriRef.current = response.audioDataUri;
             lastPlayedSourceRef.current = source;
             return response.audioDataUri;
@@ -101,15 +108,18 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         
         try {
             const dataUri = await getAudioDataUri(source);
+            // Check if we received a valid URI before attempting to play.
             if (dataUri) {
                 audio.src = dataUri;
                 await audio.play();
             }
         } catch (error: any) {
+            // Specifically catch the AbortError which is normal when playback is interrupted.
             if (error.name === 'AbortError') {
                 console.log('Audio playback was interrupted by a new request. This is normal.');
                 return;
             }
+            // Log other, unexpected errors.
             console.error("Failed to load or play audio:", error);
             setIsPlaying(false);
             setIsLoading(false);
@@ -121,24 +131,24 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         const audio = audioRef.current;
         if (!audio || !targetSource) return;
 
+        // The first user interaction on a page is required by browsers to play audio.
         if (!hasInteractedRef.current) {
             hasInteractedRef.current = true;
             sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
         }
         
-        if (isPlaying && audio.src.endsWith(targetSource)) {
-            audio.pause();
-        } else {
-            if (!settings.isSpeakerOn) {
-                setSettings(prev => {
-                    const newSettings = { ...prev, isSpeakerOn: true };
-                    localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
-                    return newSettings;
-                });
-            }
-            playAudio(targetSource);
+        // If the speaker is off, turn it on first.
+        if (!settings.isSpeakerOn) {
+            setSettings(prev => {
+                const newSettings = { ...prev, isSpeakerOn: true };
+                localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
+                return newSettings;
+            });
         }
-    }, [narrationSource, isPlaying, settings.isSpeakerOn, playAudio]);
+        // Proceed to play the audio. The playAudio function will handle stopping any current playback.
+        playAudio(targetSource);
+
+    }, [narrationSource, settings.isSpeakerOn, playAudio]);
 
     // Effect for handling auto-play logic
     useEffect(() => {
