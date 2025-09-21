@@ -304,7 +304,7 @@ export default function BirdBookPage() {
         return "Your Bird Book is empty. Make a recording to save your first entry.";
     }, [savedRuns]);
 
-    const debouncedNarration = useDebouncedCallback((index: number) => {
+    const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
         if (isCarouselAutoPlayOn) {
             const newNarration = getNarrationForSlide(index);
             setNarrationText(newNarration);
@@ -341,9 +341,9 @@ export default function BirdBookPage() {
         return () => {
             api.off("select", handleSelect);
             // Cancel any pending debounced calls on unmount
-            debouncedNarration.cancel();
+            cancelDebouncedNarration();
         };
-    }, [api, getNarrationForSlide, isCarouselAutoPlayOn, debouncedNarration]);
+    }, [api, getNarrationForSlide, isCarouselAutoPlayOn, debouncedNarration, cancelDebouncedNarration]);
     
     const startChat = () => {
         api?.scrollTo(0);
