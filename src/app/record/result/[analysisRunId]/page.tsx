@@ -75,17 +75,27 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
 
     useEffect(() => {
         const fetchRun = async () => {
-            if (!params.analysisRunId) return;
+            if (!params.analysisRunId) {
+                setLoading(false);
+                return;
+            };
             setLoading(true);
-            const docRef = doc(db, 'all_analysis_runs', params.analysisRunId);
-            const docSnap = await getDoc(docRef);
+            try {
+                const docRef = doc(db, 'all_analysis_runs', params.analysisRunId);
+                const docSnap = await getDoc(docRef);
 
-            if (docSnap.exists()) {
-                setRun(docSnap.data() as AnalysisRun);
-            } else {
-                notFound();
+                if (docSnap.exists()) {
+                    setRun(docSnap.data() as AnalysisRun);
+                } else {
+                    // This will trigger the not-found page
+                    setRun(null);
+                }
+            } catch (error) {
+                console.error("Error fetching analysis run:", error);
+                setRun(null);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
         fetchRun();
     }, [params.analysisRunId]);
@@ -147,7 +157,7 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
         return notFound();
     }
 
-    const { isBirdSong, commonName, scientificName, description, imagePrompt } = run.aiResult;
+    const { isBirdSong, commonName, scientificName, description, imagePrompt, error } = run.aiResult;
 
     const NotIdentifiedCard = () => (
         <Card className="w-full max-w-lg shadow-2xl">
@@ -160,15 +170,17 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
                     <AlertTriangle className="h-4 w-4" />
                     <AlertTitle>AI Analysis Result</AlertTitle>
                     <AlertDescription>
-                        {description || "The AI could not confidently identify a bird song in the audio provided."}
+                        {description || error || "The AI could not confidently identify a bird song in the audio provided."}
                     </AlertDescription>
                 </Alert>
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
                 <div className="flex w-full justify-around">
-                    <Button variant="outline" onClick={handleReplay}>
-                        <PlayCircle className="mr-2 h-4 w-4" /> Replay Audio
-                    </Button>
+                    {run.inputAudioUrl && (
+                        <Button variant="outline" onClick={handleReplay}>
+                            <PlayCircle className="mr-2 h-4 w-4" /> Replay Audio
+                        </Button>
+                    )}
                 </div>
                 <Button className="w-full mt-4" onClick={() => router.push('/')}>
                     <Home className="mr-2 h-4 w-4" /> New Recording
@@ -192,9 +204,11 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
                         </CardContent>
                         <CardFooter className="flex flex-col gap-4">
                             <div className="flex w-full justify-around">
-                                <Button variant="outline" onClick={handleReplay}>
-                                    <PlayCircle className="mr-2 h-4 w-4" /> Replay Audio
-                                </Button>
+                                {run.inputAudioUrl && (
+                                    <Button variant="outline" onClick={handleReplay}>
+                                        <PlayCircle className="mr-2 h-4 w-4" /> Replay Audio
+                                    </Button>
+                                )}
                                 <Button variant="outline" onClick={handleDownload}>
                                     <Download className="mr-2 h-4 w-4" /> Download
                                 </Button>

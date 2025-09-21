@@ -10,6 +10,7 @@ import type { TestAudioMetadata, PromptSystem, PromptVersion, AppAIVersion, AppA
 import { kebabCase } from 'lodash';
 import { cache } from 'react';
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
+import { logErrorToFirestore } from './error-logging';
 
 
 interface UploadMasterAudioInput {
@@ -152,18 +153,19 @@ export async function createAnalysisRun(
     const collectionName = 'all_analysis_runs';
     const analysisRunRef = doc(db, collectionName, analysisRunId);
     
-    const fileRef = storageRef(storage, storagePath);
-    const downloadUrl = await getDownloadURL(fileRef);
-
+    let downloadUrl: string | null = null;
     let aiResult: IdentifyBirdOutput;
     let wasSuccessful: boolean;
     
-    if (existingError) {
-        wasSuccessful = false;
-        aiResult = { isBirdSong: false, error: existingError.message };
-    } else {
-        const analysisStartTime = Date.now();
-        try {
+    try {
+        if (existingError) {
+            wasSuccessful = false;
+            aiResult = { isBirdSong: false, error: existingError.message };
+        } else {
+            const fileRef = storageRef(storage, storagePath);
+            downloadUrl = await getDownloadURL(fileRef);
+
+            const analysisStartTime = Date.now();
             aiResult = await identifyBirdBySound({
                 audioDataUri: downloadUrl,
                 creationTime: creationTime,
@@ -173,11 +175,11 @@ export async function createAnalysisRun(
             wasSuccessful = aiResult && aiResult.isBirdSong && !!aiResult.commonName;
             const analysisDurationMs = Date.now() - analysisStartTime;
             analysisTimings.primaryIdentificationMs = analysisDurationMs;
-        } catch (error) {
-            wasSuccessful = false;
-            aiResult = { isBirdSong: false, error: (error as Error).message };
-            logErrorToFirestore(error as Error, 'ai-flow-execution-failure', { sessionId, recordingId });
         }
+    } catch (error) {
+        wasSuccessful = false;
+        aiResult = { isBirdSong: false, error: (error as Error).message };
+        logErrorToFirestore(error as Error, 'ai-flow-execution-failure', { sessionId, recordingId });
     }
     
     const docToCreate: Partial<AnalysisRun> = {
