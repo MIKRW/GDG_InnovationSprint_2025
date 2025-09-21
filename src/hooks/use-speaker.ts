@@ -96,15 +96,26 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     const playAudio = useCallback(async (source: string) => {
         const audio = audioRef.current;
         if (!audio) return;
+
+        // Stop any currently playing audio before starting a new one.
+        if (!audio.paused) {
+            audio.pause();
+            audio.currentTime = 0;
+        }
         
         try {
             const dataUri = await getAudioDataUri(source);
-            // Only play if we received a valid audio URI
             if (dataUri) {
                 audio.src = dataUri;
                 await audio.play();
             }
-        } catch (error) {
+        } catch (error: any) {
+             // The play() request can be interrupted by a new request. This is expected
+             // and we can safely ignore the AbortError.
+            if (error.name === 'AbortError') {
+                console.log('Audio playback was interrupted by a new request. This is normal.');
+                return;
+            }
             console.error("Failed to load or play audio:", error);
             setIsPlaying(false);
             setIsLoading(false);
