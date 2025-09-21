@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -17,7 +17,7 @@ import { Carousel, CarouselApi, CarouselContent, CarouselItem, useCarousel } fro
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
-import { setSpeakerSettings, useSpeakerSettings } from '@/lib/speaker-store';
+import { setSpeakerSettings, getSpeakerSettings, defaultSettings } from '@/lib/speaker-store';
 
 
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
@@ -86,7 +86,14 @@ export default function SettingsPage() {
   const [narrationText, setNarrationText] = useState(NARRATION_TEXTS[0]);
   const [api, setApi] = useState<CarouselApi>();
 
-  const speakerSettings = useSpeakerSettings();
+  const speakerSettings = useSyncExternalStore(
+    (onStoreChange) => {
+        window.addEventListener('speaker-settings-change', onStoreChange);
+        return () => window.removeEventListener('speaker-settings-change', onStoreChange);
+    },
+    getSpeakerSettings,
+    () => defaultSettings
+  );
   const isAutoPlayOn = speakerSettings.isAutoPlayOn;
 
   const [isNewbieMode, setIsNewbieMode] = useState(true);
@@ -156,7 +163,7 @@ export default function SettingsPage() {
   const toggleAutoPlay = () => {
     const newValue = !isAutoPlayOn;
     // This now updates the global store immediately.
-    setSpeakerSettings({ isAutoPlayOn: newValue });
+    setGlobalSpeakerSettings({ isAutoPlayOn: newValue });
     playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
   };
 
