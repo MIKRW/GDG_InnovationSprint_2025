@@ -50,19 +50,19 @@ function AiAssistantCard({
     };
 
     return (
-        <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
+        <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
             <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
-                <CardContent className="flex-1 flex flex-col items-center justify-center gap-4">
+                <CardContent className="flex-1 flex flex-col items-center justify-center gap-4 p-2">
                      {chatMode === 'voice' || !isChatActive ? (
                         <>
-                            <div className="w-96 h-96">
+                            <div className="w-48 h-48">
                                 <Button variant="ghost" className={cn("w-full h-full rounded-full hover:bg-background", isChatActive && "animate-pulse bg-background")} onClick={onToggleChat}>
-                                    <Bot className="h-96 w-96 text-foreground" />
+                                    <Bot className="h-48 w-48 text-foreground" />
                                 </Button>
                             </div>
                             <div className="text-center">
-                                <h2 className="text-8xl font-mono font-bold">Bird Book</h2>
-                                <p className="text-3xl font-mono text-foreground/80">
+                                <h2 className="text-5xl font-mono font-bold">Bird Book</h2>
+                                <p className="text-lg font-mono text-foreground/80">
                                     {isChatActive ? "Listening..." : "Click the icon to give a command"}
                                 </p>
                             </div>
@@ -100,7 +100,7 @@ function AiAssistantCard({
 
 function BirdResultCard({ seed, onStartChat }: { seed: string, onStartChat: () => void }) {
     return (
-        <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
+        <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
             <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
                 <div className="relative w-full flex-1 pt-4">
                     <Image
@@ -122,8 +122,8 @@ function BirdResultCard({ seed, onStartChat }: { seed: string, onStartChat: () =
                         </p>
                     </CardContent>
                     <CardFooter className="flex flex-1 justify-center items-center">
-                        <Button variant="ghost" size="icon" onClick={onStartChat} className="h-32 w-32">
-                            <Bot className="h-24 w-24" />
+                        <Button variant="ghost" size="icon" onClick={onStartChat} className="h-24 w-24">
+                            <Bot className="h-20 w-20" />
                         </Button>
                     </CardFooter>
                 </div>
@@ -141,7 +141,7 @@ const CarouselPrevious = React.forwardRef<
   return (
     <button
       ref={ref}
-      className={cn("absolute top-1/2 -translate-y-1/2 h-40 w-40 -left-60", className)}
+      className={cn("absolute top-1/2 -translate-y-1/2 h-16 w-16 -left-20", className)}
       disabled={!canScrollPrev}
       onClick={scrollPrev}
       aria-label="Previous slide"
@@ -163,7 +163,7 @@ const CarouselNext = React.forwardRef<
   return (
     <button
       ref={ref}
-      className={cn("absolute top-1/2 -translate-y-1/2 h-40 w-40 -right-60", className)}
+      className={cn("absolute top-1/2 -translate-y-1/2 h-16 w-16 -right-20", className)}
       disabled={!canScrollNext}
       onClick={scrollNext}
       aria-label="Next slide"
@@ -232,10 +232,10 @@ export default function BirdBookPage() {
                     <ContrastButton />
                 </div>
 
-                <Carousel className="w-full max-w-3xl" opts={{ loop: false }} setApi={setApi}>
+                <Carousel className="w-full max-w-xl" opts={{ loop: false }} setApi={setApi}>
                     <CarouselContent>
                         <CarouselItem>
-                            <div className="p-1 h-[60rem]">
+                            <div className="p-1 h-[42rem]">
                                 <AiAssistantCard 
                                     isChatActive={isChatActive} 
                                     onToggleChat={handleToggleChat} 
@@ -244,17 +244,17 @@ export default function BirdBookPage() {
                             </div>
                         </CarouselItem>
                         <CarouselItem>
-                            <div className="p-1 h-[60rem]">
+                            <div className="p-1 h-[42rem]">
                                <BirdResultCard seed="bird1" onStartChat={startChat} />
                             </div>
                         </CarouselItem>
                         <CarouselItem>
-                            <div className="p-1 h-[60rem]">
+                            <div className="p-1 h-[42rem]">
                                 <BirdResultCard seed="bird2" onStartChat={startChat} />
                             </div>
                         </CarouselItem>
                         <CarouselItem>
-                            <div className="p-1 h-[60rem]">
+                            <div className="p-1 h-[42rem]">
                                <BirdResultCard seed="bird3" onStartChat={startChat} />
                             </div>
                         </CarouselItem>
@@ -265,17 +265,17 @@ export default function BirdBookPage() {
 
                 <div className="absolute bottom-4 left-4 opacity-50">
                     <Link href="/log">
-                        <Button variant="ghost" size="icon" className="h-40 w-40">
-                            <BookImage className="h-32 w-32 text-foreground" />
+                        <Button variant="ghost" size="icon" className="h-28 w-28">
+                            <BookImage className="h-20 w-20 text-foreground" />
                         </Button>
                     </Link>
                 </div>
                 
-                <div className="absolute bottom-24 inset-x-0 flex justify-center">
+                <div className="absolute bottom-12 inset-x-0 flex justify-center">
                     <Button
                         onClick={() => setChatMode(chatMode === 'voice' ? 'text' : 'voice')}
                         variant={chatMode === 'text' ? 'secondary' : 'default'}
-                        className="rounded-full px-32 py-8 text-2xl font-semibold transition-colors duration-300"
+                        className="rounded-full px-8 py-4 text-lg font-semibold transition-colors duration-300"
                     >
                         {chatMode === 'voice' ? 'Voice Controlled' : 'Text Controlled'}
                     </Button>
@@ -286,9 +286,9 @@ export default function BirdBookPage() {
                       <Button
                         variant='ghost'
                         size='icon'
-                        className="h-40 w-40"
+                        className="h-28 w-28"
                       >
-                        <Home className="h-32 w-32 text-foreground" />
+                        <Home className="h-20 w-20 text-foreground" />
                       </Button>
                     </Link>
                 </div>
@@ -296,3 +296,5 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
+
+    
