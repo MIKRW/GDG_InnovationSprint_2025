@@ -66,21 +66,17 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     }, []);
 
     const getAudioDataUri = useCallback(async (source: string): Promise<string | null> => {
-        // If the source is a path to a WAV file, return it directly.
         if (source.endsWith('.wav')) {
             return source;
         }
 
-        // If it's AI text, check cache first
         if (lastPlayedSourceRef.current === source && lastDataUriRef.current) {
             return lastDataUriRef.current;
         }
 
-        // Fetch new TTS audio from AI
         setIsLoading(true);
         try {
             const response = await textToSpeech(source);
-            // If the response is empty (e.g., due to a handled quota error), return null.
             if (!response.audioDataUri) {
                 console.warn('TTS returned empty audio data, likely due to a quota limit. Aborting playback.');
                 return null;
@@ -97,7 +93,7 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         const audio = audioRef.current;
         if (!audio) return;
 
-        // Stop any currently playing audio before starting a new one.
+        // Always stop any currently playing audio before starting a new one.
         if (!audio.paused) {
             audio.pause();
             audio.currentTime = 0;
@@ -110,8 +106,6 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
                 await audio.play();
             }
         } catch (error: any) {
-             // The play() request can be interrupted by a new request. This is expected
-             // and we can safely ignore the AbortError.
             if (error.name === 'AbortError') {
                 console.log('Audio playback was interrupted by a new request. This is normal.');
                 return;
@@ -132,9 +126,12 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
             sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
         }
         
+        // If the same sound is playing, clicking again should pause it.
         if (isPlaying && (audio.src.endsWith(targetSource) || lastPlayedSourceRef.current === targetSource)) {
             audio.pause();
         } else {
+            // Otherwise, play the new sound.
+            // If the speaker is off, turn it on first.
             if (!settings.isSpeakerOn) {
                 setSettings(prev => {
                     const newSettings = { ...prev, isSpeakerOn: true };
@@ -150,8 +147,6 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     useEffect(() => {
         const isAutoPlayOn = (autoPlayType === 'general' && settings.isGeneralAutoPlayOn) || (autoPlayType === 'carousel' && settings.isCarouselAutoPlayOn);
         if (isAutoPlayOn && settings.isSpeakerOn && narrationSource && hasInteractedRef.current) {
-            // Don't auto-play dynamic TTS-generated content to save costs.
-            // Only auto-play the pre-recorded WAV files.
             if (narrationSource.endsWith('.wav')) {
                 playAudio(narrationSource);
             }
