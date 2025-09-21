@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -70,7 +70,7 @@ CarouselNext.displayName = "CarouselNext"
 
 const NARRATION_TEXTS: { [key: number]: string } = {
     0: "/audio/narration/narration-settings-intro.wav",
-    1: "/audio/narration/narration-settings-narration.wav", // This is now a fallback
+    1: "", // This will be handled dynamically
     2: "/audio/narration/narration-settings-theme.wav",
     3: "Allow the app to use your device's location to improve identification accuracy.",
     4: "/audio/narration/narration-settings-hardware.wav",
