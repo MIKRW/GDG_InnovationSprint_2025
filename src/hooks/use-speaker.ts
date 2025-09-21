@@ -80,11 +80,19 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         // If it's a local file, we don't need to fetch anything from the AI
         if (isLocalFile(sourceToPlay)) {
             const fullUrl = new URL(sourceToPlay, window.location.origin).href;
-             if (shouldPlay && hasInteractedRef.current && audioRef.current) {
+            if (shouldPlay && hasInteractedRef.current && audioRef.current) {
                 if (audioRef.current.src !== fullUrl) {
-                   audioRef.current.src = fullUrl;
+                    audioRef.current.src = fullUrl;
                 }
-                audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+                // Check if readyState is sufficient to play, otherwise wait
+                if (audioRef.current.readyState >= 2) {
+                    audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+                } else {
+                    audioRef.current.oncanplaythrough = () => {
+                        audioRef.current?.play().catch(e => console.error("Audio playback failed on canplaythrough:", e));
+                        if(audioRef.current) audioRef.current.oncanplaythrough = null; // Clean up listener
+                    }
+                }
             }
             return;
         }
