@@ -74,8 +74,8 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
         scriptProcessorNodeRef.current = null;
     }
     if (mediaStreamSourceRef.current) {
-        mediaStreamSourceRef.current.disconnect();
         mediaStreamSourceRef.current.mediaStream.getTracks().forEach(track => track.stop());
+        mediaStreamSourceRef.current.disconnect();
         mediaStreamSourceRef.current = null;
     }
      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
