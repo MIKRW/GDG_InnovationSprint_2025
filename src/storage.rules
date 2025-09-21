@@ -1,0 +1,14 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow authenticated users to read and write to the recordings folder.
+    // This supports our anonymous authentication strategy.
+    match /recordings/{recordingId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // All other paths in your bucket remain protected by default.
+    // You can add more specific rules for other folders as needed.
+  }
+}

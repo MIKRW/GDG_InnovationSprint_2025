@@ -2,13 +2,14 @@
 'use server';
 
 import { revalidateTag } from 'next/cache';
-import { ref as storageRef, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
+import { ref as storageRef, getDownloadURL, uploadString } from 'firebase/storage';
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, orderBy, runTransaction, writeBatch } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
 import type { TestAudioMetadata, PromptSystem, PromptVersion, AppAIVersion, AppAIConfig, PromptContent, AnalysisRun, AppMode, IdentifyBirdOutput } from './types';
 import { kebabCase } from 'lodash';
 import { cache } from 'react';
+import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
 
 
 interface UploadMasterAudioInput {
@@ -47,7 +48,7 @@ export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<T
     const fetchResponse = await fetch(audioFile);
     const blob = await fetchResponse.blob();
     
-    await uploadBytes(fileRef, blob);
+    await uploadString(fileRef, audioFile, 'data_url');
     await getDownloadURL(fileRef);
 
     // 2. Create or update the bird document in Firestore
@@ -136,10 +137,8 @@ export async function saveCanonicalImage(
 }
 
 export async function createAnalysisRun(
-    audioDataUri: string,
+    storagePath: string,
     recordingId: string,
-    aiResult: IdentifyBirdOutput,
-    wasSuccessful: boolean,
     locationData: any,
     hardware: string | null,
     mode: AppMode,
@@ -148,26 +147,41 @@ export async function createAnalysisRun(
     creationTime: string,
   ): Promise<string> {
     
-    // Upload audio to a top-level "recordings" folder
-    const audioStoragePath = `recordings/${recordingId}.webm`;
-    const fileRef = storageRef(storage, audioStoragePath);
-    const fetchResponse = await fetch(audioDataUri);
-    const blob = await fetchResponse.blob();
-    await uploadBytes(fileRef, blob);
-    const inputAudioUrl = await getDownloadURL(fileRef);
-
-    // Create the analysis run document
     const analysisRunId = uuidv4();
     const collectionName = 'all_analysis_runs';
     const analysisRunRef = doc(db, collectionName, analysisRunId);
+    
+    const fileRef = storageRef(storage, storagePath);
+    const downloadUrl = await getDownloadURL(fileRef);
+
+    const analysisStartTime = Date.now();
+    let aiResult: IdentifyBirdOutput;
+    let wasSuccessful: boolean;
+    
+    try {
+        aiResult = await identifyBirdBySound({
+            audioDataUri: downloadUrl,
+            creationTime: creationTime,
+            ...locationData,
+            mode: mode
+        });
+        wasSuccessful = aiResult && aiResult.isBirdSong && !!aiResult.commonName;
+    } catch (error) {
+        wasSuccessful = false;
+        aiResult = { isBirdSong: false, error: (error as Error).message };
+        logErrorToFirestore(error as Error, 'ai-flow-execution-failure', { sessionId, recordingId });
+    }
+    
+    const analysisDurationMs = Date.now() - analysisStartTime;
+    analysisTimings.primaryIdentificationMs = analysisDurationMs;
 
     const docToCreate: Partial<AnalysisRun> = {
       id: analysisRunId,
       creationTime: creationTime,
-      userId: 'anonymous', // User accounts are not implemented
+      userId: 'anonymous',
       sessionId: sessionId,
-      inputAudioUrl: inputAudioUrl,
-      inputAudioStoragePath: audioStoragePath,
+      inputAudioUrl: downloadUrl,
+      inputAudioStoragePath: storagePath,
       locationData: {
         latitude: locationData?.latitude ?? null,
         longitude: locationData?.longitude ?? null,
