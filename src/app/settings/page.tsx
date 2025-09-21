@@ -73,6 +73,7 @@ export default function SettingsPage() {
   const [isClient, setIsClient] = useState(false);
   const { playNarration, toggleAutoPlay, isAutoPlayOn, ...speakerProps } = useSpeaker(PAGE_NARRATION);
   const [api, setApi] = useState<CarouselApi>();
+  const [controlMode, setControlMode] = useState<'voice' | 'text'>('text');
 
   useEffect(() => {
     setIsClient(true);
@@ -118,6 +119,34 @@ export default function SettingsPage() {
                                     <CardTitle className="text-5xl font-mono pt-4">Settings</CardTitle>
                                     <CardDescription>Swipe to customize your app experience.</CardDescription>
                                 </CardHeader>
+                            </Card>
+                        </div>
+                    </div>
+                </CarouselItem>
+
+                 {/* Control Mode Card */}
+                <CarouselItem>
+                    <div className="p-1 h-full">
+                       <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
+                            <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
+                                <CardHeader className="text-center">
+                                    <AudioLines className="h-48 w-48 text-foreground mx-auto" />
+                                    <CardTitle className="text-4xl font-mono pt-4">Control Mode</CardTitle>
+                                </CardHeader>
+                                <CardContent className="flex flex-col items-center gap-4">
+                                     <CardDescription>
+                                        Switch between voice and text input. (Voice coming soon)
+                                    </CardDescription>
+                                     <div className="flex justify-center mt-4">
+                                        <Button
+                                            onClick={() => setControlMode(controlMode === 'voice' ? 'text' : 'voice')}
+                                            variant={controlMode === 'text' ? 'secondary' : 'default'}
+                                            className="rounded-full px-8 py-4 text-lg font-semibold transition-colors duration-300"
+                                        >
+                                            {controlMode === 'voice' ? 'Voice Controlled' : 'Text Controlled'}
+                                        </Button>
+                                    </div>
+                                </CardContent>
                             </Card>
                         </div>
                     </div>
@@ -266,5 +295,3 @@ export default function SettingsPage() {
     </AppLayout>
   );
 }
-
-    
