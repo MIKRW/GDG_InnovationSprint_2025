@@ -18,16 +18,19 @@ function AiAssistantCard() {
     return (
         <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
             <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
-                <CardContent className="flex-1 flex flex-col items-center justify-end gap-4 pb-12">
-                     <div className="w-48 h-48">
+                <CardContent className="flex-1 flex flex-col items-center justify-center gap-4">
+                     <div className="w-96 h-96">
                         <Button variant="ghost" className="w-full h-full rounded-full">
-                            <Bot className="h-48 w-48 text-foreground" />
+                            <Bot className="h-96 w-96 text-foreground" />
                         </Button>
                      </div>
-                    <p className="text-muted-foreground text-center max-w-xs">
-                        Press to chat
-                    </p>
                 </CardContent>
+                <CardHeader className="text-center">
+                    <CardTitle className="text-5xl">Bird Book</CardTitle>
+                    <CardDescription className="text-lg">
+                        swipe to see your birds or click to chat to the guide to organize your bird book
+                    </CardDescription>
+                </CardHeader>
             </Card>
         </div>
     )
