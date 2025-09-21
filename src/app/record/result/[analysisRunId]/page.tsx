@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BookImage, Download, Home, PlayCircle, Settings, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { AlertTriangle, BookImage, Check, Download, Home, PlayCircle, Settings, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import { generateBirdImage } from '@/ai/flows/instructional-generate-bird-image-flow';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +19,7 @@ import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
 import Link from 'next/link';
 import { useSpeaker } from '@/hooks/use-speaker';
+import { cn } from '@/lib/utils';
 
 function BirdImage({ commonName }: { commonName: string }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -207,6 +208,7 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
     const [run, setRun] = useState<AnalysisRun | null>(null);
     const [loading, setLoading] = useState(true);
     const [isClient, setIsClient] = useState(false);
+    const router = useRouter();
     
     // The `params` object is a Promise. We use `React.use` to unwrap it.
     const resolvedParams = use(params);
@@ -244,6 +246,16 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
         fetchRun();
     }, [analysisRunId]);
 
+    const handleDiscard = () => {
+        // Later, this could delete the analysis run
+        router.push('/');
+    };
+
+    const handleSave = () => {
+        // Later, this will save the item to the user's log
+        router.push('/log');
+    };
+
     if (!isClient) return null;
 
     return (
@@ -256,7 +268,17 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
                     <ContrastButton />
                 </div>
                 
-                <div className="w-full max-w-xl h-[42rem]">
+                <div className="w-full max-w-xl h-[42rem] relative">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleDiscard}
+                        className="absolute top-1/2 -translate-y-1/2 h-32 w-32 -left-40 text-destructive hover:text-destructive"
+                        aria-label="Discard analysis"
+                    >
+                        <X className="h-full w-full" />
+                    </Button>
+
                     <div className="p-1 h-full">
                          <div className="bg-ring rounded-lg shadow-lg p-6 h-full relative">
                             {loading ? (
@@ -268,6 +290,16 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
                             )}
                         </div>
                     </div>
+                    
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleSave}
+                        className="absolute top-1/2 -translate-y-1/2 h-32 w-32 -right-40 text-primary hover:text-primary"
+                        aria-label="Save analysis"
+                    >
+                        <Check className="h-full w-full" />
+                    </Button>
                 </div>
 
                 <div className="absolute bottom-4 left-4 opacity-50">
