@@ -266,7 +266,7 @@ export default function BirdBookPage() {
                     </Link>
                 </div>
                 
-                <div className="absolute bottom-4 inset-x-0 flex justify-center">
+                <div className="absolute bottom-32 inset-x-0 flex justify-center">
                     <Button
                         onClick={() => setChatMode(chatMode === 'voice' ? 'text' : 'voice')}
                         className={cn(
