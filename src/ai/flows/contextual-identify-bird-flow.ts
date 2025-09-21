@@ -109,47 +109,57 @@ const identifyBirdFlow = ai.defineFlow(
   },
   async (input) => {
 
-    const identifyBirdPrompt = ai.definePrompt({
-        name: 'identifyBirdPrompt',
-        prompt: BIRD_ID_PROMPT,
-        input: { schema: IdentifyBirdInputSchema },
-        output: { schema: IdentifyBirdOutputSchema },
-        model: googleAI.model('gemini-1.5-pro-latest'),
-        tools: [getCurrentWeather],
-        config: {
-            temperature: 0.3,
+    try {
+        const identifyBirdPrompt = ai.definePrompt({
+            name: 'identifyBirdPrompt',
+            prompt: BIRD_ID_PROMPT,
+            input: { schema: IdentifyBirdInputSchema },
+            output: { schema: IdentifyBirdOutputSchema },
+            model: googleAI.model('gemini-1.5-pro-latest'),
+            tools: [getCurrentWeather],
+            config: {
+                temperature: 0.3,
+            }
+        });
+
+        const { output, finishReason } = await identifyBirdPrompt(input);
+
+        if (!output) {
+        if (finishReason === 'safety') {
+            throw new Error('The AI refused to process the audio due to its safety filters.');
         }
-    });
-
-    const { output, finishReason } = await identifyBirdPrompt(input);
-
-    if (!output) {
-      if (finishReason === 'safety') {
-        throw new Error('The AI refused to process the audio due to its safety filters.');
-      }
-      throw new Error('The model failed to return a valid analysis.');
-    }
+        throw new Error('The model failed to return a valid analysis.');
+        }
+        
+        // If no bird song was detected, fill in placeholder text.
+        if (output.isBirdSong === false) {
+            return {
+                ...output,
+                isBirdSong: false,
+                commonName: "Not identified",
+                scientificName: "Not identified",
+                family: "Not identified",
+                order: "Not identified",
+                description: output.description || "The AI did not detect a bird song in this audio recording. You can review it later in the Mystery Recordings log.",
+                imagePrompt: "photo of a question mark in a forest",
+                confidence: 0,
+                season: output.season || "Unknown",
+                weather: output.weather || "Unknown",
+                aiGeneratedHabitatTags: [],
+                duration: output.duration,
+                promptVersion: output.promptVersion,
+            };
+        }
     
-    // If no bird song was detected, fill in placeholder text.
-    if (output.isBirdSong === false) {
-        return {
-            ...output,
-            isBirdSong: false,
-            commonName: "Not identified",
-            scientificName: "Not identified",
-            family: "Not identified",
-            order: "Not identified",
-            description: output.description || "The AI did not detect a bird song in this audio recording. You can review it later in the Mystery Recordings log.",
-            imagePrompt: "photo of a question mark in a forest",
-            confidence: 0,
-            season: output.season || "Unknown",
-            weather: output.weather || "Unknown",
-            aiGeneratedHabitatTags: [],
-            duration: output.duration,
-            promptVersion: output.promptVersion,
-        };
+        return output;
+    } catch (error) {
+        if (error instanceof Error && error.message.includes('Could not refresh access token')) {
+            const projectId = process.env.GCLOUD_PROJECT;
+            const iamUrl = `https://console.cloud.google.com/iam-admin/iam?project=${projectId}`;
+            throw new Error(`AI Authentication Failed: The server lacks permission to call the AI. Please grant the "Vertex AI User" role to the App Hosting service account in your project's IAM settings. You can go to ${iamUrl} to fix this.`);
+        }
+        // Re-throw any other errors
+        throw error;
     }
-    
-    return output;
   }
 );
