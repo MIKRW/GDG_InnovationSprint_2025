@@ -17,6 +17,8 @@ import { ContrastButton } from '@/components/content/ContrastButton';
 import { useToast } from '@/hooks/use-toast';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { app } from '@/lib/firebase';
+import { uploadBytes, ref as storageRef } from 'firebase/storage';
+import { storage } from '@/lib/firebase';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
@@ -176,6 +178,8 @@ export default function Home() {
   
     try {
       const audioStoragePath = `recordings/${recordingId}.webm`;
+      const fileRef = storageRef(storage, audioStoragePath);
+      await uploadBytes(fileRef, audioBlob);
       
       const timeoutPromise = new Promise<string | null>((_, reject) =>
         setTimeout(() => reject(new Error('Analysis timed out')), ANALYSIS_TIMEOUT_MS)
