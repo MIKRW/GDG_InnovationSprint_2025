@@ -276,7 +276,7 @@ export default function BirdBookPage() {
                                 : 'bg-background text-primary border-2 border-primary'
                         )}
                     >
-                        {chatMode === 'voice' ? 'Text Controlled' : 'Voice Controlled'}
+                        {chatMode === 'voice' ? 'Voice Controlled' : 'Text Controlled'}
                     </Button>
                 </div>
 
