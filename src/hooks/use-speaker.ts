@@ -15,7 +15,7 @@ interface SpeakerSettings {
 export function useSpeaker(narrationText: string) {
     const [settings, setSettings] = useState<SpeakerSettings>({
         isSpeakerOn: true,
-        isAutoPlayOn: true,
+        isAutoPlayOn: false, // Default to off
     });
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -52,11 +52,14 @@ export function useSpeaker(narrationText: string) {
                 setSettings(parsed);
             } catch (e) {
                 console.error("Failed to parse speaker settings:", e);
+                 // If parsing fails, set default
+                setSettings({ isSpeakerOn: true, isAutoPlayOn: false });
+                localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify({ isSpeakerOn: true, isAutoPlayOn: false }));
             }
         } else {
-            // If no settings, this is likely the first run, so speaker is on.
-            setSettings({ isSpeakerOn: true, isAutoPlayOn: true });
-            localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify({ isSpeakerOn: true, isAutoPlayOn: true }));
+            // If no settings, this is likely the first run, so set defaults
+            setSettings({ isSpeakerOn: true, isAutoPlayOn: false });
+            localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify({ isSpeakerOn: true, isAutoPlayOn: false }));
         }
 
         return () => {
@@ -158,3 +161,5 @@ export function useSpeaker(narrationText: string) {
         toggleAutoPlay,
     };
 }
+
+    
