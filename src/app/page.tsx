@@ -124,19 +124,16 @@ export default function Home() {
   }
 
   const handleRecordingComplete = async (audioBlob: Blob) => {
-    setIsProcessing(true);
-
     const tempUserId = 'anonymous';
-
     const recordingId = uuidv4();
     const filePath = `users/${tempUserId}/recordings/${recordingId}.webm`;
     const fileRef = storageRef(storage, filePath);
-
+    
     let analysisRunId: string | null = null;
+
     try {
         await uploadBytes(fileRef, audioBlob);
         analysisRunId = await processAudio(filePath);
-
     } catch (error) {
         console.error("Failed to upload or process live recording:", error);
         logErrorToFirestore(error as Error, 'live-audio-upload-failure', {
@@ -144,17 +141,16 @@ export default function Home() {
             filePath: filePath,
         });
     } finally {
+        setIsProcessing(false);
         if (analysisRunId) {
             router.push(`/record/result/${analysisRunId}`);
-        } else {
-            // If something went wrong and we didn't get an ID, stop the loading animation.
-            setIsProcessing(false);
         }
     }
   }
   
   const handleStop = () => {
     setIsRecording(false);
+    setIsProcessing(true);
   }
 
 
