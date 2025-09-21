@@ -130,11 +130,9 @@ export default function RecordPage() {
   
   const handleStop = () => {
     setIsRecording(false);
-    setIsProcessing(true);
   }
 
   const handleRecordingComplete = async (audioBlob: Blob) => {
-    setIsRecording(false);
     setIsProcessing(true);
 
     const tempUserId = 'anonymous';

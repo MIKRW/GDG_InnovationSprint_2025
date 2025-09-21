@@ -127,7 +127,6 @@ export default function Home() {
   }
 
   const handleRecordingComplete = async (audioBlob: Blob) => {
-    setIsRecording(false);
     setIsProcessing(true);
 
     const tempUserId = 'anonymous';
@@ -151,10 +150,7 @@ export default function Home() {
   }
   
   const handleStop = () => {
-    // This is handled by the onRecordingComplete callback now
-    // but we set processing to true to show the analyzing state
     setIsRecording(false);
-    setIsProcessing(true);
   }
 
 
