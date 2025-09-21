@@ -1,31 +1,16 @@
+
 rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    
-    // Rule for master test audio files.
-    // Make these files publicly readable so the developer test suite can access them.
-    // Writes should be restricted to admin/server-side processes.
-    match /master-audio/{allPaths=**} {
-      allow read;
-      allow write: if false; // Disallow client-side writes completely.
+    // Allow public read and write access to the recordings folder for anonymous uploads.
+    match /recordings/{allPaths=**} {
+      allow read, write: if true;
     }
 
-    // Rule for user-specific files (recordings, habitat photos, etc.).
-    // Only allow a user to read and write to their own directory.
-    match /users/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Rule for canonical bird images. These can be publicly readable.
-    match /canonical-images/{allPaths=**} {
-      allow read;
-      allow write: if false; // Disallow client-side writes.
-    }
-
-    // A general fallback to deny all other access.
+    // By default, all other paths require authentication.
     match /{allPaths=**} {
-      allow read, write: if false;
+      allow read, write: if request.auth != null;
     }
   }
 }
