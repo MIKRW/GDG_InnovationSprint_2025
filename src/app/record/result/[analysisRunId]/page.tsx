@@ -21,6 +21,8 @@ import Link from 'next/link';
 import { useSpeaker } from '@/hooks/use-speaker';
 import { cn } from '@/lib/utils';
 
+const SAVED_RUNS_KEY = 'saved-runs';
+
 function BirdImage({ commonName }: { commonName: string }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -247,12 +249,23 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
     }, [analysisRunId]);
 
     const handleDiscard = () => {
-        // Later, this could delete the analysis run
         router.push('/');
     };
 
-    const handleSave = () => {
-        // Later, this will save the item to the user's log
+    const handleSave = async () => {
+        if (!run) return;
+
+        // Add to localStorage for client-side rendering on log page
+        const savedRunsJson = localStorage.getItem(SAVED_RUNS_KEY);
+        const savedRuns: AnalysisRun[] = savedRunsJson ? JSON.parse(savedRunsJson) : [];
+        // Add new run to the beginning of the array
+        const newSavedRuns = [run, ...savedRuns];
+        localStorage.setItem(SAVED_RUNS_KEY, JSON.stringify(newSavedRuns));
+
+        // Update Firestore document
+        const docRef = doc(db, 'all_analysis_runs', run.id);
+        await updateDoc(docRef, { wasSavedByUser: true });
+        
         router.push('/log');
     };
 
@@ -261,7 +274,7 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
     return (
         <AppLayout>
             <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
-                <div className="absolute top-4 left-4 opacity-50">
+                 <div className="absolute top-4 left-4 opacity-50">
                     <SpeakerButton onClick={playNarration} {...speakerProps} />
                 </div>
                 <div className="absolute top-4 right-4 opacity-50">
@@ -273,7 +286,7 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
                         variant="ghost"
                         size="icon"
                         onClick={handleDiscard}
-                        className="absolute top-1/2 -translate-y-1/2 h-32 w-32 -left-40 text-destructive hover:text-destructive"
+                        className="absolute top-1/2 -translate-y-1/2 h-32 w-32 -left-40 text-primary hover:text-primary"
                         aria-label="Discard analysis"
                     >
                         <X className="h-full w-full" />
@@ -324,3 +337,5 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
         </AppLayout>
     );
 }
+
+    

@@ -2,8 +2,7 @@
 'use client';
 
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import Image from 'next/image';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Carousel, CarouselApi, CarouselContent, CarouselItem, useCarousel } from '@/components/ui/carousel';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -16,13 +15,16 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useSpeaker } from '@/hooks/use-speaker';
+import { type AnalysisRun } from '@/lib/types';
+import { SavedRunCard } from '@/components/content/SavedRunCard';
 
 interface ChatMessage {
     sender: 'user' | 'bot';
     text: string;
 }
+
+const SAVED_RUNS_KEY = 'saved-runs';
 
 const PAGE_NARRATION = "This is the Bird Book, your personal log of identified birds. You can swipe left and right to view your saved identifications. The first card is the AI assistant, which can help you filter, sort, or find birds in your log. Click the bot icon to start a voice command, or toggle to text control at the bottom.";
 
@@ -98,40 +100,6 @@ function AiAssistantCard({
     )
 }
 
-function BirdResultCard({ seed, onStartChat }: { seed: string, onStartChat: () => void }) {
-    return (
-        <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
-            <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
-                <div className="relative w-full flex-1 pt-4">
-                    <Image
-                        src={`https://picsum.photos/seed/${seed}/600/400`}
-                        alt="A picture of a bird"
-                        fill
-                        className="object-contain rounded-t-lg"
-                        data-ai-hint="bird nature"
-                    />
-                </div>
-                <div className="flex flex-col flex-1">
-                    <CardHeader className="text-center">
-                        <CardTitle className="text-3xl font-mono">Sparrow</CardTitle>
-                        <CardDescription className="text-lg italic font-mono">Passer domesticus</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-1">
-                        <p className="text-muted-foreground">
-                            A small, common bird found in most parts of the world. Sparrows are known for their cheerful chirping and social nature.
-                        </p>
-                    </CardContent>
-                    <CardFooter className="flex flex-1 justify-center items-center">
-                        <Button variant="ghost" size="icon" onClick={onStartChat} className="h-24 w-24">
-                            <Bot className="h-20 w-20" />
-                        </Button>
-                    </CardFooter>
-                </div>
-            </Card>
-        </div>
-    );
-}
-
 const CarouselPrevious = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<typeof Button>
@@ -183,11 +151,17 @@ export default function BirdBookPage() {
     const [isClient, setIsClient] = useState(false);
     const [currentTheme, setCurrentTheme] = useState('light');
     const { playNarration, ...speakerProps } = useSpeaker(PAGE_NARRATION);
+    const [savedRuns, setSavedRuns] = useState<AnalysisRun[]>([]);
 
     useEffect(() => {
         setIsClient(true);
         const theme = localStorage.getItem('theme') || 'light';
         setCurrentTheme(theme);
+        
+        const savedRunsJson = localStorage.getItem(SAVED_RUNS_KEY);
+        if (savedRunsJson) {
+            setSavedRuns(JSON.parse(savedRunsJson));
+        }
     }, []);
 
     useEffect(() => {
@@ -246,21 +220,36 @@ export default function BirdBookPage() {
                                 />
                             </div>
                         </CarouselItem>
-                        <CarouselItem>
-                            <div className="p-1 h-full">
-                               <BirdResultCard seed="bird1" onStartChat={startChat} />
-                            </div>
-                        </CarouselItem>
-                        <CarouselItem>
-                            <div className="p-1 h-full">
-                                <BirdResultCard seed="bird2" onStartChat={startChat} />
-                            </div>
-                        </CarouselItem>
-                        <CarouselItem>
-                            <div className="p-1 h-full">
-                               <BirdResultCard seed="bird3" onStartChat={startChat} />
-                            </div>
-                        </CarouselItem>
+                        {savedRuns.length > 0 ? (
+                            savedRuns.map((run) => (
+                                <CarouselItem key={run.id}>
+                                    <div className="p-1 h-full">
+                                        <SavedRunCard run={run} onStartChat={startChat} />
+                                    </div>
+                                </CarouselItem>
+                            ))
+                        ) : (
+                             <CarouselItem>
+                                <div className="p-1 h-full">
+                                   <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
+                                        <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
+                                            <CardHeader>
+                                                <CardTitle className="text-2xl font-mono text-center">Your Bird Book is Empty</CardTitle>
+                                                <CardDescription className="text-center">Saved identifications will appear here.</CardDescription>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <Link href="/">
+                                                    <Button>
+                                                        <Mic className="mr-2 h-4 w-4" />
+                                                        Make a Recording
+                                                    </Button>
+                                                </Link>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                </div>
+                            </CarouselItem>
+                        )}
                     </CarouselContent>
                     <CarouselPrevious />
                     <CarouselNext />
@@ -299,3 +288,5 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
+
+    
