@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
@@ -18,10 +17,10 @@ import { Carousel, CarouselApi, CarouselContent, CarouselItem, useCarousel } fro
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
+import { setSpeakerSettings, useSpeakerSettings } from '@/lib/speaker-store';
 
 
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
-const SPEAKER_SETTINGS_KEY = 'speaker-settings';
 const APP_MODE_KEY = 'app-mode-settings';
 
 
@@ -87,7 +86,9 @@ export default function SettingsPage() {
   const [narrationText, setNarrationText] = useState(NARRATION_TEXTS[0]);
   const [api, setApi] = useState<CarouselApi>();
 
-  const [isAutoPlayOn, setIsAutoPlayOn] = useState(true);
+  const speakerSettings = useSpeakerSettings();
+  const isAutoPlayOn = speakerSettings.isAutoPlayOn;
+
   const [isNewbieMode, setIsNewbieMode] = useState(true);
 
   const { playNarration, playSfx, ...speakerProps } = useSpeaker(narrationText);
@@ -101,15 +102,6 @@ export default function SettingsPage() {
       setHardware(savedHardware);
     }
     
-    // Load Speaker setting
-    const savedSpeakerSettings = localStorage.getItem(SPEAKER_SETTINGS_KEY);
-    if (savedSpeakerSettings) {
-      try {
-        const parsed = JSON.parse(savedSpeakerSettings);
-        setIsAutoPlayOn(parsed.isAutoPlayOn);
-      } catch {}
-    }
-
     // Load App Mode setting
     const savedAppMode = localStorage.getItem(APP_MODE_KEY);
     if (savedAppMode) {
@@ -163,10 +155,9 @@ export default function SettingsPage() {
 
   const toggleAutoPlay = () => {
     const newValue = !isAutoPlayOn;
-    setIsAutoPlayOn(newValue);
+    // This now updates the global store immediately.
+    setSpeakerSettings({ isAutoPlayOn: newValue });
     playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
-    const existingSettings = JSON.parse(localStorage.getItem(SPEAKER_SETTINGS_KEY) || '{}');
-    localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify({ ...existingSettings, isAutoPlayOn: newValue }));
   };
 
   const toggleAppMode = () => {
@@ -190,7 +181,7 @@ export default function SettingsPage() {
     <AppLayout>
       <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
         <div className="absolute top-4 left-4 opacity-50">
-            <SpeakerButton onClick={() => playNarration()} {...speakerProps} isSpeakerOn={speakerProps.isSpeakerOn ?? isAutoPlayOn} />
+            <SpeakerButton onClick={() => playNarration()} {...speakerProps} isSpeakerOn={speakerProps.isSpeakerOn} />
         </div>
         <div className="absolute top-4 right-4 opacity-50">
             <ContrastButton />
