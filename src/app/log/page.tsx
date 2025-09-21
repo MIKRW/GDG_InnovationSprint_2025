@@ -177,7 +177,7 @@ function AiAssistantCard({
                         <>
                             <div className="w-48 h-48">
                                 <Button variant="ghost" className="w-full h-full rounded-full hover:bg-background" onClick={handleToggleChat}>
-                                    <Bot className={cn("h-48 w-48 text-foreground", (isSpeaking || isListening) && "animate-color-cycle")} />
+                                    <Bot className={cn("h-48 w-48 text-foreground", (isSpeaking || isListening || isChatActive) && "animate-color-cycle")} />
                                 </Button>
                             </div>
                             <div className="text-center">
