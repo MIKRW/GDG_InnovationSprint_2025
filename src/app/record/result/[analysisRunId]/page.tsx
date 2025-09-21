@@ -7,15 +7,17 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AnalysisRun } from '@/lib/types';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { SecondaryHeader } from '@/components/layout/SecondaryHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Download, Home, PlayCircle, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { AlertTriangle, BookImage, Download, Home, PlayCircle, Settings, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { generateBirdImage } from '@/ai/flows/instructional-generate-bird-image-flow';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
+import { SpeakerButton } from '@/components/content/SpeakerButton';
+import { ContrastButton } from '@/components/content/ContrastButton';
+import Link from 'next/link';
 
 function BirdImage({ prompt }: { prompt: string }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -40,12 +42,12 @@ function BirdImage({ prompt }: { prompt: string }) {
     }, [prompt]);
 
     if (isLoading) {
-        return <Skeleton className="w-full h-64" />;
+        return <Skeleton className="w-full h-96" />;
     }
 
     if (!imageUrl) {
         return (
-            <div className="w-full h-64 bg-muted flex items-center justify-center text-muted-foreground">
+            <div className="w-full h-96 bg-muted flex items-center justify-center text-muted-foreground">
                 <AlertTriangle className="w-8 h-8" />
                 <p className="ml-2">Image could not be loaded.</p>
             </div>
@@ -53,7 +55,7 @@ function BirdImage({ prompt }: { prompt: string }) {
     }
 
     return (
-        <div className="relative w-full h-64">
+        <div className="relative w-full h-96">
             <Image
                 src={imageUrl}
                 alt={prompt}
@@ -64,57 +66,15 @@ function BirdImage({ prompt }: { prompt: string }) {
     );
 }
 
-
-export default function ResultPage({ params }: { params: { analysisRunId: string } }) {
-    const [run, setRun] = useState<AnalysisRun | null>(null);
-    const [loading, setLoading] = useState(true);
+function ResultPageContent({ run }: { run: AnalysisRun }) {
     const [feedbackGiven, setFeedbackGiven] = useState(false);
-    const [analysisRunId, setAnalysisRunId] = useState<string | null>(null);
-    const router = useRouter();
     const { toast } = useToast();
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
-        // Initialize Audio object only on the client side
         audioRef.current = new Audio();
-        
-        // Next.js now passes params as a Promise to client components,
-        // so we must unwrap it safely in an effect.
-        const unwrapParams = async () => {
-            const resolvedParams = await params;
-            setAnalysisRunId(resolvedParams.analysisRunId);
-        };
-        unwrapParams();
-        
-    }, [params]);
+    }, []);
 
-    useEffect(() => {
-        const fetchRun = async () => {
-            if (!analysisRunId) {
-                setLoading(false);
-                return;
-            };
-            setLoading(true);
-            try {
-                const docRef = doc(db, 'all_analysis_runs', analysisRunId);
-                const docSnap = await getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    setRun(docSnap.data() as AnalysisRun);
-                } else {
-                    // This will trigger the not-found page
-                    setRun(null);
-                }
-            } catch (error) {
-                console.error("Error fetching analysis run:", error);
-                setRun(null);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchRun();
-    }, [analysisRunId]);
-    
     const handleFeedback = async (wasCorrect: boolean) => {
         if (!run) return;
         
@@ -150,35 +110,19 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
     }
     
     const handleDownload = () => {
-        // This is a placeholder for future functionality
         toast({
             title: "Coming Soon!",
             description: "Downloading results will be available in a future update.",
         });
     }
 
-    if (loading) {
-        return (
-            <AppLayout header={<SecondaryHeader title="Analyzing..." />}>
-                <main className="flex-1 flex items-center justify-center p-4 bg-muted">
-                    <Skeleton className="h-96 w-full max-w-lg" />
-                </main>
-            </AppLayout>
-        );
-    }
-
-    if (!run) {
-        return notFound();
-    }
-
     const { isBirdSong, commonName, scientificName, description, imagePrompt, error } = run.aiResult;
 
     const NotIdentifiedCard = () => (
-        <Card className="w-full max-w-lg shadow-2xl">
-            <CardHeader>
-                <CardTitle className="text-3xl">Not Identified</CardTitle>
-
-                <CardDescription className="text-lg italic">No bird was identified in the recording.</CardDescription>
+        <Card className="w-full max-w-2xl shadow-2xl">
+            <CardHeader className="text-center">
+                <CardTitle className="text-4xl">Not Identified</CardTitle>
+                <CardDescription className="text-xl italic">No bird was identified in the recording.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Alert variant="destructive">
@@ -190,61 +134,152 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
                 </Alert>
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
-                <div className="flex w-full justify-around">
-                    {run.inputAudioUrl && (
-                        <Button variant="outline" onClick={handleReplay}>
-                            <PlayCircle className="mr-2 h-4 w-4" /> Replay Audio
-                        </Button>
-                    )}
-                </div>
-                <Button className="w-full mt-4" onClick={() => router.push('/')}>
-                    <Home className="mr-2 h-4 w-4" /> New Recording
-                </Button>
+                {run.inputAudioUrl && (
+                    <Button variant="outline" onClick={handleReplay} className="w-full">
+                        <PlayCircle className="mr-2 h-4 w-4" /> Replay Audio
+                    </Button>
+                )}
             </CardFooter>
         </Card>
     );
 
     return (
-        <AppLayout header={<SecondaryHeader title="Analysis Result" />}>
-            <main className="flex-1 flex items-center justify-center p-4 bg-muted">
-                {isBirdSong === false || error ? <NotIdentifiedCard /> : (
-                    <Card className="w-full max-w-lg shadow-2xl">
-                        {imagePrompt && <BirdImage prompt={imagePrompt} />}
-                        <CardHeader>
-                            <CardTitle className="text-3xl">{commonName}</CardTitle>
-                            <CardDescription className="text-lg italic">{scientificName}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-muted-foreground">{description}</p>
-                        </CardContent>
-                        <CardFooter className="flex flex-col gap-4">
-                            <div className="flex w-full justify-around">
-                                {run.inputAudioUrl && (
-                                    <Button variant="outline" onClick={handleReplay}>
-                                        <PlayCircle className="mr-2 h-4 w-4" /> Replay Audio
-                                    </Button>
-                                )}
-                                <Button variant="outline" onClick={handleDownload}>
-                                    <Download className="mr-2 h-4 w-4" /> Download
+        <>
+            {isBirdSong === false || error ? <NotIdentifiedCard /> : (
+                <Card className="w-full max-w-2xl shadow-2xl">
+                    {imagePrompt && <BirdImage prompt={imagePrompt} />}
+                    <CardHeader className="text-center">
+                        <CardTitle className="text-4xl">{commonName}</CardTitle>
+                        <CardDescription className="text-xl italic">{scientificName}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground text-center">{description}</p>
+                    </CardContent>
+                    <CardFooter className="flex flex-col gap-4">
+                        <div className="flex w-full justify-around">
+                            {run.inputAudioUrl && (
+                                <Button variant="outline" onClick={handleReplay}>
+                                    <PlayCircle className="mr-2 h-4 w-4" /> Replay Audio
+                                </Button>
+                            )}
+                            <Button variant="outline" onClick={handleDownload}>
+                                <Download className="mr-2 h-4 w-4" /> Download
+                            </Button>
+                        </div>
+                         <div className="flex w-full flex-col items-center gap-2 pt-4 border-t">
+                            <p className="text-sm text-muted-foreground">Was this identification correct?</p>
+                            <div className="flex gap-4">
+                                <Button variant="outline" size="sm" onClick={() => handleFeedback(true)} disabled={feedbackGiven}>
+                                    <ThumbsUp className="mr-2 h-4 w-4" /> Correct
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={() => handleFeedback(false)} disabled={feedbackGiven}>
+                                    <ThumbsDown className="mr-2 h-4 w-4" /> Incorrect
                                 </Button>
                             </div>
-                             <div className="flex w-full flex-col items-center gap-2 pt-4 border-t">
-                                <p className="text-sm text-muted-foreground">Was this identification correct?</p>
-                                <div className="flex gap-4">
-                                    <Button variant="outline" size="sm" onClick={() => handleFeedback(true)} disabled={feedbackGiven}>
-                                        <ThumbsUp className="mr-2 h-4 w-4" /> Correct
-                                    </Button>
-                                    <Button variant="outline" size="sm" onClick={() => handleFeedback(false)} disabled={feedbackGiven}>
-                                        <ThumbsDown className="mr-2 h-4 w-4" /> Incorrect
-                                    </Button>
-                                </div>
-                            </div>
-                            <Button className="w-full mt-4" onClick={() => router.push('/')}>
-                               <Home className="mr-2 h-4 w-4" /> New Recording
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                )}
+                        </div>
+                    </CardFooter>
+                </Card>
+            )}
+        </>
+    );
+}
+
+
+export default function ResultPage({ params }: { params: { analysisRunId: string } }) {
+    const [run, setRun] = useState<AnalysisRun | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [analysisRunId, setAnalysisRunId] = useState<string | null>(null);
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    useEffect(() => {
+        if (!isClient) return;
+
+        const unwrapParams = async () => {
+            try {
+                const resolvedParams = await params;
+                setAnalysisRunId(resolvedParams.analysisRunId);
+            } catch (e) {
+                console.error("Failed to resolve params", e);
+                setLoading(false);
+            }
+        };
+        unwrapParams();
+    }, [params, isClient]);
+
+    useEffect(() => {
+        if (!analysisRunId) return;
+
+        const fetchRun = async () => {
+            setLoading(true);
+            try {
+                const docRef = doc(db, 'all_analysis_runs', analysisRunId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    setRun({ id: docSnap.id, ...docSnap.data() } as AnalysisRun);
+                } else {
+                    setRun(null);
+                }
+            } catch (error) {
+                console.error("Error fetching analysis run:", error);
+                setRun(null);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchRun();
+    }, [analysisRunId]);
+
+    if (!isClient) return null;
+
+    if (loading) {
+        return (
+            <AppLayout>
+                <main className="flex-1 flex flex-col items-center justify-center bg-muted p-4 relative">
+                    <Skeleton className="h-[40rem] w-full max-w-2xl" />
+                </main>
+            </AppLayout>
+        );
+    }
+
+    if (!run) {
+        return notFound();
+    }
+
+    return (
+        <AppLayout>
+            <main className="flex-1 flex flex-col items-center justify-center bg-muted p-4 relative">
+                <div className="absolute top-4 left-4 opacity-50">
+                    <SpeakerButton />
+                </div>
+                <div className="absolute top-4 right-4 opacity-50">
+                    <ContrastButton />
+                </div>
+                
+                <ResultPageContent run={run} />
+
+                <div className="absolute bottom-4 left-4 opacity-50">
+                    <Link href="/log">
+                        <Button variant="ghost" size="icon" className="h-40 w-40">
+                            <BookImage className="h-32 w-32 text-foreground" />
+                        </Button>
+                    </Link>
+                </div>
+                <div className="absolute bottom-4 right-4 opacity-50">
+                    <Link href="/">
+                      <Button
+                        variant='ghost'
+                        size='icon'
+                        className="h-40 w-40"
+                      >
+                        <Home className="h-32 w-32 text-foreground" />
+                      </Button>
+                    </Link>
+                </div>
             </main>
         </AppLayout>
     );
