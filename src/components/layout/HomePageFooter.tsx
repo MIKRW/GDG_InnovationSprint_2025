@@ -3,7 +3,7 @@
 
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Settings, Home, BookImage } from 'lucide-react';
+import { Settings, BookImage } from 'lucide-react';
 import Link from 'next/link';
 
 interface HomePageFooterProps {

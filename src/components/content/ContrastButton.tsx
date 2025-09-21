@@ -71,7 +71,7 @@ export function ContrastButton() {
   };
 
   return (
-    <Button variant="ghost" size="icon" aria-label="Toggle Contrast" onClick={toggleTheme}>
+    <Button variant="ghost" size="icon" aria-label="Toggle Contrast" onClick={toggleTheme} className="h-20 w-20">
       <Contrast className="h-10 w-10" strokeWidth={2.5} />
     </Button>
   );
