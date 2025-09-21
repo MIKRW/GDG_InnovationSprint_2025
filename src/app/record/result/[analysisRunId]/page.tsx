@@ -165,6 +165,7 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
         <Card className="w-full max-w-lg shadow-2xl">
             <CardHeader>
                 <CardTitle className="text-3xl">Not Identified</CardTitle>
+
                 <CardDescription className="text-lg italic">No bird was identified in the recording.</CardDescription>
             </CardHeader>
             <CardContent>
