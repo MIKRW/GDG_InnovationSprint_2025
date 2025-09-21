@@ -2,7 +2,7 @@
 'use server';
 
 import { revalidateTag } from 'next/cache';
-import { getBytes, getDownloadURL, ref as storageRef, uploadString } from 'firebase/storage';
+import { getDownloadURL, ref as storageRef } from 'firebase/storage';
 import {
   arrayUnion,
   collection,
@@ -69,10 +69,6 @@ export async function uploadMasterAudio(data: UploadMasterAudioInput): Promise<T
     const filePath = `master-audio/${birdId}/${uniqueFileName}`;
     const fileRef = storageRef(storage, filePath);
 
-    // Convert data URI to blob
-    const fetchResponse = await fetch(audioFile);
-    const blob = await fetchResponse.blob();
-    
     await uploadString(fileRef, audioFile, 'data_url');
     await getDownloadURL(fileRef);
 
@@ -196,11 +192,10 @@ export async function createAnalysisRun(
         
         const [audioBuffer] = await file.download();
         
-        const base64String = audioBuffer.toString('base64');
-        const audioDataUri = `data:audio/webm;base64,${base64String}`;
+        const audioDataUri = `data:audio/webm;base64,${audioBuffer.toString('base64')}`;
 
         aiResult = await identifyBirdBySound({
-            audio: { url: audioDataUri, contentType: 'audio/webm' },
+            audioDataUri,
             creationTime: creationTime,
             ...locationData,
             mode: mode
@@ -379,7 +374,7 @@ export async function getAppAIVersions(type: 'dev' | 'live' | 'all' = 'all'): Pr
 
         // Create bird identifier system
         transaction.set(doc(db, 'prompt_systems', birdSystemId), { name: "Bird Identifier AI (Newbie)", description: "Manages prompts for identifying birds in Newbie mode.", activeVersion: birdVersionId });
-        transaction.set(doc(db, 'prompt_content', birdContentId), { systemId: birdSystemId, categoryId: 'base_instruction', version: birdVersionId, promptText: `You are an expert ornithologist. Your primary goal is to identify bird species from audio recordings. The user will provide an audio file and optional location data. You MUST analyze this audio to determine if a bird song is present. If it is, identify the bird's common name, scientific name, taxonomic family, and order. If no bird song is discernible, you MUST set 'isBirdSong' to false. You must also generate a simple, descriptive prompt for a text-to-image model to create a photorealistic image of the identified bird.`, timestamp: new Date().toISOString() });
+        transaction.set(doc(db, 'prompt_content', birdContentId), { systemId: birdSystemId, categoryId: 'base_instruction', version: birdVersionId, promptText: `You are an expert ornithologist. Your primary goal is to identify bird species from audio recordings. The user will provide an audio file and optional location data. You MUST analyze this audio to determine if a bird song is present. If it is, identify the bird's common name, scientificName, taxonomic family, and order. If no bird song is discernible, you MUST set 'isBirdSong' to false. You must also generate a simple, descriptive prompt for a text-to-image model to create a photorealistic image of the identified bird.`, timestamp: new Date().toISOString() });
         transaction.set(doc(db, 'prompt_versions', birdVersionDocId), { systemId: birdSystemId, version: birdVersionId, composedPrompts: { base_instruction: birdContentId }, timestamp: new Date().toISOString() });
         
         // Create theme generator system
