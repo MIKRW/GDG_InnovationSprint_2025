@@ -18,9 +18,11 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
+import { useToast } from '@/hooks/use-toast';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
+const ANALYSIS_TIMEOUT_MS = 90000; // 90 seconds
 
 
 export default function Home() {
@@ -28,6 +30,7 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsClient(true);
@@ -69,51 +72,51 @@ export default function Home() {
   };
   
   const processAudio = async (storagePath: string): Promise<string | null> => {
-    return new Promise((resolve) => {
-        getLocationForAIShot(async (locationData) => {
-            if (!currentTimestamp.current || !currentSessionId.current) {
-                resolve(null);
-                return;
-            }
-            
-            const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
-            let result: IdentifyBirdOutput | null = null;
-            let analysisRunId: string | null = null;
-            
-            try {
-                const analysisStartTime = Date.now();
-                result = await identifyBirdBySound({
-                    audioStoragePath: storagePath,
-                    timestamp: currentTimestamp.current!,
-                    ...locationData
-                });
-                const analysisDurationMs = Date.now() - analysisStartTime;
-                const wasSuccessful = result && result.isBirdSong && !!result.commonName;
+    return new Promise((resolve, reject) => {
+      getLocationForAIShot(async (locationData) => {
+          if (!currentTimestamp.current || !currentSessionId.current) {
+              return reject(new Error("Missing session or timestamp for analysis."));
+          }
+          
+          const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
+          let result: IdentifyBirdOutput | null = null;
+          let analysisRunId: string | null = null;
+          
+          try {
+              const analysisStartTime = Date.now();
+              result = await identifyBirdBySound({
+                  audioStoragePath: storagePath,
+                  timestamp: currentTimestamp.current!,
+                  ...locationData
+              });
+              const analysisDurationMs = Date.now() - analysisStartTime;
+              const wasSuccessful = result && result.isBirdSong && !!result.commonName;
 
-                analysisRunId = await createAnalysisRun(
-                    'anonymous', storagePath, result, wasSuccessful, locationData, hardware, 'newbie',
-                    { primaryIdentificationMs: analysisDurationMs },
-                    currentSessionId.current, currentTimestamp.current
-                );
+              analysisRunId = await createAnalysisRun(
+                  'anonymous', storagePath, result, wasSuccessful, locationData, hardware, 'newbie',
+                  { primaryIdentificationMs: analysisDurationMs },
+                  currentSessionId.current, currentTimestamp.current
+              );
+              resolve(analysisRunId);
 
-            } catch (error) {
-                const analysisDurationMs = Date.now() - (currentTimestamp.current ? new Date(currentTimestamp.current).getTime() : Date.now());
-                result = { error: (error as Error).message, isBirdSong: false };
-                logErrorToFirestore(error as Error, 'ai-identification-failure', {
-                    sessionId: currentSessionId.current, timestamp: currentTimestamp.current,
-                    locationData: locationData, userId: 'anonymous'
-                });
-                
-                analysisRunId = await createAnalysisRun(
-                    'anonymous', storagePath, result, false,
-                    locationData, hardware, 'newbie',
-                    { primaryIdentificationMs: analysisDurationMs },
-                    currentSessionId.current, currentTimestamp.current
-                );
-            } finally {
-                resolve(analysisRunId);
-            }
-        });
+          } catch (error) {
+              const analysisDurationMs = Date.now() - (currentTimestamp.current ? new Date(currentTimestamp.current).getTime() : Date.now());
+              result = { error: (error as Error).message, isBirdSong: false };
+              logErrorToFirestore(error as Error, 'ai-identification-failure', {
+                  sessionId: currentSessionId.current, timestamp: currentTimestamp.current,
+                  locationData: locationData, userId: 'anonymous'
+              });
+              
+              analysisRunId = await createAnalysisRun(
+                  'anonymous', storagePath, result, false,
+                  locationData, hardware, 'newbie',
+                  { primaryIdentificationMs: analysisDurationMs },
+                  currentSessionId.current, currentTimestamp.current
+              );
+              // In case of error, we still resolve with the ID to navigate to the error page
+              resolve(analysisRunId);
+          }
+      });
     });
   };
 
@@ -133,13 +136,30 @@ export default function Home() {
 
     try {
         await uploadBytes(fileRef, audioBlob);
-        analysisRunId = await processAudio(filePath);
+
+        const timeoutPromise = new Promise<null>((_, reject) => 
+            setTimeout(() => reject(new Error('Analysis timed out')), ANALYSIS_TIMEOUT_MS)
+        );
+
+        analysisRunId = await Promise.race([
+            processAudio(filePath),
+            timeoutPromise
+        ]);
+
     } catch (error) {
         console.error("Failed to upload or process live recording:", error);
         logErrorToFirestore(error as Error, 'live-audio-upload-failure', {
             userId: tempUserId,
             filePath: filePath,
         });
+
+        if ((error as Error).message === 'Analysis timed out') {
+            toast({
+                variant: 'destructive',
+                title: 'Analysis Timed Out',
+                description: `The analysis took too long to complete. Please try again.`,
+            });
+        }
     } finally {
         setIsProcessing(false);
         if (analysisRunId) {
@@ -204,3 +224,5 @@ export default function Home() {
     </AppLayout>
   );
 }
+
+    

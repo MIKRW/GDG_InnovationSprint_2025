@@ -10,7 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { getStorage } from 'firebase-admin/storage';
+import { getStorage, getDownloadURL } from 'firebase-admin/storage';
 import wavDecoder from 'wav-decoder';
 import { googleAI } from '@genkit-ai/googleai';
 import { BIRD_ID_PROMPT } from '@/ai/prompts/bird-identifier-prompt';
@@ -105,22 +105,24 @@ async function fileToDataUriWithDuration(storagePath: string): Promise<{ dataUri
     const file = bucket.file(storagePath);
     const [metadata] = await file.getMetadata();
     const mimeType = metadata.contentType || 'application/octet-stream';
+    
+    // Get a download URL with a token. This is necessary for the next step.
+    const downloadUrl = await getDownloadURL(file);
 
-    // Create a readable stream from the file
-    const stream = file.createReadStream();
-
-    // Read the stream into a buffer
-    const chunks: Buffer[] = [];
-    for await (const chunk of stream) {
-        chunks.push(chunk);
+    // Fetch the file using the authenticated URL.
+    const response = await fetch(downloadUrl);
+    if (!response.ok) {
+        throw new Error(`Failed to download file from storage: ${response.statusText}`);
     }
-    const buffer = Buffer.concat(chunks);
+    const buffer = await response.arrayBuffer();
+    const nodeBuffer = Buffer.from(buffer);
+
 
     // Calculate duration for WAV files
     let duration: number | undefined;
     if (mimeType === 'audio/wav' || storagePath.endsWith('.wav')) {
         try {
-            const decoded = await wavDecoder.decode(buffer);
+            const decoded = await wavDecoder.decode(nodeBuffer);
             duration = decoded.duration;
         } catch (e) {
             console.warn(`Could not decode WAV file to get duration: ${storagePath}`, e);
@@ -130,7 +132,7 @@ async function fileToDataUriWithDuration(storagePath: string): Promise<{ dataUri
     // For now, we only support WAV duration on the server.
 
     // Convert buffer to Base64 and format as a data URI
-    const base64 = buffer.toString('base64');
+    const base64 = nodeBuffer.toString('base64');
     const dataUri = `data:${mimeType};base64,${base64}`;
 
     return { dataUri, duration };
@@ -217,3 +219,5 @@ const identifyBirdFlow = ai.defineFlow(
     return output;
   }
 );
+
+    
