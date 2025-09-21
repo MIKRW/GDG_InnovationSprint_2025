@@ -69,6 +69,7 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
     const [run, setRun] = useState<AnalysisRun | null>(null);
     const [loading, setLoading] = useState(true);
     const [feedbackGiven, setFeedbackGiven] = useState(false);
+    const [analysisRunId, setAnalysisRunId] = useState<string | null>(null);
     const router = useRouter();
     const { toast } = useToast();
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -76,15 +77,26 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
     useEffect(() => {
         // Initialize Audio object only on the client side
         audioRef.current = new Audio();
+        
+        // Next.js now passes params as a Promise to client components,
+        // so we must unwrap it safely in an effect.
+        const unwrapParams = async () => {
+            const resolvedParams = await params;
+            setAnalysisRunId(resolvedParams.analysisRunId);
+        };
+        unwrapParams();
+        
+    }, [params]);
 
+    useEffect(() => {
         const fetchRun = async () => {
-            if (!params.analysisRunId) {
+            if (!analysisRunId) {
                 setLoading(false);
                 return;
             };
             setLoading(true);
             try {
-                const docRef = doc(db, 'all_analysis_runs', params.analysisRunId);
+                const docRef = doc(db, 'all_analysis_runs', analysisRunId);
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
@@ -101,7 +113,7 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
             }
         };
         fetchRun();
-    }, [params.analysisRunId]);
+    }, [analysisRunId]);
     
     const handleFeedback = async (wasCorrect: boolean) => {
         if (!run) return;
