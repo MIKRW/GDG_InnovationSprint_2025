@@ -9,7 +9,7 @@ import { createAnalysisRun } from '@/lib/actions';
 import type { LocationSettings } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { ColorableLogo } from '@/components/content/ColorableLogo';
-import { BookImage, Settings } from 'lucide-react';
+import { BookImage, Settings, UploadCloud } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { SpeakerButton } from '@/components/content/SpeakerButton';
@@ -26,7 +26,8 @@ const ANALYSIS_TIMEOUT_MS = 90000; // 90 seconds
 
 
 export default function Home() {
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -162,14 +163,14 @@ export default function Home() {
   }, [isRecording]);
 
   const handleRecordingComplete = async (audioBlob: Blob | null) => {
-    setIsProcessing(true);
+    setIsUploading(true);
     if (!audioBlob) {
         toast({
             variant: 'destructive',
             title: 'Recording Failed',
             description: 'No audio was recorded. Please check microphone permissions.',
         });
-        setIsProcessing(false);
+        setIsUploading(false);
         return;
     }
 
@@ -182,6 +183,10 @@ export default function Home() {
       
       // Ensure the upload completes before proceeding
       await uploadBytes(fileRef, audioBlob);
+      
+      // Upload is done, now set analyzing state
+      setIsUploading(false);
+      setIsAnalyzing(true);
       
       const timeoutPromise = new Promise<string | null>((_, reject) =>
         setTimeout(() => reject(new Error('Analysis timed out')), ANALYSIS_TIMEOUT_MS)
@@ -215,7 +220,8 @@ export default function Home() {
         });
       }
     } finally {
-      setIsProcessing(false);
+      setIsUploading(false);
+      setIsAnalyzing(false);
       if (analysisRunId) {
         router.push(`/record/result/${analysisRunId}`);
       } else {
@@ -242,7 +248,16 @@ export default function Home() {
         <div className="absolute top-4 right-4 opacity-50">
             <ContrastButton />
         </div>
-        {isProcessing ? (
+        {isUploading ? (
+          <div className="flex flex-col items-center justify-center gap-0 pb-16 w-[60rem] h-[40rem]">
+             <div className="w-[40rem] h-[40rem] p-12">
+                <UploadCloud className="w-full h-full text-foreground/50" />
+             </div>
+            <div className="pl-4">
+                <p className="text-8xl font-mono font-bold text-foreground text-center -mt-16">Uploading...</p>
+            </div>
+          </div>
+        ) : isAnalyzing ? (
           <div className="flex flex-col items-center justify-center gap-0 pb-16 w-[60rem] h-[40rem]">
              <div className="w-[40rem] h-[40rem] p-12">
                 <ColorableLogo className="w-full h-full animate-color-cycle" />
@@ -284,3 +299,5 @@ export default function Home() {
     </AppLayout>
   );
 }
+
+    
