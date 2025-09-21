@@ -25,7 +25,7 @@ const LOCATION_ENABLED_KEY = 'location-sharing-enabled';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 const ANALYSIS_TIMEOUT_MS = 90000; // 90 seconds
 
-const PAGE_NARRATION = "/audio/narration-main-page.wav";
+const PAGE_NARRATION = "/audio/narration/narration-main-page.wav";
 const FIRST_INTERACTION_KEY = 'user-has-interacted';
 
 export default function Home() {
@@ -59,26 +59,6 @@ export default function Home() {
         });
       }
     });
-
-    const handleFirstClick = () => {
-        const hasInteracted = sessionStorage.getItem(FIRST_INTERACTION_KEY);
-        if (!hasInteracted) {
-            playNarration(PAGE_NARRATION);
-            sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
-        }
-        // Remove the listener after the first click to avoid it firing again.
-        window.removeEventListener('click', handleFirstClick);
-    };
-
-    // Only add the listener if the user hasn't interacted in this session yet.
-    if (!sessionStorage.getItem(FIRST_INTERACTION_KEY)) {
-        window.addEventListener('click', handleFirstClick);
-    }
-    
-    // Cleanup the listener when the component unmounts.
-    return () => {
-        window.removeEventListener('click', handleFirstClick);
-    };
 
   }, [playNarration]);
 
@@ -148,6 +128,14 @@ export default function Home() {
   };
 
  const handleStart = async () => {
+    // This is the first meaningful interaction.
+    // Set the flag to allow auto-play on subsequent pages.
+    if (!sessionStorage.getItem(FIRST_INTERACTION_KEY)) {
+        sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
+        // We can also play the narration here if we want.
+        playNarration(PAGE_NARRATION);
+    }
+
     currentSessionId.current = uuidv4();
     currentCreationTime.current = new Date().toISOString();
     if (hasPermission === false) {
@@ -315,5 +303,7 @@ export default function Home() {
     </AppLayout>
   );
 }
+
+    
 
     
