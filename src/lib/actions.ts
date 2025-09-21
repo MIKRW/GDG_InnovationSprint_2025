@@ -34,7 +34,7 @@ import { kebabCase } from 'lodash';
 import { cache } from 'react';
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
 import { logErrorToFirestore } from './error-logging';
-import { firebaseConfig } from './firebase-config';
+import { adminApp, adminStorage } from './firebase-admin';
 
 
 interface UploadMasterAudioInput {
@@ -186,10 +186,16 @@ export async function createAnalysisRun(
     try {
         const analysisStartTime = Date.now();
         
-        const audioStoragePath = `gs://${firebaseConfig.storageBucket}/${storagePath}`;
+        // Use Admin SDK to download the file into a buffer on the server
+        const file = adminStorage.bucket().file(storagePath);
+        const [audioBuffer] = await file.download();
+
+        // Convert buffer to base64 and create data URI
+        const audioBase64 = audioBuffer.toString('base64');
+        const audioDataUri = `data:audio/webm;base64,${audioBase64}`;
 
         aiResult = await identifyBirdBySound({
-            audioStoragePath,
+            audioDataUri,
             creationTime: creationTime,
             ...locationData,
             mode: mode

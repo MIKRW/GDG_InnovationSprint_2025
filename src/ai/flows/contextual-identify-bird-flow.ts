@@ -15,7 +15,7 @@ import { BIRD_ID_PROMPT } from '@/ai/prompts/bird-identifier-prompt';
 
 
 const IdentifyBirdInputSchema = z.object({
-  audioStoragePath: z.string().describe("The Google Cloud Storage path (gs://) to the audio file."),
+  audioDataUri: z.string().describe("A recording of a bird song, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
   creationTime: z.string().describe('The UTC timestamp of when the recording was made, in ISO 8601 format.'),
   latitude: z.number().optional().describe('The latitude of where the recording was made.'),
   longitude: z.number().optional().describe('The longitude of where the recording was made.'),
@@ -90,8 +90,8 @@ const getCurrentWeather = ai.defineTool(
 export async function identifyBirdBySound(
   input: IdentifyBirdInput
 ): Promise<IdentifyBirdOutput> {
-  if (!input.audioStoragePath) {
-    throw new Error("No audio data provided. A Google Cloud Storage path is required.");
+  if (!input.audioDataUri) {
+    throw new Error("No audio data provided. A data URI is required.");
   }
   
   return await identifyBirdFlow(input);
@@ -107,6 +107,10 @@ const identifyBirdFlow = ai.defineFlow(
   async (input) => {
 
     try {
+        if (!input.audioDataUri) {
+            throw new Error("Audio data URI is missing from the input.");
+        }
+        
         const identifyBirdPrompt = ai.definePrompt({
             name: 'identifyBirdPrompt',
             prompt: BIRD_ID_PROMPT,
@@ -159,5 +163,3 @@ const identifyBirdFlow = ai.defineFlow(
     }
   }
 );
-
-    
