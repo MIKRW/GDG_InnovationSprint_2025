@@ -3,7 +3,7 @@
 
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Settings, Home } from 'lucide-react';
+import { Settings, Home, BookImage } from 'lucide-react';
 import Link from 'next/link';
 
 interface HomePageFooterProps {
@@ -14,34 +14,21 @@ interface HomePageFooterProps {
 export function HomePageFooter({ centerButtonLabel = "Bird Book", centerButtonHref = "/log" }: HomePageFooterProps) {
   const pathname = usePathname();
 
-  const isHomePageLink = centerButtonLabel === "Home Page";
-
   return (
     <footer className="border-t">
-      <nav className="flex justify-between items-center py-4 px-4">
-        {/* Empty div for spacing */}
-        <div className="flex gap-4">
-        </div>
-        <div className="absolute left-1/2 -translate-x-1/2">
-            <Link href={centerButtonHref}>
-              {isHomePageLink ? (
-                <Button variant="ghost" size="icon" className="h-20 w-20">
-                  <Home className="h-10 w-10 text-foreground/50" strokeWidth={2.5} />
-                </Button>
-              ) : (
-                <Button variant="ghost" className="text-6xl font-mono font-bold text-foreground/50 hover:no-underline hover:bg-transparent hover:text-foreground/70">
-                    {centerButtonLabel}
-                </Button>
-              )}
-            </Link>
-        </div>
+      <nav className="flex justify-center items-center py-4 px-4 gap-24">
+        <Link href="/log">
+            <Button variant="ghost" size="icon" className="h-20 w-20">
+                <BookImage className="h-16 w-16 text-foreground" />
+            </Button>
+        </Link>
         <Link href="/settings">
           <Button
-            variant={pathname === '/settings' ? 'secondary' : 'ghost'}
-            className="flex flex-col items-center h-auto py-2 px-4 rounded-lg"
+            variant='ghost'
+            size='icon'
+            className="h-20 w-20"
           >
-            <Settings className="h-10 w-10 text-foreground/50" strokeWidth={2.5} />
-            <span className="text-sm mt-1">Settings</span>
+            <Settings className="h-16 w-16 text-foreground" />
           </Button>
         </Link>
       </nav>
