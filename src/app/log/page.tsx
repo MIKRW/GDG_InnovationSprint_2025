@@ -141,7 +141,7 @@ const CarouselPrevious = React.forwardRef<
   return (
     <button
       ref={ref}
-      className={cn("absolute top-1/2 -translate-y-1/2 h-32 w-32 -left-40", className)}
+      className={cn("absolute top-1/2 -translate-y-1/2 h-20 w-20 -left-24", className)}
       disabled={!canScrollPrev}
       onClick={scrollPrev}
       aria-label="Previous slide"
@@ -163,7 +163,7 @@ const CarouselNext = React.forwardRef<
   return (
     <button
       ref={ref}
-      className={cn("absolute top-1/2 -translate-y-1/2 h-32 w-32 -right-40", className)}
+      className={cn("absolute top-1/2 -translate-y-1/2 h-20 w-20 -right-24", className)}
       disabled={!canScrollNext}
       onClick={scrollNext}
       aria-label="Next slide"
@@ -181,10 +181,12 @@ export default function BirdBookPage() {
     const [isChatActive, setIsChatActive] = useState(false);
     const [chatMode, setChatMode] = useState<'voice' | 'text'>('voice');
     const [isClient, setIsClient] = useState(false);
+    const [currentTheme, setCurrentTheme] = useState('light');
     const { playNarration, ...speakerProps } = useSpeaker(PAGE_NARRATION);
 
     useEffect(() => {
         setIsClient(true);
+        setCurrentTheme(localStorage.getItem('theme') || 'light');
     }, []);
 
     useEffect(() => {
@@ -229,13 +231,13 @@ export default function BirdBookPage() {
                     <SpeakerButton onClick={playNarration} {...speakerProps} />
                 </div>
                 <div className="absolute top-4 right-4 opacity-50">
-                    <ContrastButton />
+                    <ContrastButton key={currentTheme} />
                 </div>
 
-                <Carousel className="w-full max-w-xl" opts={{ loop: false }} setApi={setApi}>
-                    <CarouselContent>
+                <Carousel className="w-full max-w-lg" opts={{ loop: false }} setApi={setApi}>
+                    <CarouselContent className="h-[34rem]">
                         <CarouselItem>
-                            <div className="p-1 h-[42rem]">
+                            <div className="p-1 h-full">
                                 <AiAssistantCard 
                                     isChatActive={isChatActive} 
                                     onToggleChat={handleToggleChat} 
@@ -244,17 +246,17 @@ export default function BirdBookPage() {
                             </div>
                         </CarouselItem>
                         <CarouselItem>
-                            <div className="p-1 h-[42rem]">
+                            <div className="p-1 h-full">
                                <BirdResultCard seed="bird1" onStartChat={startChat} />
                             </div>
                         </CarouselItem>
                         <CarouselItem>
-                            <div className="p-1 h-[42rem]">
+                            <div className="p-1 h-full">
                                 <BirdResultCard seed="bird2" onStartChat={startChat} />
                             </div>
                         </CarouselItem>
                         <CarouselItem>
-                            <div className="p-1 h-[42rem]">
+                            <div className="p-1 h-full">
                                <BirdResultCard seed="bird3" onStartChat={startChat} />
                             </div>
                         </CarouselItem>
@@ -296,6 +298,8 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
+
+    
 
     
 
