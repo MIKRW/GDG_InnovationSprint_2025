@@ -70,7 +70,7 @@ CarouselNext.displayName = "CarouselNext"
 
 const NARRATION_TEXTS: { [key: number]: string } = {
     0: "/audio/narration/narration-settings-intro.wav",
-    1: "/audio/narration/narration-settings-narration.wav",
+    1: "/audio/narration/narration-settings-narration.wav", // This is now a fallback
     2: "/audio/narration/narration-settings-theme.wav",
     3: "Allow the app to use your device's location to improve identification accuracy.",
     4: "/audio/narration/narration-settings-hardware.wav",
@@ -81,20 +81,30 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [hardware, setHardware] = useState('');
   const [isClient, setIsClient] = useState(false);
-  const [narrationText, setNarrationText] = useState(NARRATION_TEXTS[0]);
-  const [api, setApi] = useState<CarouselApi>();
-
+  
   const speakerSettings = useSyncExternalStore(
     (onStoreChange) => {
-        window.addEventListener('speaker-settings-change', onStoreChange);
-        return () => window.removeEventListener('speaker-settings-change', onStoreChange);
+      window.addEventListener('speaker-settings-change', onStoreChange);
+      return () => window.removeEventListener('speaker-settings-change', onStoreChange);
     },
     getSpeakerSettings,
     () => defaultSettings
   );
   const isAutoPlayOn = speakerSettings.isAutoPlayOn;
 
-  const { playNarration, playSfx, ...speakerProps } = useSpeaker(narrationText);
+  const getNarrationForSlide = useCallback((index: number): string => {
+    if (index === 1) { // The Auto-play Narration card
+        return isAutoPlayOn 
+            ? '/audio/narration/narration-settings-autonarate-on.wav' 
+            : '/audio/narration/narration-settings-autonarate-off.wav';
+    }
+    return NARRATION_TEXTS[index] || '';
+  }, [isAutoPlayOn]);
+
+  const [narrationText, setNarrationText] = useState(NARRATION_TEXTS[0]);
+  const [api, setApi] = useState<CarouselApi>();
+
+  const { playNarration, playSfx, ...speakerProps } = useSpeaker(narrationText, 'carousel');
   
   const [isLocationOn, setIsLocationOn] = useState(true);
 
@@ -117,7 +127,7 @@ export default function SettingsPage() {
 
   const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
     if (isAutoPlayOn) {
-        const newNarration = NARRATION_TEXTS[index];
+        const newNarration = getNarrationForSlide(index);
         if (newNarration) {
             playNarration(newNarration);
         }
@@ -129,7 +139,7 @@ export default function SettingsPage() {
 
     const handleSelect = () => {
         const selectedIndex = api.selectedScrollSnap();
-        const newNarration = NARRATION_TEXTS[selectedIndex];
+        const newNarration = getNarrationForSlide(selectedIndex);
         if (newNarration) {
             setNarrationText(newNarration); // Set text for manual play
             if (isAutoPlayOn) {
@@ -140,10 +150,13 @@ export default function SettingsPage() {
 
     api.on("select", handleSelect);
     
+    // Also set the initial narration text
+    setNarrationText(getNarrationForSlide(api.selectedScrollSnap()));
+    
     return () => {
         api.off("select", handleSelect);
     };
-  }, [api, isAutoPlayOn, debouncedNarration, playNarration]);
+  }, [api, isAutoPlayOn, debouncedNarration, playNarration, getNarrationForSlide]);
   
   const handleSaveHardware = () => {
     if (hardware) {
@@ -159,7 +172,7 @@ export default function SettingsPage() {
     const newValue = !isAutoPlayOn;
     // This now updates the global store immediately.
     setSpeakerSettings({ isAutoPlayOn: newValue });
-    playSfx(newValue ? '/audio/narration/narration-settings-autonarate-on.wav' : '/audio/narration/narration-settings-autonarate-off.wav');
+    playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
   };
 
   const toggleLocation = () => {
@@ -386,5 +399,3 @@ export default function SettingsPage() {
     </AppLayout>
   );
 }
-
-    
