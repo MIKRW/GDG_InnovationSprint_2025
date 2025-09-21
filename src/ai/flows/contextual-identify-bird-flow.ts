@@ -18,7 +18,7 @@ const IdentifyBirdInputSchema = z.object({
   audio: z.object({
     url: z.string().describe("A recording of a bird song, as a data URI or a gs:// URI."),
     contentType: z.string().describe("The MIME type of the audio file, e.g., 'audio/webm' or 'audio/wav'.")
-  }).optional(),
+  }),
   creationTime: z.string().describe('The UTC timestamp of when the recording was made, in ISO 8601 format.'),
   latitude: z.number().optional().describe('The latitude of where the recording was made.'),
   longitude: z.number().optional().describe('The longitude of where the recording was made.'),
@@ -93,7 +93,7 @@ const getCurrentWeather = ai.defineTool(
 export async function identifyBirdBySound(
   input: IdentifyBirdInput
 ): Promise<IdentifyBirdOutput> {
-  if (!input.audio) {
+  if (!input.audio || !input.audio.url || !input.audio.contentType) {
       throw new Error("No audio data provided. Please provide an 'audio' object with a URL and contentType.");
   }
   
