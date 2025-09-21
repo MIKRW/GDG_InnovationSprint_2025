@@ -86,7 +86,7 @@ export default function SettingsPage() {
   const [api, setApi] = useState<CarouselApi>();
   const [controlMode, setControlMode] = useState<'voice' | 'text'>('text');
   
-  const debouncedNarration = useDebouncedCallback((index: number) => {
+  const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
     if (isCarouselAutoPlayOn) {
         const newNarration = NARRATION_TEXTS[index];
         if (newNarration) {
@@ -339,4 +339,3 @@ export default function SettingsPage() {
     </AppLayout>
   );
 }
-
