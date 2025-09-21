@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { textToSpeech } from '@/ai/flows/tts-flow';
 
 const SPEAKER_SETTINGS_KEY = 'speaker-settings';
+const FIRST_INTERACTION_KEY = 'user-has-interacted';
 
 interface SpeakerSettings {
     isSpeakerOn: boolean;
@@ -23,6 +24,9 @@ export function useSpeaker(narrationText: string) {
     const hasInteractedRef = useRef(false);
     
     useEffect(() => {
+        // This ref should reflect the session storage, not be a separate boolean
+        hasInteractedRef.current = !!sessionStorage.getItem(FIRST_INTERACTION_KEY);
+        
         // Initialize audio element on client
         audioRef.current = new Audio();
         
@@ -69,7 +73,6 @@ export function useSpeaker(narrationText: string) {
     const fetchAndCacheAudio = useCallback(async (shouldPlay: boolean) => {
         if (!narrationText || !settings.isSpeakerOn) return;
         
-        // If we already have the audio, just play it if requested and allowed.
         if (audioDataUriRef.current) {
             if (shouldPlay && hasInteractedRef.current && audioRef.current) {
                 if (audioRef.current.src !== audioDataUriRef.current) {
@@ -95,26 +98,25 @@ export function useSpeaker(narrationText: string) {
         }
     }, [narrationText, settings.isSpeakerOn]);
 
-    // Effect to proactively fetch audio on mount and handle auto-play
     useEffect(() => {
         if (settings.isSpeakerOn && narrationText) {
-            // Only attempt to autoplay if the user has interacted before
             fetchAndCacheAudio(settings.isAutoPlayOn && hasInteractedRef.current);
         }
     }, [narrationText, settings.isSpeakerOn, settings.isAutoPlayOn, fetchAndCacheAudio]);
 
 
     const playNarration = useCallback(async () => {
-        hasInteractedRef.current = true; // Record the first user interaction
+        if (!hasInteractedRef.current) {
+            hasInteractedRef.current = true;
+            sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
+        }
 
-        // If the speaker is off, this click should turn it on. The `useEffect` will then handle fetching/playing.
         if (!settings.isSpeakerOn) {
              setSettings(prev => {
                 const newSettings = { ...prev, isSpeakerOn: true };
                 localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
                 return newSettings;
             });
-            // The hook's useEffect will now pick up the change and fetch/play audio.
             return;
         };
 
@@ -125,8 +127,6 @@ export function useSpeaker(narrationText: string) {
             audio.pause();
             audio.currentTime = 0;
         } else {
-            // If we have the audio cached, play it. Otherwise, fetchAndCacheAudio will handle it.
-            // The `true` here signals it should play after fetching.
             await fetchAndCacheAudio(true);
         }
     }, [settings.isSpeakerOn, isPlaying, fetchAndCacheAudio]);

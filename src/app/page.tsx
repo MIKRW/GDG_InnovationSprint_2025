@@ -26,6 +26,7 @@ const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 const ANALYSIS_TIMEOUT_MS = 90000; // 90 seconds
 
 const PAGE_NARRATION = "Welcome to Name that Bird! This is the home page. Press the large central button to start recording a bird song and get it identified by our AI.";
+const FIRST_INTERACTION_KEY = 'user-has-interacted';
 
 export default function Home() {
   const [isUploading, setIsUploading] = useState(false);
@@ -58,7 +59,28 @@ export default function Home() {
         });
       }
     });
-  }, []);
+
+    const handleFirstClick = () => {
+        const hasInteracted = sessionStorage.getItem(FIRST_INTERACTION_KEY);
+        if (!hasInteracted) {
+            playNarration(); // This will also internally mark interaction
+            sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
+        }
+        // Remove the listener after the first click to avoid it firing again.
+        window.removeEventListener('click', handleFirstClick);
+    };
+
+    // Only add the listener if the user hasn't interacted in this session yet.
+    if (!sessionStorage.getItem(FIRST_INTERACTION_KEY)) {
+        window.addEventListener('click', handleFirstClick);
+    }
+    
+    // Cleanup the listener when the component unmounts.
+    return () => {
+        window.removeEventListener('click', handleFirstClick);
+    };
+
+  }, [playNarration]);
 
   const handleStop = () => {
     setIsRecording(false);
