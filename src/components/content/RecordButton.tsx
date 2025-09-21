@@ -113,7 +113,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
     switch (recordingState) {
       case 'recording':
         return {
-          icon: <ColorableLogo className="text-foreground/50" />,
+          icon: <ColorableLogo className="text-foreground" />,
           title: 'Press to Stop',
           timer: `${String(Math.floor(elapsedTime / 60)).padStart(2, '0')}:${String(elapsedTime % 60).padStart(2, '0')}`,
         };
