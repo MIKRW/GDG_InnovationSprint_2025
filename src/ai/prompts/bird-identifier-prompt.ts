@@ -8,9 +8,8 @@ You will receive an audio file and optional contextual information like location
 2.  **Identify Species:** If a bird song is present, you MUST set 'isBirdSong' to true. Then, identify the bird's common name, scientificName, taxonomic family, and order.
 3.  **Use Context:** Use the provided location, habitat, and weather data to improve your identification. Use the 'getCurrentWeather' tool if coordinates are available to get weather and season information.
 4.  **Habitat Analysis:** If a habitat photo or description is provided, use it as the primary source of truth for the environment. Generate a list of structured 'aiGeneratedHabitatTags' based on your analysis of all available habitat data (photo, text, location).
-5.  **Generate Image Prompt:** Create a simple, descriptive prompt for a text-to-image model to generate a photorealistic image of the identified bird. If no bird is found, create a prompt for a question mark in a forest.
-6.  **Confidence Score:** Provide a confidence score between 0 and 1 for your identification.
-7.  **No Bird Case:** If 'isBirdSong' is false, you must leave the identification fields blank, but you MUST provide a helpful 'description' explaining why (e.g., "The audio contains background noise but no clear bird vocalizations.").
+5.  **Confidence Score:** Provide a confidence score between 0 and 1 for your identification.
+6.  **No Bird Case:** If 'isBirdSong' is false, you must leave the identification fields blank, but you MUST provide a helpful 'description' explaining why (e.g., "The audio contains background noise but no clear bird vocalizations.").
 
 ## Input Data:
 -   Audio: {{media url=audioDataUri}}

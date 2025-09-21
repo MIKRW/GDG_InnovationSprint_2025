@@ -19,17 +19,17 @@ import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
 import Link from 'next/link';
 
-function BirdImage({ prompt }: { prompt: string }) {
+function BirdImage({ commonName }: { commonName: string }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        if (!prompt) return;
+        if (!commonName) return;
 
         const generate = async () => {
             setIsLoading(true);
             try {
-                const result = await generateBirdImage({ prompt });
+                const result = await generateBirdImage({ commonName });
                 setImageUrl(result.imageDataUri);
             } catch (error) {
                 console.error("Failed to generate bird image:", error);
@@ -39,7 +39,7 @@ function BirdImage({ prompt }: { prompt: string }) {
         };
 
         generate();
-    }, [prompt]);
+    }, [commonName]);
 
     if (isLoading) {
         return <Skeleton className="w-full h-full" />;
@@ -57,7 +57,7 @@ function BirdImage({ prompt }: { prompt: string }) {
     return (
         <Image
             src={imageUrl}
-            alt={prompt}
+            alt={`A generated image of a ${commonName}`}
             fill
             className="object-contain rounded-t-lg"
             data-ai-hint="bird nature"
@@ -123,7 +123,7 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
         }
     }
 
-    const { isBirdSong, commonName, scientificName, description, imagePrompt, error } = run.aiResult;
+    const { isBirdSong, commonName, scientificName, description, error } = run.aiResult;
 
     const NotIdentifiedCard = () => (
         <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
@@ -155,7 +155,7 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
             {isBirdSong === false || error ? <NotIdentifiedCard /> : (
                 <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
                     <div className="relative w-full flex-1 pt-4">
-                        {imagePrompt && <BirdImage prompt={imagePrompt} />}
+                        {commonName && <BirdImage commonName={commonName} />}
                     </div>
                     <div className="flex flex-col flex-1">
                         <CardHeader className="text-center">
