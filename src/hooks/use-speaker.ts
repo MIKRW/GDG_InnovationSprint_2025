@@ -65,10 +65,9 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         };
     }, []);
 
-    const getAudioDataUri = useCallback(async (source: string): Promise<string> => {
+    const getAudioDataUri = useCallback(async (source: string): Promise<string | null> => {
         // If the source is a path to a WAV file, return it directly.
         if (source.endsWith('.wav')) {
-            // No caching needed for static files, just return the path.
             return source;
         }
 
@@ -81,8 +80,10 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         setIsLoading(true);
         try {
             const response = await textToSpeech(source);
+            // If the response is empty (e.g., due to a handled quota error), return null.
             if (!response.audioDataUri) {
-                throw new Error('TTS returned empty audio data.');
+                console.warn('TTS returned empty audio data, likely due to a quota limit. Aborting playback.');
+                return null;
             }
             lastDataUriRef.current = response.audioDataUri;
             lastPlayedSourceRef.current = source;
@@ -98,8 +99,11 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         
         try {
             const dataUri = await getAudioDataUri(source);
-            audio.src = dataUri;
-            await audio.play();
+            // Only play if we received a valid audio URI
+            if (dataUri) {
+                audio.src = dataUri;
+                await audio.play();
+            }
         } catch (error) {
             console.error("Failed to load or play audio:", error);
             setIsPlaying(false);
