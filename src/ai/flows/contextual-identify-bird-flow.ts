@@ -21,7 +21,7 @@ const IdentifyBirdInputSchema = z.object({
     .describe(
       "A recording of a bird song, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
-    timestamp: z.string().describe('The UTC timestamp of when the recording was made, in ISO 8601 format.'),
+    creationTime: z.string().describe('The UTC timestamp of when the recording was made, in ISO 8601 format.'),
     latitude: z.number().optional().describe('The latitude of where the recording was made.'),
     longitude: z.number().optional().describe('The longitude of where the recording was made.'),
     locationDescription: z.string().optional().describe('A user-provided text description of the location (e.g., postcode, city, national park name).'),
@@ -155,7 +155,3 @@ const identifyBirdFlow = ai.defineFlow(
     return output;
   }
 );
-
-    
-
-    

@@ -84,7 +84,7 @@ export default function Home() {
               const analysisStartTime = Date.now();
               result = await identifyBirdBySound({
                   audioDataUri: audioDataUri,
-                  timestamp: currentTimestamp.current!,
+                  creationTime: currentTimestamp.current!,
                   ...locationData
               });
               const analysisDurationMs = Date.now() - analysisStartTime;
@@ -230,7 +230,3 @@ export default function Home() {
     </AppLayout>
   );
 }
-
-    
-
-    

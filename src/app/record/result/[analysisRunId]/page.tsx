@@ -77,20 +77,13 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
         const fetchRun = async () => {
             if (!params.analysisRunId) return;
             setLoading(true);
-            const docRef = doc(db, 'all_test_runs', params.analysisRunId);
+            const docRef = doc(db, 'all_analysis_runs', params.analysisRunId);
             const docSnap = await getDoc(docRef);
 
             if (docSnap.exists()) {
                 setRun(docSnap.data() as AnalysisRun);
             } else {
-                // Try the other collection if not found
-                const analysisRunDocRef = doc(db, 'all_analysis_runs', params.analysisRunId);
-                const analysisRunDocSnap = await getDoc(analysisRunDocRef);
-                if (analysisRunDocSnap.exists()) {
-                    setRun(analysisRunDocSnap.data() as AnalysisRun);
-                } else {
-                    notFound();
-                }
+                notFound();
             }
             setLoading(false);
         };
@@ -100,8 +93,7 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
     const handleFeedback = async (wasCorrect: boolean) => {
         if (!run) return;
         
-        const collectionName = run.isDeveloperData ? 'all_test_runs' : 'all_analysis_runs';
-        const docRef = doc(db, collectionName, run.id);
+        const docRef = doc(db, 'all_analysis_runs', run.id);
 
         try {
             await updateDoc(docRef, {
