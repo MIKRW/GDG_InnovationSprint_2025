@@ -66,7 +66,6 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
   const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const rawAudioBufferRef = useRef<Float32Array[]>([]);
   
-  // Use a ref for the recording state to be accessed in the audio processor
   const isRecordingRef = useRef(isRecording);
   useEffect(() => {
     isRecordingRef.current = isRecording;
@@ -82,13 +81,16 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
         mediaStreamSourceRef.current.disconnect();
         mediaStreamSourceRef.current = null;
     }
-     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+    
+    // Check the context state before trying to close it
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
         audioContextRef.current.close().catch(e => console.error("Error closing AudioContext:", e));
-        audioContextRef.current = null;
     }
+    audioContextRef.current = null;
 
     if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
     }
     setElapsedTime(0);
 
@@ -105,8 +107,8 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
         offset += buffer.length;
     }
     
-    // Get sampleRate from the audio context before it's closed
-    const sampleRate = audioContextRef.current?.sampleRate || 44100;
+    // We assume a common sample rate, as we can't get it from a closed context.
+    const sampleRate = 44100;
     const wavBlob = encodeWAV(concatenatedBuffer, sampleRate);
     onRecordingComplete(wavBlob);
 
@@ -114,49 +116,56 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
 
   }, [onRecordingComplete]);
 
+  const startRawRecording = useCallback(async () => {
+    setElapsedTime(0);
+    rawAudioBufferRef.current = [];
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+        audioContextRef.current = context;
+
+        const source = context.createMediaStreamSource(stream);
+        mediaStreamSourceRef.current = source;
+
+        // Buffer size, input channels, output channels
+        const node = context.createScriptProcessor(4096, 1, 1);
+        scriptProcessorNodeRef.current = node;
+
+        node.onaudioprocess = (audioProcessingEvent) => {
+            if (!isRecordingRef.current) return;
+            const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+            rawAudioBufferRef.current.push(new Float32Array(inputData));
+        };
+
+        source.connect(node);
+        node.connect(context.destination);
+
+        timerIntervalRef.current = setInterval(() => setElapsedTime(prev => prev + 1), 1000);
+    } catch (err) {
+        console.error('Error starting raw audio recording:', err);
+        onRecordingComplete(null);
+    }
+  }, [onRecordingComplete]);
+
+  // This effect now correctly handles starting and stopping the recording
+  // based on the transition of the isRecording prop.
   useEffect(() => {
     if (isRecording) {
-        const startRawRecording = async () => {
-            setElapsedTime(0);
-            rawAudioBufferRef.current = [];
-
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                // Use a new AudioContext for each recording session
-                const context = new (window.AudioContext || (window as any).webkitAudioContext)();
-                audioContextRef.current = context;
-
-                const source = context.createMediaStreamSource(stream);
-                mediaStreamSourceRef.current = source;
-
-                const node = context.createScriptProcessor(4096, 1, 1);
-                scriptProcessorNodeRef.current = node;
-
-                node.onaudioprocess = (audioProcessingEvent) => {
-                    // Use the ref here instead of the state variable
-                    if (!isRecordingRef.current) return;
-                    const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
-                    rawAudioBufferRef.current.push(new Float32Array(inputData));
-                };
-
-                source.connect(node);
-                node.connect(context.destination);
-
-                timerIntervalRef.current = setInterval(() => setElapsedTime(prev => prev + 1), 1000);
-            } catch (err) {
-                console.error('Error starting raw audio recording:', err);
-                onRecordingComplete(null);
-            }
-        };
-        startRawRecording();
-
+      startRawRecording();
     } else {
+      // Only call stop if there's actually a recording process to stop.
+      // This prevents the initial "stop" call on component mount.
+      if (audioContextRef.current) {
         stopRecordingAndProcess();
+      }
     }
     
+    // Cleanup on unmount
     return () => {
-      // Ensure everything is cleaned up when the component unmounts or isRecording changes.
-      stopRecordingAndProcess();
+        if (audioContextRef.current) {
+            stopRecordingAndProcess();
+        }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRecording]);
