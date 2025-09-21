@@ -8,11 +8,10 @@ import { useToast } from '@/hooks/use-toast';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { BookImage, Home, Save, Settings, Palette, MapPin, AudioLines, ToggleLeft } from 'lucide-react';
+import { BookImage, Home, Save, Settings, Palette, MapPin, ToggleLeft } from 'lucide-react';
 import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
 import { useSpeaker } from '@/hooks/use-speaker';
-import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Carousel, CarouselApi, CarouselContent, CarouselItem, useCarousel } from '@/components/ui/carousel';
 import React from 'react';
@@ -22,6 +21,7 @@ import { setSpeakerSettings, getSpeakerSettings, defaultSettings } from '@/lib/s
 
 
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
+const LOCATION_ENABLED_KEY = 'location-sharing-enabled';
 
 
 const CarouselPrevious = React.forwardRef<
@@ -97,6 +97,8 @@ export default function SettingsPage() {
 
   const { playNarration, playSfx, ...speakerProps } = useSpeaker(narrationText);
   
+  const [isLocationOn, setIsLocationOn] = useState(true);
+
   useEffect(() => {
     setIsClient(true);
     
@@ -106,6 +108,12 @@ export default function SettingsPage() {
       setHardware(savedHardware);
     }
     
+    // Load Location setting
+    const savedLocation = localStorage.getItem(LOCATION_ENABLED_KEY);
+    if (savedLocation !== null) {
+      setIsLocationOn(JSON.parse(savedLocation));
+    }
+
   }, []);
 
   const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
@@ -152,6 +160,13 @@ export default function SettingsPage() {
     const newValue = !isAutoPlayOn;
     // This now updates the global store immediately.
     setSpeakerSettings({ isAutoPlayOn: newValue });
+    playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
+  };
+
+  const toggleLocation = () => {
+    const newValue = !isLocationOn;
+    setIsLocationOn(newValue);
+    localStorage.setItem(LOCATION_ENABLED_KEY, JSON.stringify(newValue));
     playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
   };
 
@@ -264,15 +279,50 @@ export default function SettingsPage() {
                      <CarouselItem>
                         <div className="p-1 h-full">
                            <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
-                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
-                                    <CardHeader className="text-center">
-                                        <MapPin className="h-48 w-48 text-foreground mx-auto" />
-                                        <CardTitle className="text-4xl font-mono pt-4">Location Settings</CardTitle>
+                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center text-center cursor-pointer" onClick={toggleLocation}>
+                                    <CardHeader>
+                                        <MapPin className="h-32 w-32 text-foreground mx-auto" />
+                                        <CardTitle className="text-4xl font-mono pt-4">Share Location</CardTitle>
+                                         <CardDescription>
+                                            Allow the app to use your device's location to improve identification accuracy.
+                                        </CardDescription>
                                     </CardHeader>
-                                    <CardContent>
-                                        <Button asChild variant="outline" size="lg" className="text-lg">
-                                          <Link href="/settings/location">Manage Location</Link>
-                                        </Button>
+                                    <CardContent className="flex flex-col items-center gap-6">
+                                        <div className="flex items-center space-x-2 pointer-events-none">
+                                            {/* Custom Large Toggle for Location */}
+                                            <div
+                                            id="location-switch"
+                                            className={cn(
+                                                "relative inline-flex h-24 w-48 shrink-0 cursor-pointer rounded-full border-4 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                                                isLocationOn ? 'bg-primary' : 'bg-input'
+                                            )}
+                                            >
+                                                <span className="sr-only">Location setting</span>
+                                                <span
+                                                    aria-hidden="true"
+                                                    className={cn(
+                                                    'pointer-events-none absolute h-20 w-20 transform rounded-full bg-background shadow-lg ring-0 transition duration-200 ease-in-out',
+                                                    isLocationOn ? 'translate-x-26' : 'translate-x-2'
+                                                    )}
+                                                />
+                                                 <span
+                                                    className={cn(
+                                                        "absolute inset-y-0 left-0 flex items-center justify-center w-1/2 text-2xl font-bold transition-opacity",
+                                                        isLocationOn ? 'opacity-0' : 'opacity-100'
+                                                    )}
+                                                    >
+                                                    OFF
+                                                </span>
+                                                <span
+                                                    className={cn(
+                                                        "absolute inset-y-0 right-0 flex items-center justify-center w-1/2 text-2xl font-bold transition-opacity",
+                                                        isLocationOn ? 'opacity-100' : 'opacity-0'
+                                                    )}
+                                                    >
+                                                    ON
+                                                </span>
+                                            </div>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             </div>
@@ -337,3 +387,5 @@ export default function SettingsPage() {
     </AppLayout>
   );
 }
+
+    

@@ -21,7 +21,7 @@ import { app, auth, storage } from '@/lib/firebase';
 import { uploadBytes, ref as storageRef } from 'firebase/storage';
 import { useSpeaker } from '@/hooks/use-speaker';
 
-const LOCATION_SETTINGS_KEY = 'location-settings';
+const LOCATION_ENABLED_KEY = 'location-sharing-enabled';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 const ANALYSIS_TIMEOUT_MS = 90000; // 90 seconds
 
@@ -87,33 +87,23 @@ export default function Home() {
   };
 
   const getLocationForAIShot = (
-    callback: (locationData?: { latitude?: number; longitude?: number, locationDescription?: string }) => void
+    callback: (locationData?: { latitude?: number; longitude?: number }) => void
   ) => {
     if (!isClient) {
       callback();
       return;
     }
-    const savedSettingsJson = localStorage.getItem(LOCATION_SETTINGS_KEY);
-    let settings: LocationSettings = { mode: 'device', manual: { latitude: 0, longitude: 0 }, description: '', privacy: { isOutside: true } };
-    if (savedSettingsJson) {
-      try { 
-        const parsed = JSON.parse(savedSettingsJson);
-        if (parsed) {
-          settings = parsed;
-        }
-      } catch { /* Fallback to default */ }
-    }
+    const locationEnabled = localStorage.getItem(LOCATION_ENABLED_KEY);
+    // Default to 'true' if not set
+    const isSharingEnabled = locationEnabled ? JSON.parse(locationEnabled) : true;
 
-    if (settings.mode === 'device') {
+    if (isSharingEnabled) {
       navigator.geolocation.getCurrentPosition(
         (position) => callback({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
         () => callback() // Proceed without location on error/denial
       );
-    } else if (settings.mode === 'manual') {
-      callback(settings.manual);
-    } else if (settings.mode === 'description') {
-      callback({ locationDescription: settings.description });
-    } else { // privacy mode
+    } else {
+        // Location sharing is disabled
       callback();
     }
   };
