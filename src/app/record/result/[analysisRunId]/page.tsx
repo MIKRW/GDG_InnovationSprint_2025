@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useRef, use } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { notFound, useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -211,10 +211,7 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
     const [loading, setLoading] = useState(true);
     const [isClient, setIsClient] = useState(false);
     const router = useRouter();
-    
-    // The `params` object is a Promise. We use `React.use` to unwrap it.
-    const resolvedParams = use(params);
-    const analysisRunId = resolvedParams.analysisRunId;
+    const { analysisRunId } = params;
 
     const narrationText = run?.aiResult.isBirdSong ? `The AI has identified the bird as a ${run.aiResult.commonName}. ${run.aiResult.description}` : `The AI was not able to identify a bird in the recording. ${run?.aiResult.description || run?.aiResult.error}`;
     const { playNarration, ...speakerProps } = useSpeaker(narrationText);
@@ -337,5 +334,3 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
         </AppLayout>
     );
 }
-
-    
