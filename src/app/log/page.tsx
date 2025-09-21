@@ -269,12 +269,8 @@ export default function BirdBookPage() {
                 <div className="absolute bottom-24 inset-x-0 flex justify-center">
                     <Button
                         onClick={() => setChatMode(chatMode === 'voice' ? 'text' : 'voice')}
-                        className={cn(
-                            "rounded-full px-32 py-8 text-2xl font-semibold transition-colors duration-300",
-                            chatMode === 'voice'
-                                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                                : 'bg-background text-primary border-2 border-primary'
-                        )}
+                        variant={chatMode === 'text' ? 'secondary' : 'default'}
+                        className="rounded-full px-32 py-8 text-2xl font-semibold transition-colors duration-300"
                     >
                         {chatMode === 'voice' ? 'Voice Controlled' : 'Text Controlled'}
                     </Button>
