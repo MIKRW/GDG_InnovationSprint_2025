@@ -141,7 +141,7 @@ const CarouselPrevious = React.forwardRef<
   return (
     <button
       ref={ref}
-      className={cn("absolute top-1/2 -translate-y-1/2 h-16 w-16 -left-20", className)}
+      className={cn("absolute top-1/2 -translate-y-1/2 h-32 w-32 -left-40", className)}
       disabled={!canScrollPrev}
       onClick={scrollPrev}
       aria-label="Previous slide"
@@ -163,7 +163,7 @@ const CarouselNext = React.forwardRef<
   return (
     <button
       ref={ref}
-      className={cn("absolute top-1/2 -translate-y-1/2 h-16 w-16 -right-20", className)}
+      className={cn("absolute top-1/2 -translate-y-1/2 h-32 w-32 -right-40", className)}
       disabled={!canScrollNext}
       onClick={scrollNext}
       aria-label="Next slide"
@@ -296,5 +296,7 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
+
+    
 
     
