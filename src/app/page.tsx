@@ -177,12 +177,14 @@ export default function Home() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center gap-0 pb-16">
+            <div className="w-[32rem] h-[32rem]">
               <RecordButton
                   onStartRecording={handleStartRecording}
                   onRecordingComplete={handleRecordingComplete}
                   onStopRecording={handleStopRecording}
                   isRecording={isRecording}
               />
+            </div>
           </div>
         )}
         <div className="absolute bottom-4 left-4 opacity-50">

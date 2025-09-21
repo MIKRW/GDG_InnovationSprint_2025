@@ -144,7 +144,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
             onClick={handleClick}
         >
             <div className="transition-all duration-300 w-full h-full">
-              <div className="w-full h-full p-2 sm:p-4 md:p-12 transition-all duration-300">
+              <div className="w-full h-full p-12 transition-all duration-300">
                   {icon}
               </div>
             </div>
