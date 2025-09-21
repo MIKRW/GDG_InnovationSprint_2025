@@ -15,19 +15,17 @@ import { BIRD_ID_PROMPT } from '@/ai/prompts/bird-identifier-prompt';
 
 
 const IdentifyBirdInputSchema = z.object({
-  audioDataUri: z
-    .string()
-    .optional()
-    .describe(
-      "A recording of a bird song, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
-    ),
-    creationTime: z.string().describe('The UTC timestamp of when the recording was made, in ISO 8601 format.'),
-    latitude: z.number().optional().describe('The latitude of where the recording was made.'),
-    longitude: z.number().optional().describe('The longitude of where the recording was made.'),
-    locationDescription: z.string().optional().describe('A user-provided text description of the location (e.g., postcode, city, national park name).'),
-    mode: z.enum(['newbie', 'twitcher']).describe('The application mode selected by the user, which may determine the expected audio quality and analysis depth.'),
-    habitatPhotoDataUri: z.string().optional().describe("An optional photo of the bird's habitat, as a data URI."),
-    habitatDescription: z.string().optional().describe("A user-provided text description of the habitat."),
+  audio: z.object({
+    url: z.string().describe("A recording of a bird song, as a data URI or a gs:// URI."),
+    contentType: z.string().optional().describe("The MIME type of the audio file, e.g., 'audio/webm' or 'audio/wav'.")
+  }).optional(),
+  creationTime: z.string().describe('The UTC timestamp of when the recording was made, in ISO 8601 format.'),
+  latitude: z.number().optional().describe('The latitude of where the recording was made.'),
+  longitude: z.number().optional().describe('The longitude of where the recording was made.'),
+  locationDescription: z.string().optional().describe('A user-provided text description of the location (e.g., postcode, city, national park name).'),
+  mode: z.enum(['newbie', 'twitcher']).describe('The application mode selected by the user, which may determine the expected audio quality and analysis depth.'),
+  habitatPhotoDataUri: z.string().optional().describe("An optional photo of the bird's habitat, as a data URI."),
+  habitatDescription: z.string().optional().describe("A user-provided text description of the habitat."),
 });
 export type IdentifyBirdInput = z.infer<typeof IdentifyBirdInputSchema>;
 
@@ -95,8 +93,8 @@ const getCurrentWeather = ai.defineTool(
 export async function identifyBirdBySound(
   input: IdentifyBirdInput
 ): Promise<IdentifyBirdOutput> {
-  if (!input.audioDataUri) {
-      throw new Error("No audio data provided. Please provide 'audioDataUri'.");
+  if (!input.audio) {
+      throw new Error("No audio data provided. Please provide an 'audio' object with a URL.");
   }
   
   return await identifyBirdFlow(input);

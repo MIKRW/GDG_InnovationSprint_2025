@@ -13,7 +13,7 @@ You will receive an audio file and optional contextual information like location
 7.  **No Bird Case:** If 'isBirdSong' is false, you must leave the identification fields blank, but you MUST provide a helpful 'description' explaining why (e.g., "The audio contains background noise but no clear bird vocalizations.").
 
 ## Input Data:
--   Audio: {{{audioDataUri}}}
+-   Audio: {{media url=audio.url contentType=audio.contentType}}
 -   Timestamp: {{{timestamp}}}
 -   Location: {{latitude}}, {{longitude}}
 -   Location Description: {{{locationDescription}}}

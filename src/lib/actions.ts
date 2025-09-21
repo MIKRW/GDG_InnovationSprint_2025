@@ -164,11 +164,11 @@ export async function createAnalysisRun(
   } else {
     try {
         const analysisStartTime = Date.now();
-        // Use the gs:// URI directly for analysis. This is more robust.
+        // Pass the gs:// URI and contentType directly to the AI flow.
         const gsPath = `gs://${storage.app.options.storageBucket}/${storagePath}`;
 
         aiResult = await identifyBirdBySound({
-            audioDataUri: gsPath,
+            audio: { url: gsPath, contentType: 'audio/webm' },
             creationTime: creationTime,
             ...locationData,
             mode: mode
