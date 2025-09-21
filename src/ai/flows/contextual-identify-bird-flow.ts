@@ -15,7 +15,7 @@ import { BIRD_ID_PROMPT } from '@/ai/prompts/bird-identifier-prompt';
 
 
 const IdentifyBirdInputSchema = z.object({
-  audioDataUri: z.string().describe("A recording of a bird song, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
+  audioStoragePath: z.string().describe("The Google Cloud Storage path (gs://) to the audio file."),
   creationTime: z.string().describe('The UTC timestamp of when the recording was made, in ISO 8601 format.'),
   latitude: z.number().optional().describe('The latitude of where the recording was made.'),
   longitude: z.number().optional().describe('The longitude of where the recording was made.'),
@@ -90,8 +90,8 @@ const getCurrentWeather = ai.defineTool(
 export async function identifyBirdBySound(
   input: IdentifyBirdInput
 ): Promise<IdentifyBirdOutput> {
-  if (!input.audioDataUri) {
-    throw new Error("No audio data provided. A base64-encoded data URI is required.");
+  if (!input.audioStoragePath) {
+    throw new Error("No audio data provided. A Google Cloud Storage path is required.");
   }
   
   return await identifyBirdFlow(input);
@@ -149,7 +149,7 @@ const identifyBirdFlow = ai.defineFlow(
     
         return output;
     } catch (error) {
-        if (error instanceof Error && error.message.includes('Could not refresh access token')) {
+        if (error instanceof Error && (error.message.includes('Could not refresh access token') || error.message.includes('500'))) {
             const projectId = process.env.GCLOUD_PROJECT;
             const iamUrl = `https://console.cloud.google.com/iam-admin/iam?project=${projectId}`;
             throw new Error(`AI Authentication Failed: The server lacks permission to call the AI. Please grant the "Vertex AI User" role to the App Hosting service account in your project's IAM settings. You can go to ${iamUrl} to fix this.`);
@@ -159,3 +159,5 @@ const identifyBirdFlow = ai.defineFlow(
     }
   }
 );
+
+    

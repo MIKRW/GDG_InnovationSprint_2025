@@ -2,7 +2,7 @@
 'use server';
 
 import { revalidateTag } from 'next/cache';
-import { getDownloadURL, ref as storageRef } from 'firebase/storage';
+import { getDownloadURL, ref as storageRef, uploadString } from 'firebase/storage';
 import {
   arrayUnion,
   collection,
@@ -18,7 +18,6 @@ import {
   writeBatch
 } from 'firebase/firestore';
 import { db, storage } from './firebase';
-import { adminStorage } from './firebase-admin';
 import { v4 as uuidv4 } from 'uuid';
 import type {
   AnalysisRun,
@@ -35,6 +34,7 @@ import { kebabCase } from 'lodash';
 import { cache } from 'react';
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
 import { logErrorToFirestore } from './error-logging';
+import { firebaseConfig } from './firebase-config';
 
 
 interface UploadMasterAudioInput {
@@ -186,16 +186,10 @@ export async function createAnalysisRun(
     try {
         const analysisStartTime = Date.now();
         
-        // Use the Admin SDK to download the file on the server.
-        const bucket = adminStorage.bucket();
-        const file = bucket.file(storagePath);
-        
-        const [audioBuffer] = await file.download();
-        
-        const audioDataUri = `data:audio/webm;base64,${audioBuffer.toString('base64')}`;
+        const audioStoragePath = `gs://${firebaseConfig.storageBucket}/${storagePath}`;
 
         aiResult = await identifyBirdBySound({
-            audioDataUri,
+            audioStoragePath,
             creationTime: creationTime,
             ...locationData,
             mode: mode
@@ -525,5 +519,7 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
     revalidateTag('prompts-v7');
     return { id: newId, ...newContentData };
 }
+
+    
 
     
