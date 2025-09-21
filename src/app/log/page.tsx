@@ -20,7 +20,7 @@ function AiAssistantCard() {
             <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
                 <CardContent className="flex-1 flex flex-col items-center justify-center gap-4">
                      <div className="w-96 h-96">
-                        <Button variant="ghost" className="w-full h-full rounded-full">
+                        <Button variant="ghost" className="w-full h-full rounded-full hover:bg-ring">
                             <Bot className="h-96 w-96 text-foreground" />
                         </Button>
                      </div>
