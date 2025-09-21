@@ -75,39 +75,33 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     }, []);
 
     const fetchAndCacheAudio = useCallback(async (sourceToPlay: string, shouldPlay: boolean) => {
-        if (!sourceToPlay || !settings.isSpeakerOn) return;
-
+        if (!sourceToPlay || !settings.isSpeakerOn || !audioRef.current) return;
+    
+        const audio = audioRef.current;
+    
         // If it's a local file, we don't need to fetch anything from the AI
         if (isLocalFile(sourceToPlay)) {
             const fullUrl = new URL(sourceToPlay, window.location.origin).href;
-            if (shouldPlay && hasInteractedRef.current && audioRef.current) {
-                if (audioRef.current.src !== fullUrl) {
-                    audioRef.current.src = fullUrl;
-                }
-                // Check if readyState is sufficient to play, otherwise wait
-                if (audioRef.current.readyState >= 2) {
-                    audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
-                } else {
-                    audioRef.current.oncanplaythrough = () => {
-                        audioRef.current?.play().catch(e => console.error("Audio playback failed on canplaythrough:", e));
-                        if(audioRef.current) audioRef.current.oncanplaythrough = null; // Clean up listener
-                    }
-                }
+            if (audio.src !== fullUrl) {
+                audio.src = fullUrl;
+            }
+            if (shouldPlay && hasInteractedRef.current) {
+                audio.play().catch(e => console.error("Audio playback failed:", e));
             }
             return;
         }
-
+    
         // If it's TTS and we have it cached, play it
         if (audioDataUriRef.current && lastPlayedTextRef.current === sourceToPlay) {
-            if (shouldPlay && hasInteractedRef.current && audioRef.current) {
-                 if (audioRef.current.src !== audioDataUriRef.current) {
-                    audioRef.current.src = audioDataUriRef.current;
-                }
-                audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+            if (audio.src !== audioDataUriRef.current) {
+                audio.src = audioDataUriRef.current;
+            }
+            if (shouldPlay && hasInteractedRef.current) {
+                audio.play().catch(e => console.error("Audio playback failed:", e));
             }
             return;
         }
-
+    
         setIsLoading(true);
         try {
             const response = await textToSpeech(sourceToPlay);
@@ -117,9 +111,9 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
             }
             audioDataUriRef.current = response.audioDataUri;
             lastPlayedTextRef.current = sourceToPlay;
-            if (shouldPlay && hasInteractedRef.current && audioRef.current) {
-                audioRef.current.src = response.audioDataUri;
-                audioRef.current.play().catch(e => console.error("Audio playback failed after fetch:", e));
+            audio.src = response.audioDataUri;
+            if (shouldPlay && hasInteractedRef.current) {
+                audio.play().catch(e => console.error("Audio playback failed after fetch:", e));
             }
         } catch (error) {
             console.error("Failed to fetch narration audio:", error);
@@ -142,30 +136,31 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
 
     const playNarration = useCallback(async (sourceToPlay?: string) => {
         const targetSource = sourceToPlay || narrationSource;
-        
+    
         if (!hasInteractedRef.current) {
             hasInteractedRef.current = true;
             sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
         }
-
+    
+        const audio = audioRef.current;
+        if (!audio) return;
+    
         if (!settings.isSpeakerOn) {
-             setSettings(prev => {
+            // If speaker is off, turn it on and play
+            setSettings(prev => {
                 const newSettings = { ...prev, isSpeakerOn: true };
                 localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
                 return newSettings;
             });
-             fetchAndCacheAudio(targetSource, true);
-            return;
-        };
-
-        const audio = audioRef.current;
-        if (!audio) return;
-        
-        if (isPlaying) {
-            audio.pause();
-            audio.currentTime = 0;
-        } else {
+            // We fetchAndCacheAudio here, which will then play if interaction has happened.
             await fetchAndCacheAudio(targetSource, true);
+        } else {
+            // Speaker is on, toggle play/pause
+            if (isPlaying) {
+                audio.pause();
+            } else {
+                await fetchAndCacheAudio(targetSource, true);
+            }
         }
     }, [settings.isSpeakerOn, isPlaying, fetchAndCacheAudio, narrationSource]);
 
