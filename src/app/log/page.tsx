@@ -258,14 +258,18 @@ export default function BirdBookPage() {
                     <CarouselNext />
                 </Carousel>
                 
-                <div className="flex items-center space-x-2 mt-4">
-                    <Label htmlFor="chat-mode-switch" className={cn(chatMode === 'voice' && 'text-ring')}>Voice</Label>
-                    <Switch
-                        id="chat-mode-switch"
-                        checked={chatMode === 'text'}
-                        onCheckedChange={(checked) => setChatMode(checked ? 'text' : 'voice')}
-                    />
-                    <Label htmlFor="chat-mode-switch" className={cn(chatMode === 'text' && 'text-ring')}>Text</Label>
+                <div className="mt-4">
+                    <Button
+                        onClick={() => setChatMode(chatMode === 'voice' ? 'text' : 'voice')}
+                        className={cn(
+                            "rounded-full px-8 py-4 text-xl font-semibold transition-colors duration-300",
+                            chatMode === 'voice'
+                                ? 'bg-ring text-white hover:bg-ring/90'
+                                : 'bg-white text-ring border-2 border-ring'
+                        )}
+                    >
+                        {chatMode === 'voice' ? 'Text Controlled' : 'Voice Controlled'}
+                    </Button>
                 </div>
 
 
