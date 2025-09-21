@@ -8,11 +8,11 @@ import { Button } from '@/components/ui/button';
 import { PageTitle } from '@/components/content/PageTitle';
 import { useToast } from '@/hooks/use-toast';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { PrimaryHeader } from '@/components/layout/PrimaryHeader';
-import { HomePageFooter } from '@/components/layout/HomePageFooter';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Save } from 'lucide-react';
+import { BookImage, Home, Save, Settings } from 'lucide-react';
+import { SpeakerButton } from '@/components/content/SpeakerButton';
+import { ContrastButton } from '@/components/content/ContrastButton';
 
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 
@@ -40,12 +40,19 @@ export default function SettingsPage() {
   };
 
   return (
-    <AppLayout header={<PrimaryHeader />} >
-      <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-muted">
-        <div className="container mx-auto">
+    <AppLayout>
+      <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted relative">
+        <div className="absolute top-4 left-4 opacity-50">
+            <SpeakerButton />
+        </div>
+        <div className="absolute top-4 right-4 opacity-50">
+            <ContrastButton />
+        </div>
+        
+        <div className="container mx-auto text-center">
           <PageTitle>Settings</PageTitle>
-          <div className="space-y-4 flex flex-col items-start">
-            <p className="text-muted-foreground">
+          <div className="space-y-4 flex flex-col items-center">
+            <p className="text-muted-foreground max-w-md">
               Customize the look, feel, and functionality of your application.
             </p>
             <Button asChild variant="outline">
@@ -79,8 +86,26 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+
+         <div className="absolute bottom-4 left-4 opacity-50">
+            <Link href="/">
+                <Button variant="ghost" size="icon" className="h-40 w-40">
+                    <Home className="h-32 w-32 text-foreground" />
+                </Button>
+            </Link>
+        </div>
+        <div className="absolute bottom-4 right-4 opacity-50">
+            <Link href="/log">
+              <Button
+                variant='ghost'
+                size='icon'
+                className="h-40 w-40"
+              >
+                <BookImage className="h-32 w-32 text-foreground" />
+              </Button>
+            </Link>
+        </div>
       </main>
-      <HomePageFooter centerButtonLabel="Home Page" centerButtonHref="/" />
     </AppLayout>
   );
 }

@@ -1,13 +1,17 @@
+
 'use client';
 
 import { AppLayout } from '@/components/layout/AppLayout';
-import { PrimaryHeader } from '@/components/layout/PrimaryHeader';
-import { HomePageFooter } from '@/components/layout/HomePageFooter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { RecordButton } from '@/components/content/RecordButton';
 import { useState } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { BookImage, Settings, Home } from 'lucide-react';
+import { SpeakerButton } from '@/components/content/SpeakerButton';
+import { ContrastButton } from '@/components/content/ContrastButton';
 
 function AiAssistantCard() {
     const [isRecording, setIsRecording] = useState(false);
@@ -68,8 +72,15 @@ function BirdResultCard({ seed }: { seed: string }) {
 
 export default function BirdBookPage() {
     return (
-        <AppLayout header={<PrimaryHeader />}>
-            <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden">
+        <AppLayout>
+            <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
+                <div className="absolute top-4 left-4 opacity-50">
+                    <SpeakerButton />
+                </div>
+                <div className="absolute top-4 right-4 opacity-50">
+                    <ContrastButton />
+                </div>
+
                 <Carousel className="w-full max-w-3xl" opts={{ loop: true }}>
                     <CarouselContent>
                         <CarouselItem>
@@ -96,8 +107,26 @@ export default function BirdBookPage() {
                     <CarouselPrevious />
                     <CarouselNext />
                 </Carousel>
+
+                <div className="absolute bottom-4 left-4 opacity-50">
+                    <Link href="/">
+                        <Button variant="ghost" size="icon" className="h-40 w-40">
+                            <Home className="h-32 w-32 text-foreground" />
+                        </Button>
+                    </Link>
+                </div>
+                <div className="absolute bottom-4 right-4 opacity-50">
+                    <Link href="/settings">
+                      <Button
+                        variant='ghost'
+                        size='icon'
+                        className="h-40 w-40"
+                      >
+                        <Settings className="h-32 w-32 text-foreground" />
+                      </Button>
+                    </Link>
+                </div>
             </main>
-            <HomePageFooter centerButtonLabel="Home Page" centerButtonHref="/" />
         </AppLayout>
     );
 }
