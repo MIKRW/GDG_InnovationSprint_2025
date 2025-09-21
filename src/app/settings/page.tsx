@@ -67,14 +67,14 @@ const CarouselNext = React.forwardRef<
 CarouselNext.displayName = "CarouselNext"
 
 
-const NARRATION_TEXTS = [
-    "This is the main settings page. You can swipe left and right to view the different settings categories.",
-    "This is the auto-play narration card. You can enable or disable automatic audio descriptions for general pages and for carousel slides like this one.",
-    "This is the theme customization card. Open the theme editor to create a unique look and feel for your application.",
-    "This is the location settings card. Manage how the app uses your location to improve bird identification.",
-    "This is the app mode card. Choose between Newbie and Twitcher modes to tailor the app's features to your experience level.",
-    "This is the recording hardware card. You can optionally specify the microphone you use for recording to help the AI."
-];
+const NARRATION_TEXTS: { [key: number]: string } = {
+    0: "/audio/narration-settings-intro.wav",
+    1: "/audio/narration-settings-narration.wav",
+    2: "/audio/narration-settings-theme.wav",
+    3: "/audio/narration-settings-location.wav",
+    4: "/audio/narration-settings-mode.wav",
+    5: "/audio/narration-settings-hardware.wav",
+};
 
 
 export default function SettingsPage() {
@@ -86,7 +86,7 @@ export default function SettingsPage() {
   const [api, setApi] = useState<CarouselApi>();
   const [controlMode, setControlMode] = useState<'voice' | 'text'>('text');
   
-  const debouncedNarration = useDebouncedCallback((index: number) => {
+  const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
     if (isCarouselAutoPlayOn) {
         const newNarration = NARRATION_TEXTS[index];
         if (newNarration) {
@@ -339,4 +339,3 @@ export default function SettingsPage() {
     </AppLayout>
   );
 }
-

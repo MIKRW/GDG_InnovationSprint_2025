@@ -9,12 +9,12 @@ import { useRef, useEffect, useCallback } from 'react';
  *
  * @param callback The function to debounce.
  * @param delay The debounce delay in milliseconds.
- * @returns A memoized, debounced version of the callback function.
+ * @returns A memoized, debounced version of the callback and a function to cancel pending executions.
  */
 export function useDebouncedCallback<A extends any[]>(
   callback: (...args: A) => void,
   delay: number
-) {
+): [(...args: A) => void, () => void] {
   const callbackRef = useRef(callback);
   const timeoutRef = useRef<NodeJS.Timeout>();
 
@@ -22,6 +22,13 @@ export function useDebouncedCallback<A extends any[]>(
   useEffect(() => {
     callbackRef.current = callback;
   }, [callback]);
+
+  const cancel = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = undefined;
+    }
+  }, []);
 
   // The actual debounced function that will be returned
   const debouncedCallback = useCallback(
@@ -39,12 +46,8 @@ export function useDebouncedCallback<A extends any[]>(
 
   // Cleanup the timeout on unmount
   useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
+    return cancel;
+  }, [cancel]);
 
-  return debouncedCallback;
+  return [debouncedCallback, cancel];
 }

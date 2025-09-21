@@ -30,20 +30,23 @@ const textToSpeechFlow = ai.defineFlow(
   },
   async (text) => {
     try {
-        const { media } = await ai.generate({
-        model: googleAI.model('gemini-2.5-flash-preview-tts'),
-        config: {
-            responseModalities: ['AUDIO'],
-            speechConfig: {
-            voiceConfig: {
-                prebuiltVoiceConfig: { voiceName: 'Erinome' },
+        const { media, finishReason } = await ai.generate({
+            model: googleAI.model('gemini-2.5-flash-preview-tts'),
+            config: {
+                responseModalities: ['AUDIO'],
+                speechConfig: {
+                    voiceConfig: {
+                        prebuiltVoiceConfig: { voiceName: 'Erinome' },
+                    },
+                },
             },
-            },
-        },
-        prompt: text,
+            prompt: text,
         });
 
         if (!media) {
+             if (finishReason === 'blocked' || finishReason === 'error' || finishReason === 'other') {
+                throw new Error('TTS generation was blocked. This may be due to a project quota limit.');
+            }
             throw new Error('TTS generation failed to return media.');
         }
         
@@ -58,13 +61,13 @@ const textToSpeechFlow = ai.defineFlow(
             audioDataUri: 'data:audio/wav;base64,' + wavBase64,
         };
     } catch (error) {
-        // Gracefully handle the quota error without crashing the app.
-        if (error instanceof Error && error.message.includes('429')) {
+        // Gracefully handle the quota error by throwing a specific, catchable error.
+        if (error instanceof Error && (error.message.includes('429') || error.message.includes('RESOURCE_EXHAUSTED') || error.message.includes('quota'))) {
             console.warn(
-                `TTS feature is disabled due to a quota error. This usually means the 'Vertex AI API' or 'Generative Language API' needs to be enabled in your Google Cloud project. The app will continue to function without audio narration.`
+                `TTS feature has been blocked by a quota limit (e.g., 429 RESOURCE_EXHAUSTED).`
             );
-            // Return an empty audio response to prevent a crash.
-            return { audioDataUri: '' };
+            // Throw a specific error that the client-side can catch and handle.
+            throw new Error('TTS_QUOTA_EXCEEDED');
         }
         // Re-throw any other unexpected errors.
         throw error;

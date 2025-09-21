@@ -21,7 +21,7 @@ export default function Theme() {
     <AppLayout>
        <header className="border-b flex items-center justify-between px-4 py-2 h-20">
             <div className="opacity-50">
-                <SpeakerButton onClick={playNarration} {...speakerProps} />
+                <SpeakerButton onClick={() => playNarration()} {...speakerProps} />
             </div>
              <Link href="/">
                 <Button variant="ghost" size="icon" className="h-20 w-20">
@@ -41,3 +41,4 @@ export default function Theme() {
     </AppLayout>
   );
 }
+

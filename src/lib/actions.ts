@@ -34,7 +34,6 @@ import { kebabCase } from 'lodash';
 import { cache } from 'react';
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
 import { logErrorToFirestore } from './error-logging';
-import { adminApp, adminStorage } from './firebase-admin';
 import wav from 'wav';
 
 
@@ -196,6 +195,7 @@ export async function saveCanonicalImage(
 export async function createAnalysisRun(
   storagePath: string,
   recordingId: string,
+  audioDataUri: string,
   locationData: any,
   hardware: string | null,
   mode: AppMode,
@@ -221,14 +221,6 @@ export async function createAnalysisRun(
     try {
         const analysisStartTime = Date.now();
         
-        // Use Admin SDK to download the file into a buffer on the server
-        const file = adminStorage.bucket().file(storagePath);
-        const [audioBuffer] = await file.download();
-
-        // Convert buffer to base64 and create data URI
-        const audioBase64 = audioBuffer.toString('base64');
-        const audioDataUri = `data:audio/wav;base64,${audioBase64}`;
-
         aiResult = await identifyBirdBySound({
             audioDataUri,
             creationTime: creationTime,
@@ -560,6 +552,8 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
     revalidateTag('prompts-v7');
     return { id: newId, ...newContentData };
 }
+
+    
 
     
 

@@ -77,7 +77,7 @@ export default function RecordPage() {
     }
   };
 
-  const processAudio = (storagePath: string, recordingId: string): Promise<string | null> => {
+  const processAudio = (storagePath: string, recordingId: string, audioDataUri: string): Promise<string | null> => {
       return new Promise((resolve) => {
         getLocationForAIShot(async (locationData) => {
             if (!currentCreationTime.current || !currentSessionId.current) {
@@ -90,7 +90,7 @@ export default function RecordPage() {
             
             try {
                 const analysisRunId = await createAnalysisRun(
-                    storagePath, recordingId, locationData, hardware, 'newbie',
+                    storagePath, recordingId, audioDataUri, locationData, hardware, 'newbie',
                     {},
                     currentSessionId.current, currentCreationTime.current!
                 );
@@ -103,7 +103,7 @@ export default function RecordPage() {
                 });
                 try {
                     const failedRunId = await createAnalysisRun(
-                        storagePath, recordingId, locationData, hardware, 'newbie',
+                        storagePath, recordingId, audioDataUri, locationData, hardware, 'newbie',
                         {}, currentSessionId.current, currentCreationTime.current!, error as Error
                     );
                     resolve(failedRunId);
@@ -168,12 +168,19 @@ export default function RecordPage() {
         const fileRef = storageRef(storage, audioStoragePath);
         await uploadBytes(fileRef, audioBlob);
         
+        const audioDataUri = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(audioBlob);
+        });
+
         const timeoutPromise = new Promise<string | null>((_, reject) => 
             setTimeout(() => reject(new Error('Analysis timed out')), ANALYSIS_TIMEOUT_MS)
         );
 
         analysisRunId = await Promise.race([
-            processAudio(audioStoragePath, recordingId),
+            processAudio(audioStoragePath, recordingId, audioDataUri),
             timeoutPromise
         ]);
 
@@ -235,3 +242,5 @@ export default function RecordPage() {
     </AppLayout>
   );
 }
+
+    

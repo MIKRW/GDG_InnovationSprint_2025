@@ -69,12 +69,14 @@ const generateThemeFlow = ai.defineFlow(
         },
       });
 
-      const response = await themePrompt(input);
-      const output = response.output;
+      const { output, finishReason } = await themePrompt(input);
 
       if (!output) {
-        if (response.finishReason === 'safety') {
+        if (finishReason === 'safety') {
             throw new Error('The AI refused to generate a theme due to its safety filters. Please try different words.');
+        }
+        if (finishReason === 'blocked' || finishReason === 'unknown' || finishReason === 'error' || finishReason === 'other') {
+             throw new Error('The AI model was blocked from generating a response. This may be due to a project quota limit. Please check your Google Cloud project quotas for the "Generative Language API".');
         }
         throw new Error('The AI model failed to return a valid theme.');
       }
