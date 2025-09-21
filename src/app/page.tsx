@@ -2,7 +2,6 @@
 'use client';
 
 import { AppLayout } from '@/components/layout/AppLayout';
-import { HomePageFooter } from '@/components/layout/HomePageFooter';
 import { PrimaryHeader } from '@/components/layout/PrimaryHeader';
 import { RecordButton } from '@/components/content/RecordButton';
 import { useState, useRef, useEffect } from 'react';
@@ -15,7 +14,11 @@ import { ref as storageRef, uploadBytes } from 'firebase/storage';
 import type { LocationSettings } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { ColorableLogo } from '@/components/content/ColorableLogo';
-import { Loader2 } from 'lucide-react';
+import { Loader2, BookImage, Settings } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { SpeakerButton } from '@/components/content/SpeakerButton';
+import { ContrastButton } from '@/components/content/ContrastButton';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
@@ -156,7 +159,13 @@ export default function Home() {
 
   return (
     <AppLayout header={<PrimaryHeader />}>
-      <main className="flex flex-1 flex-col items-center justify-center bg-muted p-4">
+      <main className="flex flex-1 flex-col items-center justify-center bg-muted p-4 relative">
+        <div className="absolute top-4 left-4">
+            <SpeakerButton />
+        </div>
+        <div className="absolute top-4 right-4">
+            <ContrastButton />
+        </div>
         {isProcessing ? (
           <div className="flex flex-col items-center justify-center gap-0 pb-16">
              <div className="w-[32rem] h-[32rem] p-12">
@@ -176,8 +185,25 @@ export default function Home() {
               />
           </div>
         )}
+        <div className="absolute bottom-4 left-4">
+            <Link href="/log">
+                <Button variant="ghost" size="icon" className="h-20 w-20">
+                    <BookImage className="h-10 w-10 text-foreground" />
+                </Button>
+            </Link>
+        </div>
+        <div className="absolute bottom-4 right-4">
+            <Link href="/settings">
+              <Button
+                variant='ghost'
+                size='icon'
+                className="h-20 w-20"
+              >
+                <Settings className="h-10 w-10 text-foreground" />
+              </Button>
+            </Link>
+        </div>
       </main>
-      <HomePageFooter />
     </AppLayout>
   );
 }
