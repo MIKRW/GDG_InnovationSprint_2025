@@ -6,9 +6,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { MicOff } from 'lucide-react';
 import { ColorableLogo } from './ColorableLogo';
-import { uploadBytes, ref as storageRef } from 'firebase/storage';
-import { storage } from '@/lib/firebase';
-import { v4 as uuidv4 } from 'uuid';
+import WavDecoder from 'wav-decoder';
 
 interface RecordButtonProps {
     onStart?: () => void;
@@ -17,6 +15,43 @@ interface RecordButtonProps {
     isRecording: boolean;
     hasPermission: boolean | null;
 }
+
+// Helper function to encode audio buffer to WAV
+const encodeWAV = (samples: Float32Array, sampleRate: number): Blob => {
+    const buffer = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(buffer);
+
+    const writeString = (view: DataView, offset: number, string: string) => {
+        for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+        }
+    };
+
+    const floatTo16BitPCM = (output: DataView, offset: number, input: Float32Array) => {
+        for (let i = 0; i < input.length; i++, offset += 2) {
+            const s = Math.max(-1, Math.min(1, input[i]));
+            output.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        }
+    };
+
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeString(view, 8, 'WAVE');
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true); // Mono
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true);
+    view.setUint16(32, 2, true);
+    view.setUint16(34, 16, true);
+    writeString(view, 36, 'data');
+    view.setUint32(40, samples.length * 2, true);
+    floatTo16BitPCM(view, 44, samples);
+
+    return new Blob([view], { type: 'audio/wav' });
+};
+
 
 const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
     onStart,
@@ -45,9 +80,26 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
                 }
             });
 
-            mediaRecorderRef.current.addEventListener('stop', () => {
-                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-                onRecordingComplete(audioBlob.size > 0 ? audioBlob : null);
+            mediaRecorderRef.current.addEventListener('stop', async () => {
+                const audioBlobWebM = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+
+                if (audioBlobWebM.size === 0) {
+                    onRecordingComplete(null);
+                    return;
+                }
+
+                try {
+                    // Convert WebM to WAV
+                    const arrayBuffer = await audioBlobWebM.arrayBuffer();
+                    const audioContext = new AudioContext();
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    const wavBlob = encodeWAV(audioBuffer.getChannelData(0), audioBuffer.sampleRate);
+                    onRecordingComplete(wavBlob);
+                } catch (conversionError) {
+                    console.error('Error converting audio to WAV:', conversionError);
+                    onRecordingComplete(null); // Pass null if conversion fails
+                }
+
                 if (timerIntervalRef.current) {
                     clearInterval(timerIntervalRef.current);
                 }

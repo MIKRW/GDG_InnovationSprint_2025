@@ -168,7 +168,7 @@ export default function Home() {
         toast({
             variant: 'destructive',
             title: 'Recording Failed',
-            description: 'No audio was recorded. Please check microphone permissions.',
+            description: 'No audio was recorded. Please check microphone and permissions.',
         });
         return;
     }
@@ -179,7 +179,7 @@ export default function Home() {
     let analysisRunId: string | null = null;
   
     try {
-      const audioStoragePath = `recordings/${recordingId}.webm`;
+      const audioStoragePath = `recordings/${recordingId}.wav`;
       const fileRef = storageRef(storage, audioStoragePath);
       
       await uploadBytes(fileRef, audioBlob);

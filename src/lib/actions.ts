@@ -192,7 +192,7 @@ export async function createAnalysisRun(
 
         // Convert buffer to base64 and create data URI
         const audioBase64 = audioBuffer.toString('base64');
-        const audioDataUri = `data:audio/webm;base64,${audioBase64}`;
+        const audioDataUri = `data:audio/wav;base64,${audioBase64}`;
 
         aiResult = await identifyBirdBySound({
             audioDataUri,
