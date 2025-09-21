@@ -84,7 +84,6 @@ export default function SettingsPage() {
   const [narrationText, setNarrationText] = useState(NARRATION_TEXTS[0]);
   const { playNarration, isAutoPlayOn, toggleAutoPlay, ...speakerProps } = useSpeaker(narrationText, 'carousel');
   const [api, setApi] = useState<CarouselApi>();
-  const [controlMode, setControlMode] = useState<'voice' | 'text'>('voice');
   
   const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
     if (isAutoPlayOn) {
@@ -139,20 +138,6 @@ export default function SettingsPage() {
     return null;
   }
 
-  const ControlButton = ({ onToggle }: { onToggle: () => void }) => (
-    <div className="flex justify-center mt-4">
-        <Button
-            onClick={onToggle}
-            variant={controlMode === 'text' ? 'secondary' : 'default'}
-            className="rounded-full px-8 py-4 text-lg font-semibold transition-colors duration-300"
-        >
-            {controlMode === 'voice' ? 'Voice Controlled' : 'Text Controlled'}
-        </Button>
-    </div>
-  )
-
-  const handleToggleControl = () => setControlMode(prev => prev === 'voice' ? 'text' : 'voice');
-
   return (
     <AppLayout>
       <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
@@ -177,7 +162,6 @@ export default function SettingsPage() {
                                         <CardDescription>Swipe to customize your app experience.</CardDescription>
                                     </CardHeader>
                                 </Card>
-                                <ControlButton onToggle={handleToggleControl} />
                             </div>
                         </div>
                     </CarouselItem>
@@ -206,7 +190,6 @@ export default function SettingsPage() {
                                         </div>
                                     </CardContent>
                                 </Card>
-                                <ControlButton onToggle={handleToggleControl} />
                             </div>
                         </div>
                     </CarouselItem>
@@ -226,7 +209,6 @@ export default function SettingsPage() {
                                         </Button>
                                     </CardContent>
                                 </Card>
-                                <ControlButton onToggle={handleToggleControl} />
                             </div>
                         </div>
                     </CarouselItem>
@@ -246,7 +228,6 @@ export default function SettingsPage() {
                                         </Button>
                                     </CardContent>
                                 </Card>
-                                <ControlButton onToggle={handleToggleControl} />
                             </div>
                         </div>
                     </CarouselItem>
@@ -266,7 +247,6 @@ export default function SettingsPage() {
                                         </Button>
                                     </CardContent>
                                 </Card>
-                                <ControlButton onToggle={handleToggleControl} />
                             </div>
                         </div>
                     </CarouselItem>
@@ -296,7 +276,6 @@ export default function SettingsPage() {
                                         </Button>
                                     </CardContent>
                                 </Card>
-                                <ControlButton onToggle={handleToggleControl} />
                             </div>
                         </div>
                     </CarouselItem>
@@ -330,5 +309,3 @@ export default function SettingsPage() {
     </AppLayout>
   );
 }
-
-    
