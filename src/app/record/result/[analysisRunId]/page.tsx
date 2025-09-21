@@ -11,13 +11,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BookImage, Download, Home, PlayCircle, Settings, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { AlertTriangle, BookImage, Check, Download, Home, PlayCircle, Settings, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import { generateBirdImage } from '@/ai/flows/instructional-generate-bird-image-flow';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
 import Link from 'next/link';
+import { useSpeaker } from '@/hooks/use-speaker';
+import { cn } from '@/lib/utils';
+
+const SAVED_RUNS_KEY = 'saved-runs';
 
 function BirdImage({ commonName }: { commonName: string }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -69,7 +73,8 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
     const [feedbackGiven, setFeedbackGiven] = useState(false);
     const { toast } = useToast();
     const audioRef = useRef<HTMLAudioElement | null>(null);
-
+    const { isBirdSong, commonName, scientificName, description, error } = run.aiResult;
+    
     useEffect(() => {
         // Initialize Audio object only on the client side
         if (typeof window !== 'undefined') {
@@ -122,8 +127,6 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
             });
         }
     }
-
-    const { isBirdSong, commonName, scientificName, description, error } = run.aiResult;
 
     const NotIdentifiedCard = () => (
         <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
@@ -207,10 +210,15 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
     const [run, setRun] = useState<AnalysisRun | null>(null);
     const [loading, setLoading] = useState(true);
     const [isClient, setIsClient] = useState(false);
+    const router = useRouter();
     
     // The `params` object is a Promise. We use `React.use` to unwrap it.
     const resolvedParams = use(params);
     const analysisRunId = resolvedParams.analysisRunId;
+
+    const narrationText = run?.aiResult.isBirdSong ? `The AI has identified the bird as a ${run.aiResult.commonName}. ${run.aiResult.description}` : `The AI was not able to identify a bird in the recording. ${run?.aiResult.description || run?.aiResult.error}`;
+    const { playNarration, ...speakerProps } = useSpeaker(narrationText);
+
 
     useEffect(() => {
         setIsClient(true);
@@ -240,21 +248,52 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
         fetchRun();
     }, [analysisRunId]);
 
+    const handleDiscard = () => {
+        router.push('/');
+    };
+
+    const handleSave = async () => {
+        if (!run) return;
+
+        // Add to localStorage for client-side rendering on log page
+        const savedRunsJson = localStorage.getItem(SAVED_RUNS_KEY);
+        const savedRuns: AnalysisRun[] = savedRunsJson ? JSON.parse(savedRunsJson) : [];
+        // Add new run to the beginning of the array
+        const newSavedRuns = [run, ...savedRuns];
+        localStorage.setItem(SAVED_RUNS_KEY, JSON.stringify(newSavedRuns));
+
+        // Update Firestore document
+        const docRef = doc(db, 'all_analysis_runs', run.id);
+        await updateDoc(docRef, { wasSavedByUser: true });
+        
+        router.push('/log');
+    };
+
     if (!isClient) return null;
 
     return (
         <AppLayout>
             <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
-                <div className="absolute top-4 left-4 opacity-50">
-                    <SpeakerButton />
+                 <div className="absolute top-4 left-4 opacity-50">
+                    <SpeakerButton onClick={playNarration} {...speakerProps} />
                 </div>
                 <div className="absolute top-4 right-4 opacity-50">
                     <ContrastButton />
                 </div>
                 
-                <div className="w-full max-w-3xl h-[60rem]">
+                <div className="w-full max-w-xl h-[42rem] relative">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleDiscard}
+                        className="absolute top-1/2 -translate-y-1/2 h-32 w-32 -left-40 text-primary hover:text-primary"
+                        aria-label="Discard analysis"
+                    >
+                        <X className="h-full w-full" />
+                    </Button>
+
                     <div className="p-1 h-full">
-                         <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
+                         <div className="bg-ring rounded-lg shadow-lg p-6 h-full relative">
                             {loading ? (
                                 <Skeleton className="w-full h-full" />
                             ) : run ? (
@@ -264,12 +303,22 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
                             )}
                         </div>
                     </div>
+                    
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleSave}
+                        className="absolute top-1/2 -translate-y-1/2 h-32 w-32 -right-40 text-primary hover:text-primary"
+                        aria-label="Save analysis"
+                    >
+                        <Check className="h-full w-full" />
+                    </Button>
                 </div>
 
                 <div className="absolute bottom-4 left-4 opacity-50">
                     <Link href="/log">
-                        <Button variant="ghost" size="icon" className="h-40 w-40">
-                            <BookImage className="h-32 w-32 text-foreground" />
+                        <Button variant="ghost" size="icon" className="h-28 w-28">
+                            <BookImage className="h-20 w-20 text-foreground" />
                         </Button>
                     </Link>
                 </div>
@@ -278,9 +327,9 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
                       <Button
                         variant='ghost'
                         size='icon'
-                        className="h-40 w-40"
+                        className="h-28 w-28"
                       >
-                        <Home className="h-32 w-32 text-foreground" />
+                        <Home className="h-20 w-20 text-foreground" />
                       </Button>
                     </Link>
                 </div>
@@ -288,3 +337,5 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
         </AppLayout>
     );
 }
+
+    

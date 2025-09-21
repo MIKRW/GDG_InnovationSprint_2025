@@ -1,3 +1,4 @@
+>> NEEDS updating in order to bring in line with the current state of the app and future plans
 # Terms of Use
 
 Welcome to your new application! By using this app, you agree to these terms.

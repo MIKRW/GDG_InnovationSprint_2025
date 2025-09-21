@@ -3,9 +3,8 @@
 
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import Image from 'next/image';
 import { Carousel, CarouselApi, CarouselContent, CarouselItem, useCarousel } from '@/components/ui/carousel';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { BookImage, Settings, Home, Bot, Mic } from 'lucide-react';
@@ -15,51 +14,176 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useSpeaker } from '@/hooks/use-speaker';
+import { type AnalysisRun } from '@/lib/types';
+import { SavedRunCard } from '@/components/content/SavedRunCard';
+import { textToSpeech } from '@/ai/flows/tts-flow';
+import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 
 interface ChatMessage {
     sender: 'user' | 'bot';
     text: string;
 }
 
-function AiAssistantCard({ 
-    isChatActive, 
-    onToggleChat,
-    chatMode 
-}: { 
-    isChatActive: boolean, 
-    onToggleChat: () => void,
-    chatMode: 'voice' | 'text'
-}) {
-    const [messages, setMessages] = useState<ChatMessage[]>([
-        { sender: 'bot', text: 'Please ask me to filter, sort, or find a bird.' }
-    ]);
-    const [input, setInput] = useState('');
+const SAVED_RUNS_KEY = 'saved-runs';
 
-    const handleSend = () => {
-        if (input.trim()) {
-            setMessages(prev => [...prev, { sender: 'user', text: input }]);
-            // Here you would call the AI and get a response
-            setInput('');
+const PAGE_NARRATION = "This is the Bird Book, your personal log of identified birds. You can swipe left and right to view your saved identifications. The first card is the AI assistant, which can help you filter, sort, or find birds in your log. Click the bot icon to start a voice command, or toggle to text control at the bottom.";
+
+
+function AiAssistantCard({ 
+    onStartChat,
+    onSortComplete,
+    isPageSpeakerLoading,
+}: { 
+    onStartChat: () => void;
+    onSortComplete: () => void;
+    isPageSpeakerLoading: boolean;
+}) {
+    const [isChatActive, setIsChatActive] = useState(false);
+    const [chatMode, setChatMode] = useState<'voice' | 'text'>('voice');
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [input, setInput] = useState('');
+    const [conversationStep, setConversationStep] = useState(0);
+    const [isListening, setIsListening] = useState(false);
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // This effect ensures the chatbot waits for the main page narration to load first.
+    useEffect(() => {
+        if (!isPageSpeakerLoading && isChatActive && chatMode === 'voice' && conversationStep === 1 && !isSpeaking && !isListening) {
+             playAudio('Hello, please tell me the name of the bird card you would like to find.');
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isPageSpeakerLoading, isChatActive, chatMode, conversationStep]);
+
+
+    useEffect(() => {
+        audioRef.current = new Audio();
+        const handleEnd = () => {
+            setIsSpeaking(false);
+            // After speaking, start listening
+            if (conversationStep === 1 || conversationStep === 2) {
+                setIsListening(true);
+            }
+        };
+        audioRef.current.addEventListener('ended', handleEnd);
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.removeEventListener('ended', handleEnd);
+                audioRef.current.pause();
+            }
+        };
+    }, [conversationStep]);
+
+    const playAudio = async (text: string) => {
+        setIsSpeaking(true);
+        try {
+            const response = await textToSpeech(text);
+            if (audioRef.current) {
+                audioRef.current.src = response.audioDataUri;
+                audioRef.current.play();
+            }
+        } catch (error) {
+            console.error("TTS failed", error);
+            setIsSpeaking(false);
         }
     };
+    
+    const resetChat = () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+        }
+        setIsChatActive(false);
+        setConversationStep(0);
+        setIsListening(false);
+        setIsSpeaking(false);
+        setMessages([]);
+    }
+
+    const handleToggleChat = async () => {
+        if (isChatActive) {
+            // Allow resetting the chat if clicked while active in voice mode
+            if (chatMode === 'voice') {
+                resetChat();
+            }
+            return;
+        }
+
+        onStartChat();
+        setIsChatActive(true);
+        setConversationStep(1);
+
+        if (chatMode === 'voice') {
+            // If the page speaker is still loading, the useEffect will handle playing the audio.
+            if (!isPageSpeakerLoading) {
+                await playAudio('Hello, please tell me the name of the bird card you would like to find.');
+            }
+        } else {
+            setMessages([{ sender: 'bot', text: 'Hello, please tell me the name of the bird card you would like to find.' }]);
+        }
+    };
+    
+    // Simulate receiving a voice response after listening
+    useEffect(() => {
+        if (isListening) {
+            const timer = setTimeout(() => {
+                setIsListening(false);
+                if (conversationStep === 1) {
+                    setConversationStep(2);
+                    playAudio('Please tell me would you like to sort by most recent or least recent?');
+                } else if (conversationStep === 2) {
+                    setConversationStep(3);
+                    onSortComplete();
+                }
+            }, 2000); // Simulate 2 seconds of listening
+            return () => clearTimeout(timer);
+        }
+    }, [isListening, conversationStep, onSortComplete]);
+
+    const handleSend = () => {
+        if (!input.trim()) return;
+
+        const userMessage: ChatMessage = { sender: 'user', text: input };
+        let newMessages = [...messages, userMessage];
+
+        if (conversationStep === 1) {
+            const botMessage: ChatMessage = { sender: 'bot', text: 'Please tell me would you like to sort by most recent or least recent?' };
+            newMessages.push(botMessage);
+            setConversationStep(2);
+        } else if (conversationStep === 2) {
+            onSortComplete();
+            const botMessage: ChatMessage = { sender: 'bot', text: "Okay, I've sorted that for you." };
+            newMessages.push(botMessage);
+            setConversationStep(3); 
+        }
+
+        setMessages(newMessages);
+        setInput('');
+    };
+    
+    const getVoiceSubtitle = () => {
+        if (!isChatActive) return "Click the icon to give a command";
+        if (isSpeaking) return "Speaking...";
+        if (isListening) return "Listening...";
+        if (isPageSpeakerLoading) return "Waiting for narrator...";
+        return "Processing...";
+    }
 
     return (
-        <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
+        <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
             <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
-                <CardContent className="flex-1 flex flex-col items-center justify-center gap-4">
-                     {chatMode === 'voice' || !isChatActive ? (
+                <CardContent className="flex-1 flex flex-col items-center justify-center gap-4 p-2">
+                     {chatMode === 'voice' ? (
                         <>
-                            <div className="w-96 h-96">
-                                <Button variant="ghost" className={cn("w-full h-full rounded-full hover:bg-background", isChatActive && "animate-pulse bg-background")} onClick={onToggleChat}>
-                                    <Bot className="h-96 w-96 text-foreground" />
+                            <div className="w-48 h-48">
+                                <Button variant="ghost" className="w-full h-full rounded-full hover:bg-background" onClick={handleToggleChat}>
+                                    <Bot className={cn("h-48 w-48 text-foreground", (isSpeaking || isListening || isChatActive) && "animate-color-cycle")} />
                                 </Button>
                             </div>
                             <div className="text-center">
-                                <h2 className="text-8xl font-mono font-bold">Bird Book</h2>
-                                <p className="text-3xl font-mono text-foreground/80">
-                                    {isChatActive ? "Listening..." : "Click the icon to give a command"}
+                                <h2 className="text-5xl font-mono font-bold">Bird Book</h2>
+                                <p className="text-lg font-mono text-foreground/80">
+                                    {getVoiceSubtitle()}
                                 </p>
                             </div>
                         </>
@@ -83,49 +207,33 @@ function AiAssistantCard({
                                     onChange={(e) => setInput(e.target.value)}
                                     placeholder="Type your command..."
                                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                                    disabled={conversationStep === 3}
                                 />
-                                <Button onClick={handleSend}>Send</Button>
+                                <Button onClick={handleSend} disabled={conversationStep === 3}>Send</Button>
                             </div>
                         </div>
                     )}
                 </CardContent>
             </Card>
+             <div className="flex justify-center mt-4">
+                <Button
+                    onClick={() => {
+                        setChatMode(chatMode === 'voice' ? 'text' : 'voice');
+                        if (!isChatActive) {
+                            handleToggleChat();
+                        } else {
+                            // If switching modes while active, reset the chat
+                            resetChat();
+                        }
+                    }}
+                    variant={chatMode === 'text' ? 'secondary' : 'default'}
+                    className="rounded-full px-8 py-4 text-lg font-semibold transition-colors duration-300"
+                >
+                    {chatMode === 'voice' ? 'Voice Controlled' : 'Text Controlled'}
+                </Button>
+            </div>
         </div>
     )
-}
-
-function BirdResultCard({ seed, onStartChat }: { seed: string, onStartChat: () => void }) {
-    return (
-        <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
-            <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
-                <div className="relative w-full flex-1 pt-4">
-                    <Image
-                        src={`https://picsum.photos/seed/${seed}/600/400`}
-                        alt="A picture of a bird"
-                        fill
-                        className="object-contain rounded-t-lg"
-                        data-ai-hint="bird nature"
-                    />
-                </div>
-                <div className="flex flex-col flex-1">
-                    <CardHeader className="text-center">
-                        <CardTitle className="text-3xl font-mono">Sparrow</CardTitle>
-                        <CardDescription className="text-lg italic font-mono">Passer domesticus</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-1">
-                        <p className="text-muted-foreground">
-                            A small, common bird found in most parts of the world. Sparrows are known for their cheerful chirping and social nature.
-                        </p>
-                    </CardContent>
-                    <CardFooter className="flex flex-1 justify-center items-center">
-                        <Button variant="ghost" size="icon" onClick={onStartChat} className="h-32 w-32">
-                            <Bot className="h-24 w-24" />
-                        </Button>
-                    </CardFooter>
-                </div>
-            </Card>
-        </div>
-    );
 }
 
 const CarouselPrevious = React.forwardRef<
@@ -137,7 +245,7 @@ const CarouselPrevious = React.forwardRef<
   return (
     <button
       ref={ref}
-      className={cn("absolute top-1/2 -translate-y-1/2 h-40 w-40 -left-60", className)}
+      className={cn("absolute top-1/2 -translate-y-1/2 h-32 w-32 -left-40", className)}
       disabled={!canScrollPrev}
       onClick={scrollPrev}
       aria-label="Previous slide"
@@ -159,7 +267,7 @@ const CarouselNext = React.forwardRef<
   return (
     <button
       ref={ref}
-      className={cn("absolute top-1/2 -translate-y-1/2 h-40 w-40 -right-60", className)}
+      className={cn("absolute top-1/2 -translate-y-1/2 h-32 w-32 -right-40", className)}
       disabled={!canScrollNext}
       onClick={scrollNext}
       aria-label="Next slide"
@@ -174,42 +282,76 @@ CarouselNext.displayName = "CarouselNext"
 
 export default function BirdBookPage() {
     const [api, setApi] = useState<CarouselApi>();
-    const [isChatActive, setIsChatActive] = useState(false);
-    const [chatMode, setChatMode] = useState<'voice' | 'text'>('voice');
     const [isClient, setIsClient] = useState(false);
+    const [currentTheme, setCurrentTheme] = useState('light');
+    const [narrationText, setNarrationText] = useState(PAGE_NARRATION);
+    const { playNarration, isLoading: isSpeakerLoading, isCarouselAutoPlayOn, ...speakerProps } = useSpeaker(narrationText, 'carousel');
+    const [savedRuns, setSavedRuns] = useState<AnalysisRun[]>([]);
 
+    const getNarrationForSlide = useCallback((index: number): string => {
+        if (index === 0) {
+            return "This is the AI assistant. Click the bot icon to issue a command.";
+        }
+        const runIndex = index - 1;
+        if (savedRuns[runIndex]) {
+            const run = savedRuns[runIndex];
+            if (run.aiResult.isBirdSong && run.aiResult.commonName) {
+                return `This is an entry for a ${run.aiResult.commonName}.`;
+            } else {
+                return "This is a mystery recording where no bird was identified.";
+            }
+        }
+        return "Your Bird Book is empty. Make a recording to save your first entry.";
+    }, [savedRuns]);
+
+    const debouncedNarration = useDebouncedCallback((index: number) => {
+        if (isCarouselAutoPlayOn) {
+            const newNarration = getNarrationForSlide(index);
+            setNarrationText(newNarration);
+        }
+    }, 2000);
+    
     useEffect(() => {
         setIsClient(true);
+        const theme = localStorage.getItem('theme') || 'light';
+        setCurrentTheme(theme);
+        
+        const savedRunsJson = localStorage.getItem(SAVED_RUNS_KEY);
+        if (savedRunsJson) {
+            setSavedRuns(JSON.parse(savedRunsJson));
+        }
     }, []);
 
     useEffect(() => {
         if (!api) return;
-        
-        const onSelect = () => {
-            // Deactivate chat if we scroll away from the assistant card
-            if (api.selectedScrollSnap() !== 0) {
-                setIsChatActive(false);
+
+        const handleSelect = () => {
+            const selectedIndex = api.selectedScrollSnap();
+            if (isCarouselAutoPlayOn) {
+                debouncedNarration(selectedIndex);
+            } else {
+                // If autoplay is off, update the text immediately for manual play.
+                const newNarration = getNarrationForSlide(selectedIndex);
+                setNarrationText(newNarration);
             }
         };
 
-        api.on("select", onSelect);
+        api.on("select", handleSelect);
+        
         return () => {
-            api.off("select", onSelect);
+            api.off("select", handleSelect);
+            // Cancel any pending debounced calls on unmount
+            debouncedNarration.cancel();
         };
-    }, [api]);
+    }, [api, getNarrationForSlide, isCarouselAutoPlayOn, debouncedNarration]);
     
     const startChat = () => {
         api?.scrollTo(0);
-        setIsChatActive(true);
     };
-
-    const handleToggleChat = () => {
-        // If chat is active anywhere, this button will deactivate it.
-        // If chat is inactive and we are on the main card, it will activate it.
-        if (isChatActive) {
-            setIsChatActive(false);
-        } else if (api?.selectedScrollSnap() === 0) {
-            setIsChatActive(true);
+    
+    const handleSortComplete = () => {
+        if (savedRuns.length > 0) {
+            api?.scrollTo(1);
         }
     };
 
@@ -221,38 +363,53 @@ export default function BirdBookPage() {
         <AppLayout>
             <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
                 <div className="absolute top-4 left-4 opacity-50">
-                    <SpeakerButton />
+                    <SpeakerButton onClick={() => playNarration(narrationText)} isLoading={isSpeakerLoading} {...speakerProps} />
                 </div>
                 <div className="absolute top-4 right-4 opacity-50">
-                    <ContrastButton />
+                    <ContrastButton key={currentTheme} />
                 </div>
 
-                <Carousel className="w-full max-w-3xl" opts={{ loop: false }} setApi={setApi}>
-                    <CarouselContent>
+                <Carousel className="w-full max-w-xl" opts={{ loop: false }} setApi={setApi}>
+                    <CarouselContent className="h-[42rem]">
                         <CarouselItem>
-                            <div className="p-1 h-[60rem]">
+                            <div className="p-1 h-full">
                                 <AiAssistantCard 
-                                    isChatActive={isChatActive} 
-                                    onToggleChat={handleToggleChat} 
-                                    chatMode={chatMode} 
+                                    onStartChat={startChat} 
+                                    onSortComplete={handleSortComplete}
+                                    isPageSpeakerLoading={isSpeakerLoading}
                                 />
                             </div>
                         </CarouselItem>
-                        <CarouselItem>
-                            <div className="p-1 h-[60rem]">
-                               <BirdResultCard seed="bird1" onStartChat={startChat} />
-                            </div>
-                        </CarouselItem>
-                        <CarouselItem>
-                            <div className="p-1 h-[60rem]">
-                                <BirdResultCard seed="bird2" onStartChat={startChat} />
-                            </div>
-                        </CarouselItem>
-                        <CarouselItem>
-                            <div className="p-1 h-[60rem]">
-                               <BirdResultCard seed="bird3" onStartChat={startChat} />
-                            </div>
-                        </CarouselItem>
+                        {savedRuns.length > 0 ? (
+                            savedRuns.map((run) => (
+                                <CarouselItem key={run.id}>
+                                    <div className="p-1 h-full">
+                                        <SavedRunCard run={run} onStartChat={startChat} />
+                                    </div>
+                                </CarouselItem>
+                            ))
+                        ) : (
+                             <CarouselItem>
+                                <div className="p-1 h-full">
+                                   <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
+                                        <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
+                                            <CardHeader>
+                                                <CardTitle className="text-2xl font-mono text-center">Your Bird Book is Empty</CardTitle>
+                                                <CardDescription className="text-center">Saved identifications will appear here.</CardDescription>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <Link href="/">
+                                                    <Button>
+                                                        <Mic className="mr-2 h-4 w-4" />
+                                                        Make a Recording
+                                                    </Button>
+                                                </Link>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                </div>
+                            </CarouselItem>
+                        )}
                     </CarouselContent>
                     <CarouselPrevious />
                     <CarouselNext />
@@ -260,20 +417,10 @@ export default function BirdBookPage() {
 
                 <div className="absolute bottom-4 left-4 opacity-50">
                     <Link href="/log">
-                        <Button variant="ghost" size="icon" className="h-40 w-40">
-                            <BookImage className="h-32 w-32 text-foreground" />
+                        <Button variant="ghost" size="icon" className="h-28 w-28">
+                            <BookImage className="h-20 w-20 text-foreground" />
                         </Button>
                     </Link>
-                </div>
-                
-                <div className="absolute bottom-24 inset-x-0 flex justify-center">
-                    <Button
-                        onClick={() => setChatMode(chatMode === 'voice' ? 'text' : 'voice')}
-                        variant={chatMode === 'text' ? 'secondary' : 'default'}
-                        className="rounded-full px-32 py-8 text-2xl font-semibold transition-colors duration-300"
-                    >
-                        {chatMode === 'voice' ? 'Voice Controlled' : 'Text Controlled'}
-                    </Button>
                 </div>
 
                 <div className="absolute bottom-4 right-4 opacity-50">
@@ -281,9 +428,9 @@ export default function BirdBookPage() {
                       <Button
                         variant='ghost'
                         size='icon'
-                        className="h-40 w-40"
+                        className="h-28 w-28"
                       >
-                        <Home className="h-32 w-32 text-foreground" />
+                        <Home className="h-20 w-20 text-foreground" />
                       </Button>
                     </Link>
                 </div>
@@ -291,3 +438,5 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
+
+    
