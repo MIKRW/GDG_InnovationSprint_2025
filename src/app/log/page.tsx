@@ -9,7 +9,7 @@ import { RecordButton } from '@/components/content/RecordButton';
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BookImage, Settings, Home } from 'lucide-react';
+import { BookImage, Settings, Home, ArrowLeft, ArrowRight } from 'lucide-react';
 import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
 
@@ -56,7 +56,7 @@ function BirdResultCard({ seed }: { seed: string }) {
                         src={`https://picsum.photos/seed/${seed}/600/400`}
                         alt="A picture of a bird"
                         fill
-                        className="object-cover rounded-t-lg"
+                        className="object-cover rounded-lg"
                         data-ai-hint="bird nature"
                     />
                 </div>
@@ -108,8 +108,12 @@ export default function BirdBookPage() {
                             </div>
                         </CarouselItem>
                     </CarouselContent>
-                    <CarouselPrevious />
-                    <CarouselNext />
+                    <CarouselPrevious variant="ghost" className="h-40 w-40 text-ring -left-24">
+                        <ArrowLeft className="h-32 w-32" />
+                    </CarouselPrevious>
+                    <CarouselNext variant="ghost" className="h-40 w-40 text-ring -right-24">
+                        <ArrowRight className="h-32 w-32" />
+                    </CarouselNext>
                 </Carousel>
 
                 <div className="absolute bottom-4 left-4 opacity-50">
