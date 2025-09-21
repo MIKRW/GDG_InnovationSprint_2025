@@ -59,9 +59,9 @@ const textToSpeechFlow = ai.defineFlow(
         };
     } catch (error) {
         // Gracefully handle the quota error without crashing the app.
-        if (error instanceof Error && error.message.includes('429')) {
+        if (error instanceof Error && (error.message.includes('429') || error.message.includes('RESOURCE_EXHAUSTED'))) {
             console.warn(
-                `TTS feature is disabled due to a quota error. This usually means the 'Vertex AI API' or 'Generative Language API' needs to be enabled in your Google Cloud project. The app will continue to function without audio narration.`
+                `TTS feature is disabled due to a quota error (429). This usually means the 'Generative Language API' has a daily limit of 0 in your Google Cloud project. The app will continue to function without audio narration.`
             );
             // Return an empty audio response to prevent a crash.
             return { audioDataUri: '' };
