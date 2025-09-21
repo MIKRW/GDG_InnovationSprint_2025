@@ -8,7 +8,7 @@ import { Carousel, CarouselApi, CarouselContent, CarouselItem, useCarousel } fro
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BookImage, Settings, Home, Bot, Mic, CornerDownLeft } from 'lucide-react';
+import { BookImage, Settings, Home, Bot, Mic } from 'lucide-react';
 import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
 import React from 'react';
@@ -20,48 +20,24 @@ interface ChatMessage {
     text: string;
 }
 
-function AiAssistantCard({ chatHistory, isChatActive }: { chatHistory: ChatMessage[], isChatActive: boolean }) {
+function AiAssistantCard({ isChatActive, onToggleChat }: { isChatActive: boolean, onToggleChat: () => void }) {
     return (
         <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
             <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
                 <CardContent className="flex-1 flex flex-col items-center justify-center gap-4">
-                    {!isChatActive ? (
-                         <>
-                            <div className="w-96 h-96">
-                                <Button variant="ghost" className="w-full h-full rounded-full hover:bg-background">
-                                    <Bot className="h-96 w-96 text-foreground" />
-                                </Button>
-                            </div>
-                            <div className="text-center">
-                                <h2 className="text-8xl font-mono font-bold">Bird Book</h2>
-                                <p className="text-3xl font-mono text-foreground/80">
-                                    swipe to see your birds or click to chat to the guide to organize your bird book
-                                </p>
-                            </div>
-                        </>
-                    ) : (
-                        <div className="w-full h-full flex flex-col p-4">
-                            <div className="flex-1 space-y-4 overflow-y-auto">
-                                {chatHistory.map((msg, index) => (
-                                    <div key={index} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                        {msg.sender === 'bot' && <Bot className="h-6 w-6 text-muted-foreground" />}
-                                        <p className={cn(
-                                            "rounded-lg px-4 py-2 max-w-sm",
-                                            msg.sender === 'user' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                                        )}>
-                                            {msg.text}
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="mt-4 flex items-center gap-2">
-                                <Input placeholder="Type your message..." className="flex-1"/>
-                                <Button size="icon">
-                                    <CornerDownLeft className="h-4 w-4" />
-                                </Button>
-                            </div>
+                     <>
+                        <div className="w-96 h-96">
+                            <Button variant="ghost" className={cn("w-full h-full rounded-full hover:bg-background", isChatActive && "animate-pulse bg-background")} onClick={onToggleChat}>
+                                <Bot className="h-96 w-96 text-foreground" />
+                            </Button>
                         </div>
-                    )}
+                        <div className="text-center">
+                            <h2 className="text-8xl font-mono font-bold">Bird Book</h2>
+                            <p className="text-3xl font-mono text-foreground/80">
+                                {isChatActive ? "Listening..." : "Click the icon to give a command"}
+                            </p>
+                        </div>
+                    </>
                 </CardContent>
             </Card>
         </div>
@@ -152,7 +128,6 @@ CarouselNext.displayName = "CarouselNext"
 export default function BirdBookPage() {
     const [api, setApi] = useState<CarouselApi>();
     const [isChatActive, setIsChatActive] = useState(false);
-    const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
 
     useEffect(() => {
         if (!api) return;
@@ -173,8 +148,18 @@ export default function BirdBookPage() {
     const startChat = () => {
         api?.scrollTo(0);
         setIsChatActive(true);
-        setChatHistory([{ sender: 'bot', text: 'Please ask me to filter, sort, or find a bird.' }]);
     };
+
+    const handleToggleChat = () => {
+        // If chat is active anywhere, this button will deactivate it.
+        // If chat is inactive and we are on the main card, it will activate it.
+        if (isChatActive) {
+            setIsChatActive(false);
+        } else if (api?.selectedScrollSnap() === 0) {
+            setIsChatActive(true);
+        }
+    };
+
 
     return (
         <AppLayout>
@@ -190,7 +175,7 @@ export default function BirdBookPage() {
                     <CarouselContent>
                         <CarouselItem>
                             <div className="p-1 h-[60rem]">
-                                <AiAssistantCard chatHistory={chatHistory} isChatActive={isChatActive} />
+                                <AiAssistantCard isChatActive={isChatActive} onToggleChat={handleToggleChat} />
                             </div>
                         </CarouselItem>
                         <CarouselItem>
