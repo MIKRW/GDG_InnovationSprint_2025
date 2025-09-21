@@ -18,10 +18,6 @@ function AiAssistantCard() {
     return (
         <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
             <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
-                <CardHeader className="text-center">
-                    
-                    <CardDescription className="text-lg italic">Your personal ornithologist</CardDescription>
-                </CardHeader>
                 <CardContent className="flex-1 flex flex-col items-center justify-center gap-4">
                      <div className="w-48 h-48">
                         <Button variant="ghost" className="w-full h-full rounded-full">
