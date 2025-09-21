@@ -160,10 +160,10 @@ export default function Home() {
   return (
     <AppLayout header={<PrimaryHeader />}>
       <main className="flex flex-1 flex-col items-center justify-center bg-muted p-4 relative">
-        <div className="absolute top-4 left-4">
+        <div className="absolute top-4 left-4 opacity-50">
             <SpeakerButton />
         </div>
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4 opacity-50">
             <ContrastButton />
         </div>
         {isProcessing ? (
@@ -172,7 +172,7 @@ export default function Home() {
                 <ColorableLogo className="w-full h-full animate-color-cycle" />
              </div>
             <div className="pl-4">
-                <p className="text-6xl font-mono font-bold text-foreground/50 text-center -mt-16 animate-color-cycle">Analyzing...</p>
+                <p className="text-6xl font-mono font-bold text-foreground text-center -mt-16 animate-color-cycle">Analyzing...</p>
             </div>
           </div>
         ) : (
@@ -185,14 +185,14 @@ export default function Home() {
               />
           </div>
         )}
-        <div className="absolute bottom-4 left-4">
+        <div className="absolute bottom-4 left-4 opacity-50">
             <Link href="/log">
                 <Button variant="ghost" size="icon" className="h-40 w-40">
                     <BookImage className="h-32 w-32 text-foreground" />
                 </Button>
             </Link>
         </div>
-        <div className="absolute bottom-4 right-4">
+        <div className="absolute bottom-4 right-4 opacity-50">
             <Link href="/settings">
               <Button
                 variant='ghost'
