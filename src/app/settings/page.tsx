@@ -73,7 +73,7 @@ const NARRATION_TEXTS: { [key: number]: string } = {
     0: "/audio/narration-settings-intro.wav",
     1: "/audio/narration-settings-narration.wav",
     2: "/audio/narration-settings-theme.wav",
-    3: "/audio/narration-settings-location.wav",
+    3: "Allow the app to use your device's location to improve identification accuracy.",
     4: "/audio/narration-settings-hardware.wav",
 };
 
@@ -160,7 +160,7 @@ export default function SettingsPage() {
     const newValue = !isAutoPlayOn;
     // This now updates the global store immediately.
     setSpeakerSettings({ isAutoPlayOn: newValue });
-    playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
+    playSfx(newValue ? '/audio/narration-settings-autonarate-on.wav' : '/audio/narration-settings-autonarate-off.wav');
   };
 
   const toggleLocation = () => {
@@ -387,5 +387,3 @@ export default function SettingsPage() {
     </AppLayout>
   );
 }
-
-    
