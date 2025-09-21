@@ -258,15 +258,15 @@ export default function BirdBookPage() {
                     <CarouselNext />
                 </Carousel>
 
-                <div className="absolute bottom-4 inset-x-0 flex justify-center items-center gap-8">
-                    <div className="opacity-50">
-                        <Link href="/log">
-                            <Button variant="ghost" size="icon" className="h-40 w-40">
-                                <BookImage className="h-32 w-32 text-foreground" />
-                            </Button>
-                        </Link>
-                    </div>
-
+                <div className="absolute bottom-4 left-4 opacity-50">
+                    <Link href="/log">
+                        <Button variant="ghost" size="icon" className="h-40 w-40">
+                            <BookImage className="h-32 w-32 text-foreground" />
+                        </Button>
+                    </Link>
+                </div>
+                
+                <div className="absolute bottom-4 inset-x-0 flex justify-center">
                     <Button
                         onClick={() => setChatMode(chatMode === 'voice' ? 'text' : 'voice')}
                         className={cn(
@@ -278,18 +278,18 @@ export default function BirdBookPage() {
                     >
                         {chatMode === 'voice' ? 'Text Controlled' : 'Voice Controlled'}
                     </Button>
+                </div>
 
-                    <div className="opacity-50">
-                        <Link href="/">
-                          <Button
-                            variant='ghost'
-                            size='icon'
-                            className="h-40 w-40"
-                          >
-                            <Home className="h-32 w-32 text-foreground" />
-                          </Button>
-                        </Link>
-                    </div>
+                <div className="absolute bottom-4 right-4 opacity-50">
+                    <Link href="/">
+                      <Button
+                        variant='ghost'
+                        size='icon'
+                        className="h-40 w-40"
+                      >
+                        <Home className="h-32 w-32 text-foreground" />
+                      </Button>
+                    </Link>
                 </div>
             </main>
         </AppLayout>
