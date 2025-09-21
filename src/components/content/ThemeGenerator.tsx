@@ -188,22 +188,27 @@ export function ThemeGenerator() {
 
 
   useEffect(() => {
-    const handlePreviewExit = () => {
-        setIsPreviewingGenerated(false);
-        setIsPreviewingManual(false);
+    // This effect handles the cleanup when the user navigates away from the theme page.
+    return () => {
+      // Check if a preview was active
+      const isPreviewing = sessionStorage.getItem('theme-preview-active');
+      if (isPreviewing) {
         const activeThemeJson = localStorage.getItem('active-theme-json');
         if (activeThemeJson) {
-            try {
-              const activeTheme = JSON.parse(activeThemeJson);
-              updateCSSVariables(activeTheme.colors);
-            } catch(e) {
-              console.error("Failed to parse active theme from localStorage", e);
-            }
+          try {
+            const activeTheme = JSON.parse(activeThemeJson);
+            // Restore the variables of the actually active theme
+            updateCSSVariables(activeTheme.colors);
+            // Ensure the 'custom' class is set, as that's where saved themes live
+            document.documentElement.classList.remove('light', 'dark');
+            document.documentElement.classList.add('custom');
+          } catch (e) {
+            console.error("Failed to restore active theme on navigation:", e);
+          }
         }
-    };
-    window.addEventListener('preview-exit', handlePreviewExit);
-    return () => {
-        window.removeEventListener('preview-exit', handlePreviewExit);
+        // Clean up the preview flag
+        sessionStorage.removeItem('theme-preview-active');
+      }
     };
   }, [updateCSSVariables]);
 
