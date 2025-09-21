@@ -1,3 +1,4 @@
+>> NEEDS updating in order to bring in line with the current state of the app and future plans
 # AI-Powered Bird Song Identifier
 
 This document outlines how the AI bird song identifier works and what factors it considers when analyzing audio recordings.

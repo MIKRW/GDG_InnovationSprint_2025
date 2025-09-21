@@ -35,3 +35,18 @@ Recent work has focused heavily on improving the robustness and user experience 
 -   **Resilient AI Flows**: The core AI identification and Text-to-Speech (TTS) flows have been refactored to gracefully handle potential backend and API quota errors. Instead of crashing, the app now provides clear feedback to the user and logs errors to Firestore for debugging.
 -   **Audio Narration System**: Implemented a comprehensive audio narration system using a custom `useSpeaker` hook. This system now correctly plays static `.mp3` files for UI narration, resolving previous bugs related to audio playback and providing a more accessible user experience.
 -   **High-Fidelity Recording**: The audio recording functionality was upgraded from the standard `MediaRecorder` to a more robust system using `AudioWorklet` and a custom WAV encoder. This ensures that the AI receives high-quality, uncompressed audio data for analysis, improving identification accuracy.
+
+---
+## AI Implementation Summary
+
+The application leverages several distinct AI flows, each designed for a specific task. The flows are categorized as either **contextual** (requiring reasoning, rules, and external data) or **instructional** (following a direct command).
+
+-   `contextual-identify-bird-flow`: This is the core reasoning flow. It acts as an expert ornithologist, using the Gemini 2.5 Flash model to analyze the audio recording, location, and time of year. It is "contextual" because it uses a Genkit tool to fetch current weather data, applies a hierarchy of evidence (e.g., prioritizing a habitat photo over GPS data), and generates structured output for the app.
+
+-   `contextual-generate-theme-flow`: This flow acts as a UI/UX designer. It takes three inspirational words and a mood (e.g., "High Contrast") and uses Gemini 2.5 Flash to generate a complete, accessible color palette. It is "contextual" because it must balance creative color generation with strict accessibility and contrast ratio rules defined in its prompt.
+
+-   `instructional-generate-bird-image-flow`: This is a simple, direct-command flow. It uses the Imagen 4 model to generate a photorealistic image of the bird identified by the main contextual flow. Its sole instruction is to create an image based on the bird's common name.
+
+-   `tts-flow`: This utility flow converts text strings into audible speech using a specialized Gemini TTS model. It is used to power the application's audio narration for accessibility, providing spoken descriptions of pages and UI elements.
+
+-   **In-Progress AI Features**: Development is underway for an AI-powered assistant within the "Bird Book" log page. This assistant will allow users to filter, sort, and search their saved bird identifications using natural language commands in either text or voice.
