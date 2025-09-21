@@ -22,7 +22,6 @@ import { setSpeakerSettings, getSpeakerSettings, defaultSettings } from '@/lib/s
 
 
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
-const APP_MODE_KEY = 'app-mode-settings';
 
 
 const CarouselPrevious = React.forwardRef<
@@ -75,8 +74,7 @@ const NARRATION_TEXTS: { [key: number]: string } = {
     1: "/audio/narration-settings-narration.wav",
     2: "/audio/narration-settings-theme.wav",
     3: "/audio/narration-settings-location.wav",
-    4: "/audio/narration-settings-mode.wav",
-    5: "/audio/narration-settings-hardware.wav",
+    4: "/audio/narration-settings-hardware.wav",
 };
 
 
@@ -97,8 +95,6 @@ export default function SettingsPage() {
   );
   const isAutoPlayOn = speakerSettings.isAutoPlayOn;
 
-  const [isNewbieMode, setIsNewbieMode] = useState(true);
-
   const { playNarration, playSfx, ...speakerProps } = useSpeaker(narrationText);
   
   useEffect(() => {
@@ -110,15 +106,6 @@ export default function SettingsPage() {
       setHardware(savedHardware);
     }
     
-    // Load App Mode setting
-    const savedAppMode = localStorage.getItem(APP_MODE_KEY);
-    if (savedAppMode) {
-      try {
-        const parsed = JSON.parse(savedAppMode);
-        setIsNewbieMode(parsed.mode === 'newbie');
-      } catch {}
-    }
-
   }, []);
 
   const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
@@ -166,19 +153,6 @@ export default function SettingsPage() {
     // This now updates the global store immediately.
     setSpeakerSettings({ isAutoPlayOn: newValue });
     playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
-  };
-
-  const toggleAppMode = () => {
-    // Twitcher mode is disabled, so this toggle effectively does nothing functional yet
-    // but we can play the sound to indicate interaction.
-    const newValue = !isNewbieMode;
-    // setIsNewbieMode(newValue); // This would enable the toggle
-    playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
-    // localStorage.setItem(APP_MODE_KEY, JSON.stringify({ mode: newValue ? 'newbie' : 'twitcher' }));
-    toast({
-        title: "Coming Soon",
-        description: "Twitcher mode is under development and cannot be enabled yet.",
-    });
   };
 
   if (!isClient) {
@@ -299,34 +273,6 @@ export default function SettingsPage() {
                                         <Button asChild variant="outline" size="lg" className="text-lg">
                                           <Link href="/settings/location">Manage Location</Link>
                                         </Button>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        </div>
-                    </CarouselItem>
-
-                    {/* App Mode Card */}
-                    <CarouselItem>
-                        <div className="p-1 h-full">
-                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
-                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center text-center cursor-pointer" onClick={toggleAppMode}>
-                                    <CardHeader>
-                                        <AudioLines className="h-32 w-32 text-foreground mx-auto" />
-                                        <CardTitle className="text-4xl font-mono pt-4">App Mode</CardTitle>
-                                         <CardDescription>
-                                            Switch between Newbie and Twitcher modes.
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="flex flex-col items-center gap-6">
-                                        <div className="flex items-center space-x-2 pointer-events-none">
-                                            <Label htmlFor="appmode-switch" className="text-lg">{isNewbieMode ? 'Newbie' : 'Twitcher (soon)'}</Label>
-                                            <Switch
-                                                id="appmode-switch"
-                                                checked={isNewbieMode}
-                                                disabled
-                                                className="h-8 w-16 [&>span]:h-6 [&>span]:w-6 [&>span[data-state=checked]]:translate-x-9"
-                                            />
-                                        </div>
                                     </CardContent>
                                 </Card>
                             </div>
