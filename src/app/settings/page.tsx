@@ -15,7 +15,7 @@ import { Carousel, CarouselApi, CarouselContent, CarouselItem, useCarousel } fro
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
-import { setSpeakerSettings, getSpeakerSettings, defaultSettings } from '@/lib/speaker-store';
+import { getSpeakerSettings, defaultSettings, setSpeakerSettings } from '@/lib/speaker-store';
 import { Input } from '@/components/ui/input';
 
 
@@ -69,11 +69,11 @@ CarouselNext.displayName = "CarouselNext"
 
 
 const NARRATION_TEXTS: { [key: number]: string } = {
-    0: "/audio/narration-settings-intro.wav",
-    1: "/audio/narration-settings-narration.wav",
-    2: "/audio/narration-settings-theme.wav",
+    0: "/audio/narration/narration-settings-intro.wav",
+    1: "/audio/narration/narration-settings-narration.wav",
+    2: "/audio/narration/narration-settings-theme.wav",
     3: "Allow the app to use your device's location to improve identification accuracy.",
-    4: "/audio/narration-settings-hardware.wav",
+    4: "/audio/narration/narration-settings-hardware.wav",
 };
 
 
@@ -386,3 +386,5 @@ export default function SettingsPage() {
     </AppLayout>
   );
 }
+
+    
