@@ -70,7 +70,7 @@ CarouselNext.displayName = "CarouselNext"
 
 const NARRATION_TEXTS: { [key: number]: string } = {
     0: "/audio/narration/narration-settings-intro.wav",
-    1: "", // This will be handled dynamically
+    1: "", // This will be handled dynamically by getNarrationForSlide
     2: "/audio/narration/narration-settings-theme.wav",
     3: "Allow the app to use your device's location to improve identification accuracy.",
     4: "/audio/narration/narration-settings-hardware.wav",
@@ -126,12 +126,10 @@ export default function SettingsPage() {
   }, []);
 
   const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
-    if (isAutoPlayOn) {
-        const newNarration = getNarrationForSlide(index);
-        if (newNarration) {
-            playNarration(newNarration);
-        }
-    }
+      const newNarration = getNarrationForSlide(index);
+      if (newNarration) {
+          playNarration(newNarration);
+      }
   }, 2000);
 
   useEffect(() => {
@@ -140,11 +138,15 @@ export default function SettingsPage() {
     const handleSelect = () => {
         const selectedIndex = api.selectedScrollSnap();
         const newNarration = getNarrationForSlide(selectedIndex);
+        
+        // Always update the narration text so the manual speaker button works.
         if (newNarration) {
-            setNarrationText(newNarration); // Set text for manual play
-            if (isAutoPlayOn) {
-                debouncedNarration(selectedIndex);
-            }
+            setNarrationText(newNarration);
+        }
+
+        // Only auto-play if the setting is on.
+        if (isAutoPlayOn && newNarration) {
+            debouncedNarration(selectedIndex);
         }
     };
 
