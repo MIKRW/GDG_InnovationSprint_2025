@@ -26,8 +26,8 @@ function AiAssistantCard() {
                      </div>
                 </CardContent>
                 <CardHeader className="text-center">
-                    <CardTitle className="text-5xl">Bird Book</CardTitle>
-                    <CardDescription className="text-lg">
+                    <CardTitle className="text-8xl font-mono font-bold">Bird Book</CardTitle>
+                    <CardDescription className="text-3xl font-mono text-foreground/80">
                         swipe to see your birds or click to chat to the guide to organize your bird book
                     </CardDescription>
                 </CardHeader>
