@@ -145,7 +145,8 @@ export async function createAnalysisRun(
   mode: AppMode,
   analysisTimings: AnalysisRun['analysisTimings'] = {},
   sessionId: string,
-  creationTime: string
+  creationTime: string,
+  error?: Error
 ): Promise<string> {
   
   const analysisRunId = uuidv4();
@@ -154,31 +155,34 @@ export async function createAnalysisRun(
   
   let aiResult: IdentifyBirdOutput;
   let wasSuccessful: boolean;
-  let downloadUrl: string | null = null;
   
-  try {
-      const fileRef = storageRef(storage, storagePath);
-      downloadUrl = await getDownloadURL(fileRef);
+  if (error) {
+    // If an error was passed in from the client (e.g., upload failed), log it directly.
+    wasSuccessful = false;
+    aiResult = { isBirdSong: false, error: error.message };
+    logErrorToFirestore(error, 'client-side-failure', { sessionId, recordingId, analysisRunId });
+  } else {
+    try {
+        const downloadUrl = await getDownloadURL(storageRef(storage, storagePath));
+        
+        const analysisStartTime = Date.now();
+        aiResult = await identifyBirdBySound({
+            audioDataUri: downloadUrl,
+            creationTime: creationTime,
+            ...locationData,
+            mode: mode
+        });
+        
+        wasSuccessful = !!aiResult;
+        
+        const analysisDurationMs = Date.now() - analysisStartTime;
+        analysisTimings.primaryIdentificationMs = analysisDurationMs;
 
-      const analysisStartTime = Date.now();
-      aiResult = await identifyBirdBySound({
-          audioDataUri: downloadUrl,
-          creationTime: creationTime,
-          ...locationData,
-          mode: mode
-      });
-      
-      // An analysis is successful if the AI flow returns a result,
-      // even if that result is "no bird song detected".
-      wasSuccessful = !!aiResult;
-      
-      const analysisDurationMs = Date.now() - analysisStartTime;
-      analysisTimings.primaryIdentificationMs = analysisDurationMs;
-
-  } catch (error) {
-      wasSuccessful = false;
-      aiResult = { isBirdSong: false, error: (error as Error).message };
-      logErrorToFirestore(error as Error, 'ai-flow-execution-failure', { sessionId, recordingId, analysisRunId });
+    } catch (flowError) {
+        wasSuccessful = false;
+        aiResult = { isBirdSong: false, error: (flowError as Error).message };
+        logErrorToFirestore(flowError as Error, 'ai-flow-execution-failure', { sessionId, recordingId, analysisRunId });
+    }
   }
   
   const docToCreate: Partial<AnalysisRun> = {
@@ -186,14 +190,13 @@ export async function createAnalysisRun(
     creationTime: creationTime,
     userId: 'anonymous',
     sessionId: sessionId,
-    inputAudioUrl: downloadUrl,
     inputAudioStoragePath: storagePath,
     locationData: {
       latitude: locationData?.latitude ?? null,
       longitude: locationData?.longitude ?? null,
       locationDescription: locationData?.locationDescription ?? null,
     },
-    analysisMethod: aiResult.promptVersion || 'unknown',
+    analysisMethod: aiResult?.promptVersion || 'unknown',
     aiResult: aiResult,
     wasSuccessful: wasSuccessful,
     wasSavedByUser: false,
@@ -201,7 +204,15 @@ export async function createAnalysisRun(
     analysisTimings: analysisTimings,
   };
   
-  if (typeof aiResult.duration === 'number') {
+  // Try to get download URL, but don't fail the whole operation if it's not available
+  try {
+    docToCreate.inputAudioUrl = await getDownloadURL(storageRef(storage, storagePath));
+  } catch (urlError) {
+    docToCreate.inputAudioUrl = '';
+    console.warn(`Could not get download URL for ${storagePath}`, urlError);
+  }
+  
+  if (typeof aiResult?.duration === 'number') {
       docToCreate.recordingLengthSeconds = aiResult.duration;
   }
   

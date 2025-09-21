@@ -5,15 +5,16 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { MicOff } from 'lucide-react';
 import { ColorableLogo } from './ColorableLogo';
-
-type RecordingState = 'idle' | 'recording';
+import { uploadBytes, ref as storageRef } from 'firebase/storage';
+import { storage } from '@/lib/firebase';
+import { v4 as uuidv4 } from 'uuid';
 
 interface RecordButtonProps {
     onStart?: () => void;
     onStop?: () => void;
     onRecordingComplete: (audioBlob: Blob | null) => void;
     isRecording: boolean;
-    disabled?: boolean;
+    hasPermission: boolean | null;
 }
 
 const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
@@ -21,7 +22,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
     onStop,
     onRecordingComplete,
     isRecording,
-    disabled = false,
+    hasPermission,
 }, ref) => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -29,7 +30,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
-    const startRecording = async () => {
+    const startInternalRecording = async () => {
         setElapsedTime(0);
 
         try {
@@ -49,7 +50,6 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
                 if (timerIntervalRef.current) {
                     clearInterval(timerIntervalRef.current);
                 }
-                 // Stop all tracks on the stream to turn off the mic indicator
                 if (mediaRecorderRef.current) {
                     mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
                 }
@@ -64,7 +64,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
         }
     };
     
-    const stopRecording = () => {
+    const stopInternalRecording = () => {
         if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
             mediaRecorderRef.current.stop();
         }
@@ -75,20 +75,18 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
     };
 
     if (isRecording) {
-        startRecording();
+        startInternalRecording();
     } else {
-        stopRecording();
+        stopInternalRecording();
     }
 
     return () => {
-      stopRecording();
+      stopInternalRecording();
     };
   }, [isRecording, onRecordingComplete]);
 
 
   const handleClick = () => {
-    if (disabled) return;
-    
     if (isRecording) {
       onStop?.();
     } else {
@@ -97,11 +95,11 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
   };
 
   const getButtonContent = () => {
-    if (disabled) {
+    if (hasPermission === false) {
        return {
         icon: <MicOff className="w-full h-full text-foreground/50" />,
         title: 'Mic Disabled',
-        subtitle: 'Check permissions',
+        subtitle: 'Click to grant permission',
       };
     }
     if (isRecording) {
@@ -129,7 +127,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
             className="w-full h-full rounded-full flex flex-col justify-center items-center gap-8 transition-all duration-300 ease-in-out hover:bg-transparent disabled:opacity-50"
             aria-label="Record Audio"
             onClick={handleClick}
-            disabled={disabled}
+            disabled={hasPermission === null} // Only truly disabled while checking permission
         >
             <div className="transition-all duration-300 w-full h-full">
               <div className="w-full h-full p-12 transition-all duration-300">

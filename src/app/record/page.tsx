@@ -24,15 +24,21 @@ const ANALYSIS_TIMEOUT_MS = 90000; // 90 seconds
 
 
 export default function RecordPage() {
-  const [showPermissionError, setShowPermissionError] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const router = useRouter();
   const { toast } = useToast();
   
   useEffect(() => {
     setIsClient(true);
+    navigator.permissions.query({ name: 'microphone' as PermissionName }).then((permissionStatus) => {
+        setHasPermission(permissionStatus.state === 'granted');
+        permissionStatus.onchange = () => {
+            setHasPermission(permissionStatus.state === 'granted');
+        };
+    });
   }, []);
 
   // Refs for managing state across async operations
@@ -72,10 +78,12 @@ export default function RecordPage() {
   };
 
   const processAudio = (storagePath: string, recordingId: string): Promise<string | null> => {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         getLocationForAIShot(async (locationData) => {
             if (!currentCreationTime.current || !currentSessionId.current) {
-                return reject(new Error("Missing session or timestamp for analysis."));
+                logErrorToFirestore(new Error("Missing session or timestamp for analysis."), 'internal-state-error', {});
+                resolve(null);
+                return;
             }
             
             const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
@@ -100,26 +108,57 @@ export default function RecordPage() {
                     );
                     resolve(failedRunId);
                 } catch (finalError) {
-                    reject(finalError);
+                    logErrorToFirestore(finalError as Error, 'failed-run-creation-failure', { sessionId: currentSessionId.current });
+                    resolve(null);
                 }
             }
         });
       });
   };
   
-  const handleStart = () => {
-    setShowPermissionError(false);
-    setIsRecording(true);
-    currentSessionId.current = uuidv4();
-    currentCreationTime.current = new Date().toISOString();
-  }
+  const handleStart = async () => {
+    if (hasPermission === false) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setHasPermission(true);
+        stream.getTracks().forEach(track => track.stop());
+        setIsRecording(true);
+      } catch (err) {
+        toast({
+          variant: 'destructive',
+          title: 'Microphone Required',
+          description: 'You must grant microphone access to record audio.',
+        });
+        setIsRecording(false);
+      }
+    } else {
+      setIsRecording(true);
+    }
+  };
+  
+  useEffect(() => {
+    if (isRecording) {
+      currentSessionId.current = uuidv4();
+      currentCreationTime.current = new Date().toISOString();
+    }
+  }, [isRecording]);
   
   const handleStop = () => {
     setIsRecording(false);
-    setIsProcessing(true);
   }
 
-  const handleRecordingComplete = async (audioBlob: Blob) => {
+  const handleRecordingComplete = async (audioBlob: Blob | null) => {
+    setIsProcessing(true);
+    if (!audioBlob) {
+        toast({
+            variant: 'destructive',
+            title: 'Recording Failed',
+            description: 'No audio was recorded. Please check microphone permissions.',
+        });
+        setIsProcessing(false);
+        return;
+    }
+    
     const recordingId = uuidv4();
     let analysisRunId: string | null = null;
 
@@ -152,6 +191,7 @@ export default function RecordPage() {
         }
     } finally {
         setIsProcessing(false);
+        setIsRecording(false);
         if (analysisRunId) {
             router.push(`/record/result/${analysisRunId}`);
         }
@@ -169,22 +209,22 @@ export default function RecordPage() {
               </div>
             ) : (
                 <RecordButton 
-                  onPermissionDenied={() => setShowPermissionError(true)} 
                   onStart={handleStart}
                   onRecordingComplete={handleRecordingComplete}
                   isRecording={isRecording}
+                  hasPermission={hasPermission}
                   onStop={handleStop}
                 />
             )}
 
 
-             {showPermissionError && (
+             {hasPermission === false && !isRecording && (
               <div className="absolute left-full ml-16 w-96">
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle className="text-2xl">Microphone Access Required</AlertTitle>
                   <AlertDescription className="text-base">
-                    This app needs access to your microphone. Please enable permissions in your browser settings and refresh the page.
+                    Click the record button to grant microphone access.
                   </AlertDescription>
                 </Alert>
               </div>
