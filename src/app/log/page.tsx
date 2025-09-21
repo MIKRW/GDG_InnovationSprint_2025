@@ -50,9 +50,9 @@ function BirdResultCard({ seed }: { seed: string }) {
                     />
                 </div>
                 <div className="flex flex-col flex-1">
-                    <CardHeader>
-                        <CardTitle className="text-3xl">Sparrow</CardTitle>
-                        <CardDescription className="text-lg italic">Passer domesticus</CardDescription>
+                    <CardHeader className="text-center">
+                        <CardTitle className="text-3xl font-mono">Sparrow</CardTitle>
+                        <CardDescription className="text-lg italic font-mono">Passer domesticus</CardDescription>
                     </CardHeader>
                     <CardContent className="flex-1">
                         <p className="text-muted-foreground">
