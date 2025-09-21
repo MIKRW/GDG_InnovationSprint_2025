@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, use } from 'react';
 import { notFound, useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -72,7 +72,9 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
 
     useEffect(() => {
         // Initialize Audio object only on the client side
-        audioRef.current = new Audio();
+        if (typeof window !== 'undefined') {
+            audioRef.current = new Audio();
+        }
     }, []);
 
     const handleFeedback = async (wasCorrect: boolean) => {
@@ -110,10 +112,15 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
     }
     
     const handleDownload = () => {
-        toast({
-            title: "Coming Soon!",
-            description: "Downloading results will be available in a future update.",
-        });
+        if (run?.inputAudioUrl) {
+            window.open(run.inputAudioUrl, '_blank');
+        } else {
+            toast({
+                variant: 'destructive',
+                title: "Not Available",
+                description: "The audio URL is not available for download.",
+            });
+        }
     }
 
     const { isBirdSong, commonName, scientificName, description, imagePrompt, error } = run.aiResult;
@@ -194,14 +201,15 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
 export default function ResultPage({ params }: { params: { analysisRunId: string } }) {
     const [run, setRun] = useState<AnalysisRun | null>(null);
     const [loading, setLoading] = useState(true);
-    const [analysisRunId, setAnalysisRunId] = useState<string | null>(null);
     const [isClient, setIsClient] = useState(false);
+    
+    // The `params` object is a Promise. We use `React.use` to unwrap it.
+    const resolvedParams = use(params);
+    const analysisRunId = resolvedParams.analysisRunId;
 
     useEffect(() => {
         setIsClient(true);
-        // Directly using the params prop which is available in 'use client'
-        setAnalysisRunId(params.analysisRunId);
-    }, [params]);
+    }, []);
 
     useEffect(() => {
         if (!analysisRunId) return;
