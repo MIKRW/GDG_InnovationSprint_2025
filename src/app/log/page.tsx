@@ -298,9 +298,3 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
-
-    
-
-    
-
-    
