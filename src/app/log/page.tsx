@@ -266,11 +266,11 @@ export default function BirdBookPage() {
                     </Link>
                 </div>
                 
-                <div className="absolute bottom-32 inset-x-0 flex justify-center">
+                <div className="absolute bottom-24 inset-x-0 flex justify-center">
                     <Button
                         onClick={() => setChatMode(chatMode === 'voice' ? 'text' : 'voice')}
                         className={cn(
-                            "rounded-full px-16 py-8 text-2xl font-semibold transition-colors duration-300",
+                            "rounded-full px-32 py-8 text-2xl font-semibold transition-colors duration-300",
                             chatMode === 'voice'
                                 ? 'bg-ring text-white hover:bg-ring/90'
                                 : 'bg-white text-ring border-2 border-ring'
