@@ -2,7 +2,7 @@
 'use server';
 
 import { revalidateTag } from 'next/cache';
-import { ref as storageRef, getDownloadURL, uploadString } from 'firebase/storage';
+import { ref as storageRef, getDownloadURL, uploadString, getBlob } from 'firebase/storage';
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, orderBy, runTransaction, writeBatch } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
@@ -137,6 +137,26 @@ export async function saveCanonicalImage(
     return downloadURL;
 }
 
+// Helper to convert a Blob to a Base64 Data URI
+async function blobToDataURI(blob: Blob): Promise<string> {
+  const reader = new FileReader();
+  const promise = new Promise<string>((resolve, reject) => {
+    reader.onload = (event) => {
+      if (event.target && typeof event.target.result === 'string') {
+        resolve(event.target.result);
+      } else {
+        reject(new Error("Failed to read blob as Data URI."));
+      }
+    };
+    reader.onerror = (error) => {
+      reject(error);
+    };
+  });
+  reader.readAsDataURL(blob);
+  return promise;
+}
+
+
 export async function createAnalysisRun(
   storagePath: string,
   recordingId: string,
@@ -164,11 +184,17 @@ export async function createAnalysisRun(
   } else {
     try {
         const analysisStartTime = Date.now();
-        // Pass the gs:// URI and contentType directly to the AI flow.
-        const gsPath = `gs://${storage.app.options.storageBucket}/${storagePath}`;
+        
+        // 1. Fetch the audio blob from Firebase Storage.
+        const audioFileRef = storageRef(storage, storagePath);
+        const audioBlob = await getBlob(audioFileRef);
+        
+        // 2. Convert the Blob to a Base64 Data URI.
+        const audioDataUri = await blobToDataURI(audioBlob);
 
+        // 3. Call the AI flow with the Data URI.
         aiResult = await identifyBirdBySound({
-            audio: { url: gsPath, contentType: 'audio/webm' },
+            audio: { url: audioDataUri, contentType: 'audio/webm' },
             creationTime: creationTime,
             ...locationData,
             mode: mode
