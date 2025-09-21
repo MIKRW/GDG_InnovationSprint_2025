@@ -164,7 +164,7 @@ export default function SettingsPage() {
   const toggleAutoPlay = () => {
     const newValue = !isAutoPlayOn;
     setIsAutoPlayOn(newValue);
-    playSfx(newValue ? '/audio/narration-settings-autoplay-on.wav' : '/audio/narration-settings-autoplay-off.wav');
+    playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
     const existingSettings = JSON.parse(localStorage.getItem(SPEAKER_SETTINGS_KEY) || '{}');
     localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify({ ...existingSettings, isAutoPlayOn: newValue }));
   };
@@ -174,7 +174,7 @@ export default function SettingsPage() {
     // but we can play the sound to indicate interaction.
     const newValue = !isNewbieMode;
     // setIsNewbieMode(newValue); // This would enable the toggle
-    playSfx(newValue ? '/audio/narration-settings-appmode-on.wav' : '/audio/narration-settings-appmode-off.wav');
+    playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
     // localStorage.setItem(APP_MODE_KEY, JSON.stringify({ mode: newValue ? 'newbie' : 'twitcher' }));
     toast({
         title: "Coming Soon",
@@ -228,12 +228,39 @@ export default function SettingsPage() {
                                     </CardHeader>
                                     <CardContent className="flex flex-col items-center gap-6">
                                         <div className="flex items-center space-x-2 pointer-events-none">
-                                            <Label htmlFor="autoplay-switch" className="text-lg">Narration</Label>
-                                            <Switch
-                                                id="autoplay-switch"
-                                                checked={isAutoPlayOn}
-                                                className="h-8 w-16 [&>span]:h-6 [&>span]:w-6 [&>span[data-state=checked]]:translate-x-9"
-                                            />
+                                            {/* Custom Large Toggle */}
+                                            <div
+                                            id="autoplay-switch"
+                                            className={cn(
+                                                "relative inline-flex h-24 w-48 shrink-0 cursor-pointer rounded-full border-4 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                                                isAutoPlayOn ? 'bg-primary' : 'bg-input'
+                                            )}
+                                            >
+                                                <span className="sr-only">Use setting</span>
+                                                <span
+                                                    aria-hidden="true"
+                                                    className={cn(
+                                                    'pointer-events-none absolute h-20 w-20 transform rounded-full bg-background shadow-lg ring-0 transition duration-200 ease-in-out',
+                                                    isAutoPlayOn ? 'translate-x-26' : 'translate-x-2'
+                                                    )}
+                                                />
+                                                 <span
+                                                    className={cn(
+                                                        "absolute inset-y-0 left-0 flex items-center justify-center w-1/2 text-2xl font-bold transition-opacity",
+                                                        isAutoPlayOn ? 'opacity-0' : 'opacity-100'
+                                                    )}
+                                                    >
+                                                    OFF
+                                                </span>
+                                                <span
+                                                    className={cn(
+                                                        "absolute inset-y-0 right-0 flex items-center justify-center w-1/2 text-2xl font-bold transition-opacity",
+                                                        isAutoPlayOn ? 'opacity-100' : 'opacity-0'
+                                                    )}
+                                                    >
+                                                    ON
+                                                </span>
+                                            </div>
                                         </div>
                                     </CardContent>
                                 </Card>
