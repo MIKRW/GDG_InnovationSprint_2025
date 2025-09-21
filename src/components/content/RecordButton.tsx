@@ -1,4 +1,3 @@
-
 'use-client';
 
 import { useState, useRef, forwardRef, useEffect, useCallback } from 'react';
@@ -62,12 +61,17 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
   const [elapsedTime, setElapsedTime] = useState(0);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Refs for raw audio capture
   const audioContextRef = useRef<AudioContext | null>(null);
   const scriptProcessorNodeRef = useRef<ScriptProcessorNode | null>(null);
   const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const rawAudioBufferRef = useRef<Float32Array[]>([]);
   
+  // Use a ref for the recording state to be accessed in the audio processor
+  const isRecordingRef = useRef(isRecording);
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
+
   const stopRecordingAndProcess = useCallback(() => {
     if (scriptProcessorNodeRef.current) {
         scriptProcessorNodeRef.current.disconnect();
@@ -93,7 +97,6 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
         return;
     }
 
-    // Concatenate all the raw audio buffers
     const totalSamples = rawAudioBufferRef.current.reduce((acc, buf) => acc + buf.length, 0);
     const concatenatedBuffer = new Float32Array(totalSamples);
     let offset = 0;
@@ -102,9 +105,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
         offset += buffer.length;
     }
 
-    // This assumes the AudioContext was running at 44100Hz, which is standard.
-    // A more advanced implementation might get the actual sampleRate from the context.
-    const sampleRate = 44100;
+    const sampleRate = audioContextRef.current?.sampleRate || 44100;
     const wavBlob = encodeWAV(concatenatedBuffer, sampleRate);
     onRecordingComplete(wavBlob);
 
@@ -114,7 +115,6 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
 
   useEffect(() => {
     if (isRecording) {
-        // Start recording
         const startRawRecording = async () => {
             setElapsedTime(0);
             rawAudioBufferRef.current = [];
@@ -127,14 +127,13 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
                 const source = context.createMediaStreamSource(stream);
                 mediaStreamSourceRef.current = source;
 
-                // Using ScriptProcessorNode for wider compatibility. Buffer size of 4096 is a good balance.
                 const node = context.createScriptProcessor(4096, 1, 1);
                 scriptProcessorNodeRef.current = node;
 
                 node.onaudioprocess = (audioProcessingEvent) => {
-                    if (!isRecording) return;
+                    // Use the ref here instead of the state variable
+                    if (!isRecordingRef.current) return;
                     const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
-                    // We need to copy the data to a new array, otherwise it gets overwritten.
                     rawAudioBufferRef.current.push(new Float32Array(inputData));
                 };
 
@@ -150,17 +149,15 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
         startRawRecording();
 
     } else {
-        // Stop recording
         stopRecordingAndProcess();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRecording]);
 
-  // Cleanup effect
   useEffect(() => {
     return () => {
         if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-        if (audioContextRef.current) stopRecordingAndProcess();
+        stopRecordingAndProcess();
     };
   }, [stopRecordingAndProcess]);
 
@@ -205,7 +202,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
             className="w-full h-full rounded-full flex flex-col justify-center items-center gap-8 transition-all duration-300 ease-in-out hover:bg-transparent disabled:opacity-50"
             aria-label="Record Audio"
             onClick={handleClick}
-            disabled={hasPermission === null} // Only truly disabled while checking permission
+            disabled={hasPermission === null}
         >
             <div className="transition-all duration-300 w-full h-full">
               <div className="w-full h-full p-12 transition-all duration-300">
