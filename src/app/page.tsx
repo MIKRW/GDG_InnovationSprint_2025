@@ -166,7 +166,7 @@ export default function Home() {
             <ContrastButton />
         </div>
         {isProcessing ? (
-          <div className="flex flex-col items-center justify-center gap-0 pb-16">
+          <div className="flex flex-col items-center justify-center gap-0 pb-16 w-[60rem] h-[40rem]">
              <div className="w-[40rem] h-[40rem] p-12">
                 <ColorableLogo className="w-full h-full animate-color-cycle" />
              </div>
@@ -175,7 +175,7 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center gap-0 pb-16 w-[40rem] h-[40rem]">
+          <div className="w-[60rem] h-[40rem] flex items-center justify-center">
             <RecordButton
                 onStartRecording={handleStartRecording}
                 onRecordingComplete={handleRecordingComplete}

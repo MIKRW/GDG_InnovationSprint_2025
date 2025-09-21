@@ -134,7 +134,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
   const { icon, title, subtitle, timer } = getButtonContent();
 
   return (
-      <div className="flex flex-col items-center justify-center gap-0 h-full">
+      <div className="flex flex-col items-center justify-center gap-0 h-full w-full">
         <Button
             ref={ref}
             variant="ghost"
