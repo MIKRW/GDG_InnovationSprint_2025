@@ -66,8 +66,8 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     }, []);
 
     const getAudioDataUri = useCallback(async (source: string): Promise<string> => {
-        // If the source is a path to an MP3 file, return it directly.
-        if (source.endsWith('.mp3')) {
+        // If the source is a path to a WAV file, return it directly.
+        if (source.endsWith('.wav')) {
             // No caching needed for static files, just return the path.
             return source;
         }
@@ -136,8 +136,8 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         const isAutoPlayOn = (autoPlayType === 'general' && settings.isGeneralAutoPlayOn) || (autoPlayType === 'carousel' && settings.isCarouselAutoPlayOn);
         if (isAutoPlayOn && settings.isSpeakerOn && narrationSource && hasInteractedRef.current) {
             // Don't auto-play dynamic TTS-generated content to save costs.
-            // Only auto-play the pre-recorded MP3 files.
-            if (narrationSource.endsWith('.mp3')) {
+            // Only auto-play the pre-recorded WAV files.
+            if (narrationSource.endsWith('.wav')) {
                 playAudio(narrationSource);
             }
         }

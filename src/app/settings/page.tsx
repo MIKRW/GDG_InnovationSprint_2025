@@ -68,12 +68,12 @@ CarouselNext.displayName = "CarouselNext"
 
 
 const NARRATION_TEXTS = [
-    "/audio/narration-settings-intro.mp3",
-    "/audio/narration-settings-narration.mp3",
-    "/audio/narration-settings-theme.mp3",
-    "/audio/narration-settings-location.mp3",
-    "/audio/narration-settings-mode.mp3",
-    "/audio/narration-settings-hardware.mp3",
+    "/audio/narration-settings-intro.wav",
+    "/audio/narration-settings-narration.wav",
+    "/audio/narration-settings-theme.wav",
+    "/audio/narration-settings-location.wav",
+    "/audio/narration-settings-mode.wav",
+    "/audio/narration-settings-hardware.wav",
 ];
 
 
@@ -339,4 +339,3 @@ export default function SettingsPage() {
     </AppLayout>
   );
 }
-
