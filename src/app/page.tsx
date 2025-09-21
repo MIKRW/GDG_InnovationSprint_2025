@@ -36,7 +36,8 @@ export default function Home() {
   const router = useRouter();
   const { toast } = useToast();
   const { playNarration, ...speakerProps } = useSpeaker(PAGE_NARRATION);
-
+  const currentSessionId = useRef<string | null>(null);
+  const currentCreationTime = useRef<string | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -59,14 +60,9 @@ export default function Home() {
     });
   }, []);
 
-  currentSessionId.current = uuidv4();
-  currentCreationTime.current = new Date().toISOString();
-
   const handleStop = () => {
     setIsRecording(false);
   };
-  const currentSessionId = useRef<string | null>(null);
-  const currentCreationTime = useRef<string | null>(null);
 
   const getLocationForAIShot = (
     callback: (locationData?: { latitude?: number; longitude?: number, locationDescription?: string }) => void
@@ -140,6 +136,8 @@ export default function Home() {
   };
 
  const handleStart = async () => {
+    currentSessionId.current = uuidv4();
+    currentCreationTime.current = new Date().toISOString();
     if (hasPermission === false) {
       try {
         // Request permission
