@@ -69,7 +69,7 @@ CarouselNext.displayName = "CarouselNext"
 
 const NARRATION_TEXTS = [
     "/audio/narration/settings-intro.mp3",
-    "/audio/narration/settings-auto-play.mp3",
+    "/audio/narration/settings-autoplay.mp3",
     "/audio/narration/settings-theme.mp3",
     "/audio/narration/settings-location.mp3",
     "/audio/narration/settings-app-mode.mp3",

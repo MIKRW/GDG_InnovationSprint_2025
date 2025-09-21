@@ -22,25 +22,24 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const hasInteractedRef = useRef(false);
     const lastPlayedSourceRef = useRef<string | null>(null);
     const lastDataUriRef = useRef<string | null>(null);
+    const hasInteractedRef = useRef(false);
 
     const isLocalFile = (source: string) => source.startsWith('/audio/');
 
     // Initialize audio element and load settings from localStorage
     useEffect(() => {
         hasInteractedRef.current = !!sessionStorage.getItem(FIRST_INTERACTION_KEY);
-        
         const audioEl = new Audio();
         audioRef.current = audioEl;
-        
+
         const handlePlay = () => setIsPlaying(true);
         const handleEnd = () => {
             setIsPlaying(false);
             if (audioRef.current) audioRef.current.currentTime = 0;
         };
-
+        
         audioEl.addEventListener('play', handlePlay);
         audioEl.addEventListener('ended', handleEnd);
         audioEl.addEventListener('pause', handleEnd);
@@ -68,89 +67,81 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         };
     }, []);
 
-    // Effect for handling auto-play logic
-    useEffect(() => {
-        const isAutoPlayOn = (autoPlayType === 'general' && settings.isGeneralAutoPlayOn) || (autoPlayType === 'carousel' && settings.isCarouselAutoPlayOn);
-
-        if (isAutoPlayOn && settings.isSpeakerOn && narrationSource && hasInteractedRef.current) {
-            const audio = audioRef.current;
-            if (audio) {
-                // If the source is different, load and play it
-                if (lastPlayedSourceRef.current !== narrationSource) {
-                     loadAndPlayAudio(narrationSource);
-                }
-            }
+    const getAudioDataUri = useCallback(async (source: string): Promise<string> => {
+        if (isLocalFile(source)) {
+            // Construct the full URL for local files
+            return new URL(source, window.location.origin).toString();
         }
-    }, [narrationSource, settings.isGeneralAutoPlayOn, settings.isCarouselAutoPlayOn, settings.isSpeakerOn, autoPlayType]);
+        
+        // If it's AI text, check cache first
+        if (lastPlayedSourceRef.current === source && lastDataUriRef.current) {
+            return lastDataUriRef.current;
+        }
 
-
-    const loadAndPlayAudio = useCallback(async (sourceToPlay: string) => {
-        const audio = audioRef.current;
-        if (!audio) return;
-
+        // Fetch new TTS audio from AI
         setIsLoading(true);
-
         try {
-            if (isLocalFile(sourceToPlay)) {
-                audio.src = sourceToPlay;
-            } else {
-                // If it's the same AI text, use the cached data URI
-                if (lastPlayedSourceRef.current === sourceToPlay && lastDataUriRef.current) {
-                    audio.src = lastDataUriRef.current;
-                } else {
-                    // Otherwise, fetch new TTS audio
-                    const response = await textToSpeech(sourceToPlay);
-                    if (!response.audioDataUri) {
-                        console.warn('TTS returned empty audio data.');
-                        setIsLoading(false);
-                        return;
-                    }
-                    lastDataUriRef.current = response.audioDataUri;
-                    audio.src = response.audioDataUri;
-                }
+            const response = await textToSpeech(source);
+            if (!response.audioDataUri) {
+                throw new Error('TTS returned empty audio data.');
             }
-            
-            lastPlayedSourceRef.current = sourceToPlay;
-            await audio.play();
-
-        } catch (error) {
-            console.error("Failed to load or play audio:", error);
-            setIsPlaying(false);
+            lastDataUriRef.current = response.audioDataUri;
+            lastPlayedSourceRef.current = source;
+            return response.audioDataUri;
         } finally {
             setIsLoading(false);
         }
     }, []);
 
+    const playAudio = useCallback(async (source: string) => {
+        const audio = audioRef.current;
+        if (!audio) return;
+        
+        try {
+            const dataUri = await getAudioDataUri(source);
+            audio.src = dataUri;
+            await audio.play();
+        } catch (error) {
+            console.error("Failed to load or play audio:", error);
+            setIsPlaying(false);
+            setIsLoading(false);
+        }
+    }, [getAudioDataUri]);
 
     const playNarration = useCallback(async (sourceToPlayOverride?: string) => {
         const targetSource = sourceToPlayOverride || narrationSource;
         const audio = audioRef.current;
         if (!audio || !targetSource) return;
 
-        // Handle first interaction
+        // Ensure first interaction has happened for autoplay browsers
         if (!hasInteractedRef.current) {
             hasInteractedRef.current = true;
             sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
         }
-
-        // If speaker is off, turn it on and play
-        if (!settings.isSpeakerOn) {
-            setSettings(prev => {
-                const newSettings = { ...prev, isSpeakerOn: true };
-                localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
-                return newSettings;
-            });
-            loadAndPlayAudio(targetSource);
-            return;
-        }
-
-        // If speaker is on, toggle play/pause
-        if (isPlaying && lastPlayedSourceRef.current === targetSource) {
+        
+        if (isPlaying && audio.src.includes(targetSource.split('/').pop() || '')) {
             audio.pause();
         } else {
-            loadAndPlayAudio(targetSource);
+            if (!settings.isSpeakerOn) {
+                setSettings(prev => {
+                    const newSettings = { ...prev, isSpeakerOn: true };
+                    localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
+                    return newSettings;
+                });
+            }
+            playAudio(targetSource);
         }
-    }, [narrationSource, settings.isSpeakerOn, isPlaying, loadAndPlayAudio]);
+    }, [narrationSource, isPlaying, settings.isSpeakerOn, playAudio]);
+
+    // Effect for handling auto-play logic
+    useEffect(() => {
+        const isAutoPlayOn = (autoPlayType === 'general' && settings.isGeneralAutoPlayOn) || (autoPlayType === 'carousel' && settings.isCarouselAutoPlayOn);
+        if (isAutoPlayOn && settings.isSpeakerOn && narrationSource && hasInteractedRef.current) {
+            playAudio(narrationSource);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [narrationSource, settings.isGeneralAutoPlayOn, settings.isCarouselAutoPlayOn, settings.isSpeakerOn, autoPlayType]);
+
 
     const toggleGeneralAutoPlay = useCallback(() => {
         setSettings(prev => {
