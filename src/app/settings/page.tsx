@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useRef, useCallback, useSyncExternalStore } from 'react';
@@ -163,7 +164,7 @@ export default function SettingsPage() {
   const toggleAutoPlay = () => {
     const newValue = !isAutoPlayOn;
     // This now updates the global store immediately.
-    setGlobalSpeakerSettings({ isAutoPlayOn: newValue });
+    setSpeakerSettings({ isAutoPlayOn: newValue });
     playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
   };
 
