@@ -2,7 +2,6 @@
 'use client';
 
 import { AppLayout } from '@/components/layout/AppLayout';
-import { PrimaryHeader } from '@/components/layout/PrimaryHeader';
 import { RecordButton } from '@/components/content/RecordButton';
 import { useState, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
@@ -158,7 +157,7 @@ export default function Home() {
 
 
   return (
-    <AppLayout header={<PrimaryHeader />}>
+    <AppLayout>
       <main className="flex flex-1 flex-col items-center justify-center bg-muted p-4 relative">
         <div className="absolute top-4 left-4 opacity-50">
             <SpeakerButton />
