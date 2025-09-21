@@ -23,7 +23,7 @@ function AiAssistantCard() {
     }
 
     return (
-        <div className="bg-secondary rounded-lg shadow-lg p-4 h-full">
+        <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
             <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
                 <CardHeader className="text-center">
                     <CardTitle className="text-3xl">Bird Book Assistant</CardTitle>
@@ -49,7 +49,7 @@ function AiAssistantCard() {
 
 function BirdResultCard({ seed }: { seed: string }) {
     return (
-        <div className="bg-secondary rounded-lg shadow-lg p-4 h-full">
+        <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
             <Card className="w-full h-full shadow-2xl rounded-lg">
                 <div className="relative w-full h-64">
                     <Image
