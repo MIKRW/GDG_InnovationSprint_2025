@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { textToSpeech } from '@/ai/flows/tts-flow';
+import { useToast } from './use-toast';
 
 const SPEAKER_SETTINGS_KEY = 'speaker-settings';
 const FIRST_INTERACTION_KEY = 'user-has-interacted';
@@ -14,6 +15,7 @@ interface SpeakerSettings {
 }
 
 export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'carousel' = 'general') {
+    const { toast } = useToast();
     const [settings, setSettings] = useState<SpeakerSettings>({
         isSpeakerOn: true,
         isGeneralAutoPlayOn: false,
@@ -26,7 +28,6 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     const lastDataUriRef = useRef<string | null>(null);
     const hasInteractedRef = useRef(false);
 
-    // Initialize audio element and load settings from localStorage
     useEffect(() => {
         hasInteractedRef.current = !!sessionStorage.getItem(FIRST_INTERACTION_KEY);
         const audioEl = new Audio();
@@ -68,26 +69,14 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     const getAudioDataUri = useCallback(async (source: string): Promise<string | null> => {
         setIsLoading(true);
         try {
-            // If the source is a direct path to a pre-generated file, use it.
             if (source.endsWith('.wav')) {
                 return source;
             }
-    
-            // If the source is dynamic text that we've already generated and cached, use the cached version.
             if (lastPlayedSourceRef.current === source && lastDataUriRef.current) {
                 return lastDataUriRef.current;
             }
     
-            // Otherwise, call the AI to generate the audio.
             const response = await textToSpeech(source);
-
-            // If the AI returns empty audio (e.g., due to quota), warn and abort.
-            if (!response.audioDataUri) {
-                console.warn('TTS returned empty audio data, likely due to a quota limit. Aborting playback.');
-                return null;
-            }
-
-            // Cache the newly generated audio URI.
             lastDataUriRef.current = response.audioDataUri;
             lastPlayedSourceRef.current = source;
             return response.audioDataUri;
@@ -100,7 +89,6 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         const audio = audioRef.current;
         if (!audio) return;
 
-        // Always stop any currently playing audio before starting a new one.
         if (!audio.paused) {
             audio.pause();
             audio.currentTime = 0;
@@ -108,49 +96,54 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         
         try {
             const dataUri = await getAudioDataUri(source);
-            // Check if we received a valid URI before attempting to play.
             if (dataUri) {
                 audio.src = dataUri;
                 await audio.play();
             }
         } catch (error: any) {
-            // Specifically catch the AbortError which is normal when playback is interrupted.
             if (error.name === 'AbortError') {
-                console.log('Audio playback was interrupted by a new request. This is normal.');
                 return;
             }
-            // Log other, unexpected errors.
-            console.error("Failed to load or play audio:", error);
+             if (error.message === 'TTS_QUOTA_EXCEEDED') {
+                toast({
+                    variant: 'destructive',
+                    title: 'TTS Narration Unavailable',
+                    description: 'The AI audio generation service is temporarily unavailable due to quota limits.',
+                });
+            } else {
+                console.error("Failed to load or play audio:", error);
+            }
             setIsPlaying(false);
             setIsLoading(false);
         }
-    }, [getAudioDataUri]);
+    }, [getAudioDataUri, toast]);
 
     const playNarration = useCallback(async (sourceToPlayOverride?: string) => {
         const targetSource = sourceToPlayOverride || narrationSource;
         const audio = audioRef.current;
         if (!audio || !targetSource) return;
 
-        // The first user interaction on a page is required by browsers to play audio.
         if (!hasInteractedRef.current) {
             hasInteractedRef.current = true;
             sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
         }
         
-        // If the speaker is off, turn it on first.
-        if (!settings.isSpeakerOn) {
-            setSettings(prev => {
-                const newSettings = { ...prev, isSpeakerOn: true };
-                localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
-                return newSettings;
-            });
+        if (isPlaying && audio.src.includes(lastDataUriRef.current || '')) {
+             audio.pause();
+             audio.currentTime = 0;
+             setIsPlaying(false);
+        } else {
+            if (!settings.isSpeakerOn) {
+                setSettings(prev => {
+                    const newSettings = { ...prev, isSpeakerOn: true };
+                    localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
+                    return newSettings;
+                });
+            }
+            playAudio(targetSource);
         }
-        // Proceed to play the audio. The playAudio function will handle stopping any current playback.
-        playAudio(targetSource);
+    }, [narrationSource, isPlaying, settings.isSpeakerOn, playAudio]);
 
-    }, [narrationSource, settings.isSpeakerOn, playAudio]);
-
-    // Effect for handling auto-play logic
     useEffect(() => {
         const isAutoPlayOn = (autoPlayType === 'general' && settings.isGeneralAutoPlayOn) || (autoPlayType === 'carousel' && settings.isCarouselAutoPlayOn);
         if (isAutoPlayOn && settings.isSpeakerOn && narrationSource && hasInteractedRef.current) {

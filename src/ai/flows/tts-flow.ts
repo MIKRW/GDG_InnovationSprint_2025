@@ -61,13 +61,13 @@ const textToSpeechFlow = ai.defineFlow(
             audioDataUri: 'data:audio/wav;base64,' + wavBase64,
         };
     } catch (error) {
-        // Gracefully handle the quota error without crashing the app.
-        if (error instanceof Error && (error.message.includes('429') || error.message.includes('RESOURCE_EXHAUSTED'))) {
+        // Gracefully handle the quota error by throwing a specific, catchable error.
+        if (error instanceof Error && (error.message.includes('429') || error.message.includes('RESOURCE_EXHAUSTED') || error.message.includes('quota'))) {
             console.warn(
-                `TTS feature is disabled due to a quota error (429 RESOURCE_EXHAUSTED). This usually means the 'Generative Language API' has a very low per-minute or per-day limit in your Google Cloud project. The app will continue to function without audio narration.`
+                `TTS feature has been blocked by a quota limit (e.g., 429 RESOURCE_EXHAUSTED).`
             );
-            // Return an empty audio response to prevent a crash.
-            return { audioDataUri: '' };
+            // Throw a specific error that the client-side can catch and handle.
+            throw new Error('TTS_QUOTA_EXCEEDED');
         }
         // Re-throw any other unexpected errors.
         throw error;
