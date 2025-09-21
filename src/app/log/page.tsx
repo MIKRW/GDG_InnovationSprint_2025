@@ -67,12 +67,9 @@ function BirdResultCard({ seed, onStartChat }: { seed: string, onStartChat: () =
                             A small, common bird found in most parts of the world. Sparrows are known for their cheerful chirping and social nature.
                         </p>
                     </CardContent>
-                    <CardFooter className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={onStartChat}>
-                            <Bot className="h-6 w-6" />
-                        </Button>
-                        <Button variant="ghost" size="icon">
-                            <Mic className="h-6 w-6" />
+                    <CardFooter className="flex justify-center">
+                        <Button variant="ghost" size="icon" onClick={onStartChat} className="h-20 w-20">
+                            <Bot className="h-12 w-12" />
                         </Button>
                     </CardFooter>
                 </div>
