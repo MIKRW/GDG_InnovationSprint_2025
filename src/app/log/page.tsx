@@ -23,50 +23,54 @@ function AiAssistantCard() {
     }
 
     return (
-         <Card className="w-full h-[60rem] shadow-2xl flex flex-col">
-            <CardHeader className="text-center">
-                <CardTitle className="text-3xl">Bird Book Assistant</CardTitle>
-                <CardDescription className="text-lg italic">Your personal ornithologist</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col items-center justify-center gap-4">
-                 <div className="w-48 h-48">
-                    <RecordButton
-                        onStartRecording={() => setIsRecording(true)}
-                        onRecordingComplete={handleRecordingComplete}
-                        onStopRecording={() => setIsRecording(false)}
-                        isRecording={isRecording}
-                    />
-                 </div>
-                <p className="text-muted-foreground text-center max-w-xs">
-                    Press the button and ask me to find a bird by name, filter by date, or show you only your best recordings.
-                </p>
-            </CardContent>
-        </Card>
+        <div className="bg-card-header rounded-lg shadow-lg p-2 h-full">
+            <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
+                <CardHeader className="text-center">
+                    <CardTitle className="text-3xl">Bird Book Assistant</CardTitle>
+                    <CardDescription className="text-lg italic">Your personal ornithologist</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col items-center justify-center gap-4">
+                     <div className="w-48 h-48">
+                        <RecordButton
+                            onStartRecording={() => setIsRecording(true)}
+                            onRecordingComplete={handleRecordingComplete}
+                            onStopRecording={() => setIsRecording(false)}
+                            isRecording={isRecording}
+                        />
+                     </div>
+                    <p className="text-muted-foreground text-center max-w-xs">
+                        Press the button and ask me to find a bird by name, filter by date, or show you only your best recordings.
+                    </p>
+                </CardContent>
+            </Card>
+        </div>
     )
 }
 
 function BirdResultCard({ seed }: { seed: string }) {
     return (
-        <Card className="w-full h-[60rem] shadow-2xl">
-            <div className="relative w-full h-64">
-                <Image
-                    src={`https://picsum.photos/seed/${seed}/600/400`}
-                    alt="A picture of a bird"
-                    fill
-                    className="object-cover rounded-t-lg"
-                    data-ai-hint="bird nature"
-                />
-            </div>
-            <CardHeader>
-                <CardTitle className="text-3xl">Sparrow</CardTitle>
-                <CardDescription className="text-lg italic">Passer domesticus</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <p className="text-muted-foreground">
-                    A small, common bird found in most parts of the world. Sparrows are known for their cheerful chirping and social nature.
-                </p>
-            </CardContent>
-        </Card>
+        <div className="bg-card-header rounded-lg shadow-lg p-2 h-full">
+            <Card className="w-full h-full shadow-2xl rounded-lg">
+                <div className="relative w-full h-64">
+                    <Image
+                        src={`https://picsum.photos/seed/${seed}/600/400`}
+                        alt="A picture of a bird"
+                        fill
+                        className="object-cover rounded-t-lg"
+                        data-ai-hint="bird nature"
+                    />
+                </div>
+                <CardHeader>
+                    <CardTitle className="text-3xl">Sparrow</CardTitle>
+                    <CardDescription className="text-lg italic">Passer domesticus</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground">
+                        A small, common bird found in most parts of the world. Sparrows are known for their cheerful chirping and social nature.
+                    </p>
+                </CardContent>
+            </Card>
+        </div>
     );
 }
 
@@ -84,22 +88,22 @@ export default function BirdBookPage() {
                 <Carousel className="w-full max-w-3xl" opts={{ loop: true }}>
                     <CarouselContent>
                         <CarouselItem>
-                            <div className="p-1">
+                            <div className="p-1 h-[60rem]">
                                 <AiAssistantCard />
                             </div>
                         </CarouselItem>
                         <CarouselItem>
-                            <div className="p-1">
+                            <div className="p-1 h-[60rem]">
                                <BirdResultCard seed="bird1" />
                             </div>
                         </CarouselItem>
                         <CarouselItem>
-                            <div className="p-1">
+                            <div className="p-1 h-[60rem]">
                                 <BirdResultCard seed="bird2" />
                             </div>
                         </CarouselItem>
                         <CarouselItem>
-                            <div className="p-1">
+                            <div className="p-1 h-[60rem]">
                                <BirdResultCard seed="bird3" />
                             </div>
                         </CarouselItem>
@@ -109,9 +113,9 @@ export default function BirdBookPage() {
                 </Carousel>
 
                 <div className="absolute bottom-4 left-4 opacity-50">
-                    <Link href="/">
+                    <Link href="/log">
                         <Button variant="ghost" size="icon" className="h-40 w-40">
-                            <Home className="h-32 w-32 text-foreground" />
+                            <BookImage className="h-32 w-32 text-foreground" />
                         </Button>
                     </Link>
                 </div>
