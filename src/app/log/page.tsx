@@ -38,8 +38,8 @@ function AiAssistantCard() {
 
 function BirdResultCard({ seed }: { seed: string }) {
     return (
-        <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
-            <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
+        <div className="h-full">
+            <Card className="w-full h-full p-6 shadow-2xl flex flex-col rounded-lg bg-ring">
                 <div className="relative w-full flex-1 pt-4">
                     <Image
                         src={`https://picsum.photos/seed/${seed}/600/400`}
