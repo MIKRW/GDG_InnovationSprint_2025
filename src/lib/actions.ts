@@ -5,13 +5,13 @@ import { revalidateTag } from 'next/cache';
 import { ref as storageRef, getDownloadURL, uploadString } from 'firebase/storage';
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, orderBy, runTransaction, writeBatch } from 'firebase/firestore';
 import { db, storage } from './firebase';
+import { adminStorage } from './firebase-admin';
 import { v4 as uuidv4 } from 'uuid';
 import type { TestAudioMetadata, PromptSystem, PromptVersion, AppAIVersion, AppAIConfig, PromptContent, AnalysisRun, AppMode, IdentifyBirdOutput } from './types';
 import { kebabCase } from 'lodash';
 import { cache } from 'react';
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
 import { logErrorToFirestore } from './error-logging';
-import { getStorage as getAdminStorage } from 'firebase-admin/storage';
 
 
 interface UploadMasterAudioInput {
@@ -167,18 +167,14 @@ export async function createAnalysisRun(
     try {
         const analysisStartTime = Date.now();
         
-        // 1. Get a reference to the storage bucket using the Admin SDK
-        const adminStorage = getAdminStorage().bucket(storage.bucket);
-        const file = adminStorage.file(storagePath);
+        const bucket = adminStorage.bucket(firebaseConfig.storageBucket);
+        const file = bucket.file(storagePath);
         
-        // 2. Download the file contents into a server-side Buffer
         const [audioBuffer] = await file.download();
         
-        // 3. Convert the Buffer to a Base64 Data URI
         const base64String = audioBuffer.toString('base64');
         const audioDataUri = `data:audio/webm;base64,${base64String}`;
 
-        // 4. Call the AI flow with the Data URI.
         aiResult = await identifyBirdBySound({
             audio: { url: audioDataUri, contentType: 'audio/webm' },
             creationTime: creationTime,
@@ -217,7 +213,6 @@ export async function createAnalysisRun(
     analysisTimings: analysisTimings,
   };
   
-  // Try to get download URL, but don't fail the whole operation if it's not available
   try {
     docToCreate.inputAudioUrl = await getDownloadURL(storageRef(storage, storagePath));
   } catch (urlError) {

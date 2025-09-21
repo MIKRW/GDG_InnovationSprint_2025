@@ -199,23 +199,9 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
 
     useEffect(() => {
         setIsClient(true);
-    }, []);
-
-    useEffect(() => {
-        if (!isClient) return;
-
-        const unwrapParams = async () => {
-            try {
-                // This correctly awaits the Promise-like params object
-                const resolvedParams = await params;
-                setAnalysisRunId(resolvedParams.analysisRunId);
-            } catch (e) {
-                console.error("Failed to resolve params", e);
-                setLoading(false);
-            }
-        };
-        unwrapParams();
-    }, [params, isClient]);
+        // Directly using the params prop which is available in 'use client'
+        setAnalysisRunId(params.analysisRunId);
+    }, [params]);
 
     useEffect(() => {
         if (!analysisRunId) return;
@@ -289,5 +275,3 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
         </AppLayout>
     );
 }
-
-    

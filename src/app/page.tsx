@@ -17,9 +17,8 @@ import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
 import { useToast } from '@/hooks/use-toast';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import { app } from '@/lib/firebase';
+import { app, auth, storage } from '@/lib/firebase';
 import { uploadBytes, ref as storageRef } from 'firebase/storage';
-import { storage } from '@/lib/firebase';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
@@ -46,7 +45,6 @@ export default function Home() {
         };
     });
 
-    const auth = getAuth(app);
     onAuthStateChanged(auth, (user) => {
       if (!user) {
         signInAnonymously(auth).catch((error) => {
