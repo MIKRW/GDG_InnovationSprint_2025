@@ -67,14 +67,14 @@ const CarouselNext = React.forwardRef<
 CarouselNext.displayName = "CarouselNext"
 
 
-const NARRATION_TEXTS = [
-    "/audio/narration-settings-intro.wav",
-    "/audio/narration-settings-narration.wav",
-    "/audio/narration-settings-theme.wav",
-    "/audio/narration-settings-location.wav",
-    "/audio/narration-settings-mode.wav",
-    "/audio/narration-settings-hardware.wav",
-];
+const NARRATION_TEXTS: { [key: number]: string } = {
+    0: "/audio/narration-settings-intro.wav",
+    1: "/audio/narration-settings-narration.wav",
+    2: "/audio/narration-settings-theme.wav",
+    3: "/audio/narration-settings-location.wav",
+    4: "/audio/narration-settings-mode.wav",
+    5: "/audio/narration-settings-hardware.wav",
+};
 
 
 export default function SettingsPage() {
@@ -339,3 +339,4 @@ export default function SettingsPage() {
     </AppLayout>
   );
 }
+
