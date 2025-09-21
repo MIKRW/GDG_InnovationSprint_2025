@@ -42,7 +42,6 @@ function AiAssistantCard({
     const [input, setInput] = useState('');
 
     const handleToggleChat = () => {
-        // If chat is inactive, start it. If it's active, this button deactivates it.
         if (!isChatActive) {
             onStartChat();
         }
@@ -52,20 +51,19 @@ function AiAssistantCard({
     const handleSend = () => {
         if (input.trim()) {
             setMessages(prev => [...prev, { sender: 'user', text: input }]);
-            // Here you would call the AI and get a response
             setInput('');
         }
     };
 
     return (
-        <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
+        <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
             <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
                 <CardContent className="flex-1 flex flex-col items-center justify-center gap-4 p-2">
                      {chatMode === 'voice' || !isChatActive ? (
                         <>
                             <div className="w-48 h-48">
-                                <Button variant="ghost" className={cn("w-full h-full rounded-full hover:bg-background", isChatActive && "animate-pulse bg-background")} onClick={handleToggleChat}>
-                                    <Bot className="h-48 w-48 text-foreground" />
+                                <Button variant="ghost" className="w-full h-full rounded-full hover:bg-background" onClick={handleToggleChat}>
+                                    <Bot className={cn("h-48 w-48 text-foreground", isChatActive && "animate-color-cycle")} />
                                 </Button>
                             </div>
                             <div className="text-center">
@@ -102,7 +100,7 @@ function AiAssistantCard({
                     )}
                 </CardContent>
             </Card>
-             <div className="absolute bottom-12 inset-x-0 flex justify-center">
+             <div className="flex justify-center mt-4">
                 <Button
                     onClick={() => setChatMode(chatMode === 'voice' ? 'text' : 'voice')}
                     variant={chatMode === 'text' ? 'secondary' : 'default'}
