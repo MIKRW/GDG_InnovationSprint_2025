@@ -251,7 +251,7 @@ export default function Home() {
         {isUploading ? (
           <div className="flex flex-col items-center justify-center gap-0 pb-16 w-[60rem] h-[40rem]">
              <div className="w-[40rem] h-[40rem] p-12">
-                <UploadCloud className="w-full h-full text-foreground/50" />
+                <ColorableLogo className="w-full h-full text-foreground/50" />
              </div>
             <div className="pl-4">
                 <p className="text-8xl font-mono font-bold text-foreground text-center -mt-16">Uploading...</p>
@@ -299,5 +299,3 @@ export default function Home() {
     </AppLayout>
   );
 }
-
-    
