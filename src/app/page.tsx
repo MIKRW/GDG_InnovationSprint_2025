@@ -1,4 +1,3 @@
-
 'use client';
 
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -184,10 +183,8 @@ export default function Home() {
       const audioStoragePath = `recordings/${recordingId}.webm`;
       const fileRef = storageRef(storage, audioStoragePath);
       
-      // Ensure the upload completes before proceeding
       await uploadBytes(fileRef, audioBlob);
       
-      // Upload is done, now set analyzing state
       setIsUploading(false);
       setIsAnalyzing(true);
       

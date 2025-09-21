@@ -148,17 +148,18 @@ export default function RecordPage() {
   }
 
   const handleRecordingComplete = async (audioBlob: Blob | null) => {
-    setIsProcessing(true);
+    setIsRecording(false);
+    
     if (!audioBlob) {
         toast({
             variant: 'destructive',
             title: 'Recording Failed',
             description: 'No audio was recorded. Please check microphone permissions.',
         });
-        setIsProcessing(false);
         return;
     }
     
+    setIsProcessing(true);
     const recordingId = uuidv4();
     let analysisRunId: string | null = null;
 
@@ -191,7 +192,6 @@ export default function RecordPage() {
         }
     } finally {
         setIsProcessing(false);
-        setIsRecording(false);
         if (analysisRunId) {
             router.push(`/record/result/${analysisRunId}`);
         }
