@@ -1,11 +1,16 @@
-
 rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow authenticated users (including anonymous) to read and write
-    // to the recordings folder.
+    // Allow public read and write access only to the recordings folder.
+    // This is necessary for the server-side action to upload the anonymous audio files.
     match /recordings/{allPaths=**} {
+      allow read, write: if true;
+    }
+
+    // For all other paths, default to private access.
+    // This is a secure default.
+    match /{path=**} {
       allow read, write: if request.auth != null;
     }
   }
