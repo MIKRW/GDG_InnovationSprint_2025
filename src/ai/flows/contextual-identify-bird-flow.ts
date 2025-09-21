@@ -15,7 +15,7 @@ import { BIRD_ID_PROMPT } from '@/ai/prompts/bird-identifier-prompt';
 
 
 const IdentifyBirdInputSchema = z.object({
-  audioDataUri: z.string().describe("A recording of a bird song, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."),
+  audioDataUri: z.string().describe("A recording of a bird song, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:audio/wav;base64,<encoded_data>'."),
   creationTime: z.string().describe('The UTC timestamp of when the recording was made, in ISO 8601 format.'),
   latitude: z.number().optional().describe('The latitude of where the recording was made.'),
   longitude: z.number().optional().describe('The longitude of where the recording was made.'),
@@ -160,4 +160,3 @@ const identifyBirdFlow = ai.defineFlow(
     }
   }
 );
-

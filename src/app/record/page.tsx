@@ -164,7 +164,7 @@ export default function RecordPage() {
     let analysisRunId: string | null = null;
 
     try {
-        const audioStoragePath = `recordings/${recordingId}.webm`;
+        const audioStoragePath = `recordings/${recordingId}.wav`;
         const fileRef = storageRef(storage, audioStoragePath);
         await uploadBytes(fileRef, audioBlob);
         

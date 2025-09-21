@@ -1,12 +1,11 @@
 
 'use-client';
 
-import { useState, useRef, forwardRef, useEffect } from 'react';
+import { useState, useRef, forwardRef, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { MicOff } from 'lucide-react';
 import { ColorableLogo } from './ColorableLogo';
-import WavDecoder from 'wav-decoder';
 
 interface RecordButtonProps {
     onStart?: () => void;
@@ -16,7 +15,7 @@ interface RecordButtonProps {
     hasPermission: boolean | null;
 }
 
-// Helper function to encode audio buffer to WAV
+// Helper function to encode raw PCM audio data into a WAV blob
 const encodeWAV = (samples: Float32Array, sampleRate: number): Blob => {
     const buffer = new ArrayBuffer(44 + samples.length * 2);
     const view = new DataView(buffer);
@@ -39,12 +38,12 @@ const encodeWAV = (samples: Float32Array, sampleRate: number): Blob => {
     writeString(view, 8, 'WAVE');
     writeString(view, 12, 'fmt ');
     view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
+    view.setUint16(20, 1, true); // PCM
     view.setUint16(22, 1, true); // Mono
     view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 2, true);
-    view.setUint16(32, 2, true);
-    view.setUint16(34, 16, true);
+    view.setUint32(28, sampleRate * 2, true); // sampleRate * numChannels * bitsPerSample/8
+    view.setUint16(32, 2, true); // numChannels * bitsPerSample/8
+    view.setUint16(34, 16, true); // 16 bits per sample
     writeString(view, 36, 'data');
     view.setUint32(40, samples.length * 2, true);
     floatTo16BitPCM(view, 44, samples);
@@ -61,89 +60,109 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
     hasPermission,
 }, ref) => {
   const [elapsedTime, setElapsedTime] = useState(0);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Refs for raw audio capture
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const scriptProcessorNodeRef = useRef<ScriptProcessorNode | null>(null);
+  const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const rawAudioBufferRef = useRef<Float32Array[]>([]);
   
-  useEffect(() => {
-    const startInternalRecording = async () => {
-        setElapsedTime(0);
-
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-            audioChunksRef.current = [];
-
-            mediaRecorderRef.current.addEventListener('dataavailable', (event: BlobEvent) => {
-                if (event.data.size > 0) {
-                    audioChunksRef.current.push(event.data);
-                }
-            });
-
-            mediaRecorderRef.current.addEventListener('stop', async () => {
-                const audioBlobWebM = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-
-                if (audioBlobWebM.size === 0) {
-                    onRecordingComplete(null);
-                    return;
-                }
-
-                try {
-                    // Convert WebM to WAV
-                    const arrayBuffer = await audioBlobWebM.arrayBuffer();
-                    const audioContext = new AudioContext();
-                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-                    const wavBlob = encodeWAV(audioBuffer.getChannelData(0), audioBuffer.sampleRate);
-                    onRecordingComplete(wavBlob);
-                } catch (conversionError) {
-                    console.error('Error converting audio to WAV:', conversionError);
-                    onRecordingComplete(null); // Pass null if conversion fails
-                }
-
-                if (timerIntervalRef.current) {
-                    clearInterval(timerIntervalRef.current);
-                }
-                if (mediaRecorderRef.current) {
-                    mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-                }
-            });
-
-            mediaRecorderRef.current.start();
-            timerIntervalRef.current = setInterval(() => setElapsedTime(prev => prev + 1), 1000);
-
-        } catch (err) {
-            console.error('Error starting recording in component:', err);
-            onRecordingComplete(null);
-        }
-    };
-    
-    const stopInternalRecording = () => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-            mediaRecorderRef.current.stop();
-        }
-        if (timerIntervalRef.current) {
-            clearInterval(timerIntervalRef.current);
-        }
-        setElapsedTime(0);
-    };
-
-    if (isRecording) {
-        startInternalRecording();
-    } else {
-        stopInternalRecording();
+  const stopRecordingAndProcess = useCallback(() => {
+    if (scriptProcessorNodeRef.current) {
+        scriptProcessorNodeRef.current.disconnect();
+        scriptProcessorNodeRef.current = null;
+    }
+    if (mediaStreamSourceRef.current) {
+        mediaStreamSourceRef.current.disconnect();
+        mediaStreamSourceRef.current.mediaStream.getTracks().forEach(track => track.stop());
+        mediaStreamSourceRef.current = null;
+    }
+     if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
     }
 
-    return () => {
-      // Cleanup function to stop recording if component unmounts
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-          mediaRecorderRef.current.stop();
-      }
-      if (timerIntervalRef.current) {
+    if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
-      }
-    };
-  }, [isRecording, onRecordingComplete]);
+    }
+    setElapsedTime(0);
 
+    if (rawAudioBufferRef.current.length === 0) {
+        onRecordingComplete(null);
+        return;
+    }
+
+    // Concatenate all the raw audio buffers
+    const totalSamples = rawAudioBufferRef.current.reduce((acc, buf) => acc + buf.length, 0);
+    const concatenatedBuffer = new Float32Array(totalSamples);
+    let offset = 0;
+    for (const buffer of rawAudioBufferRef.current) {
+        concatenatedBuffer.set(buffer, offset);
+        offset += buffer.length;
+    }
+
+    // This assumes the AudioContext was running at 44100Hz, which is standard.
+    // A more advanced implementation might get the actual sampleRate from the context.
+    const sampleRate = 44100;
+    const wavBlob = encodeWAV(concatenatedBuffer, sampleRate);
+    onRecordingComplete(wavBlob);
+
+    rawAudioBufferRef.current = [];
+
+  }, [onRecordingComplete]);
+
+  useEffect(() => {
+    if (isRecording) {
+        // Start recording
+        const startRawRecording = async () => {
+            setElapsedTime(0);
+            rawAudioBufferRef.current = [];
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+                audioContextRef.current = context;
+
+                const source = context.createMediaStreamSource(stream);
+                mediaStreamSourceRef.current = source;
+
+                // Using ScriptProcessorNode for wider compatibility. Buffer size of 4096 is a good balance.
+                const node = context.createScriptProcessor(4096, 1, 1);
+                scriptProcessorNodeRef.current = node;
+
+                node.onaudioprocess = (audioProcessingEvent) => {
+                    if (!isRecording) return;
+                    const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                    // We need to copy the data to a new array, otherwise it gets overwritten.
+                    rawAudioBufferRef.current.push(new Float32Array(inputData));
+                };
+
+                source.connect(node);
+                node.connect(context.destination);
+
+                timerIntervalRef.current = setInterval(() => setElapsedTime(prev => prev + 1), 1000);
+            } catch (err) {
+                console.error('Error starting raw audio recording:', err);
+                onRecordingComplete(null);
+            }
+        };
+        startRawRecording();
+
+    } else {
+        // Stop recording
+        stopRecordingAndProcess();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRecording]);
+
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+        if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+        if (audioContextRef.current) stopRecordingAndProcess();
+    };
+  }, [stopRecordingAndProcess]);
 
   const handleClick = () => {
     if (isRecording) {
