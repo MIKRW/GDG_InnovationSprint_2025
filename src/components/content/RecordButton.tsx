@@ -83,7 +83,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
         mediaStreamSourceRef.current = null;
     }
      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close();
+        audioContextRef.current.close().catch(e => console.error("Error closing AudioContext:", e));
         audioContextRef.current = null;
     }
 
@@ -104,7 +104,8 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
         concatenatedBuffer.set(buffer, offset);
         offset += buffer.length;
     }
-
+    
+    // Get sampleRate from the audio context before it's closed
     const sampleRate = audioContextRef.current?.sampleRate || 44100;
     const wavBlob = encodeWAV(concatenatedBuffer, sampleRate);
     onRecordingComplete(wavBlob);
@@ -121,6 +122,7 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
 
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                // Use a new AudioContext for each recording session
                 const context = new (window.AudioContext || (window as any).webkitAudioContext)();
                 audioContextRef.current = context;
 
@@ -151,15 +153,14 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
     } else {
         stopRecordingAndProcess();
     }
+    
+    return () => {
+      // Ensure everything is cleaned up when the component unmounts or isRecording changes.
+      stopRecordingAndProcess();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRecording]);
 
-  useEffect(() => {
-    return () => {
-        if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
-        stopRecordingAndProcess();
-    };
-  }, [stopRecordingAndProcess]);
 
   const handleClick = () => {
     if (isRecording) {
