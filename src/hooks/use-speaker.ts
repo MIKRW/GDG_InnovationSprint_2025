@@ -29,7 +29,8 @@ export function useSpeaker(narrationText: string, autoPlayType: 'general' | 'car
     useEffect(() => {
         hasInteractedRef.current = !!sessionStorage.getItem(FIRST_INTERACTION_KEY);
         
-        audioRef.current = new Audio();
+        const audioEl = new Audio();
+        audioRef.current = audioEl;
         
         const handlePlay = () => setIsPlaying(true);
         const handleEnd = () => {
@@ -39,7 +40,6 @@ export function useSpeaker(narrationText: string, autoPlayType: 'general' | 'car
             }
         };
 
-        const audioEl = audioRef.current;
         audioEl.addEventListener('play', handlePlay);
         audioEl.addEventListener('ended', handleEnd);
         audioEl.addEventListener('pause', handleEnd);

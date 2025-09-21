@@ -102,12 +102,20 @@ export default function SettingsPage() {
         if (narrationTimeoutRef.current) {
             clearTimeout(narrationTimeoutRef.current);
         }
-        narrationTimeoutRef.current = setTimeout(() => {
-            const newNarration = NARRATION_TEXTS[api.selectedScrollSnap()];
-            if (newNarration) {
+        
+        if (isCarouselAutoPlayOn) {
+            narrationTimeoutRef.current = setTimeout(() => {
+                const newNarration = NARRATION_TEXTS[api.selectedScrollSnap()];
+                if (newNarration) {
+                    setNarrationText(newNarration);
+                }
+            }, 2000);
+        } else {
+             const newNarration = NARRATION_TEXTS[api.selectedScrollSnap()];
+             if (newNarration) {
                 setNarrationText(newNarration);
             }
-        }, 2000);
+        }
     };
 
     api.on("select", handleSelect);
