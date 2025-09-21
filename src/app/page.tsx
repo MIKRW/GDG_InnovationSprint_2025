@@ -143,6 +143,7 @@ export default function Home() {
                     processAudio(audioDataUri, recordingId),
                     timeoutPromise
                 ]);
+
             } catch (error) {
                 console.error("Failed to process live recording:", error);
                 logErrorToFirestore(error as Error, 'live-audio-processing-failure', {
@@ -229,5 +230,7 @@ export default function Home() {
     </AppLayout>
   );
 }
+
+    
 
     
