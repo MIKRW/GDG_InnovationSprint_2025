@@ -88,20 +88,20 @@ export default function SettingsPage() {
         </div>
 
          <div className="absolute bottom-4 left-4 opacity-50">
-            <Link href="/">
+            <Link href="/log">
                 <Button variant="ghost" size="icon" className="h-40 w-40">
-                    <Home className="h-32 w-32 text-foreground" />
+                    <BookImage className="h-32 w-32 text-foreground" />
                 </Button>
             </Link>
         </div>
         <div className="absolute bottom-4 right-4 opacity-50">
-            <Link href="/log">
+            <Link href="/">
               <Button
                 variant='ghost'
                 size='icon'
                 className="h-40 w-40"
               >
-                <BookImage className="h-32 w-32 text-foreground" />
+                <Home className="h-32 w-32 text-foreground" />
               </Button>
             </Link>
         </div>
