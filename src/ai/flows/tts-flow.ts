@@ -29,33 +29,46 @@ const textToSpeechFlow = ai.defineFlow(
     outputSchema: TextToSpeechOutputSchema,
   },
   async (text) => {
-    const { media } = await ai.generate({
-      model: googleAI.model('gemini-2.5-flash-preview-tts'),
-      config: {
-        responseModalities: ['AUDIO'],
-        speechConfig: {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Erinome' },
-          },
+    try {
+        const { media } = await ai.generate({
+        model: googleAI.model('gemini-2.5-flash-preview-tts'),
+        config: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+            voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: 'Erinome' },
+            },
+            },
         },
-      },
-      prompt: text,
-    });
+        prompt: text,
+        });
 
-    if (!media) {
-      throw new Error('TTS generation failed to return media.');
+        if (!media) {
+            throw new Error('TTS generation failed to return media.');
+        }
+        
+        // The raw PCM data is returned as a base64 string in the URL.
+        const pcmBase64 = media.url.substring(media.url.indexOf(',') + 1);
+        
+        // We call a separate server action to handle the conversion to WAV
+        // to keep the `wav` package isolated from client-side bundles.
+        const wavBase64 = await convertToWav(pcmBase64);
+
+        return {
+            audioDataUri: 'data:audio/wav;base64,' + wavBase64,
+        };
+    } catch (error) {
+        // Gracefully handle the quota error without crashing the app.
+        if (error instanceof Error && error.message.includes('429')) {
+            console.warn(
+                `TTS feature is disabled due to a quota error. This usually means the 'Vertex AI API' or 'Generative Language API' needs to be enabled in your Google Cloud project. The app will continue to function without audio narration.`
+            );
+            // Return an empty audio response to prevent a crash.
+            return { audioDataUri: '' };
+        }
+        // Re-throw any other unexpected errors.
+        throw error;
     }
-    
-    // The raw PCM data is returned as a base64 string in the URL.
-    const pcmBase64 = media.url.substring(media.url.indexOf(',') + 1);
-    
-    // We call a separate server action to handle the conversion to WAV
-    // to keep the `wav` package isolated from client-side bundles.
-    const wavBase64 = await convertToWav(pcmBase64);
-
-    return {
-      audioDataUri: 'data:audio/wav;base64,' + wavBase64,
-    };
   }
 );
 
