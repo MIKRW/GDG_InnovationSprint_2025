@@ -107,170 +107,153 @@ export default function SettingsPage() {
             <ContrastButton />
         </div>
 
-        <Carousel className="w-full max-w-xl" opts={{ loop: false }} setApi={setApi}>
-            <CarouselContent className="h-[42rem]">
-                {/* Intro Card */}
-                <CarouselItem>
-                    <div className="p-1 h-full">
-                       <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
-                            <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
-                                <CardHeader className="text-center">
-                                    <Settings className="h-48 w-48 text-foreground mx-auto" />
-                                    <CardTitle className="text-5xl font-mono pt-4">Settings</CardTitle>
-                                    <CardDescription>Swipe to customize your app experience.</CardDescription>
-                                </CardHeader>
-                            </Card>
+        <div className="flex flex-col items-center">
+            <Carousel className="w-full max-w-xl" opts={{ loop: false }} setApi={setApi}>
+                <CarouselContent className="h-[42rem]">
+                    {/* Intro Card */}
+                    <CarouselItem>
+                        <div className="p-1 h-full">
+                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
+                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
+                                    <CardHeader className="text-center">
+                                        <Settings className="h-48 w-48 text-foreground mx-auto" />
+                                        <CardTitle className="text-5xl font-mono pt-4">Settings</CardTitle>
+                                        <CardDescription>Swipe to customize your app experience.</CardDescription>
+                                    </CardHeader>
+                                </Card>
+                            </div>
                         </div>
-                    </div>
-                </CarouselItem>
+                    </CarouselItem>
 
-                 {/* Control Mode Card */}
-                <CarouselItem>
-                    <div className="p-1 h-full">
-                       <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
-                            <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
-                                <CardHeader className="text-center">
-                                    <AudioLines className="h-48 w-48 text-foreground mx-auto" />
-                                    <CardTitle className="text-4xl font-mono pt-4">Control Mode</CardTitle>
-                                </CardHeader>
-                                <CardContent className="flex flex-col items-center gap-4">
-                                     <CardDescription>
-                                        Switch between voice and text input. (Voice coming soon)
-                                    </CardDescription>
-                                     <div className="flex justify-center mt-4">
-                                        <Button
-                                            onClick={() => setControlMode(controlMode === 'voice' ? 'text' : 'voice')}
-                                            variant={controlMode === 'text' ? 'secondary' : 'default'}
-                                            className="rounded-full px-8 py-4 text-lg font-semibold transition-colors duration-300"
-                                        >
-                                            {controlMode === 'voice' ? 'Voice Controlled' : 'Text Controlled'}
+                    {/* Auto-play Narration Card */}
+                    <CarouselItem>
+                        <div className="p-1 h-full">
+                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
+                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
+                                    <CardHeader className="text-center">
+                                        <ToggleLeft className="h-48 w-48 text-foreground mx-auto" />
+                                        <CardTitle className="text-4xl font-mono pt-4">Auto-play Narration</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="flex flex-col items-center gap-4">
+                                         <CardDescription>
+                                            Automatically play descriptive audio on each page.
+                                        </CardDescription>
+                                        <div className="flex items-center space-x-2 pt-4">
+                                            <Label htmlFor="auto-play-switch" className="text-lg">Off</Label>
+                                            <Switch
+                                                id="auto-play-switch"
+                                                checked={isAutoPlayOn}
+                                                onCheckedChange={toggleAutoPlay}
+                                                className="h-8 w-16 [&>span]:h-6 [&>span]:w-6 [&>span[data-state=checked]]:translate-x-9"
+                                            />
+                                            <Label htmlFor="auto-play-switch" className="text-lg">On</Label>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                    </CarouselItem>
+
+                    {/* Theme Generator Card */}
+                    <CarouselItem>
+                        <div className="p-1 h-full">
+                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
+                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
+                                    <CardHeader className="text-center">
+                                        <Palette className="h-48 w-48 text-foreground mx-auto" />
+                                        <CardTitle className="text-4xl font-mono pt-4">Customize Theme</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Button asChild variant="outline" size="lg" className="text-lg">
+                                          <Link href="/theme">Open Theme Editor</Link>
                                         </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    </CardContent>
+                                </Card>
+                            </div>
                         </div>
-                    </div>
-                </CarouselItem>
+                    </CarouselItem>
 
-                {/* Auto-play Narration Card */}
-                <CarouselItem>
-                    <div className="p-1 h-full">
-                       <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
-                            <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
-                                <CardHeader className="text-center">
-                                    <ToggleLeft className="h-48 w-48 text-foreground mx-auto" />
-                                    <CardTitle className="text-4xl font-mono pt-4">Auto-play Narration</CardTitle>
-                                </CardHeader>
-                                <CardContent className="flex flex-col items-center gap-4">
-                                     <CardDescription>
-                                        Automatically play descriptive audio on each page.
-                                    </CardDescription>
-                                    <div className="flex items-center space-x-2 pt-4">
-                                        <Label htmlFor="auto-play-switch" className="text-lg">Off</Label>
-                                        <Switch
-                                            id="auto-play-switch"
-                                            checked={isAutoPlayOn}
-                                            onCheckedChange={toggleAutoPlay}
-                                            className="h-8 w-16 [&>span]:h-6 [&>span]:w-6 [&>span[data-state=checked]]:translate-x-9"
+                    {/* Location Settings Card */}
+                     <CarouselItem>
+                        <div className="p-1 h-full">
+                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
+                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
+                                    <CardHeader className="text-center">
+                                        <MapPin className="h-48 w-48 text-foreground mx-auto" />
+                                        <CardTitle className="text-4xl font-mono pt-4">Location Settings</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Button asChild variant="outline" size="lg" className="text-lg">
+                                          <Link href="/settings/location">Manage Location</Link>
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                    </CarouselItem>
+
+                    {/* App Mode Card */}
+                    <CarouselItem>
+                        <div className="p-1 h-full">
+                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
+                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
+                                    <CardHeader className="text-center">
+                                        <AudioLines className="h-48 w-48 text-foreground mx-auto" />
+                                        <CardTitle className="text-4xl font-mono pt-4">App Mode</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Button asChild variant="outline" size="lg" className="text-lg">
+                                          <Link href="/settings/mode">Change App Mode</Link>
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                    </CarouselItem>
+
+                     {/* Recording Hardware Card */}
+                    <CarouselItem>
+                        <div className="p-1 h-full">
+                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
+                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center text-center">
+                                    <CardHeader>
+                                        <CardTitle className="text-4xl font-mono">Recording Hardware</CardTitle>
+                                        <CardDescription>
+                                            Optionally, specify the microphone you use for recording.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="w-full max-w-sm space-y-4">
+                                         <Input
+                                            id="hardware-input"
+                                            value={hardware}
+                                            onChange={(e) => setHardware(e.target.value)}
+                                            placeholder="e.g., iPhone 15 Pro, Rode NTG"
+                                            className="text-center text-lg h-12"
                                         />
-                                        <Label htmlFor="auto-play-switch" className="text-lg">On</Label>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                        <Button variant="outline" size="lg" className="mt-4 text-lg" onClick={handleSaveHardware}>
+                                            <Save className="mr-2 h-4 w-4" />
+                                            Save Hardware
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            </div>
                         </div>
-                    </div>
-                </CarouselItem>
+                    </CarouselItem>
 
-                {/* Theme Generator Card */}
-                <CarouselItem>
-                    <div className="p-1 h-full">
-                       <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
-                            <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
-                                <CardHeader className="text-center">
-                                    <Palette className="h-48 w-48 text-foreground mx-auto" />
-                                    <CardTitle className="text-4xl font-mono pt-4">Customize Theme</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <Button asChild variant="outline" size="lg" className="text-lg">
-                                      <Link href="/theme">Open Theme Editor</Link>
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
-                </CarouselItem>
-
-                {/* Location Settings Card */}
-                 <CarouselItem>
-                    <div className="p-1 h-full">
-                       <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
-                            <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
-                                <CardHeader className="text-center">
-                                    <MapPin className="h-48 w-48 text-foreground mx-auto" />
-                                    <CardTitle className="text-4xl font-mono pt-4">Location Settings</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <Button asChild variant="outline" size="lg" className="text-lg">
-                                      <Link href="/settings/location">Manage Location</Link>
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
-                </CarouselItem>
-
-                {/* App Mode Card */}
-                <CarouselItem>
-                    <div className="p-1 h-full">
-                       <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
-                            <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
-                                <CardHeader className="text-center">
-                                    <AudioLines className="h-48 w-48 text-foreground mx-auto" />
-                                    <CardTitle className="text-4xl font-mono pt-4">App Mode</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <Button asChild variant="outline" size="lg" className="text-lg">
-                                      <Link href="/settings/mode">Change App Mode</Link>
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
-                </CarouselItem>
-
-                 {/* Recording Hardware Card */}
-                <CarouselItem>
-                    <div className="p-1 h-full">
-                       <div className="bg-ring rounded-lg shadow-lg p-4 h-full">
-                            <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center text-center">
-                                <CardHeader>
-                                    <CardTitle className="text-4xl font-mono">Recording Hardware</CardTitle>
-                                    <CardDescription>
-                                        Optionally, specify the microphone you use for recording.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="w-full max-w-sm space-y-4">
-                                     <Input
-                                        id="hardware-input"
-                                        value={hardware}
-                                        onChange={(e) => setHardware(e.target.value)}
-                                        placeholder="e.g., iPhone 15 Pro, Rode NTG"
-                                        className="text-center text-lg h-12"
-                                    />
-                                    <Button variant="outline" size="lg" className="mt-4 text-lg" onClick={handleSaveHardware}>
-                                        <Save className="mr-2 h-4 w-4" />
-                                        Save Hardware
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
-                </CarouselItem>
-
-            </CarouselContent>
-            <CarouselPrevious />
-            <CarouselNext />
-        </Carousel>
+                </CarouselContent>
+                <CarouselPrevious />
+                <CarouselNext />
+            </Carousel>
+             <div className="flex justify-center mt-4">
+                <Button
+                    onClick={() => setControlMode(controlMode === 'voice' ? 'text' : 'voice')}
+                    variant={controlMode === 'text' ? 'secondary' : 'default'}
+                    className="rounded-full px-8 py-4 text-lg font-semibold transition-colors duration-300"
+                >
+                    {controlMode === 'voice' ? 'Voice Controlled' : 'Text Controlled'}
+                </Button>
+            </div>
+        </div>
 
         <div className="absolute bottom-4 left-4 opacity-50">
             <Link href="/log">
