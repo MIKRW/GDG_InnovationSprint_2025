@@ -35,6 +35,41 @@ import { cache } from 'react';
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
 import { logErrorToFirestore } from './error-logging';
 import { adminApp, adminStorage } from './firebase-admin';
+import wav from 'wav';
+
+
+/**
+ * Converts a base64 encoded PCM audio string into a base64 encoded WAV audio string.
+ * This function is a server action to keep the 'wav' package on the server.
+ * @param pcmBase64 The base64 string of the raw PCM audio data.
+ * @returns A promise that resolves to the base64 string of the WAV audio data.
+ */
+export async function convertToWav(pcmBase64: string): Promise<string> {
+    const pcmData = Buffer.from(pcmBase64, 'base64');
+    const channels = 1;
+    const rate = 24000; // Gemini TTS default sample rate
+    const sampleWidth = 2; // 16-bit audio
+
+    return new Promise((resolve, reject) => {
+        const writer = new wav.Writer({
+            channels,
+            sampleRate: rate,
+            bitDepth: sampleWidth * 8,
+        });
+
+        const bufs: any[] = [];
+        writer.on('error', reject);
+        writer.on('data', function (d) {
+            bufs.push(d);
+        });
+        writer.on('end', function () {
+            resolve(Buffer.concat(bufs).toString('base64'));
+        });
+
+        writer.write(pcmData);
+        writer.end();
+    });
+}
 
 
 interface UploadMasterAudioInput {
