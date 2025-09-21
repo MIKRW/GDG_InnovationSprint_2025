@@ -19,7 +19,7 @@ Name that Bird is an intelligent, modern web application designed to identify bi
 
 -   **Framework**: Next.js (App Router)
 -   **Language**: TypeScript
--   **AI/ML**: Google's Gemini models (Gemini 2.5 Flash, Imagen 4) via Genkit
+-   **AI/ML**: Google's Gemini models (Gemini 2.5 Flash,tts, Imagen 4) via Genkit
 -   **UI Components**: ShadCN UI
 -   **Styling**: Tailwind CSS
 -   **Database**: Firestore (for logging errors and future data storage)
