@@ -111,7 +111,7 @@ const identifyBirdFlow = ai.defineFlow(
             prompt: BIRD_ID_PROMPT,
             input: { schema: IdentifyBirdInputSchema },
             output: { schema: IdentifyBirdOutputSchema },
-            model: googleAI.model('gemini-1.5-pro-latest'),
+            model: googleAI.model('gemini-1.5-flash-latest'),
             tools: [getCurrentWeather],
             config: {
                 temperature: 0.3,
@@ -158,3 +158,4 @@ const identifyBirdFlow = ai.defineFlow(
     }
   }
 );
+

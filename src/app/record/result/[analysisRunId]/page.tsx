@@ -142,9 +142,14 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
             </CardContent>
             <CardFooter className="flex flex-col gap-4">
                 {run.inputAudioUrl && (
-                    <Button variant="outline" onClick={handleReplay} className="w-full">
-                        <PlayCircle className="mr-2 h-4 w-4" /> Replay Audio
-                    </Button>
+                     <div className="flex w-full justify-around">
+                        <Button variant="outline" onClick={handleReplay}>
+                            <PlayCircle className="mr-2 h-4 w-4" /> Replay Audio
+                        </Button>
+                        <Button variant="outline" onClick={handleDownload}>
+                            <Download className="mr-2 h-4 w-4" /> Download
+                        </Button>
+                    </div>
                 )}
             </CardFooter>
         </Card>
