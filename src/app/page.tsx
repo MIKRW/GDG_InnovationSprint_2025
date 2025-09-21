@@ -91,7 +91,7 @@ export default function Home() {
               const wasSuccessful = result && result.isBirdSong && !!result.commonName;
 
               analysisRunId = await createAnalysisRun(
-                  'anonymous', audioDataUri, recordingId, result, wasSuccessful, locationData, hardware, 'newbie',
+                  audioDataUri, recordingId, result, wasSuccessful, locationData, hardware, 'newbie',
                   { primaryIdentificationMs: analysisDurationMs },
                   currentSessionId.current, currentTimestamp.current
               );
@@ -101,12 +101,12 @@ export default function Home() {
               const analysisDurationMs = Date.now() - (currentTimestamp.current ? new Date(currentTimestamp.current).getTime() : Date.now());
               result = { error: (error as Error).message, isBirdSong: false };
               logErrorToFirestore(error as Error, 'ai-identification-failure', {
-                  sessionId: currentSessionId.current, timestamp: currentTimestamp.current,
+                  sessionId: currentSessionId.current, creationTime: currentTimestamp.current,
                   locationData: locationData, userId: 'anonymous'
               });
               
               analysisRunId = await createAnalysisRun(
-                  'anonymous', audioDataUri, recordingId, result, false,
+                  audioDataUri, recordingId, result, false,
                   locationData, hardware, 'newbie',
                   { primaryIdentificationMs: analysisDurationMs },
                   currentSessionId.current, currentTimestamp.current

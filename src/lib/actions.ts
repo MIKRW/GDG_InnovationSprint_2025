@@ -136,7 +136,6 @@ export async function saveCanonicalImage(
 }
 
 export async function createAnalysisRun(
-    userId: string,
     audioDataUri: string,
     recordingId: string,
     aiResult: IdentifyBirdOutput,
@@ -146,7 +145,7 @@ export async function createAnalysisRun(
     mode: AppMode,
     analysisTimings: AnalysisRun['analysisTimings'] = {},
     sessionId: string,
-    timestamp: string,
+    creationTime: string,
   ): Promise<string> {
     
     // Upload audio to a top-level "recordings" folder
@@ -164,8 +163,8 @@ export async function createAnalysisRun(
 
     const docToCreate: Partial<AnalysisRun> = {
       id: analysisRunId,
-      timestamp: timestamp,
-      userId: userId,
+      creationTime: creationTime,
+      userId: 'anonymous', // User accounts are not implemented
       sessionId: sessionId,
       inputAudioUrl: inputAudioUrl,
       inputAudioStoragePath: audioStoragePath,

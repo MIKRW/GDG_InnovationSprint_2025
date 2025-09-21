@@ -31,7 +31,7 @@ export type Theme = {
 
 export type AnalysisRun = {
   id: string;
-  timestamp: string;
+  creationTime: string;
   userId: string;
   sessionId: string;
   inputAudioUrl: string;
