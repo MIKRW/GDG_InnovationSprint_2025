@@ -307,7 +307,7 @@ export default function BirdBookPage() {
     const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
         if (isAutoPlayOn) {
             const newNarration = getNarrationForSlide(index);
-            setNarrationText(newNarration);
+            playNarration(newNarration);
         }
     }, 2000);
     
@@ -327,12 +327,11 @@ export default function BirdBookPage() {
 
         const handleSelect = () => {
             const selectedIndex = api.selectedScrollSnap();
+            const newNarration = getNarrationForSlide(selectedIndex);
+            setNarrationText(newNarration);
+            
             if (isAutoPlayOn) {
                 debouncedNarration(selectedIndex);
-            } else {
-                // If autoplay is off, update the text immediately for manual play.
-                const newNarration = getNarrationForSlide(selectedIndex);
-                setNarrationText(newNarration);
             }
         };
 
@@ -340,7 +339,6 @@ export default function BirdBookPage() {
         
         return () => {
             api.off("select", handleSelect);
-            // Cancel any pending debounced calls on unmount
             cancelDebouncedNarration();
         };
     }, [api, getNarrationForSlide, isAutoPlayOn, debouncedNarration, cancelDebouncedNarration]);

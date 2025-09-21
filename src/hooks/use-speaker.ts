@@ -13,6 +13,9 @@ interface SpeakerSettings {
     isAutoPlayOn: boolean;
 }
 
+// A simple in-memory cache for audio data URIs
+const audioCache = new Map<string, string>();
+
 export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'carousel' = 'general') {
     const { toast } = useToast();
     const [settings, setSettings] = useState<SpeakerSettings>({
@@ -22,8 +25,6 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const lastPlayedSourceRef = useRef<string | null>(null);
-    const lastDataUriRef = useRef<string | null>(null);
     const hasInteractedRef = useRef(false);
 
     useEffect(() => {
@@ -65,19 +66,21 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     }, []);
 
     const getAudioDataUri = useCallback(async (source: string): Promise<string | null> => {
+        if (source.endsWith('.wav')) {
+            return source; // It's a static file path
+        }
+        
+        // It's dynamic text, check cache first
+        if (audioCache.has(source)) {
+            return audioCache.get(source)!;
+        }
+
         setIsLoading(true);
         try {
-            if (source.endsWith('.wav')) {
-                return source;
-            }
-            if (lastPlayedSourceRef.current === source && lastDataUriRef.current) {
-                return lastDataUriRef.current;
-            }
-    
             const response = await textToSpeech(source);
-            lastDataUriRef.current = response.audioDataUri;
-            lastPlayedSourceRef.current = source;
-            return response.audioDataUri;
+            const dataUri = response.audioDataUri;
+            audioCache.set(source, dataUri); // Cache the result
+            return dataUri;
         } finally {
             setIsLoading(false);
         }
@@ -126,7 +129,7 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
             sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
         }
         
-        if (isPlaying && audio.src.includes(lastDataUriRef.current || '')) {
+        if (isPlaying && audio.src === audioCache.get(targetSource)) {
              audio.pause();
              audio.currentTime = 0;
              setIsPlaying(false);
@@ -142,9 +145,13 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         }
     }, [narrationSource, isPlaying, settings.isSpeakerOn, playAudio]);
 
+    // This effect handles auto-play for STATIC .wav files ONLY.
     useEffect(() => {
         if (settings.isAutoPlayOn && settings.isSpeakerOn && narrationSource && hasInteractedRef.current) {
-            playAudio(narrationSource);
+            // Only autoplay if it's a pre-recorded file.
+            if (narrationSource.endsWith('.wav')) {
+                playAudio(narrationSource);
+            }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [narrationSource, settings.isAutoPlayOn, settings.isSpeakerOn]);
