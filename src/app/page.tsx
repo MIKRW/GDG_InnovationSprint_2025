@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
 import { useToast } from '@/hooks/use-toast';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
@@ -32,6 +33,15 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
+    const auth = getAuth();
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        signInAnonymously(auth).catch((error) => {
+          console.error("Anonymous sign-in failed:", error);
+          logErrorToFirestore(error, 'anonymous-auth-failure', {});
+        });
+      }
+    });
   }, []);
 
   const currentSessionId = useRef<string | null>(null);
