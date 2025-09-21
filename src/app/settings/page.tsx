@@ -21,7 +21,6 @@ import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 
 
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
-const PAGE_NARRATION = "This is the Settings page. Swipe left and right to customize the application's look and feel, manage location services, and set your preferred recording hardware.";
 
 const CarouselPrevious = React.forwardRef<
   HTMLButtonElement,
@@ -69,12 +68,12 @@ CarouselNext.displayName = "CarouselNext"
 
 
 const NARRATION_TEXTS = [
-    "Settings introduction. Swipe to customize your app experience.",
-    "Auto-play Narration settings. Automatically play descriptive audio for pages and carousel slides.",
-    "Customize Theme settings. Open the theme editor to change colors.",
-    "Location Settings. Manage how the app uses your location to improve identification.",
-    "App Mode settings. Change the app mode between Newbie and Twitcher.",
-    "Recording Hardware settings. Optionally, specify the microphone you use."
+    "/audio/narration/settings-intro.mp3",
+    "/audio/narration/settings-auto-play.mp3",
+    "/audio/narration/settings-theme.mp3",
+    "/audio/narration/settings-location.mp3",
+    "/audio/narration/settings-app-mode.mp3",
+    "/audio/narration/settings-recording-hardware.mp3"
 ];
 
 
@@ -82,7 +81,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [hardware, setHardware] = useState('');
   const [isClient, setIsClient] = useState(false);
-  const [narrationText, setNarrationText] = useState(PAGE_NARRATION);
+  const [narrationText, setNarrationText] = useState(NARRATION_TEXTS[0]);
   const { playNarration, isGeneralAutoPlayOn, toggleGeneralAutoPlay, isCarouselAutoPlayOn, toggleCarouselAutoPlay, ...speakerProps } = useSpeaker(narrationText, 'general');
   const [api, setApi] = useState<CarouselApi>();
   const [controlMode, setControlMode] = useState<'voice' | 'text'>('text');
@@ -109,12 +108,11 @@ export default function SettingsPage() {
 
     const handleSelect = () => {
         const selectedIndex = api.selectedScrollSnap();
-        if (isCarouselAutoPlayOn) {
-            debouncedNarration(selectedIndex);
-        } else {
-             const newNarration = NARRATION_TEXTS[selectedIndex];
-             if (newNarration) {
-                setNarrationText(newNarration);
+        const newNarration = NARRATION_TEXTS[selectedIndex];
+        if (newNarration) {
+            setNarrationText(newNarration);
+            if (isCarouselAutoPlayOn) {
+                debouncedNarration(selectedIndex);
             }
         }
     };
@@ -140,10 +138,10 @@ export default function SettingsPage() {
     return null;
   }
 
-  const ControlButton = () => (
+  const ControlButton = ({ onToggle }: { onToggle: () => void }) => (
     <div className="flex justify-center mt-4">
         <Button
-            onClick={() => setControlMode(controlMode === 'voice' ? 'text' : 'voice')}
+            onClick={onToggle}
             variant={controlMode === 'text' ? 'secondary' : 'default'}
             className="rounded-full px-8 py-4 text-lg font-semibold transition-colors duration-300"
         >
@@ -151,6 +149,8 @@ export default function SettingsPage() {
         </Button>
     </div>
   )
+
+  const handleToggleControl = () => setControlMode(prev => prev === 'voice' ? 'text' : 'voice');
 
   return (
     <AppLayout>
@@ -176,7 +176,7 @@ export default function SettingsPage() {
                                         <CardDescription>Swipe to customize your app experience.</CardDescription>
                                     </CardHeader>
                                 </Card>
-                                <ControlButton />
+                                <ControlButton onToggle={handleToggleControl} />
                             </div>
                         </div>
                     </CarouselItem>
@@ -214,7 +214,7 @@ export default function SettingsPage() {
                                         </div>
                                     </CardContent>
                                 </Card>
-                                <ControlButton />
+                                <ControlButton onToggle={handleToggleControl} />
                             </div>
                         </div>
                     </CarouselItem>
@@ -234,7 +234,7 @@ export default function SettingsPage() {
                                         </Button>
                                     </CardContent>
                                 </Card>
-                                <ControlButton />
+                                <ControlButton onToggle={handleToggleControl} />
                             </div>
                         </div>
                     </CarouselItem>
@@ -254,7 +254,7 @@ export default function SettingsPage() {
                                         </Button>
                                     </CardContent>
                                 </Card>
-                                <ControlButton />
+                                <ControlButton onToggle={handleToggleControl} />
                             </div>
                         </div>
                     </CarouselItem>
@@ -274,7 +274,7 @@ export default function SettingsPage() {
                                         </Button>
                                     </CardContent>
                                 </Card>
-                                <ControlButton />
+                                <ControlButton onToggle={handleToggleControl} />
                             </div>
                         </div>
                     </CarouselItem>
@@ -304,7 +304,7 @@ export default function SettingsPage() {
                                         </Button>
                                     </CardContent>
                                 </Card>
-                                <ControlButton />
+                                <ControlButton onToggle={handleToggleControl} />
                             </div>
                         </div>
                     </CarouselItem>
@@ -338,3 +338,6 @@ export default function SettingsPage() {
     </AppLayout>
   );
 }
+
+    
+    

@@ -13,7 +13,7 @@ interface SpeakerSettings {
     isCarouselAutoPlayOn: boolean;
 }
 
-export function useSpeaker(narrationText: string, autoPlayType: 'general' | 'carousel') {
+export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'carousel') {
     const [settings, setSettings] = useState<SpeakerSettings>({
         isSpeakerOn: true,
         isGeneralAutoPlayOn: false,
@@ -25,6 +25,8 @@ export function useSpeaker(narrationText: string, autoPlayType: 'general' | 'car
     const audioDataUriRef = useRef<string | null>(null);
     const hasInteractedRef = useRef(false);
     const lastPlayedTextRef = useRef<string | null>(null);
+
+    const isLocalFile = (source: string) => source.startsWith('/audio/');
     
     useEffect(() => {
         hasInteractedRef.current = !!sessionStorage.getItem(FIRST_INTERACTION_KEY);
@@ -72,10 +74,22 @@ export function useSpeaker(narrationText: string, autoPlayType: 'general' | 'car
         }
     }, []);
 
-    const fetchAndCacheAudio = useCallback(async (textToPlay: string, shouldPlay: boolean) => {
-        if (!textToPlay || !settings.isSpeakerOn) return;
+    const fetchAndCacheAudio = useCallback(async (sourceToPlay: string, shouldPlay: boolean) => {
+        if (!sourceToPlay || !settings.isSpeakerOn) return;
 
-        if (audioDataUriRef.current && lastPlayedTextRef.current === textToPlay) {
+        // If it's a local file, we don't need to fetch anything from the AI
+        if (isLocalFile(sourceToPlay)) {
+             if (shouldPlay && hasInteractedRef.current && audioRef.current) {
+                if (audioRef.current.src !== new URL(sourceToPlay, window.location.origin).href) {
+                   audioRef.current.src = sourceToPlay;
+                }
+                audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+            }
+            return;
+        }
+
+        // If it's TTS and we have it cached, play it
+        if (audioDataUriRef.current && lastPlayedTextRef.current === sourceToPlay) {
             if (shouldPlay && hasInteractedRef.current && audioRef.current) {
                  if (audioRef.current.src !== audioDataUriRef.current) {
                     audioRef.current.src = audioDataUriRef.current;
@@ -87,9 +101,9 @@ export function useSpeaker(narrationText: string, autoPlayType: 'general' | 'car
 
         setIsLoading(true);
         try {
-            const response = await textToSpeech(textToPlay);
+            const response = await textToSpeech(sourceToPlay);
             audioDataUriRef.current = response.audioDataUri;
-            lastPlayedTextRef.current = textToPlay;
+            lastPlayedTextRef.current = sourceToPlay;
             if (shouldPlay && hasInteractedRef.current && audioRef.current) {
                 audioRef.current.src = response.audioDataUri;
                 audioRef.current.play().catch(e => console.error("Audio playback failed after fetch:", e));
@@ -104,15 +118,15 @@ export function useSpeaker(narrationText: string, autoPlayType: 'general' | 'car
     useEffect(() => {
         const isAutoPlayRelevant = (autoPlayType === 'general' && settings.isGeneralAutoPlayOn) || (autoPlayType === 'carousel' && settings.isCarouselAutoPlayOn);
         
-        if (isAutoPlayRelevant && settings.isSpeakerOn && narrationText && hasInteractedRef.current) {
-            fetchAndCacheAudio(narrationText, true);
-        } else if (settings.isSpeakerOn && narrationText) {
-            fetchAndCacheAudio(narrationText, false);
+        if (isAutoPlayRelevant && settings.isSpeakerOn && narrationSource && hasInteractedRef.current) {
+            fetchAndCacheAudio(narrationSource, true);
+        } else if (settings.isSpeakerOn && narrationSource) {
+            fetchAndCacheAudio(narrationSource, false);
         }
-    }, [narrationText, settings.isGeneralAutoPlayOn, settings.isCarouselAutoPlayOn, settings.isSpeakerOn, autoPlayType, fetchAndCacheAudio]);
+    }, [narrationSource, settings.isGeneralAutoPlayOn, settings.isCarouselAutoPlayOn, settings.isSpeakerOn, autoPlayType, fetchAndCacheAudio]);
 
 
-    const playNarration = useCallback(async (textToPlay: string) => {
+    const playNarration = useCallback(async (sourceToPlay: string) => {
         if (!hasInteractedRef.current) {
             hasInteractedRef.current = true;
             sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
@@ -124,7 +138,7 @@ export function useSpeaker(narrationText: string, autoPlayType: 'general' | 'car
                 localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
                 return newSettings;
             });
-             fetchAndCacheAudio(textToPlay, true);
+             fetchAndCacheAudio(sourceToPlay, true);
             return;
         };
 
@@ -135,7 +149,7 @@ export function useSpeaker(narrationText: string, autoPlayType: 'general' | 'car
             audio.pause();
             audio.currentTime = 0;
         } else {
-            await fetchAndCacheAudio(textToPlay, true);
+            await fetchAndCacheAudio(sourceToPlay, true);
         }
     }, [settings.isSpeakerOn, isPlaying, fetchAndCacheAudio]);
 
@@ -167,3 +181,6 @@ export function useSpeaker(narrationText: string, autoPlayType: 'general' | 'car
         toggleCarouselAutoPlay,
     };
 }
+
+    
+    
