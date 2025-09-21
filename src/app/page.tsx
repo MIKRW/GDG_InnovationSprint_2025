@@ -120,7 +120,7 @@ export default function Home() {
       });
   };
 
-  const handleStartRecording = () => {
+  const handleStart = () => {
     setIsRecording(true);
     currentSessionId.current = uuidv4();
     currentTimestamp.current = new Date().toISOString();
@@ -150,7 +150,9 @@ export default function Home() {
     }
   }
   
-  const handleStopRecording = () => {
+  const handleStop = () => {
+    // This is handled by the onRecordingComplete callback now
+    // but we set processing to true to show the analyzing state
     setIsRecording(false);
     setIsProcessing(true);
   }
@@ -177,9 +179,9 @@ export default function Home() {
         ) : (
           <div className="w-[60rem] h-[40rem] flex items-center justify-center">
             <RecordButton
-                onStartRecording={handleStartRecording}
+                onStart={handleStart}
+                onStop={handleStop}
                 onRecordingComplete={handleRecordingComplete}
-                onStopRecording={handleStopRecording}
                 isRecording={isRecording}
             />
           </div>

@@ -7,27 +7,24 @@ import { Button } from '@/components/ui/button';
 import { MicOff } from 'lucide-react';
 import { ColorableLogo } from './ColorableLogo';
 
-type RecordingState =
-  | 'idle'
-  | 'denied'
-  | 'recording';
+type RecordingState = 'idle' | 'denied';
 
 interface RecordButtonProps {
     onPermissionDenied?: () => void;
-    onStartRecording?: () => void;
-    onStopRecording?: () => void;
+    onStart?: () => void;
+    onStop?: () => void;
     onRecordingComplete: (audioBlob: Blob, duration?: number) => void;
     isRecording: boolean;
 }
 
 const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
     onPermissionDenied,
-    onStartRecording,
-    onStopRecording,
+    onStart,
+    onStop,
     onRecordingComplete,
     isRecording,
 }, ref) => {
-  const [recordingState, setRecordingState] = useState<RecordingState>('idle');
+  const [permissionState, setPermissionState] = useState<RecordingState>('idle');
   const [elapsedTime, setElapsedTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -35,100 +32,98 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
-    // This effect handles the state changes from the parent component
-    if (isRecording && recordingState !== 'recording') {
-        handleStartRecording();
-    } else if (!isRecording && recordingState === 'recording') {
-        handleStopRecording();
-    }
-  }, [isRecording, recordingState]);
+    const startRecording = async () => {
+        recordingStartTimeRef.current = Date.now();
+        setElapsedTime(0);
 
-  useEffect(() => {
-    return () => {
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-      }
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+            audioChunksRef.current = [];
+
+            mediaRecorderRef.current.addEventListener('dataavailable', (event: BlobEvent) => {
+                audioChunksRef.current.push(event.data);
+            });
+
+            mediaRecorderRef.current.addEventListener('stop', () => {
+                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                const recordingLengthSeconds = recordingStartTimeRef.current ? parseFloat(((Date.now() - recordingStartTimeRef.current) / 1000).toFixed(2)) : undefined;
+                onRecordingComplete(audioBlob, recordingLengthSeconds);
+                if (timerIntervalRef.current) {
+                    clearInterval(timerIntervalRef.current);
+                }
+            });
+
+            mediaRecorderRef.current.start();
+            setPermissionState('idle'); // Success, ensure not in denied state
+
+            timerIntervalRef.current = setInterval(() => {
+                setElapsedTime(prev => prev + 1);
+            }, 1000);
+
+        } catch (err) {
+            console.error('Permission denied or no microphone found:', err);
+            setPermissionState('denied');
+            onPermissionDenied?.();
+        }
     };
-  }, []);
+    
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.stop();
+            // Stop the tracks to turn off the microphone indicator
+            mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+        }
+        if (timerIntervalRef.current) {
+            clearInterval(timerIntervalRef.current);
+        }
+        setElapsedTime(0);
+    };
 
-  const handleStartRecording = async () => {
-    if (recordingState === 'denied') {
-        onPermissionDenied?.();
-        return;
+    if (isRecording) {
+        startRecording();
+    } else {
+        stopRecording();
     }
 
-    recordingStartTimeRef.current = Date.now();
-    setElapsedTime(0);
+    return () => {
+      // Cleanup function to stop recording if component unmounts
+      stopRecording();
+    };
+  }, [isRecording, onPermissionDenied, onRecordingComplete]);
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      audioChunksRef.current = [];
-
-      mediaRecorderRef.current.addEventListener('dataavailable', (event: BlobEvent) => {
-        audioChunksRef.current.push(event.data);
-      });
-
-      mediaRecorderRef.current.addEventListener('stop', () => {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          const recordingLengthSeconds = recordingStartTimeRef.current ? parseFloat(((Date.now() - recordingStartTimeRef.current) / 1000).toFixed(2)) : undefined;
-          onRecordingComplete(audioBlob, recordingLengthSeconds);
-      });
-
-      mediaRecorderRef.current.start();
-      setRecordingState('recording');
-
-      timerIntervalRef.current = setInterval(() => {
-        setElapsedTime(prev => prev + 1);
-      }, 1000);
-
-    } catch (err) {
-      console.error('Permission denied or no microphone found:', err);
-      setRecordingState('denied');
-      onPermissionDenied?.();
-    }
-  };
-
-  const handleStopRecording = () => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-        timerIntervalRef.current = null;
-      }
-      setRecordingState('idle');
-    }
-  };
 
   const handleClick = () => {
     if (isRecording) {
-      onStopRecording?.();
+      onStop?.();
     } else {
-      onStartRecording?.();
+      if (permissionState === 'denied') {
+          onPermissionDenied?.();
+          return;
+      }
+      onStart?.();
     }
   };
 
   const getButtonContent = () => {
-    switch (recordingState) {
-      case 'recording':
-        return {
-          icon: <ColorableLogo className="text-foreground" />,
-          title: 'Press to Stop',
-          timer: `${String(Math.floor(elapsedTime / 60)).padStart(2, '0')}:${String(elapsedTime % 60).padStart(2, '0')}`,
-        };
-      case 'denied':
-         return {
-          icon: <MicOff className="w-full h-full text-foreground/50" />,
-          title: 'Mic Access Denied',
-        };
-      default: // idle
-        return {
-          icon: <ColorableLogo className="text-foreground" />,
-          title: 'Name that Bird!',
-          subtitle: 'Press to record',
-        };
+    if (permissionState === 'denied') {
+       return {
+        icon: <MicOff className="w-full h-full text-foreground/50" />,
+        title: 'Mic Access Denied',
+      };
     }
+    if (isRecording) {
+       return {
+        icon: <ColorableLogo className="text-foreground" />,
+        title: 'Press to Stop',
+        timer: `${String(Math.floor(elapsedTime / 60)).padStart(2, '0')}:${String(elapsedTime % 60).padStart(2, '0')}`,
+      };
+    }
+    return {
+      icon: <ColorableLogo className="text-foreground" />,
+      title: 'Name that Bird!',
+      subtitle: 'Press to record',
+    };
   };
 
   const { icon, title, subtitle, timer } = getButtonContent();

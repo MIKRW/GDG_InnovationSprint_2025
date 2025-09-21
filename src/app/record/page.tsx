@@ -121,14 +121,14 @@ export default function RecordPage() {
       });
   };
   
-  const handleStartRecording = () => {
+  const handleStart = () => {
     setShowPermissionError(false);
     setIsRecording(true);
     currentSessionId.current = uuidv4();
     currentTimestamp.current = new Date().toISOString();
   }
   
-  const handleStopRecording = () => {
+  const handleStop = () => {
     setIsRecording(false);
     setIsProcessing(true);
   }
@@ -169,10 +169,10 @@ export default function RecordPage() {
             ) : (
                 <RecordButton 
                   onPermissionDenied={() => setShowPermissionError(true)} 
-                  onStartRecording={handleStartRecording}
+                  onStart={handleStart}
                   onRecordingComplete={handleRecordingComplete}
                   isRecording={isRecording}
-                  onStopRecording={handleStopRecording}
+                  onStop={handleStop}
                 />
             )}
 
