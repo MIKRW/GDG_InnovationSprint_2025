@@ -149,11 +149,11 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
               </div>
             </div>
         </Button>
-        <p className="text-xl sm:text-3xl md:text-6xl font-mono font-bold text-foreground text-center -mt-4 sm:-mt-8 md:-mt-16">
+        <p className="text-8xl font-mono font-bold text-foreground text-center -mt-16">
             {title}
         </p>
-        {subtitle && <p className="text-lg sm:text-xl md:text-2xl font-mono text-foreground/80 text-center">{subtitle}</p>}
-        {timer && <p className="text-lg sm:text-2xl md:text-4xl font-mono mt-2 text-foreground text-center">{timer}</p>}
+        {subtitle && <p className="text-3xl font-mono text-foreground/80 text-center">{subtitle}</p>}
+        {timer && <p className="text-5xl font-mono mt-2 text-foreground text-center">{timer}</p>}
       </div>
   );
 });
