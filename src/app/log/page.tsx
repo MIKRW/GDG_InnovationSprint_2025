@@ -18,7 +18,7 @@ function AiAssistantCard() {
     return (
         <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
             <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
-                <CardContent className="flex-1 flex flex-col items-center justify-center gap-4">
+                <CardContent className="flex-1 flex flex-col items-center justify-end gap-4 pb-12">
                      <div className="w-48 h-48">
                         <Button variant="ghost" className="w-full h-full rounded-full">
                             <Bot className="h-48 w-48 text-foreground" />
