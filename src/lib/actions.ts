@@ -163,17 +163,18 @@ export async function createAnalysisRun(
     logErrorToFirestore(error, 'client-side-failure', { sessionId, recordingId, analysisRunId });
   } else {
     try {
-        const downloadUrl = await getDownloadURL(storageRef(storage, storagePath));
-        
         const analysisStartTime = Date.now();
+        // Use the gs:// URI directly for analysis. This is more robust.
+        const gsPath = `gs://${storage.app.options.storageBucket}/${storagePath}`;
+
         aiResult = await identifyBirdBySound({
-            audioDataUri: downloadUrl,
+            audioDataUri: gsPath,
             creationTime: creationTime,
             ...locationData,
             mode: mode
         });
         
-        wasSuccessful = !!aiResult;
+        wasSuccessful = !!aiResult && aiResult.isBirdSong !== false;
         
         const analysisDurationMs = Date.now() - analysisStartTime;
         analysisTimings.primaryIdentificationMs = analysisDurationMs;
