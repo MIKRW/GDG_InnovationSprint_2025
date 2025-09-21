@@ -257,12 +257,20 @@ export default function BirdBookPage() {
                     <CarouselPrevious />
                     <CarouselNext />
                 </Carousel>
-                
-                <div className="mt-4">
+
+                <div className="absolute bottom-4 inset-x-0 flex justify-center items-center gap-8">
+                    <div className="opacity-50">
+                        <Link href="/log">
+                            <Button variant="ghost" size="icon" className="h-40 w-40">
+                                <BookImage className="h-32 w-32 text-foreground" />
+                            </Button>
+                        </Link>
+                    </div>
+
                     <Button
                         onClick={() => setChatMode(chatMode === 'voice' ? 'text' : 'voice')}
                         className={cn(
-                            "rounded-full px-8 py-4 text-xl font-semibold transition-colors duration-300",
+                            "rounded-full px-16 py-8 text-2xl font-semibold transition-colors duration-300",
                             chatMode === 'voice'
                                 ? 'bg-ring text-white hover:bg-ring/90'
                                 : 'bg-white text-ring border-2 border-ring'
@@ -270,26 +278,18 @@ export default function BirdBookPage() {
                     >
                         {chatMode === 'voice' ? 'Text Controlled' : 'Voice Controlled'}
                     </Button>
-                </div>
 
-
-                <div className="absolute bottom-4 left-4 opacity-50">
-                    <Link href="/log">
-                        <Button variant="ghost" size="icon" className="h-40 w-40">
-                            <BookImage className="h-32 w-32 text-foreground" />
-                        </Button>
-                    </Link>
-                </div>
-                <div className="absolute bottom-4 right-4 opacity-50">
-                    <Link href="/">
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        className="h-40 w-40"
-                      >
-                        <Home className="h-32 w-32 text-foreground" />
-                      </Button>
-                    </Link>
+                    <div className="opacity-50">
+                        <Link href="/">
+                          <Button
+                            variant='ghost'
+                            size='icon'
+                            className="h-40 w-40"
+                          >
+                            <Home className="h-32 w-32 text-foreground" />
+                          </Button>
+                        </Link>
+                    </div>
                 </div>
             </main>
         </AppLayout>
