@@ -33,9 +33,11 @@ const PAGE_NARRATION = "This is the Bird Book, your personal log of identified b
 function AiAssistantCard({ 
     onStartChat,
     onSortComplete,
+    isPageSpeakerLoading,
 }: { 
     onStartChat: () => void;
     onSortComplete: () => void;
+    isPageSpeakerLoading: boolean;
 }) {
     const [isChatActive, setIsChatActive] = useState(false);
     const [chatMode, setChatMode] = useState<'voice' | 'text'>('voice');
@@ -45,6 +47,15 @@ function AiAssistantCard({
     const [isListening, setIsListening] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // This effect ensures the chatbot waits for the main page narration to load first.
+    useEffect(() => {
+        if (!isPageSpeakerLoading && isChatActive && chatMode === 'voice' && conversationStep === 1 && !isSpeaking && !isListening) {
+             playAudio('Hello, please tell me the name of the bird card you would like to find.');
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isPageSpeakerLoading, isChatActive, chatMode, conversationStep]);
+
 
     useEffect(() => {
         audioRef.current = new Audio();
@@ -56,7 +67,12 @@ function AiAssistantCard({
             }
         };
         audioRef.current.addEventListener('ended', handleEnd);
-        return () => audioRef.current?.removeEventListener('ended', handleEnd);
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.removeEventListener('ended', handleEnd);
+                audioRef.current.pause();
+            }
+        };
     }, [conversationStep]);
 
     const playAudio = async (text: string) => {
@@ -72,17 +88,38 @@ function AiAssistantCard({
             setIsSpeaking(false);
         }
     };
+    
+    const resetChat = () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+        }
+        setIsChatActive(false);
+        setConversationStep(0);
+        setIsListening(false);
+        setIsSpeaking(false);
+        setMessages([]);
+    }
 
     const handleToggleChat = async () => {
-        if (!isChatActive) {
-            onStartChat();
-            setIsChatActive(true);
-            setConversationStep(1);
+        if (isChatActive) {
+            // Allow resetting the chat if clicked while active in voice mode
             if (chatMode === 'voice') {
-                await playAudio('Hello, please tell me the name of the bird card you would like to find.');
-            } else {
-                setMessages([{ sender: 'bot', text: 'Hello, please tell me the name of the bird card you would like to find.' }]);
+                resetChat();
             }
+            return;
+        }
+
+        onStartChat();
+        setIsChatActive(true);
+        setConversationStep(1);
+
+        if (chatMode === 'voice') {
+            // If the page speaker is still loading, the useEffect will handle playing the audio.
+            if (!isPageSpeakerLoading) {
+                await playAudio('Hello, please tell me the name of the bird card you would like to find.');
+            }
+        } else {
+            setMessages([{ sender: 'bot', text: 'Hello, please tell me the name of the bird card you would like to find.' }]);
         }
     };
     
@@ -128,6 +165,7 @@ function AiAssistantCard({
         if (!isChatActive) return "Click the icon to give a command";
         if (isSpeaking) return "Speaking...";
         if (isListening) return "Listening...";
+        if (isPageSpeakerLoading) return "Waiting for narrator...";
         return "Processing...";
     }
 
@@ -183,6 +221,9 @@ function AiAssistantCard({
                         setChatMode(chatMode === 'voice' ? 'text' : 'voice');
                         if (!isChatActive) {
                             handleToggleChat();
+                        } else {
+                            // If switching modes while active, reset the chat
+                            resetChat();
                         }
                     }}
                     variant={chatMode === 'text' ? 'secondary' : 'default'}
@@ -243,7 +284,7 @@ export default function BirdBookPage() {
     const [api, setApi] = useState<CarouselApi>();
     const [isClient, setIsClient] = useState(false);
     const [currentTheme, setCurrentTheme] = useState('light');
-    const { playNarration, ...speakerProps } = useSpeaker(PAGE_NARRATION);
+    const { playNarration, isLoading: isSpeakerLoading, ...speakerProps } = useSpeaker(PAGE_NARRATION);
     const [savedRuns, setSavedRuns] = useState<AnalysisRun[]>([]);
 
     useEffect(() => {
@@ -275,7 +316,7 @@ export default function BirdBookPage() {
         <AppLayout>
             <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
                 <div className="absolute top-4 left-4 opacity-50">
-                    <SpeakerButton onClick={playNarration} {...speakerProps} />
+                    <SpeakerButton onClick={playNarration} isLoading={isSpeakerLoading} {...speakerProps} />
                 </div>
                 <div className="absolute top-4 right-4 opacity-50">
                     <ContrastButton key={currentTheme} />
@@ -288,6 +329,7 @@ export default function BirdBookPage() {
                                 <AiAssistantCard 
                                     onStartChat={startChat} 
                                     onSortComplete={handleSortComplete}
+                                    isPageSpeakerLoading={isSpeakerLoading}
                                 />
                             </div>
                         </CarouselItem>
@@ -349,3 +391,4 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
+
