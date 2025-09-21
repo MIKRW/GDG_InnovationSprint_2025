@@ -5,25 +5,16 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { Carousel, CarouselContent, CarouselItem, useCarousel } from '@/components/ui/carousel';
-import { RecordButton } from '@/components/content/RecordButton';
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BookImage, Settings, Home } from 'lucide-react';
+import { BookImage, Settings, Home, Bot } from 'lucide-react';
 import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
 import React from 'react';
 import { cn } from '@/lib/utils';
 
 function AiAssistantCard() {
-    const [isRecording, setIsRecording] = useState(false);
-
-    const handleRecordingComplete = (blob: Blob) => {
-        // Placeholder for AI assistant interaction
-        console.log('AI assistant recording complete');
-        setIsRecording(false);
-    }
-
     return (
         <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
             <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
@@ -33,15 +24,12 @@ function AiAssistantCard() {
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col items-center justify-center gap-4">
                      <div className="w-48 h-48">
-                        <RecordButton
-                            onStartRecording={() => setIsRecording(true)}
-                            onRecordingComplete={handleRecordingComplete}
-                            onStopRecording={() => setIsRecording(false)}
-                            isRecording={isRecording}
-                        />
+                        <Button variant="ghost" className="w-full h-full rounded-full">
+                            <Bot className="h-48 w-48 text-foreground" />
+                        </Button>
                      </div>
                     <p className="text-muted-foreground text-center max-w-xs">
-                        Press the button and ask me to find a bird by name, filter by date, or show you only your best recordings.
+                        Press to chat
                     </p>
                 </CardContent>
             </Card>
