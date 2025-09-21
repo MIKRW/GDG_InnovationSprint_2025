@@ -82,7 +82,7 @@ export default function SettingsPage() {
   const [hardware, setHardware] = useState('');
   const [isClient, setIsClient] = useState(false);
   const [narrationText, setNarrationText] = useState(NARRATION_TEXTS[0]);
-  const { playNarration, isGeneralAutoPlayOn, toggleGeneralAutoPlay, isCarouselAutoPlayOn, toggleCarouselAutoPlay, ...speakerProps } = useSpeaker(narrationText, 'general');
+  const { playNarration, isGeneralAutoPlayOn, toggleGeneralAutoPlay, isCarouselAutoPlayOn, toggleCarouselAutoPlay, ...speakerProps } = useSpeaker(narrationText, 'carousel');
   const [api, setApi] = useState<CarouselApi>();
   const [controlMode, setControlMode] = useState<'voice' | 'text'>('text');
   
@@ -110,9 +110,10 @@ export default function SettingsPage() {
         const selectedIndex = api.selectedScrollSnap();
         const newNarration = NARRATION_TEXTS[selectedIndex];
         if (newNarration) {
-            setNarrationText(newNarration);
             if (isCarouselAutoPlayOn) {
                 debouncedNarration(selectedIndex);
+            } else {
+                setNarrationText(newNarration);
             }
         }
     };
@@ -338,6 +339,3 @@ export default function SettingsPage() {
     </AppLayout>
   );
 }
-
-    
-    

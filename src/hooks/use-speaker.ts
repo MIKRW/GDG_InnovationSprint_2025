@@ -13,7 +13,7 @@ interface SpeakerSettings {
     isCarouselAutoPlayOn: boolean;
 }
 
-export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'carousel') {
+export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'carousel' = 'general') {
     const [settings, setSettings] = useState<SpeakerSettings>({
         isSpeakerOn: true,
         isGeneralAutoPlayOn: false,
@@ -121,12 +121,15 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         if (isAutoPlayRelevant && settings.isSpeakerOn && narrationSource && hasInteractedRef.current) {
             fetchAndCacheAudio(narrationSource, true);
         } else if (settings.isSpeakerOn && narrationSource) {
+            // Pre-fetch but don't play if auto-play is off
             fetchAndCacheAudio(narrationSource, false);
         }
     }, [narrationSource, settings.isGeneralAutoPlayOn, settings.isCarouselAutoPlayOn, settings.isSpeakerOn, autoPlayType, fetchAndCacheAudio]);
 
 
-    const playNarration = useCallback(async (sourceToPlay: string) => {
+    const playNarration = useCallback(async (sourceToPlay?: string) => {
+        const targetSource = sourceToPlay || narrationSource;
+        
         if (!hasInteractedRef.current) {
             hasInteractedRef.current = true;
             sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
@@ -138,7 +141,7 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
                 localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
                 return newSettings;
             });
-             fetchAndCacheAudio(sourceToPlay, true);
+             fetchAndCacheAudio(targetSource, true);
             return;
         };
 
@@ -149,9 +152,9 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
             audio.pause();
             audio.currentTime = 0;
         } else {
-            await fetchAndCacheAudio(sourceToPlay, true);
+            await fetchAndCacheAudio(targetSource, true);
         }
-    }, [settings.isSpeakerOn, isPlaying, fetchAndCacheAudio]);
+    }, [settings.isSpeakerOn, isPlaying, fetchAndCacheAudio, narrationSource]);
 
     const toggleGeneralAutoPlay = useCallback(() => {
         setSettings(prev => {
@@ -181,6 +184,3 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         toggleCarouselAutoPlay,
     };
 }
-
-    
-    

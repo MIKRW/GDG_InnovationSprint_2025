@@ -262,7 +262,7 @@ export default function Home() {
     <AppLayout>
       <main className="flex flex-1 flex-col items-center justify-center bg-muted p-4 relative">
         <div className="absolute top-4 left-4 opacity-50">
-            <SpeakerButton onClick={() => playNarration(PAGE_NARRATION_PATH)} {...speakerProps} />
+            <SpeakerButton onClick={() => playNarration()} {...speakerProps} />
         </div>
         <div className="absolute top-4 right-4 opacity-50">
             <ContrastButton />
@@ -318,6 +318,3 @@ export default function Home() {
     </AppLayout>
   );
 }
-
-    
-    
