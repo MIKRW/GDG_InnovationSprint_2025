@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
@@ -11,14 +12,13 @@ const audioCache = new Map<string, string>();
 export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'carousel' = 'general') {
     const { toast } = useToast();
     
-    // Correctly use useSyncExternalStore with getServerSnapshot for SSR compatibility
     const speakerSettings = useSyncExternalStore(
         (onStoreChange) => {
             window.addEventListener('speaker-settings-change', onStoreChange);
             return () => window.removeEventListener('speaker-settings-change', onStoreChange);
         },
-        getSpeakerSettings, // getSnapshot (client)
-        () => defaultSettings // getServerSnapshot (server)
+        getSpeakerSettings,
+        () => defaultSettings
     );
 
     const [isPlaying, setIsPlaying] = useState(false);
@@ -30,32 +30,39 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     useEffect(() => {
         const hasInteracted = !!sessionStorage.getItem(FIRST_INTERACTION_KEY);
         
-        const narrationPlayer = new Audio();
-        narrationAudioRef.current = narrationPlayer;
+        if (!narrationAudioRef.current) {
+            const narrationPlayer = new Audio();
+            narrationAudioRef.current = narrationPlayer;
 
-        const handleNarrationEnd = () => setIsPlaying(false);
-        const handleNarrationPlay = () => setIsPlaying(true);
+            const handleNarrationEnd = () => setIsPlaying(false);
+            const handleNarrationPlay = () => setIsPlaying(true);
 
-        narrationPlayer.addEventListener('play', handleNarrationPlay);
-        narrationPlayer.addEventListener('pause', handleNarrationEnd);
-        narrationPlayer.addEventListener('ended', handleNarrationEnd);
-
-        sfxAudioRef.current = new Audio();
-
-        if (speakerSettings.isAutoPlayOn && narrationSource && hasInteracted && narrationSource.endsWith('.wav') && autoPlayType === 'general') {
-            narrationPlayer.src = narrationSource;
-            narrationPlayer.play().catch(e => console.error("Autoplay failed:", e));
+            narrationPlayer.addEventListener('play', handleNarrationPlay);
+            narrationPlayer.addEventListener('pause', handleNarrationEnd);
+            narrationPlayer.addEventListener('ended', handleNarrationEnd);
         }
 
+        if (!sfxAudioRef.current) {
+            sfxAudioRef.current = new Audio();
+        }
+
+        if (speakerSettings.isAutoPlayOn && narrationSource && hasInteracted && narrationSource.endsWith('.wav') && autoPlayType === 'general') {
+            const audio = narrationAudioRef.current;
+            if (audio && audio.src !== narrationSource) {
+                 audio.src = narrationSource;
+                 audio.play().catch(e => console.error("Autoplay failed:", e));
+            }
+        }
+        
+        // This effect should only run once to set up the audio players.
+        // We add a cleanup function to be safe.
+        const player = narrationAudioRef.current;
         return () => {
-            narrationPlayer.removeEventListener('play', handleNarrationPlay);
-            narrationPlayer.removeEventListener('pause', handleNarrationEnd);
-            narrationPlayer.removeEventListener('ended', handleNarrationEnd);
-            narrationPlayer.pause();
+            if (player) {
+                player.pause();
+            }
         };
-    // The dependency array is intentionally stable. autoPlayType is a one-time config.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [narrationSource]);
+    }, [narrationSource, speakerSettings.isAutoPlayOn, autoPlayType]);
 
 
     const playNarration = useCallback(async (sourceToPlayOverride?: string) => {
@@ -128,6 +135,5 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         isLoading,
         playNarration,
         playSfx,
-        // The setter function is no longer part of this hook's responsibility
     };
 }
