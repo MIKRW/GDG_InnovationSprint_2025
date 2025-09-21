@@ -4,14 +4,16 @@
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
+import { Carousel, CarouselContent, CarouselItem, useCarousel } from '@/components/ui/carousel';
 import { RecordButton } from '@/components/content/RecordButton';
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BookImage, Settings, Home, ArrowLeft, ArrowRight } from 'lucide-react';
+import { BookImage, Settings, Home } from 'lucide-react';
 import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
+import React from 'react';
+import { cn } from '@/lib/utils';
 
 function AiAssistantCard() {
     const [isRecording, setIsRecording] = useState(false);
@@ -74,6 +76,50 @@ function BirdResultCard({ seed }: { seed: string }) {
     );
 }
 
+const CarouselPrevious = React.forwardRef<
+  HTMLButtonElement,
+  React.ComponentProps<typeof Button>
+>(({ className, variant = "outline", size = "icon", ...props }, ref) => {
+  const { scrollPrev, canScrollPrev } = useCarousel();
+
+  return (
+    <button
+      ref={ref}
+      className={cn("absolute top-1/2 -translate-y-1/2 h-40 w-40 -left-60", className)}
+      disabled={!canScrollPrev}
+      onClick={scrollPrev}
+      aria-label="Previous slide"
+    >
+        <svg viewBox="0 0 100 100" className="w-full h-full fill-ring">
+            <path d="M 80,5 20,50 80,95 Z" />
+        </svg>
+    </button>
+  );
+});
+CarouselPrevious.displayName = "CarouselPrevious"
+
+const CarouselNext = React.forwardRef<
+  HTMLButtonElement,
+  React.ComponentProps<typeof Button>
+>(({ className, variant = "outline", size = "icon", ...props }, ref) => {
+  const { scrollNext, canScrollNext } = useCarousel();
+
+  return (
+    <button
+      ref={ref}
+      className={cn("absolute top-1/2 -translate-y-1/2 h-40 w-40 -right-60", className)}
+      disabled={!canScrollNext}
+      onClick={scrollNext}
+      aria-label="Next slide"
+    >
+        <svg viewBox="0 0 100 100" className="w-full h-full fill-ring">
+            <path d="M 20,5 80,50 20,95 Z" />
+        </svg>
+    </button>
+  );
+});
+CarouselNext.displayName = "CarouselNext"
+
 export default function BirdBookPage() {
     return (
         <AppLayout>
@@ -108,12 +154,8 @@ export default function BirdBookPage() {
                             </div>
                         </CarouselItem>
                     </CarouselContent>
-                    <CarouselPrevious size="icon" className="h-40 w-40 text-primary-foreground -left-60">
-                        <ArrowLeft className="h-32 w-32" />
-                    </CarouselPrevious>
-                    <CarouselNext size="icon" className="h-40 w-40 text-primary-foreground -right-60">
-                        <ArrowRight className="h-32 w-32" />
-                    </CarouselNext>
+                    <CarouselPrevious />
+                    <CarouselNext />
                 </Carousel>
 
                 <div className="absolute bottom-4 left-4 opacity-50">

@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -259,4 +260,5 @@ export {
   CarouselItem,
   CarouselPrevious,
   CarouselNext,
+  useCarousel,
 }
