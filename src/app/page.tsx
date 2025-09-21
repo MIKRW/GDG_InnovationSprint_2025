@@ -25,7 +25,7 @@ const LOCATION_SETTINGS_KEY = 'location-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 const ANALYSIS_TIMEOUT_MS = 90000; // 90 seconds
 
-const PAGE_NARRATION = "Welcome to Name that Bird! Press the large button to start a recording, or use the corner buttons to navigate to your bird book and settings.";
+const PAGE_NARRATION = "/audio/narration-main-page.mp3";
 const FIRST_INTERACTION_KEY = 'user-has-interacted';
 
 export default function Home() {

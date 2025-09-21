@@ -66,6 +66,12 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     }, []);
 
     const getAudioDataUri = useCallback(async (source: string): Promise<string> => {
+        // If the source is a path to an MP3 file, return it directly.
+        if (source.endsWith('.mp3')) {
+            // No caching needed for static files, just return the path.
+            return source;
+        }
+
         // If it's AI text, check cache first
         if (lastPlayedSourceRef.current === source && lastDataUriRef.current) {
             return lastDataUriRef.current;
@@ -106,7 +112,6 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         const audio = audioRef.current;
         if (!audio || !targetSource) return;
 
-        // Ensure first interaction has happened for autoplay browsers
         if (!hasInteractedRef.current) {
             hasInteractedRef.current = true;
             sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
@@ -130,7 +135,11 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     useEffect(() => {
         const isAutoPlayOn = (autoPlayType === 'general' && settings.isGeneralAutoPlayOn) || (autoPlayType === 'carousel' && settings.isCarouselAutoPlayOn);
         if (isAutoPlayOn && settings.isSpeakerOn && narrationSource && hasInteractedRef.current) {
-            playAudio(narrationSource);
+            // Don't auto-play dynamic TTS-generated content to save costs.
+            // Only auto-play the pre-recorded MP3 files.
+            if (narrationSource.endsWith('.mp3')) {
+                playAudio(narrationSource);
+            }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [narrationSource, settings.isGeneralAutoPlayOn, settings.isCarouselAutoPlayOn, settings.isSpeakerOn, autoPlayType]);

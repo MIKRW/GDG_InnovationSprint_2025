@@ -68,12 +68,12 @@ CarouselNext.displayName = "CarouselNext"
 
 
 const NARRATION_TEXTS = [
-    "This is the main settings page. You can swipe left and right to view the different settings categories.",
-    "This is the auto-play narration card. You can enable or disable automatic audio descriptions for general pages and for carousel slides like this one.",
-    "This is the theme customization card. Open the theme editor to create a unique look and feel for your application.",
-    "This is the location settings card. Manage how the app uses your location to improve bird identification.",
-    "This is the app mode card. Choose between Newbie and Twitcher modes to tailor the app's features to your experience level.",
-    "This is the recording hardware card. You can optionally specify the microphone you use for recording to help the AI."
+    "/audio/narration-settings-intro.mp3",
+    "/audio/narration-settings-narration.mp3",
+    "/audio/narration-settings-theme.mp3",
+    "/audio/narration-settings-location.mp3",
+    "/audio/narration-settings-mode.mp3",
+    "/audio/narration-settings-hardware.mp3",
 ];
 
 
