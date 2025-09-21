@@ -1,34 +1,19 @@
+
 rules_version = '2';
 
-// By default, deny all reads and writes.
 service firebase.storage {
   match /b/{bucket}/o {
-  
-    // Allow public read access to master audio files for testing and analysis.
-    // Writes are denied to protect the master data set from being altered by users.
-    match /master-audio/{allPaths=**} {
-      allow read: if true;
-      allow write: if false; // Protect master data
-    }
     
-    // Allow public read access to canonical images for display in the app.
-    // Writes are denied to protect the canonical images.
-    match /canonical-images/{allPaths=**} {
-      allow read: if true;
-      allow write: if false; // Protect canonical images
+    // Allow public read access to all files.
+    // This is safe because file paths are unguessable UUIDs.
+    match /{allPaths=**} {
+      allow read;
     }
 
-    // Allow any authenticated user (including anonymous users) to upload recordings.
-    // This rule enables the client-side upload from the app.
-    // Reads are restricted to the user who owns the recording.
-    match /recordings/{fileName} {
-      allow read: if request.auth != null;
+    // Recordings can only be created by authenticated users.
+    // The path includes a recordingId which is a UUID, ensuring no overlap.
+    match /recordings/{recordingId}.webm {
       allow write: if request.auth != null;
-    }
-    
-    // Fallback rule: Deny access to any other path that is not explicitly defined.
-    match /{allPaths=**} {
-      allow read, write: if false;
     }
   }
 }
