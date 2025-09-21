@@ -17,7 +17,7 @@ import { ContrastButton } from '@/components/content/ContrastButton';
 import { useToast } from '@/hooks/use-toast';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { app, storage } from '@/lib/firebase';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref as storageRef, uploadBytes } from 'firebase/storage';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
@@ -79,7 +79,7 @@ export default function Home() {
     }
   };
   
-  const processAudio = async (storagePath: string, recordingId: string): Promise<string | null> => {
+  const processAudio = (storagePath: string, recordingId: string): Promise<string | null> => {
     return new Promise((resolve, reject) => {
       getLocationForAIShot(async (locationData) => {
           if (!currentCreationTime.current || !currentSessionId.current) {
@@ -87,12 +87,9 @@ export default function Home() {
           }
           
           const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
-          let analysisRunId: string | null = null;
           
           try {
-              const analysisStartTime = Date.now();
-              
-              analysisRunId = await createAnalysisRun(
+              const analysisRunId = await createAnalysisRun(
                   storagePath, recordingId, locationData, hardware, 'newbie',
                   {}, // analysisTimings - will be calculated on server
                   currentSessionId.current, currentCreationTime.current!
@@ -104,8 +101,16 @@ export default function Home() {
                   sessionId: currentSessionId.current, creationTime: currentCreationTime.current,
                   locationData: locationData, userId: 'anonymous'
               });
-              // In case of error, we still resolve with the ID to navigate to the error page
-              reject(error);
+              // In case of error, we still want to create a log and navigate, so we try to create a failed run
+              try {
+                const failedRunId = await createAnalysisRun(
+                    storagePath, recordingId, locationData, hardware, 'newbie',
+                    {}, currentSessionId.current, currentCreationTime.current!, error as Error
+                );
+                resolve(failedRunId);
+              } catch (finalError) {
+                reject(finalError);
+              }
           }
       });
     });
@@ -152,12 +157,6 @@ export default function Home() {
               title: 'Analysis Timed Out',
               description: `The analysis took too long to complete. Please try again.`,
           });
-      } else if (errorMessage.includes('storage/unauthorized')) {
-          toast({
-            variant: 'destructive',
-            title: 'Permission Error',
-            description: 'You do not have permission to upload audio. Please check storage rules.',
-        });
       } else {
         toast({
             variant: 'destructive',
@@ -167,6 +166,7 @@ export default function Home() {
       }
     } finally {
       setIsProcessing(false);
+      // ALWAYS navigate, even on failure. The result page will handle displaying the error.
       if (analysisRunId) {
         router.push(`/record/result/${analysisRunId}`);
       }

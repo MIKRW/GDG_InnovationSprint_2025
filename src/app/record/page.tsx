@@ -71,7 +71,7 @@ export default function RecordPage() {
     }
   };
 
-  const processAudio = async (storagePath: string, recordingId: string): Promise<string | null> => {
+  const processAudio = (storagePath: string, recordingId: string): Promise<string | null> => {
       return new Promise((resolve, reject) => {
         getLocationForAIShot(async (locationData) => {
             if (!currentCreationTime.current || !currentSessionId.current) {
@@ -79,10 +79,9 @@ export default function RecordPage() {
             }
             
             const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
-            let analysisRunId: string | null = null;
             
             try {
-                analysisRunId = await createAnalysisRun(
+                const analysisRunId = await createAnalysisRun(
                     storagePath, recordingId, locationData, hardware, 'newbie',
                     {},
                     currentSessionId.current, currentCreationTime.current!
@@ -94,7 +93,15 @@ export default function RecordPage() {
                     sessionId: currentSessionId.current, creationTime: currentCreationTime.current,
                     locationData: locationData, userId: 'anonymous'
                 });
-                reject(error);
+                try {
+                    const failedRunId = await createAnalysisRun(
+                        storagePath, recordingId, locationData, hardware, 'newbie',
+                        {}, currentSessionId.current, currentCreationTime.current!, error as Error
+                    );
+                    resolve(failedRunId);
+                } catch (finalError) {
+                    reject(finalError);
+                }
             }
         });
       });
@@ -121,7 +128,7 @@ export default function RecordPage() {
         const fileRef = storageRef(storage, audioStoragePath);
         await uploadBytes(fileRef, audioBlob);
         
-        const timeoutPromise = new Promise<null>((_, reject) => 
+        const timeoutPromise = new Promise<string | null>((_, reject) => 
             setTimeout(() => reject(new Error('Analysis timed out')), ANALYSIS_TIMEOUT_MS)
         );
 
@@ -136,7 +143,7 @@ export default function RecordPage() {
             userId: 'anonymous',
             recordingId,
         });
-        if ((error as Error).message === 'Analysis timed out') {
+        if ((error as Error).message.includes('timed out')) {
             toast({
                 variant: 'destructive',
                 title: 'Analysis Timed Out',

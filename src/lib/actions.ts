@@ -145,6 +145,7 @@ export async function createAnalysisRun(
     analysisTimings: AnalysisRun['analysisTimings'] = {},
     sessionId: string,
     creationTime: string,
+    existingError?: Error
   ): Promise<string> {
     
     const analysisRunId = uuidv4();
@@ -154,27 +155,31 @@ export async function createAnalysisRun(
     const fileRef = storageRef(storage, storagePath);
     const downloadUrl = await getDownloadURL(fileRef);
 
-    const analysisStartTime = Date.now();
     let aiResult: IdentifyBirdOutput;
     let wasSuccessful: boolean;
     
-    try {
-        aiResult = await identifyBirdBySound({
-            audioDataUri: downloadUrl,
-            creationTime: creationTime,
-            ...locationData,
-            mode: mode
-        });
-        wasSuccessful = aiResult && aiResult.isBirdSong && !!aiResult.commonName;
-    } catch (error) {
+    if (existingError) {
         wasSuccessful = false;
-        aiResult = { isBirdSong: false, error: (error as Error).message };
-        logErrorToFirestore(error as Error, 'ai-flow-execution-failure', { sessionId, recordingId });
+        aiResult = { isBirdSong: false, error: existingError.message };
+    } else {
+        const analysisStartTime = Date.now();
+        try {
+            aiResult = await identifyBirdBySound({
+                audioDataUri: downloadUrl,
+                creationTime: creationTime,
+                ...locationData,
+                mode: mode
+            });
+            wasSuccessful = aiResult && aiResult.isBirdSong && !!aiResult.commonName;
+            const analysisDurationMs = Date.now() - analysisStartTime;
+            analysisTimings.primaryIdentificationMs = analysisDurationMs;
+        } catch (error) {
+            wasSuccessful = false;
+            aiResult = { isBirdSong: false, error: (error as Error).message };
+            logErrorToFirestore(error as Error, 'ai-flow-execution-failure', { sessionId, recordingId });
+        }
     }
     
-    const analysisDurationMs = Date.now() - analysisStartTime;
-    analysisTimings.primaryIdentificationMs = analysisDurationMs;
-
     const docToCreate: Partial<AnalysisRun> = {
       id: analysisRunId,
       creationTime: creationTime,
