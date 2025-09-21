@@ -22,6 +22,7 @@ export function useSpeaker(narrationText: string) {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const audioDataUriRef = useRef<string | null>(null);
     const hasInteractedRef = useRef(false);
+    const lastPlayedTextRef = useRef<string | null>(null);
     
     useEffect(() => {
         // This ref should reflect the session storage, not be a separate boolean
@@ -70,12 +71,13 @@ export function useSpeaker(narrationText: string) {
         }
     }, []);
 
-    const fetchAndCacheAudio = useCallback(async (shouldPlay: boolean) => {
-        if (!narrationText || !settings.isSpeakerOn) return;
-        
-        if (audioDataUriRef.current) {
+    const fetchAndCacheAudio = useCallback(async (textToPlay: string, shouldPlay: boolean) => {
+        if (!textToPlay || !settings.isSpeakerOn) return;
+
+        // If we have the audio for the exact text cached, play it.
+        if (audioDataUriRef.current && lastPlayedTextRef.current === textToPlay) {
             if (shouldPlay && hasInteractedRef.current && audioRef.current) {
-                if (audioRef.current.src !== audioDataUriRef.current) {
+                 if (audioRef.current.src !== audioDataUriRef.current) {
                     audioRef.current.src = audioDataUriRef.current;
                 }
                 audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
@@ -83,10 +85,12 @@ export function useSpeaker(narrationText: string) {
             return;
         }
 
+        // If not cached, fetch it.
         setIsLoading(true);
         try {
-            const response = await textToSpeech(narrationText);
+            const response = await textToSpeech(textToPlay);
             audioDataUriRef.current = response.audioDataUri;
+            lastPlayedTextRef.current = textToPlay;
             if (shouldPlay && hasInteractedRef.current && audioRef.current) {
                 audioRef.current.src = response.audioDataUri;
                 audioRef.current.play().catch(e => console.error("Audio playback failed after fetch:", e));
@@ -96,16 +100,19 @@ export function useSpeaker(narrationText: string) {
         } finally {
             setIsLoading(false);
         }
-    }, [narrationText, settings.isSpeakerOn]);
+    }, [settings.isSpeakerOn]);
 
     useEffect(() => {
-        if (settings.isSpeakerOn && narrationText) {
-            fetchAndCacheAudio(settings.isAutoPlayOn && hasInteractedRef.current);
+        if (settings.isAutoPlayOn && settings.isSpeakerOn && narrationText && hasInteractedRef.current) {
+            fetchAndCacheAudio(narrationText, true);
+        } else if (settings.isSpeakerOn && narrationText) {
+             // Pre-fetch audio even if autoplay is off, but don't play it
+            fetchAndCacheAudio(narrationText, false);
         }
-    }, [narrationText, settings.isSpeakerOn, settings.isAutoPlayOn, fetchAndCacheAudio]);
+    }, [narrationText, settings.isAutoPlayOn, settings.isSpeakerOn, fetchAndCacheAudio]);
 
 
-    const playNarration = useCallback(async () => {
+    const playNarration = useCallback(async (textToPlay: string) => {
         if (!hasInteractedRef.current) {
             hasInteractedRef.current = true;
             sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
@@ -117,6 +124,8 @@ export function useSpeaker(narrationText: string) {
                 localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
                 return newSettings;
             });
+            // After enabling, it will try to play.
+             fetchAndCacheAudio(textToPlay, true);
             return;
         };
 
@@ -127,7 +136,7 @@ export function useSpeaker(narrationText: string) {
             audio.pause();
             audio.currentTime = 0;
         } else {
-            await fetchAndCacheAudio(true);
+            await fetchAndCacheAudio(textToPlay, true);
         }
     }, [settings.isSpeakerOn, isPlaying, fetchAndCacheAudio]);
 

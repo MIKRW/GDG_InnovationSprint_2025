@@ -4,7 +4,7 @@
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Carousel, CarouselApi, CarouselContent, CarouselItem, useCarousel } from '@/components/ui/carousel';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { BookImage, Settings, Home, Bot, Mic } from 'lucide-react';
@@ -284,9 +284,27 @@ export default function BirdBookPage() {
     const [api, setApi] = useState<CarouselApi>();
     const [isClient, setIsClient] = useState(false);
     const [currentTheme, setCurrentTheme] = useState('light');
-    const { playNarration, isLoading: isSpeakerLoading, ...speakerProps } = useSpeaker(PAGE_NARRATION);
+    const [narrationText, setNarrationText] = useState(PAGE_NARRATION);
+    const { playNarration, isLoading: isSpeakerLoading, ...speakerProps } = useSpeaker(narrationText);
     const [savedRuns, setSavedRuns] = useState<AnalysisRun[]>([]);
+    const narrationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+    const getNarrationForSlide = useCallback((index: number): string => {
+        if (index === 0) {
+            return "This is the AI assistant. Click the bot icon to issue a command.";
+        }
+        const runIndex = index - 1;
+        if (savedRuns[runIndex]) {
+            const run = savedRuns[runIndex];
+            if (run.aiResult.isBirdSong && run.aiResult.commonName) {
+                return `This is an entry for a ${run.aiResult.commonName}.`;
+            } else {
+                return "This is a mystery recording where no bird was identified.";
+            }
+        }
+        return "Your Bird Book is empty. Make a recording to save your first entry.";
+    }, [savedRuns]);
+    
     useEffect(() => {
         setIsClient(true);
         const theme = localStorage.getItem('theme') || 'light';
@@ -297,6 +315,29 @@ export default function BirdBookPage() {
             setSavedRuns(JSON.parse(savedRunsJson));
         }
     }, []);
+
+    useEffect(() => {
+        if (!api) return;
+
+        const handleSelect = () => {
+            if (narrationTimeoutRef.current) {
+                clearTimeout(narrationTimeoutRef.current);
+            }
+            narrationTimeoutRef.current = setTimeout(() => {
+                const newNarration = getNarrationForSlide(api.selectedScrollSnap());
+                setNarrationText(newNarration);
+            }, 2000);
+        };
+
+        api.on("select", handleSelect);
+        
+        return () => {
+            api.off("select", handleSelect);
+            if (narrationTimeoutRef.current) {
+                clearTimeout(narrationTimeoutRef.current);
+            }
+        };
+    }, [api, getNarrationForSlide]);
     
     const startChat = () => {
         api?.scrollTo(0);
@@ -316,7 +357,7 @@ export default function BirdBookPage() {
         <AppLayout>
             <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
                 <div className="absolute top-4 left-4 opacity-50">
-                    <SpeakerButton onClick={playNarration} isLoading={isSpeakerLoading} {...speakerProps} />
+                    <SpeakerButton onClick={() => playNarration(narrationText)} isLoading={isSpeakerLoading} {...speakerProps} />
                 </div>
                 <div className="absolute top-4 right-4 opacity-50">
                     <ContrastButton key={currentTheme} />
@@ -391,4 +432,3 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
-

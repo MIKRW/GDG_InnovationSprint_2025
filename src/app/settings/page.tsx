@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -67,13 +67,25 @@ const CarouselNext = React.forwardRef<
 CarouselNext.displayName = "CarouselNext"
 
 
+const NARRATION_TEXTS = [
+    "Settings introduction. Swipe to customize your app experience.",
+    "Auto-play Narration settings. Automatically play descriptive audio on each page.",
+    "Customize Theme settings. Open the theme editor to change colors.",
+    "Location Settings. Manage how the app uses your location to improve identification.",
+    "App Mode settings. Change the app mode between Newbie and Twitcher.",
+    "Recording Hardware settings. Optionally, specify the microphone you use."
+];
+
+
 export default function SettingsPage() {
   const { toast } = useToast();
   const [hardware, setHardware] = useState('');
   const [isClient, setIsClient] = useState(false);
-  const { playNarration, toggleAutoPlay, isAutoPlayOn, ...speakerProps } = useSpeaker(PAGE_NARRATION);
+  const [narrationText, setNarrationText] = useState(PAGE_NARRATION);
+  const { playNarration, toggleAutoPlay, isAutoPlayOn, ...speakerProps } = useSpeaker(narrationText);
   const [api, setApi] = useState<CarouselApi>();
   const [controlMode, setControlMode] = useState<'voice' | 'text'>('text');
+  const narrationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -82,6 +94,31 @@ export default function SettingsPage() {
       setHardware(savedHardware);
     }
   }, []);
+
+  useEffect(() => {
+    if (!api) return;
+
+    const handleSelect = () => {
+        if (narrationTimeoutRef.current) {
+            clearTimeout(narrationTimeoutRef.current);
+        }
+        narrationTimeoutRef.current = setTimeout(() => {
+            const newNarration = NARRATION_TEXTS[api.selectedScrollSnap()];
+            if (newNarration) {
+                setNarrationText(newNarration);
+            }
+        }, 2000);
+    };
+
+    api.on("select", handleSelect);
+    
+    return () => {
+        api.off("select", handleSelect);
+        if (narrationTimeoutRef.current) {
+            clearTimeout(narrationTimeoutRef.current);
+        }
+    };
+  }, [api]);
   
   const handleSaveHardware = () => {
     if (hardware) {
@@ -113,7 +150,7 @@ export default function SettingsPage() {
     <AppLayout>
       <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
         <div className="absolute top-4 left-4 opacity-50">
-            <SpeakerButton onClick={playNarration} {...speakerProps} />
+            <SpeakerButton onClick={() => playNarration(narrationText)} {...speakerProps} />
         </div>
         <div className="absolute top-4 right-4 opacity-50">
             <ContrastButton />
