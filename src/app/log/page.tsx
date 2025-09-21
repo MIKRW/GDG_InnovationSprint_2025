@@ -2,7 +2,7 @@
 'use client';
 
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Carousel, CarouselApi, CarouselContent, CarouselItem, useCarousel } from '@/components/ui/carousel';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -59,7 +59,7 @@ function AiAssistantCard({
         <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
             <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
                 <CardContent className="flex-1 flex flex-col items-center justify-center gap-4 p-2">
-                     {chatMode === 'voice' || !isChatActive ? (
+                     {chatMode === 'voice' ? (
                         <>
                             <div className="w-48 h-48">
                                 <Button variant="ghost" className="w-full h-full rounded-full hover:bg-background" onClick={handleToggleChat}>
