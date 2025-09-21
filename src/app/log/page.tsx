@@ -23,7 +23,7 @@ function AiAssistantCard() {
     }
 
     return (
-        <div className="bg-card-header rounded-lg shadow-lg p-2 h-full">
+        <div className="bg-secondary rounded-lg shadow-lg p-4 h-full">
             <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
                 <CardHeader className="text-center">
                     <CardTitle className="text-3xl">Bird Book Assistant</CardTitle>
@@ -49,7 +49,7 @@ function AiAssistantCard() {
 
 function BirdResultCard({ seed }: { seed: string }) {
     return (
-        <div className="bg-card-header rounded-lg shadow-lg p-2 h-full">
+        <div className="bg-secondary rounded-lg shadow-lg p-4 h-full">
             <Card className="w-full h-full shadow-2xl rounded-lg">
                 <div className="relative w-full h-64">
                     <Image
@@ -120,13 +120,13 @@ export default function BirdBookPage() {
                     </Link>
                 </div>
                 <div className="absolute bottom-4 right-4 opacity-50">
-                    <Link href="/settings">
+                    <Link href="/">
                       <Button
                         variant='ghost'
                         size='icon'
                         className="h-40 w-40"
                       >
-                        <Settings className="h-32 w-32 text-foreground" />
+                        <Home className="h-32 w-32 text-foreground" />
                       </Button>
                     </Link>
                 </div>
