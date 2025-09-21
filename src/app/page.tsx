@@ -68,56 +68,53 @@ export default function Home() {
     }
   };
   
-  const processAudio = (storagePath: string) => {
-      getLocationForAIShot(async (locationData) => {
-        setIsProcessing(true);
-        if (!currentTimestamp.current || !currentSessionId.current) {
-            setIsProcessing(false);
-            return;
-        }
-        
-        const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
-        let result: IdentifyBirdOutput | null = null;
-        let analysisRunId: string | null = null;
-        
-        try {
-            const analysisStartTime = Date.now();
-            result = await identifyBirdBySound({
-                audioStoragePath: storagePath,
-                timestamp: currentTimestamp.current!,
-                ...locationData
-            });
-            const analysisDurationMs = Date.now() - analysisStartTime;
-            const wasSuccessful = result && result.isBirdSong && !!result.commonName;
-
-            analysisRunId = await createAnalysisRun(
-                'anonymous', storagePath, result, wasSuccessful, locationData, hardware, 'newbie',
-                { primaryIdentificationMs: analysisDurationMs },
-                currentSessionId.current, currentTimestamp.current
-            );
-
-        } catch (error) {
-            const analysisDurationMs = Date.now() - (currentTimestamp.current ? new Date(currentTimestamp.current).getTime() : Date.now());
-            result = { error: (error as Error).message, isBirdSong: false };
-            logErrorToFirestore(error as Error, 'ai-identification-failure', {
-                sessionId: currentSessionId.current, timestamp: currentTimestamp.current,
-                locationData: locationData, userId: 'anonymous'
-            });
-            
-            analysisRunId = await createAnalysisRun(
-                'anonymous', storagePath, result, false,
-                locationData, hardware, 'newbie',
-                { primaryIdentificationMs: analysisDurationMs },
-                currentSessionId.current, currentTimestamp.current
-            );
-        } finally {
-            if (analysisRunId) {
-                router.push(`/record/result/${analysisRunId}`);
-            } else {
-                setIsProcessing(false);
+  const processAudio = async (storagePath: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+        getLocationForAIShot(async (locationData) => {
+            if (!currentTimestamp.current || !currentSessionId.current) {
+                resolve(null);
+                return;
             }
-        }
-      });
+            
+            const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
+            let result: IdentifyBirdOutput | null = null;
+            let analysisRunId: string | null = null;
+            
+            try {
+                const analysisStartTime = Date.now();
+                result = await identifyBirdBySound({
+                    audioStoragePath: storagePath,
+                    timestamp: currentTimestamp.current!,
+                    ...locationData
+                });
+                const analysisDurationMs = Date.now() - analysisStartTime;
+                const wasSuccessful = result && result.isBirdSong && !!result.commonName;
+
+                analysisRunId = await createAnalysisRun(
+                    'anonymous', storagePath, result, wasSuccessful, locationData, hardware, 'newbie',
+                    { primaryIdentificationMs: analysisDurationMs },
+                    currentSessionId.current, currentTimestamp.current
+                );
+
+            } catch (error) {
+                const analysisDurationMs = Date.now() - (currentTimestamp.current ? new Date(currentTimestamp.current).getTime() : Date.now());
+                result = { error: (error as Error).message, isBirdSong: false };
+                logErrorToFirestore(error as Error, 'ai-identification-failure', {
+                    sessionId: currentSessionId.current, timestamp: currentTimestamp.current,
+                    locationData: locationData, userId: 'anonymous'
+                });
+                
+                analysisRunId = await createAnalysisRun(
+                    'anonymous', storagePath, result, false,
+                    locationData, hardware, 'newbie',
+                    { primaryIdentificationMs: analysisDurationMs },
+                    currentSessionId.current, currentTimestamp.current
+                );
+            } finally {
+                resolve(analysisRunId);
+            }
+        });
+    });
   };
 
   const handleStart = () => {
@@ -135,17 +132,24 @@ export default function Home() {
     const filePath = `users/${tempUserId}/recordings/${recordingId}.webm`;
     const fileRef = storageRef(storage, filePath);
 
+    let analysisRunId: string | null = null;
     try {
         await uploadBytes(fileRef, audioBlob);
-        processAudio(filePath);
+        analysisRunId = await processAudio(filePath);
 
     } catch (error) {
-        console.error("Failed to upload live recording:", error);
+        console.error("Failed to upload or process live recording:", error);
         logErrorToFirestore(error as Error, 'live-audio-upload-failure', {
             userId: tempUserId,
             filePath: filePath,
         });
-        setIsProcessing(false);
+    } finally {
+        if (analysisRunId) {
+            router.push(`/record/result/${analysisRunId}`);
+        } else {
+            // If something went wrong and we didn't get an ID, stop the loading animation.
+            setIsProcessing(false);
+        }
     }
   }
   
