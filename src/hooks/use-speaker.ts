@@ -15,7 +15,7 @@ interface SpeakerSettings {
 
 const audioCache = new Map<string, string>();
 
-export function useSpeaker(narrationSource: string) {
+export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'carousel' = 'general') {
     const { toast } = useToast();
     const [settings, setSettings] = useState<SpeakerSettings>({
         isSpeakerOn: true,
@@ -54,7 +54,7 @@ export function useSpeaker(narrationSource: string) {
         }
 
         // Auto-play logic for page load
-        if (settings.isAutoPlayOn && narrationSource && hasInteracted && narrationSource.endsWith('.wav')) {
+        if (settings.isAutoPlayOn && narrationSource && hasInteracted && narrationSource.endsWith('.wav') && autoPlayType === 'general') {
             narrationPlayer.src = narrationSource;
             narrationPlayer.play().catch(e => console.error("Autoplay failed:", e));
         }
@@ -149,5 +149,3 @@ export function useSpeaker(narrationSource: string) {
         playSfx,
     };
 }
-
-    

@@ -22,6 +22,8 @@ import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 const SPEAKER_SETTINGS_KEY = 'speaker-settings';
+const APP_MODE_KEY = 'app-mode-settings';
+
 
 const CarouselPrevious = React.forwardRef<
   HTMLButtonElement,
@@ -86,14 +88,20 @@ export default function SettingsPage() {
   const [api, setApi] = useState<CarouselApi>();
 
   const [isAutoPlayOn, setIsAutoPlayOn] = useState(true);
+  const [isNewbieMode, setIsNewbieMode] = useState(true);
+
   const { playNarration, playSfx, ...speakerProps } = useSpeaker(narrationText);
   
   useEffect(() => {
     setIsClient(true);
+    
+    // Load Hardware setting
     const savedHardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
     if (savedHardware) {
       setHardware(savedHardware);
     }
+    
+    // Load Speaker setting
     const savedSpeakerSettings = localStorage.getItem(SPEAKER_SETTINGS_KEY);
     if (savedSpeakerSettings) {
       try {
@@ -101,6 +109,16 @@ export default function SettingsPage() {
         setIsAutoPlayOn(parsed.isAutoPlayOn);
       } catch {}
     }
+
+    // Load App Mode setting
+    const savedAppMode = localStorage.getItem(APP_MODE_KEY);
+    if (savedAppMode) {
+      try {
+        const parsed = JSON.parse(savedAppMode);
+        setIsNewbieMode(parsed.mode === 'newbie');
+      } catch {}
+    }
+
   }, []);
 
   const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
@@ -146,9 +164,22 @@ export default function SettingsPage() {
   const toggleAutoPlay = () => {
     const newValue = !isAutoPlayOn;
     setIsAutoPlayOn(newValue);
-    playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
+    playSfx(newValue ? '/audio/narration-settings-autoplay-on.wav' : '/audio/narration-settings-autoplay-off.wav');
     const existingSettings = JSON.parse(localStorage.getItem(SPEAKER_SETTINGS_KEY) || '{}');
     localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify({ ...existingSettings, isAutoPlayOn: newValue }));
+  };
+
+  const toggleAppMode = () => {
+    // Twitcher mode is disabled, so this toggle effectively does nothing functional yet
+    // but we can play the sound to indicate interaction.
+    const newValue = !isNewbieMode;
+    // setIsNewbieMode(newValue); // This would enable the toggle
+    playSfx(newValue ? '/audio/narration-settings-appmode-on.wav' : '/audio/narration-settings-appmode-off.wav');
+    // localStorage.setItem(APP_MODE_KEY, JSON.stringify({ mode: newValue ? 'newbie' : 'twitcher' }));
+    toast({
+        title: "Coming Soon",
+        description: "Twitcher mode is under development and cannot be enabled yet.",
+    });
   };
 
   if (!isClient) {
@@ -197,7 +228,7 @@ export default function SettingsPage() {
                                     </CardHeader>
                                     <CardContent className="flex flex-col items-center gap-6">
                                         <div className="flex items-center space-x-2 pointer-events-none">
-                                            <Label htmlFor="autoplay-switch" className="text-lg">Auto-play Narration</Label>
+                                            <Label htmlFor="autoplay-switch" className="text-lg">Narration</Label>
                                             <Switch
                                                 id="autoplay-switch"
                                                 checked={isAutoPlayOn}
@@ -252,15 +283,24 @@ export default function SettingsPage() {
                     <CarouselItem>
                         <div className="p-1 h-full">
                            <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
-                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
-                                    <CardHeader className="text-center">
-                                        <AudioLines className="h-48 w-48 text-foreground mx-auto" />
+                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center text-center cursor-pointer" onClick={toggleAppMode}>
+                                    <CardHeader>
+                                        <AudioLines className="h-32 w-32 text-foreground mx-auto" />
                                         <CardTitle className="text-4xl font-mono pt-4">App Mode</CardTitle>
+                                         <CardDescription>
+                                            Switch between Newbie and Twitcher modes.
+                                        </CardDescription>
                                     </CardHeader>
-                                    <CardContent>
-                                        <Button asChild variant="outline" size="lg" className="text-lg">
-                                          <Link href="/settings/mode">Change App Mode</Link>
-                                        </Button>
+                                    <CardContent className="flex flex-col items-center gap-6">
+                                        <div className="flex items-center space-x-2 pointer-events-none">
+                                            <Label htmlFor="appmode-switch" className="text-lg">{isNewbieMode ? 'Newbie' : 'Twitcher (soon)'}</Label>
+                                            <Switch
+                                                id="appmode-switch"
+                                                checked={isNewbieMode}
+                                                disabled
+                                                className="h-8 w-16 [&>span]:h-6 [&>span]:w-6 [&>span[data-state=checked]]:translate-x-9"
+                                            />
+                                        </div>
                                     </CardContent>
                                 </Card>
                             </div>
@@ -325,5 +365,3 @@ export default function SettingsPage() {
     </AppLayout>
   );
 }
-
-    
