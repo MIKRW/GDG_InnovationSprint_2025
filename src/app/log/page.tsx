@@ -272,8 +272,8 @@ export default function BirdBookPage() {
                         className={cn(
                             "rounded-full px-32 py-8 text-2xl font-semibold transition-colors duration-300",
                             chatMode === 'voice'
-                                ? 'bg-ring text-white hover:bg-ring/90'
-                                : 'bg-white text-ring border-2 border-ring'
+                                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                : 'bg-background text-primary border-2 border-primary'
                         )}
                     >
                         {chatMode === 'voice' ? 'Text Controlled' : 'Voice Controlled'}
