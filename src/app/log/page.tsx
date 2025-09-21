@@ -14,30 +14,79 @@ import { ContrastButton } from '@/components/content/ContrastButton';
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 
 interface ChatMessage {
     sender: 'user' | 'bot';
     text: string;
 }
 
-function AiAssistantCard({ isChatActive, onToggleChat }: { isChatActive: boolean, onToggleChat: () => void }) {
+function AiAssistantCard({ 
+    isChatActive, 
+    onToggleChat,
+    chatMode 
+}: { 
+    isChatActive: boolean, 
+    onToggleChat: () => void,
+    chatMode: 'voice' | 'text'
+}) {
+    const [messages, setMessages] = useState<ChatMessage[]>([
+        { sender: 'bot', text: 'Please ask me to filter, sort, or find a bird.' }
+    ]);
+    const [input, setInput] = useState('');
+
+    const handleSend = () => {
+        if (input.trim()) {
+            setMessages(prev => [...prev, { sender: 'user', text: input }]);
+            // Here you would call the AI and get a response
+            setInput('');
+        }
+    };
+
     return (
         <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
             <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
                 <CardContent className="flex-1 flex flex-col items-center justify-center gap-4">
-                     <>
-                        <div className="w-96 h-96">
-                            <Button variant="ghost" className={cn("w-full h-full rounded-full hover:bg-background", isChatActive && "animate-pulse bg-background")} onClick={onToggleChat}>
-                                <Bot className="h-96 w-96 text-foreground" />
-                            </Button>
+                     {chatMode === 'voice' || !isChatActive ? (
+                        <>
+                            <div className="w-96 h-96">
+                                <Button variant="ghost" className={cn("w-full h-full rounded-full hover:bg-background", isChatActive && "animate-pulse bg-background")} onClick={onToggleChat}>
+                                    <Bot className="h-96 w-96 text-foreground" />
+                                </Button>
+                            </div>
+                            <div className="text-center">
+                                <h2 className="text-8xl font-mono font-bold">Bird Book</h2>
+                                <p className="text-3xl font-mono text-foreground/80">
+                                    {isChatActive ? "Listening..." : "Click the icon to give a command"}
+                                </p>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="w-full h-full flex flex-col p-4">
+                            <CardHeader className="text-center p-2">
+                                <CardTitle className="text-2xl font-mono">Bird Book Guide</CardTitle>
+                            </CardHeader>
+                            <div className="flex-1 space-y-4 overflow-y-auto bg-muted/50 p-4 rounded-md">
+                                {messages.map((msg, index) => (
+                                    <div key={index} className={cn("flex", msg.sender === 'user' ? 'justify-end' : 'justify-start')}>
+                                        <div className={cn("rounded-lg px-4 py-2 max-w-xs", msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-secondary')}>
+                                            {msg.text}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="mt-4 flex gap-2">
+                                <Input 
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    placeholder="Type your command..."
+                                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                                />
+                                <Button onClick={handleSend}>Send</Button>
+                            </div>
                         </div>
-                        <div className="text-center">
-                            <h2 className="text-8xl font-mono font-bold">Bird Book</h2>
-                            <p className="text-3xl font-mono text-foreground/80">
-                                {isChatActive ? "Listening..." : "Click the icon to give a command"}
-                            </p>
-                        </div>
-                    </>
+                    )}
                 </CardContent>
             </Card>
         </div>
@@ -125,6 +174,7 @@ CarouselNext.displayName = "CarouselNext"
 export default function BirdBookPage() {
     const [api, setApi] = useState<CarouselApi>();
     const [isChatActive, setIsChatActive] = useState(false);
+    const [chatMode, setChatMode] = useState<'voice' | 'text'>('voice');
 
     useEffect(() => {
         if (!api) return;
@@ -172,7 +222,11 @@ export default function BirdBookPage() {
                     <CarouselContent>
                         <CarouselItem>
                             <div className="p-1 h-[60rem]">
-                                <AiAssistantCard isChatActive={isChatActive} onToggleChat={handleToggleChat} />
+                                <AiAssistantCard 
+                                    isChatActive={isChatActive} 
+                                    onToggleChat={handleToggleChat} 
+                                    chatMode={chatMode} 
+                                />
                             </div>
                         </CarouselItem>
                         <CarouselItem>
@@ -194,6 +248,17 @@ export default function BirdBookPage() {
                     <CarouselPrevious />
                     <CarouselNext />
                 </Carousel>
+                
+                <div className="flex items-center space-x-2 mt-4">
+                    <Label htmlFor="chat-mode-switch" className={cn(chatMode === 'voice' && 'text-ring')}>Voice</Label>
+                    <Switch
+                        id="chat-mode-switch"
+                        checked={chatMode === 'text'}
+                        onCheckedChange={(checked) => setChatMode(checked ? 'text' : 'voice')}
+                    />
+                    <Label htmlFor="chat-mode-switch" className={cn(chatMode === 'text' && 'text-ring')}>Text</Label>
+                </div>
+
 
                 <div className="absolute bottom-4 left-4 opacity-50">
                     <Link href="/log">
