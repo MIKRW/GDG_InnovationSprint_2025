@@ -149,8 +149,8 @@ export async function createAnalysisRun(
     timestamp: string,
   ): Promise<string> {
     
-    // Upload audio in the background
-    const audioStoragePath = `users/${userId}/recordings/${recordingId}.webm`;
+    // Upload audio to a top-level "recordings" folder
+    const audioStoragePath = `recordings/${recordingId}.webm`;
     const fileRef = storageRef(storage, audioStoragePath);
     const fetchResponse = await fetch(audioDataUri);
     const blob = await fetchResponse.blob();
