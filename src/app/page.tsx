@@ -164,16 +164,18 @@ export default function Home() {
   }, [isRecording]);
 
   const handleRecordingComplete = async (audioBlob: Blob | null) => {
-    setIsUploading(true);
+    setIsRecording(false); // Stop recording UI first
+
     if (!audioBlob) {
         toast({
             variant: 'destructive',
             title: 'Recording Failed',
             description: 'No audio was recorded. Please check microphone permissions.',
         });
-        setIsUploading(false);
         return;
     }
+    
+    setIsUploading(true);
 
     const recordingId = uuidv4();
     let analysisRunId: string | null = null;

@@ -1,3 +1,4 @@
+
 'use-client';
 
 import { useState, useRef, forwardRef, useEffect } from 'react';
@@ -81,7 +82,13 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
     }
 
     return () => {
-      stopInternalRecording();
+      // Cleanup function to stop recording if component unmounts
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.stop();
+      }
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
     };
   }, [isRecording, onRecordingComplete]);
 
