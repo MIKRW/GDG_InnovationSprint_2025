@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Carousel, CarouselApi, CarouselContent, CarouselItem, useCarousel } from '@/components/ui/carousel';
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 
 
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
@@ -85,7 +86,15 @@ export default function SettingsPage() {
   const { playNarration, isGeneralAutoPlayOn, toggleGeneralAutoPlay, isCarouselAutoPlayOn, toggleCarouselAutoPlay, ...speakerProps } = useSpeaker(narrationText, 'general');
   const [api, setApi] = useState<CarouselApi>();
   const [controlMode, setControlMode] = useState<'voice' | 'text'>('text');
-  const narrationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const debouncedNarration = useDebouncedCallback((index: number) => {
+    if (isCarouselAutoPlayOn) {
+        const newNarration = NARRATION_TEXTS[index];
+        if (newNarration) {
+            setNarrationText(newNarration);
+        }
+    }
+  }, 2000);
 
   useEffect(() => {
     setIsClient(true);
@@ -99,19 +108,11 @@ export default function SettingsPage() {
     if (!api) return;
 
     const handleSelect = () => {
-        if (narrationTimeoutRef.current) {
-            clearTimeout(narrationTimeoutRef.current);
-        }
-        
+        const selectedIndex = api.selectedScrollSnap();
         if (isCarouselAutoPlayOn) {
-            narrationTimeoutRef.current = setTimeout(() => {
-                const newNarration = NARRATION_TEXTS[api.selectedScrollSnap()];
-                if (newNarration) {
-                    setNarrationText(newNarration);
-                }
-            }, 2000);
+            debouncedNarration(selectedIndex);
         } else {
-             const newNarration = NARRATION_TEXTS[api.selectedScrollSnap()];
+             const newNarration = NARRATION_TEXTS[selectedIndex];
              if (newNarration) {
                 setNarrationText(newNarration);
             }
@@ -122,11 +123,8 @@ export default function SettingsPage() {
     
     return () => {
         api.off("select", handleSelect);
-        if (narrationTimeoutRef.current) {
-            clearTimeout(narrationTimeoutRef.current);
-        }
     };
-  }, [api, isCarouselAutoPlayOn]);
+  }, [api, isCarouselAutoPlayOn, debouncedNarration]);
   
   const handleSaveHardware = () => {
     if (hardware) {

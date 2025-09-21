@@ -14,11 +14,11 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { useSpeaker } from '@/hooks/use-speaker';
 import { type AnalysisRun } from '@/lib/types';
 import { SavedRunCard } from '@/components/content/SavedRunCard';
 import { textToSpeech } from '@/ai/flows/tts-flow';
+import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 
 interface ChatMessage {
     sender: 'user' | 'bot';
@@ -287,7 +287,6 @@ export default function BirdBookPage() {
     const [narrationText, setNarrationText] = useState(PAGE_NARRATION);
     const { playNarration, isLoading: isSpeakerLoading, isCarouselAutoPlayOn, ...speakerProps } = useSpeaker(narrationText, 'carousel');
     const [savedRuns, setSavedRuns] = useState<AnalysisRun[]>([]);
-    const narrationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const getNarrationForSlide = useCallback((index: number): string => {
         if (index === 0) {
@@ -304,6 +303,13 @@ export default function BirdBookPage() {
         }
         return "Your Bird Book is empty. Make a recording to save your first entry.";
     }, [savedRuns]);
+
+    const debouncedNarration = useDebouncedCallback((index: number) => {
+        if (isCarouselAutoPlayOn) {
+            const newNarration = getNarrationForSlide(index);
+            setNarrationText(newNarration);
+        }
+    }, 2000);
     
     useEffect(() => {
         setIsClient(true);
@@ -320,17 +326,13 @@ export default function BirdBookPage() {
         if (!api) return;
 
         const handleSelect = () => {
-            if (narrationTimeoutRef.current) {
-                clearTimeout(narrationTimeoutRef.current);
-            }
+            const selectedIndex = api.selectedScrollSnap();
             if (isCarouselAutoPlayOn) {
-                narrationTimeoutRef.current = setTimeout(() => {
-                    const newNarration = getNarrationForSlide(api.selectedScrollSnap());
-                    setNarrationText(newNarration);
-                }, 2000);
+                debouncedNarration(selectedIndex);
             } else {
-                 const newNarration = getNarrationForSlide(api.selectedScrollSnap());
-                 setNarrationText(newNarration);
+                // If autoplay is off, update the text immediately for manual play.
+                const newNarration = getNarrationForSlide(selectedIndex);
+                setNarrationText(newNarration);
             }
         };
 
@@ -338,11 +340,8 @@ export default function BirdBookPage() {
         
         return () => {
             api.off("select", handleSelect);
-            if (narrationTimeoutRef.current) {
-                clearTimeout(narrationTimeoutRef.current);
-            }
         };
-    }, [api, getNarrationForSlide, isCarouselAutoPlayOn]);
+    }, [api, getNarrationForSlide, isCarouselAutoPlayOn, debouncedNarration]);
     
     const startChat = () => {
         api?.scrollTo(0);
@@ -437,7 +436,3 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
-
-  
-
-    
