@@ -108,10 +108,10 @@ export default function BirdBookPage() {
                             </div>
                         </CarouselItem>
                     </CarouselContent>
-                    <CarouselPrevious size="icon" className="h-40 w-40 text-ring -left-24">
+                    <CarouselPrevious size="icon" className="h-40 w-40 text-primary-foreground -left-32">
                         <ArrowLeft className="h-32 w-32" />
                     </CarouselPrevious>
-                    <CarouselNext size="icon" className="h-40 w-40 text-ring -right-24">
+                    <CarouselNext size="icon" className="h-40 w-40 text-primary-foreground -right-32">
                         <ArrowRight className="h-32 w-32" />
                     </CarouselNext>
                 </Carousel>
