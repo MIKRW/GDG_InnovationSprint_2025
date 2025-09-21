@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
 import Link from 'next/link';
+import { useSpeaker } from '@/hooks/use-speaker';
 
 function BirdImage({ commonName }: { commonName: string }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -69,6 +70,10 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
     const [feedbackGiven, setFeedbackGiven] = useState(false);
     const { toast } = useToast();
     const audioRef = useRef<HTMLAudioElement | null>(null);
+    const { isBirdSong, commonName, scientificName, description, error } = run.aiResult;
+    const narrationText = isBirdSong ? `The AI has identified the bird as a ${commonName}. ${description}` : `The AI was not able to identify a bird in the recording. ${description || error}`;
+    const { playNarration, ...speakerProps } = useSpeaker(narrationText);
+
 
     useEffect(() => {
         // Initialize Audio object only on the client side
@@ -123,8 +128,6 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
         }
     }
 
-    const { isBirdSong, commonName, scientificName, description, error } = run.aiResult;
-
     const NotIdentifiedCard = () => (
         <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
             <CardHeader className="text-center pt-12">
@@ -157,6 +160,9 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
 
     return (
         <>
+            <div className="absolute top-4 left-4 opacity-50">
+                <SpeakerButton onClick={playNarration} {...speakerProps} />
+            </div>
             {isBirdSong === false || error ? <NotIdentifiedCard /> : (
                 <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
                     <div className="relative w-full flex-1 pt-4">
@@ -245,16 +251,14 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
     return (
         <AppLayout>
             <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
-                <div className="absolute top-4 left-4 opacity-50">
-                    <SpeakerButton />
-                </div>
+
                 <div className="absolute top-4 right-4 opacity-50">
                     <ContrastButton />
                 </div>
                 
                 <div className="w-full max-w-3xl h-[60rem]">
                     <div className="p-1 h-full">
-                         <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
+                         <div className="bg-ring rounded-lg shadow-lg p-6 h-full relative">
                             {loading ? (
                                 <Skeleton className="w-full h-full" />
                             ) : run ? (

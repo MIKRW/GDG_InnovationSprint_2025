@@ -13,13 +13,19 @@ import { Input } from '@/components/ui/input';
 import { BookImage, Home, Save, Settings } from 'lucide-react';
 import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
+import { useSpeaker } from '@/hooks/use-speaker';
+import { Switch } from '@/components/ui/switch';
 
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
+const PAGE_NARRATION = "This is the Settings page. Here you can customize the application's look and feel, manage location services, and set your preferred recording hardware.";
+
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const [hardware, setHardware] = useState('');
   const [isClient, setIsClient] = useState(false);
+  const { playNarration, toggleAutoPlay, isAutoPlayOn, ...speakerProps } = useSpeaker(PAGE_NARRATION);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -43,7 +49,7 @@ export default function SettingsPage() {
     <AppLayout>
       <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted relative">
         <div className="absolute top-4 left-4 opacity-50">
-            <SpeakerButton />
+            <SpeakerButton onClick={playNarration} {...speakerProps} />
         </div>
         <div className="absolute top-4 right-4 opacity-50">
             <ContrastButton />
@@ -65,24 +71,38 @@ export default function SettingsPage() {
               <Link href="/settings/mode">App Mode</Link>
             </Button>
 
-            <div className="pt-8 w-full max-w-sm">
-                <h2 className="text-lg font-semibold mb-2">Recording</h2>
-                <div className="space-y-2">
-                    <Label htmlFor="hardware-input">Recording Hardware</Label>
-                    <Input
-                        id="hardware-input"
-                        value={hardware}
-                        onChange={(e) => setHardware(e.target.value)}
-                        placeholder="e.g., iPhone 15 Pro, Rode NTG"
-                    />
-                    <p className="text-sm text-muted-foreground">
-                        Optionally, specify the microphone you use for recording.
-                    </p>
+            <div className="pt-8 w-full max-w-sm space-y-4">
+                <div>
+                    <h2 className="text-lg font-semibold mb-2">Accessibility</h2>
+                    <div className="flex items-center justify-center space-x-2">
+                        <Label htmlFor="auto-play-switch">Auto-play Narrations</Label>
+                        <Switch
+                            id="auto-play-switch"
+                            checked={isAutoPlayOn}
+                            onCheckedChange={toggleAutoPlay}
+                        />
+                    </div>
                 </div>
-                <Button variant="outline" className="mt-4" onClick={handleSaveHardware}>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Hardware
-                </Button>
+
+                <div>
+                    <h2 className="text-lg font-semibold mb-2">Recording</h2>
+                    <div className="space-y-2">
+                        <Label htmlFor="hardware-input">Recording Hardware</Label>
+                        <Input
+                            id="hardware-input"
+                            value={hardware}
+                            onChange={(e) => setHardware(e.target.value)}
+                            placeholder="e.g., iPhone 15 Pro, Rode NTG"
+                        />
+                        <p className="text-sm text-muted-foreground">
+                            Optionally, specify the microphone you use for recording.
+                        </p>
+                    </div>
+                    <Button variant="outline" className="mt-4" onClick={handleSaveHardware}>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Hardware
+                    </Button>
+                </div>
             </div>
           </div>
         </div>

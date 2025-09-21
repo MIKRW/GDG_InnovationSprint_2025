@@ -19,11 +19,13 @@ import { useToast } from '@/hooks/use-toast';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { app, auth, storage } from '@/lib/firebase';
 import { uploadBytes, ref as storageRef } from 'firebase/storage';
+import { useSpeaker } from '@/hooks/use-speaker';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 const ANALYSIS_TIMEOUT_MS = 90000; // 90 seconds
 
+const PAGE_NARRATION = "Welcome to Name that Bird! This is the home page. Press the large central button to start recording a bird song and get it identified by our AI.";
 
 export default function Home() {
   const [isUploading, setIsUploading] = useState(false);
@@ -33,6 +35,8 @@ export default function Home() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const router = useRouter();
   const { toast } = useToast();
+  const { playNarration, ...speakerProps } = useSpeaker(PAGE_NARRATION);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -55,6 +59,12 @@ export default function Home() {
     });
   }, []);
 
+  currentSessionId.current = uuidv4();
+  currentCreationTime.current = new Date().toISOString();
+
+  const handleStop = () => {
+    setIsRecording(false);
+  };
   const currentSessionId = useRef<string | null>(null);
   const currentCreationTime = useRef<string | null>(null);
 
@@ -153,13 +163,6 @@ export default function Home() {
       setIsRecording(true);
     }
   };
-  
-  useEffect(() => {
-    if (isRecording) {
-      currentSessionId.current = uuidv4();
-      currentCreationTime.current = new Date().toISOString();
-    }
-  }, [isRecording]);
 
   const handleRecordingComplete = async (audioBlob: Blob | null) => {
     setIsRecording(false); // Stop recording UI first
@@ -233,17 +236,13 @@ export default function Home() {
       }
     }
   }
-  
-  const handleStop = () => {
-    setIsRecording(false);
-  }
 
 
   return (
     <AppLayout>
       <main className="flex flex-1 flex-col items-center justify-center bg-muted p-4 relative">
         <div className="absolute top-4 left-4 opacity-50">
-            <SpeakerButton />
+            <SpeakerButton onClick={playNarration} {...speakerProps} />
         </div>
         <div className="absolute top-4 right-4 opacity-50">
             <ContrastButton />

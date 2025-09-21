@@ -17,11 +17,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { useSpeaker } from '@/hooks/use-speaker';
 
 interface ChatMessage {
     sender: 'user' | 'bot';
     text: string;
 }
+
+const PAGE_NARRATION = "This is the Bird Book, your personal log of identified birds. You can swipe left and right to view your saved identifications. The first card is the AI assistant, which can help you filter, sort, or find birds in your log. Click the bot icon to start a voice command, or toggle to text control at the bottom.";
+
 
 function AiAssistantCard({ 
     isChatActive, 
@@ -177,6 +181,7 @@ export default function BirdBookPage() {
     const [isChatActive, setIsChatActive] = useState(false);
     const [chatMode, setChatMode] = useState<'voice' | 'text'>('voice');
     const [isClient, setIsClient] = useState(false);
+    const { playNarration, ...speakerProps } = useSpeaker(PAGE_NARRATION);
 
     useEffect(() => {
         setIsClient(true);
@@ -221,7 +226,7 @@ export default function BirdBookPage() {
         <AppLayout>
             <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
                 <div className="absolute top-4 left-4 opacity-50">
-                    <SpeakerButton />
+                    <SpeakerButton onClick={playNarration} {...speakerProps} />
                 </div>
                 <div className="absolute top-4 right-4 opacity-50">
                     <ContrastButton />
