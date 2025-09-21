@@ -10,16 +10,14 @@ const FIRST_INTERACTION_KEY = 'user-has-interacted';
 
 interface SpeakerSettings {
     isSpeakerOn: boolean;
-    isGeneralAutoPlayOn: boolean;
-    isCarouselAutoPlayOn: boolean;
+    isAutoPlayOn: boolean;
 }
 
 export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'carousel' = 'general') {
     const { toast } = useToast();
     const [settings, setSettings] = useState<SpeakerSettings>({
         isSpeakerOn: true,
-        isGeneralAutoPlayOn: false,
-        isCarouselAutoPlayOn: false,
+        isAutoPlayOn: false,
     });
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -44,7 +42,7 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         audioEl.addEventListener('pause', handleEnd);
 
         const savedSettings = localStorage.getItem(SPEAKER_SETTINGS_KEY);
-        const defaultSettings = { isSpeakerOn: true, isGeneralAutoPlayOn: false, isCarouselAutoPlayOn: false };
+        const defaultSettings = { isSpeakerOn: true, isAutoPlayOn: false };
 
         if (savedSettings) {
             try {
@@ -145,39 +143,30 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     }, [narrationSource, isPlaying, settings.isSpeakerOn, playAudio]);
 
     useEffect(() => {
-        const isAutoPlayOn = (autoPlayType === 'general' && settings.isGeneralAutoPlayOn) || (autoPlayType === 'carousel' && settings.isCarouselAutoPlayOn);
-        if (isAutoPlayOn && settings.isSpeakerOn && narrationSource && hasInteractedRef.current) {
+        if (settings.isAutoPlayOn && settings.isSpeakerOn && narrationSource && hasInteractedRef.current) {
             playAudio(narrationSource);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [narrationSource, settings.isGeneralAutoPlayOn, settings.isCarouselAutoPlayOn, settings.isSpeakerOn, autoPlayType]);
+    }, [narrationSource, settings.isAutoPlayOn, settings.isSpeakerOn]);
 
 
-    const toggleGeneralAutoPlay = useCallback(() => {
+    const toggleAutoPlay = useCallback(() => {
         setSettings(prev => {
-            const newSettings = { ...prev, isGeneralAutoPlayOn: !prev.isGeneralAutoPlayOn };
+            const newSettings = { ...prev, isAutoPlayOn: !prev.isAutoPlayOn };
             localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
             return newSettings;
         });
     }, []);
     
-    const toggleCarouselAutoPlay = useCallback(() => {
-        setSettings(prev => {
-            const newSettings = { ...prev, isCarouselAutoPlayOn: !prev.isCarouselAutoPlayOn };
-            localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
-            return newSettings;
-        });
-    }, []);
-
 
     return {
         isSpeakerOn: settings.isSpeakerOn,
-        isGeneralAutoPlayOn: settings.isGeneralAutoPlayOn,
-        isCarouselAutoPlayOn: settings.isCarouselAutoPlayOn,
+        isAutoPlayOn: settings.isAutoPlayOn,
         isPlaying,
         isLoading,
         playNarration,
-        toggleGeneralAutoPlay,
-        toggleCarouselAutoPlay,
+        toggleAutoPlay,
     };
 }
+
+    

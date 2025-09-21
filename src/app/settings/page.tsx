@@ -82,12 +82,12 @@ export default function SettingsPage() {
   const [hardware, setHardware] = useState('');
   const [isClient, setIsClient] = useState(false);
   const [narrationText, setNarrationText] = useState(NARRATION_TEXTS[0]);
-  const { playNarration, isGeneralAutoPlayOn, toggleGeneralAutoPlay, isCarouselAutoPlayOn, toggleCarouselAutoPlay, ...speakerProps } = useSpeaker(narrationText, 'carousel');
+  const { playNarration, isAutoPlayOn, toggleAutoPlay, ...speakerProps } = useSpeaker(narrationText, 'carousel');
   const [api, setApi] = useState<CarouselApi>();
-  const [controlMode, setControlMode] = useState<'voice' | 'text'>('text');
+  const [controlMode, setControlMode] = useState<'voice' | 'text'>('voice');
   
   const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
-    if (isCarouselAutoPlayOn) {
+    if (isAutoPlayOn) {
         const newNarration = NARRATION_TEXTS[index];
         if (newNarration) {
             setNarrationText(newNarration);
@@ -110,7 +110,7 @@ export default function SettingsPage() {
         const selectedIndex = api.selectedScrollSnap();
         const newNarration = NARRATION_TEXTS[selectedIndex];
         if (newNarration) {
-            if (isCarouselAutoPlayOn) {
+            if (isAutoPlayOn) {
                 debouncedNarration(selectedIndex);
             } else {
                 setNarrationText(newNarration);
@@ -123,7 +123,7 @@ export default function SettingsPage() {
     return () => {
         api.off("select", handleSelect);
     };
-  }, [api, isCarouselAutoPlayOn, debouncedNarration]);
+  }, [api, isAutoPlayOn, debouncedNarration]);
   
   const handleSaveHardware = () => {
     if (hardware) {
@@ -191,25 +191,16 @@ export default function SettingsPage() {
                                         <ToggleLeft className="h-32 w-32 text-foreground mx-auto" />
                                         <CardTitle className="text-4xl font-mono pt-4">Auto-play Narration</CardTitle>
                                          <CardDescription>
-                                            Automatically play descriptive audio. Defaults to off to reduce AI costs.
+                                            Automatically play descriptive audio for pages and slides.
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent className="flex flex-col items-center gap-6">
                                         <div className="flex items-center space-x-2">
-                                            <Label htmlFor="general-autoplay-switch" className="text-lg w-48 text-right">General Pages</Label>
+                                            <Label htmlFor="autoplay-switch" className="text-lg">Auto-play Narration</Label>
                                             <Switch
-                                                id="general-autoplay-switch"
-                                                checked={isGeneralAutoPlayOn}
-                                                onCheckedChange={toggleGeneralAutoPlay}
-                                                className="h-8 w-16 [&>span]:h-6 [&>span]:w-6 [&>span[data-state=checked]]:translate-x-9"
-                                            />
-                                        </div>
-                                         <div className="flex items-center space-x-2">
-                                            <Label htmlFor="carousel-autoplay-switch" className="text-lg w-48 text-right">Carousel Slides</Label>
-                                            <Switch
-                                                id="carousel-autoplay-switch"
-                                                checked={isCarouselAutoPlayOn}
-                                                onCheckedChange={toggleCarouselAutoPlay}
+                                                id="autoplay-switch"
+                                                checked={isAutoPlayOn}
+                                                onCheckedChange={toggleAutoPlay}
                                                 className="h-8 w-16 [&>span]:h-6 [&>span]:w-6 [&>span[data-state=checked]]:translate-x-9"
                                             />
                                         </div>
@@ -339,3 +330,5 @@ export default function SettingsPage() {
     </AppLayout>
   );
 }
+
+    

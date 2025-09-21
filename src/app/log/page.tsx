@@ -285,7 +285,7 @@ export default function BirdBookPage() {
     const [isClient, setIsClient] = useState(false);
     const [currentTheme, setCurrentTheme] = useState('light');
     const [narrationText, setNarrationText] = useState(PAGE_NARRATION);
-    const { playNarration, isLoading: isSpeakerLoading, isCarouselAutoPlayOn, ...speakerProps } = useSpeaker(narrationText, 'carousel');
+    const { playNarration, isLoading: isSpeakerLoading, isAutoPlayOn, ...speakerProps } = useSpeaker(narrationText, 'carousel');
     const [savedRuns, setSavedRuns] = useState<AnalysisRun[]>([]);
 
     const getNarrationForSlide = useCallback((index: number): string => {
@@ -305,7 +305,7 @@ export default function BirdBookPage() {
     }, [savedRuns]);
 
     const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
-        if (isCarouselAutoPlayOn) {
+        if (isAutoPlayOn) {
             const newNarration = getNarrationForSlide(index);
             setNarrationText(newNarration);
         }
@@ -327,7 +327,7 @@ export default function BirdBookPage() {
 
         const handleSelect = () => {
             const selectedIndex = api.selectedScrollSnap();
-            if (isCarouselAutoPlayOn) {
+            if (isAutoPlayOn) {
                 debouncedNarration(selectedIndex);
             } else {
                 // If autoplay is off, update the text immediately for manual play.
@@ -343,7 +343,7 @@ export default function BirdBookPage() {
             // Cancel any pending debounced calls on unmount
             cancelDebouncedNarration();
         };
-    }, [api, getNarrationForSlide, isCarouselAutoPlayOn, debouncedNarration, cancelDebouncedNarration]);
+    }, [api, getNarrationForSlide, isAutoPlayOn, debouncedNarration, cancelDebouncedNarration]);
     
     const startChat = () => {
         api?.scrollTo(0);
@@ -438,3 +438,5 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
+
+    
