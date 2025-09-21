@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { notFound, useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -70,9 +71,12 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
     const [feedbackGiven, setFeedbackGiven] = useState(false);
     const router = useRouter();
     const { toast } = useToast();
-    const audioRef = useState(new Audio());
+    const audioRef = useRef<HTMLAudioElement | null>(null);
 
     useEffect(() => {
+        // Initialize Audio object only on the client side
+        audioRef.current = new Audio();
+
         const fetchRun = async () => {
             if (!params.analysisRunId) {
                 setLoading(false);
@@ -127,10 +131,9 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
     };
     
     const handleReplay = () => {
-        if (run?.inputAudioUrl) {
-            const [audio] = audioRef;
-            audio.src = run.inputAudioUrl;
-            audio.play().catch(e => console.error("Error playing audio:", e));
+        if (run?.inputAudioUrl && audioRef.current) {
+            audioRef.current.src = run.inputAudioUrl;
+            audioRef.current.play().catch(e => console.error("Error playing audio:", e));
         }
     }
     
