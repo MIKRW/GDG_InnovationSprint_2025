@@ -24,9 +24,14 @@ export function useSpeaker(narrationText: string) {
     useEffect(() => {
         // Initialize audio element on client
         audioRef.current = new Audio();
-        audioRef.current.onplay = () => setIsPlaying(true);
-        audioRef.current.onpause = () => setIsPlaying(false);
-        audioRef.current.onended = () => setIsPlaying(false);
+        
+        const handlePlay = () => setIsPlaying(true);
+        const handleEnd = () => setIsPlaying(false);
+
+        const audioEl = audioRef.current;
+        audioEl.addEventListener('play', handlePlay);
+        audioEl.addEventListener('ended', handleEnd);
+        audioEl.addEventListener('pause', handleEnd);
 
         // Load settings from localStorage
         const savedSettings = localStorage.getItem(SPEAKER_SETTINGS_KEY);
@@ -41,6 +46,12 @@ export function useSpeaker(narrationText: string) {
             // If no settings, this is likely the first run, so speaker is on.
             setSettings({ isSpeakerOn: true, isAutoPlayOn: true });
             localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify({ isSpeakerOn: true, isAutoPlayOn: true }));
+        }
+
+        return () => {
+            audioEl.removeEventListener('play', handlePlay);
+            audioEl.removeEventListener('ended', handleEnd);
+            audioEl.removeEventListener('pause', handleEnd);
         }
     }, []);
 
@@ -61,7 +72,7 @@ export function useSpeaker(narrationText: string) {
 
     useEffect(() => {
         // Auto-play logic
-        if (settings.isAutoPlayOn && settings.isSpeakerOn) {
+        if (settings.isAutoPlayOn && settings.isSpeakerOn && narrationText) {
             fetchAndCacheAudio().then((audioUri) => {
                  if (audioUri && audioRef.current) {
                     audioRef.current.src = audioUri;
@@ -69,9 +80,10 @@ export function useSpeaker(narrationText: string) {
                 }
             });
         }
-    }, [settings.isAutoPlayOn, settings.isSpeakerOn, narrationText, fetchAndCacheAudio]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [settings.isAutoPlayOn, settings.isSpeakerOn, narrationText]);
 
-    const playNarration = useCallback(() => {
+    const playNarration = useCallback(async () => {
         if (!settings.isSpeakerOn) {
             // If speaker is off, toggle it on. The autoplay is handled separately.
              setSettings(prev => {
@@ -82,6 +94,13 @@ export function useSpeaker(narrationText: string) {
             // After turning it on, play the sound.
             if(audioDataUriRef.current && audioRef.current){
                 audioRef.current.play().catch(e => console.error("Failed to play narration:", e));
+            } else {
+                // If not cached, fetch and play
+                const audioUri = await fetchAndCacheAudio();
+                if (audioUri && audioRef.current) {
+                    audioRef.current.src = audioUri;
+                    audioRef.current.play().catch(e => console.error("Failed to play narration after fetch:", e));
+                }
             }
             return;
         };
@@ -96,14 +115,13 @@ export function useSpeaker(narrationText: string) {
             audioRef.current.play().catch(e => console.error("Failed to play narration:", e));
         } else if (!audioDataUriRef.current) {
             // If audio wasn't fetched yet, fetch and then play
-            fetchAndCacheAudio().then((audioUri) => {
-                if (audioUri && audioRef.current) {
-                    audioRef.current.src = audioUri;
-                    audioRef.current.play().catch(e => console.error("Failed to play narration after fetch:", e));
-                }
-            })
+            const audioUri = await fetchAndCacheAudio();
+            if (audioUri && audioRef.current) {
+                audioRef.current.src = audioUri;
+                audioRef.current.play().catch(e => console.error("Failed to play narration after fetch:", e));
+            }
         }
-    }, [isPlaying, settings.isSpeakerOn, fetchAndCacheAudio]);
+    }, [settings.isSpeakerOn, isPlaying, fetchAndCacheAudio]);
 
     const toggleSpeaker = useCallback(() => {
         setSettings(prev => {
