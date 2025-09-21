@@ -24,13 +24,13 @@ function AiAssistantCard() {
                             <Bot className="h-96 w-96 text-foreground" />
                         </Button>
                      </div>
+                    <div className="text-center">
+                        <h2 className="text-8xl font-mono font-bold">Bird Book</h2>
+                        <p className="text-3xl font-mono text-foreground/80">
+                            swipe to see your birds or click to chat to the guide to organize your bird book
+                        </p>
+                    </div>
                 </CardContent>
-                <CardHeader className="text-center">
-                    <CardTitle className="text-8xl font-mono font-bold">Bird Book</CardTitle>
-                    <CardDescription className="text-3xl font-mono text-foreground/80">
-                        swipe to see your birds or click to chat to the guide to organize your bird book
-                    </CardDescription>
-                </CardHeader>
             </Card>
         </div>
     )
