@@ -30,18 +30,24 @@ const PAGE_NARRATION = "This is the Bird Book, your personal log of identified b
 
 
 function AiAssistantCard({ 
-    isChatActive, 
-    onToggleChat,
-    chatMode 
+    onStartChat
 }: { 
-    isChatActive: boolean, 
-    onToggleChat: () => void,
-    chatMode: 'voice' | 'text'
+    onStartChat: () => void;
 }) {
+    const [isChatActive, setIsChatActive] = useState(false);
+    const [chatMode, setChatMode] = useState<'voice' | 'text'>('voice');
     const [messages, setMessages] = useState<ChatMessage[]>([
         { sender: 'bot', text: 'Please ask me to filter, sort, or find a bird.' }
     ]);
     const [input, setInput] = useState('');
+
+    const handleToggleChat = () => {
+        // If chat is inactive, start it. If it's active, this button deactivates it.
+        if (!isChatActive) {
+            onStartChat();
+        }
+        setIsChatActive(prev => !prev);
+    };
 
     const handleSend = () => {
         if (input.trim()) {
@@ -58,7 +64,7 @@ function AiAssistantCard({
                      {chatMode === 'voice' || !isChatActive ? (
                         <>
                             <div className="w-48 h-48">
-                                <Button variant="ghost" className={cn("w-full h-full rounded-full hover:bg-background", isChatActive && "animate-pulse bg-background")} onClick={onToggleChat}>
+                                <Button variant="ghost" className={cn("w-full h-full rounded-full hover:bg-background", isChatActive && "animate-pulse bg-background")} onClick={handleToggleChat}>
                                     <Bot className="h-48 w-48 text-foreground" />
                                 </Button>
                             </div>
@@ -96,6 +102,15 @@ function AiAssistantCard({
                     )}
                 </CardContent>
             </Card>
+             <div className="absolute bottom-12 inset-x-0 flex justify-center">
+                <Button
+                    onClick={() => setChatMode(chatMode === 'voice' ? 'text' : 'voice')}
+                    variant={chatMode === 'text' ? 'secondary' : 'default'}
+                    className="rounded-full px-8 py-4 text-lg font-semibold transition-colors duration-300"
+                >
+                    {chatMode === 'voice' ? 'Voice Controlled' : 'Text Controlled'}
+                </Button>
+            </div>
         </div>
     )
 }
@@ -146,8 +161,6 @@ CarouselNext.displayName = "CarouselNext"
 
 export default function BirdBookPage() {
     const [api, setApi] = useState<CarouselApi>();
-    const [isChatActive, setIsChatActive] = useState(false);
-    const [chatMode, setChatMode] = useState<'voice' | 'text'>('voice');
     const [isClient, setIsClient] = useState(false);
     const [currentTheme, setCurrentTheme] = useState('light');
     const { playNarration, ...speakerProps } = useSpeaker(PAGE_NARRATION);
@@ -163,36 +176,9 @@ export default function BirdBookPage() {
             setSavedRuns(JSON.parse(savedRunsJson));
         }
     }, []);
-
-    useEffect(() => {
-        if (!api) return;
-        
-        const onSelect = () => {
-            // Deactivate chat if we scroll away from the assistant card
-            if (api.selectedScrollSnap() !== 0) {
-                setIsChatActive(false);
-            }
-        };
-
-        api.on("select", onSelect);
-        return () => {
-            api.off("select", onSelect);
-        };
-    }, [api]);
     
     const startChat = () => {
         api?.scrollTo(0);
-        setIsChatActive(true);
-    };
-
-    const handleToggleChat = () => {
-        // If chat is active anywhere, this button will deactivate it.
-        // If chat is inactive and we are on the main card, it will activate it.
-        if (isChatActive) {
-            setIsChatActive(false);
-        } else if (api?.selectedScrollSnap() === 0) {
-            setIsChatActive(true);
-        }
     };
 
     if (!isClient) {
@@ -214,9 +200,7 @@ export default function BirdBookPage() {
                         <CarouselItem>
                             <div className="p-1 h-full">
                                 <AiAssistantCard 
-                                    isChatActive={isChatActive} 
-                                    onToggleChat={handleToggleChat} 
-                                    chatMode={chatMode} 
+                                    onStartChat={startChat} 
                                 />
                             </div>
                         </CarouselItem>
@@ -262,16 +246,6 @@ export default function BirdBookPage() {
                         </Button>
                     </Link>
                 </div>
-                
-                <div className="absolute bottom-12 inset-x-0 flex justify-center">
-                    <Button
-                        onClick={() => setChatMode(chatMode === 'voice' ? 'text' : 'voice')}
-                        variant={chatMode === 'text' ? 'secondary' : 'default'}
-                        className="rounded-full px-8 py-4 text-lg font-semibold transition-colors duration-300"
-                    >
-                        {chatMode === 'voice' ? 'Voice Controlled' : 'Text Controlled'}
-                    </Button>
-                </div>
 
                 <div className="absolute bottom-4 right-4 opacity-50">
                     <Link href="/">
@@ -288,5 +262,3 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
-
-    
