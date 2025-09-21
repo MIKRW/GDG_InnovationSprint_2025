@@ -35,7 +35,7 @@ export default function Home() {
   }, []);
 
   const currentSessionId = useRef<string | null>(null);
-  const currentTimestamp = useRef<string | null>(null);
+  const currentCreationTime = useRef<string | null>(null);
 
   const getLocationForAIShot = (
     callback: (locationData?: { latitude?: number; longitude?: number, locationDescription?: string }) => void
@@ -72,7 +72,7 @@ export default function Home() {
   const processAudio = async (audioDataUri: string, recordingId: string): Promise<string | null> => {
     return new Promise((resolve, reject) => {
       getLocationForAIShot(async (locationData) => {
-          if (!currentTimestamp.current || !currentSessionId.current) {
+          if (!currentCreationTime.current || !currentSessionId.current) {
               return reject(new Error("Missing session or timestamp for analysis."));
           }
           
@@ -84,8 +84,9 @@ export default function Home() {
               const analysisStartTime = Date.now();
               result = await identifyBirdBySound({
                   audioDataUri: audioDataUri,
-                  creationTime: currentTimestamp.current!,
-                  ...locationData
+                  creationTime: currentCreationTime.current!,
+                  ...locationData,
+                  mode: 'newbie' // Hardcoded for now
               });
               const analysisDurationMs = Date.now() - analysisStartTime;
               const wasSuccessful = result && result.isBirdSong && !!result.commonName;
@@ -93,15 +94,15 @@ export default function Home() {
               analysisRunId = await createAnalysisRun(
                   audioDataUri, recordingId, result, wasSuccessful, locationData, hardware, 'newbie',
                   { primaryIdentificationMs: analysisDurationMs },
-                  currentSessionId.current, currentTimestamp.current
+                  currentSessionId.current, currentCreationTime.current
               );
               resolve(analysisRunId);
 
           } catch (error) {
-              const analysisDurationMs = Date.now() - (currentTimestamp.current ? new Date(currentTimestamp.current).getTime() : Date.now());
+              const analysisDurationMs = Date.now() - (currentCreationTime.current ? new Date(currentCreationTime.current).getTime() : Date.now());
               result = { error: (error as Error).message, isBirdSong: false };
               logErrorToFirestore(error as Error, 'ai-identification-failure', {
-                  sessionId: currentSessionId.current, creationTime: currentTimestamp.current,
+                  sessionId: currentSessionId.current, creationTime: currentCreationTime.current,
                   locationData: locationData, userId: 'anonymous'
               });
               
@@ -109,7 +110,7 @@ export default function Home() {
                   audioDataUri, recordingId, result, false,
                   locationData, hardware, 'newbie',
                   { primaryIdentificationMs: analysisDurationMs },
-                  currentSessionId.current, currentTimestamp.current
+                  currentSessionId.current, currentCreationTime.current
               );
               // In case of error, we still resolve with the ID to navigate to the error page
               resolve(analysisRunId);
@@ -121,7 +122,7 @@ export default function Home() {
   const handleStart = () => {
     setIsRecording(true);
     currentSessionId.current = uuidv4();
-    currentTimestamp.current = new Date().toISOString();
+    currentCreationTime.current = new Date().toISOString();
   }
 
   const handleRecordingComplete = async (audioBlob: Blob) => {
