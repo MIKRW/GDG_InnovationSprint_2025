@@ -114,23 +114,24 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
       case 'recording':
         return {
           icon: <ColorableLogo className="text-foreground/50" />,
-          label: 'Press to Stop',
+          title: 'Press to Stop',
           timer: `${String(Math.floor(elapsedTime / 60)).padStart(2, '0')}:${String(elapsedTime % 60).padStart(2, '0')}`,
         };
       case 'denied':
          return {
           icon: <MicOff className="w-full h-full text-foreground/50" />,
-          label: 'Mic Access Denied',
+          title: 'Mic Access Denied',
         };
       default: // idle
         return {
           icon: <ColorableLogo className="text-foreground/50" />,
-          label: 'Press to Record',
+          title: 'Name that Bird!',
+          subtitle: 'Press to record',
         };
     }
   };
 
-  const { icon, label, timer } = getButtonContent();
+  const { icon, title, subtitle, timer } = getButtonContent();
 
   return (
       <div className="flex flex-col items-center justify-center gap-0 w-full h-full">
@@ -149,8 +150,9 @@ const RecordButton = forwardRef<HTMLButtonElement, RecordButtonProps>(({
             </div>
         </Button>
         <p className="text-xl sm:text-3xl md:text-6xl font-mono font-bold text-foreground/50 text-center -mt-4 sm:-mt-8 md:-mt-16">
-            {label}
+            {title}
         </p>
+        {subtitle && <p className="text-lg sm:text-xl md:text-2xl font-mono text-foreground/40 text-center">{subtitle}</p>}
         {timer && <p className="text-lg sm:text-2xl md:text-4xl font-mono mt-2 text-foreground text-center">{timer}</p>}
       </div>
   );
