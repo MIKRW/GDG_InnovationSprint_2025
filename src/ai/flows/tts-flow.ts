@@ -30,20 +30,23 @@ const textToSpeechFlow = ai.defineFlow(
   },
   async (text) => {
     try {
-        const { media } = await ai.generate({
-        model: googleAI.model('gemini-2.5-flash-preview-tts'),
-        config: {
-            responseModalities: ['AUDIO'],
-            speechConfig: {
-            voiceConfig: {
-                prebuiltVoiceConfig: { voiceName: 'Erinome' },
+        const { media, finishReason } = await ai.generate({
+            model: googleAI.model('gemini-2.5-flash-preview-tts'),
+            config: {
+                responseModalities: ['AUDIO'],
+                speechConfig: {
+                    voiceConfig: {
+                        prebuiltVoiceConfig: { voiceName: 'Erinome' },
+                    },
+                },
             },
-            },
-        },
-        prompt: text,
+            prompt: text,
         });
 
         if (!media) {
+             if (finishReason === 'blocked' || finishReason === 'error' || finishReason === 'other') {
+                throw new Error('TTS generation was blocked. This may be due to a project quota limit.');
+            }
             throw new Error('TTS generation failed to return media.');
         }
         
@@ -61,7 +64,7 @@ const textToSpeechFlow = ai.defineFlow(
         // Gracefully handle the quota error without crashing the app.
         if (error instanceof Error && (error.message.includes('429') || error.message.includes('RESOURCE_EXHAUSTED'))) {
             console.warn(
-                `TTS feature is disabled due to a quota error (429). This usually means the 'Generative Language API' has a daily limit of 0 in your Google Cloud project. The app will continue to function without audio narration.`
+                `TTS feature is disabled due to a quota error (429 RESOURCE_EXHAUSTED). This usually means the 'Generative Language API' has a very low per-minute or per-day limit in your Google Cloud project. The app will continue to function without audio narration.`
             );
             // Return an empty audio response to prevent a crash.
             return { audioDataUri: '' };
