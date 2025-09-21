@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Speaker, Volume1, Volume2, VolumeX } from 'lucide-react';
+import { Speaker, Volume2, VolumeX } from 'lucide-react';
 
 interface SpeakerButtonProps {
     onClick?: () => void;
@@ -17,7 +17,7 @@ export function SpeakerButton({ onClick, isSpeakerOn, isPlaying, isLoading }: Sp
     const Icon = () => {
         if (!isSpeakerOn) return <VolumeX className="h-32 w-32" strokeWidth={2.5} />;
         if (isPlaying) return <Volume2 className="h-32 w-32" strokeWidth={2.5} />;
-        return <Volume1 className="h-32 w-32" strokeWidth={2.5} />;
+        return <Speaker className="h-32 w-32" strokeWidth={2.5} />;
     }
 
   return (
