@@ -66,16 +66,16 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     }, []);
 
     const getAudioDataUri = useCallback(async (source: string): Promise<string | null> => {
-        if (source.endsWith('.wav')) {
-            return source;
-        }
-
-        if (lastPlayedSourceRef.current === source && lastDataUriRef.current) {
-            return lastDataUriRef.current;
-        }
-
         setIsLoading(true);
         try {
+            if (source.endsWith('.wav')) {
+                return source;
+            }
+    
+            if (lastPlayedSourceRef.current === source && lastDataUriRef.current) {
+                return lastDataUriRef.current;
+            }
+    
             const response = await textToSpeech(source);
             if (!response.audioDataUri) {
                 console.warn('TTS returned empty audio data, likely due to a quota limit. Aborting playback.');
@@ -126,12 +126,9 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
             sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
         }
         
-        // If the same sound is playing, clicking again should pause it.
-        if (isPlaying && (audio.src.endsWith(targetSource) || lastPlayedSourceRef.current === targetSource)) {
+        if (isPlaying && audio.src.endsWith(targetSource)) {
             audio.pause();
         } else {
-            // Otherwise, play the new sound.
-            // If the speaker is off, turn it on first.
             if (!settings.isSpeakerOn) {
                 setSettings(prev => {
                     const newSettings = { ...prev, isSpeakerOn: true };
@@ -147,9 +144,7 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     useEffect(() => {
         const isAutoPlayOn = (autoPlayType === 'general' && settings.isGeneralAutoPlayOn) || (autoPlayType === 'carousel' && settings.isCarouselAutoPlayOn);
         if (isAutoPlayOn && settings.isSpeakerOn && narrationSource && hasInteractedRef.current) {
-            if (narrationSource.endsWith('.wav')) {
-                playAudio(narrationSource);
-            }
+            playAudio(narrationSource);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [narrationSource, settings.isGeneralAutoPlayOn, settings.isCarouselAutoPlayOn, settings.isSpeakerOn, autoPlayType]);
