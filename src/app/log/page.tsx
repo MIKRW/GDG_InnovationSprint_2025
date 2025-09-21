@@ -20,7 +20,7 @@ function AiAssistantCard() {
             <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
                 <CardContent className="flex-1 flex flex-col items-center justify-center gap-4">
                      <div className="w-96 h-96">
-                        <Button variant="ghost" className="w-full h-full rounded-full">
+                        <Button variant="ghost" className="w-full h-full rounded-full hover:bg-background">
                             <Bot className="h-96 w-96 text-foreground" />
                         </Button>
                      </div>
@@ -38,8 +38,8 @@ function AiAssistantCard() {
 
 function BirdResultCard({ seed }: { seed: string }) {
     return (
-        <div className="h-full">
-            <Card className="w-full h-full p-6 shadow-2xl flex flex-col rounded-lg bg-ring">
+        <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
+            <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
                 <div className="relative w-full flex-1 pt-4">
                     <Image
                         src={`https://picsum.photos/seed/${seed}/600/400`}
