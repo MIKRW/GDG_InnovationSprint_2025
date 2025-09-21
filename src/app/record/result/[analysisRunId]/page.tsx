@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -192,7 +191,7 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
     return (
         <AppLayout header={<SecondaryHeader title="Analysis Result" />}>
             <main className="flex-1 flex items-center justify-center p-4 bg-muted">
-                {isBirdSong === false ? <NotIdentifiedCard /> : (
+                {isBirdSong === false || error ? <NotIdentifiedCard /> : (
                     <Card className="w-full max-w-lg shadow-2xl">
                         {imagePrompt && <BirdImage prompt={imagePrompt} />}
                         <CardHeader>
