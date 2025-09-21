@@ -8,12 +8,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { logErrorToFirestore } from '@/lib/error-logging';
 import { identifyBirdBySound, type IdentifyBirdOutput } from '@/ai/flows/contextual-identify-bird-flow';
 import { createAnalysisRun } from '@/lib/actions';
-import { storage } from '@/lib/firebase';
-import { ref as storageRef, uploadBytes } from 'firebase/storage';
 import type { LocationSettings } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { ColorableLogo } from '@/components/content/ColorableLogo';
-import { Loader2, BookImage, Settings } from 'lucide-react';
+import { BookImage, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { SpeakerButton } from '@/components/content/SpeakerButton';
@@ -71,7 +69,7 @@ export default function Home() {
     }
   };
   
-  const processAudio = async (storagePath: string): Promise<string | null> => {
+  const processAudio = async (audioDataUri: string, recordingId: string): Promise<string | null> => {
     return new Promise((resolve, reject) => {
       getLocationForAIShot(async (locationData) => {
           if (!currentTimestamp.current || !currentSessionId.current) {
@@ -85,7 +83,7 @@ export default function Home() {
           try {
               const analysisStartTime = Date.now();
               result = await identifyBirdBySound({
-                  audioStoragePath: storagePath,
+                  audioDataUri: audioDataUri,
                   timestamp: currentTimestamp.current!,
                   ...locationData
               });
@@ -93,7 +91,7 @@ export default function Home() {
               const wasSuccessful = result && result.isBirdSong && !!result.commonName;
 
               analysisRunId = await createAnalysisRun(
-                  'anonymous', storagePath, result, wasSuccessful, locationData, hardware, 'newbie',
+                  'anonymous', audioDataUri, recordingId, result, wasSuccessful, locationData, hardware, 'newbie',
                   { primaryIdentificationMs: analysisDurationMs },
                   currentSessionId.current, currentTimestamp.current
               );
@@ -108,7 +106,7 @@ export default function Home() {
               });
               
               analysisRunId = await createAnalysisRun(
-                  'anonymous', storagePath, result, false,
+                  'anonymous', audioDataUri, recordingId, result, false,
                   locationData, hardware, 'newbie',
                   { primaryIdentificationMs: analysisDurationMs },
                   currentSessionId.current, currentTimestamp.current
@@ -127,44 +125,51 @@ export default function Home() {
   }
 
   const handleRecordingComplete = async (audioBlob: Blob) => {
-    const tempUserId = 'anonymous';
     const recordingId = uuidv4();
-    const filePath = `users/${tempUserId}/recordings/${recordingId}.webm`;
-    const fileRef = storageRef(storage, filePath);
-    
     let analysisRunId: string | null = null;
 
     try {
-        await uploadBytes(fileRef, audioBlob);
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+            const audioDataUri = reader.result as string;
 
-        const timeoutPromise = new Promise<null>((_, reject) => 
-            setTimeout(() => reject(new Error('Analysis timed out')), ANALYSIS_TIMEOUT_MS)
-        );
+            try {
+                const timeoutPromise = new Promise<null>((_, reject) => 
+                    setTimeout(() => reject(new Error('Analysis timed out')), ANALYSIS_TIMEOUT_MS)
+                );
 
-        analysisRunId = await Promise.race([
-            processAudio(filePath),
-            timeoutPromise
-        ]);
-
+                analysisRunId = await Promise.race([
+                    processAudio(audioDataUri, recordingId),
+                    timeoutPromise
+                ]);
+            } catch (error) {
+                console.error("Failed to process live recording:", error);
+                logErrorToFirestore(error as Error, 'live-audio-processing-failure', {
+                    userId: 'anonymous',
+                    recordingId,
+                });
+                if ((error as Error).message === 'Analysis timed out') {
+                    toast({
+                        variant: 'destructive',
+                        title: 'Analysis Timed Out',
+                        description: `The analysis took too long to complete. Please try again.`,
+                    });
+                }
+            } finally {
+                setIsProcessing(false);
+                if (analysisRunId) {
+                    router.push(`/record/result/${analysisRunId}`);
+                }
+            }
+        };
+        reader.onerror = (error) => {
+            throw new Error("Failed to read audio blob: " + error);
+        };
     } catch (error) {
-        console.error("Failed to upload or process live recording:", error);
-        logErrorToFirestore(error as Error, 'live-audio-upload-failure', {
-            userId: tempUserId,
-            filePath: filePath,
-        });
-
-        if ((error as Error).message === 'Analysis timed out') {
-            toast({
-                variant: 'destructive',
-                title: 'Analysis Timed Out',
-                description: `The analysis took too long to complete. Please try again.`,
-            });
-        }
-    } finally {
         setIsProcessing(false);
-        if (analysisRunId) {
-            router.push(`/record/result/${analysisRunId}`);
-        }
+        logErrorToFirestore(error as Error, 'audio-blob-conversion-failure', { userId: 'anonymous' });
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not process recorded audio.' });
     }
   }
   

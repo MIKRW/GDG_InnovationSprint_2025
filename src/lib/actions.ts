@@ -137,7 +137,8 @@ export async function saveCanonicalImage(
 
 export async function createAnalysisRun(
     userId: string,
-    audioStoragePath: string,
+    audioDataUri: string,
+    recordingId: string,
     aiResult: IdentifyBirdOutput,
     wasSuccessful: boolean,
     locationData: any,
@@ -148,12 +149,18 @@ export async function createAnalysisRun(
     timestamp: string,
   ): Promise<string> {
     
+    // Upload audio in the background
+    const audioStoragePath = `users/${userId}/recordings/${recordingId}.webm`;
+    const fileRef = storageRef(storage, audioStoragePath);
+    const fetchResponse = await fetch(audioDataUri);
+    const blob = await fetchResponse.blob();
+    await uploadBytes(fileRef, blob);
+    const inputAudioUrl = await getDownloadURL(fileRef);
+
+    // Create the analysis run document
     const analysisRunId = uuidv4();
     const collectionName = 'all_analysis_runs';
     const analysisRunRef = doc(db, collectionName, analysisRunId);
-
-    const fileRef = storageRef(storage, audioStoragePath);
-    const inputAudioUrl = await getDownloadURL(fileRef);
 
     const docToCreate: Partial<AnalysisRun> = {
       id: analysisRunId,
@@ -175,7 +182,6 @@ export async function createAnalysisRun(
       analysisTimings: analysisTimings,
     };
     
-    // Only add recordingLengthSeconds if it's a valid number
     if (typeof aiResult.duration === 'number') {
         docToCreate.recordingLengthSeconds = aiResult.duration;
     }
@@ -462,3 +468,5 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
     revalidateTag('prompts-v7');
     return { id: newId, ...newContentData };
 }
+
+    

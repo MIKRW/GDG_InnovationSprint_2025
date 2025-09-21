@@ -10,8 +10,6 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import { getStorage, getDownloadURL } from 'firebase-admin/storage';
-import wavDecoder from 'wav-decoder';
 import { googleAI } from '@genkit-ai/googleai';
 import { BIRD_ID_PROMPT } from '@/ai/prompts/bird-identifier-prompt';
 
@@ -23,7 +21,6 @@ const IdentifyBirdInputSchema = z.object({
     .describe(
       "A recording of a bird song, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'"
     ),
-    audioStoragePath: z.string().optional().describe('The path to an audio file in Firebase Storage. If provided, this is used instead of audioDataUri.'),
     timestamp: z.string().describe('The UTC timestamp of when the recording was made, in ISO 8601 format.'),
     latitude: z.number().optional().describe('The latitude of where the recording was made.'),
     longitude: z.number().optional().describe('The longitude of where the recording was made.'),
@@ -95,75 +92,14 @@ const getCurrentWeather = ai.defineTool(
     }
   );
 
-/**
- * Downloads a file from Firebase Storage, converts it to a Base64 data URI,
- * and calculates its duration. This runs on the server.
- * @returns An object with the data URI and the duration in seconds.
- */
-async function fileToDataUriWithDuration(storagePath: string): Promise<{ dataUri: string; duration: number | undefined }> {
-    const bucket = getStorage().bucket();
-    const file = bucket.file(storagePath);
-    const [metadata] = await file.getMetadata();
-    const mimeType = metadata.contentType || 'application/octet-stream';
-    
-    // Get a download URL with a token. This is necessary for the next step.
-    const downloadUrl = await getDownloadURL(file);
-
-    // Fetch the file using the authenticated URL.
-    const response = await fetch(downloadUrl);
-    if (!response.ok) {
-        throw new Error(`Failed to download file from storage: ${response.statusText}`);
-    }
-    const buffer = await response.arrayBuffer();
-    const nodeBuffer = Buffer.from(buffer);
-
-
-    // Calculate duration for WAV files
-    let duration: number | undefined;
-    if (mimeType === 'audio/wav' || storagePath.endsWith('.wav')) {
-        try {
-            const decoded = await wavDecoder.decode(nodeBuffer);
-            duration = decoded.duration;
-        } catch (e) {
-            console.warn(`Could not decode WAV file to get duration: ${storagePath}`, e);
-        }
-    }
-    // Note: Duration calculation for other formats like webm/opus would require a library like 'music-metadata'.
-    // For now, we only support WAV duration on the server.
-
-    // Convert buffer to Base64 and format as a data URI
-    const base64 = nodeBuffer.toString('base64');
-    const dataUri = `data:${mimeType};base64,${base64}`;
-
-    return { dataUri, duration };
-}
-
-
 export async function identifyBirdBySound(
   input: IdentifyBirdInput
 ): Promise<IdentifyBirdOutput> {
-  let duration: number | undefined;
-
-  // If a storage path is provided, download the file from the server,
-  // convert it to a data URI, and get its duration.
-  if (input.audioStoragePath && !input.audioDataUri) {
-      const { dataUri, duration: fileDuration } = await fileToDataUriWithDuration(input.audioStoragePath);
-      input.audioDataUri = dataUri;
-      duration = fileDuration;
-  }
-  
   if (!input.audioDataUri) {
-      throw new Error("No audio data provided. Please provide either 'audioDataUri' or 'audioStoragePath'.");
+      throw new Error("No audio data provided. Please provide 'audioDataUri'.");
   }
   
-  const result = await identifyBirdFlow(input);
-  
-  // Add the server-calculated duration to the final result if it exists.
-  if (duration && result.duration === undefined) {
-    result.duration = duration;
-  }
-
-  return result;
+  return await identifyBirdFlow(input);
 }
 
 
