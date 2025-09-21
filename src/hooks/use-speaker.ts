@@ -79,9 +79,10 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
 
         // If it's a local file, we don't need to fetch anything from the AI
         if (isLocalFile(sourceToPlay)) {
+            const fullUrl = new URL(sourceToPlay, window.location.origin).href;
              if (shouldPlay && hasInteractedRef.current && audioRef.current) {
-                if (audioRef.current.src !== new URL(sourceToPlay, window.location.origin).href) {
-                   audioRef.current.src = sourceToPlay;
+                if (audioRef.current.src !== fullUrl) {
+                   audioRef.current.src = fullUrl;
                 }
                 audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
             }
@@ -102,6 +103,10 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         setIsLoading(true);
         try {
             const response = await textToSpeech(sourceToPlay);
+            if (!response.audioDataUri) {
+                console.warn('TTS returned empty audio data.');
+                return;
+            }
             audioDataUriRef.current = response.audioDataUri;
             lastPlayedTextRef.current = sourceToPlay;
             if (shouldPlay && hasInteractedRef.current && audioRef.current) {
@@ -120,8 +125,8 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         
         if (isAutoPlayRelevant && settings.isSpeakerOn && narrationSource && hasInteractedRef.current) {
             fetchAndCacheAudio(narrationSource, true);
-        } else if (settings.isSpeakerOn && narrationSource) {
-            // Pre-fetch but don't play if auto-play is off
+        } else if (settings.isSpeakerOn && narrationSource && !isLocalFile(narrationSource)) {
+            // Pre-fetch but don't play if auto-play is off, and it's not a local file
             fetchAndCacheAudio(narrationSource, false);
         }
     }, [narrationSource, settings.isGeneralAutoPlayOn, settings.isCarouselAutoPlayOn, settings.isSpeakerOn, autoPlayType, fetchAndCacheAudio]);
