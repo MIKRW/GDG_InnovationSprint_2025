@@ -4,39 +4,71 @@
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
-import { Carousel, CarouselContent, CarouselItem, useCarousel } from '@/components/ui/carousel';
-import { useState } from 'react';
+import { Carousel, CarouselApi, CarouselContent, CarouselItem, useCarousel } from '@/components/ui/carousel';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BookImage, Settings, Home, Bot, Mic } from 'lucide-react';
+import { BookImage, Settings, Home, Bot, Mic, CornerDownLeft } from 'lucide-react';
 import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
 
-function AiAssistantCard() {
+interface ChatMessage {
+    sender: 'user' | 'bot';
+    text: string;
+}
+
+function AiAssistantCard({ chatHistory, isChatActive }: { chatHistory: ChatMessage[], isChatActive: boolean }) {
     return (
         <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
             <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
                 <CardContent className="flex-1 flex flex-col items-center justify-center gap-4">
-                     <div className="w-96 h-96">
-                        <Button variant="ghost" className="w-full h-full rounded-full hover:bg-background">
-                            <Bot className="h-96 w-96 text-foreground" />
-                        </Button>
-                     </div>
-                    <div className="text-center">
-                        <h2 className="text-8xl font-mono font-bold">Bird Book</h2>
-                        <p className="text-3xl font-mono text-foreground/80">
-                            swipe to see your birds or click to chat to the guide to organize your bird book
-                        </p>
-                    </div>
+                    {!isChatActive ? (
+                         <>
+                            <div className="w-96 h-96">
+                                <Button variant="ghost" className="w-full h-full rounded-full hover:bg-background">
+                                    <Bot className="h-96 w-96 text-foreground" />
+                                </Button>
+                            </div>
+                            <div className="text-center">
+                                <h2 className="text-8xl font-mono font-bold">Bird Book</h2>
+                                <p className="text-3xl font-mono text-foreground/80">
+                                    swipe to see your birds or click to chat to the guide to organize your bird book
+                                </p>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="w-full h-full flex flex-col p-4">
+                            <div className="flex-1 space-y-4 overflow-y-auto">
+                                {chatHistory.map((msg, index) => (
+                                    <div key={index} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                        {msg.sender === 'bot' && <Bot className="h-6 w-6 text-muted-foreground" />}
+                                        <p className={cn(
+                                            "rounded-lg px-4 py-2 max-w-sm",
+                                            msg.sender === 'user' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                                        )}>
+                                            {msg.text}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="mt-4 flex items-center gap-2">
+                                <Input placeholder="Type your message..." className="flex-1"/>
+                                <Button size="icon">
+                                    <CornerDownLeft className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
     )
 }
 
-function BirdResultCard({ seed }: { seed: string }) {
+function BirdResultCard({ seed, onStartChat }: { seed: string, onStartChat: () => void }) {
     return (
         <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
             <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
@@ -60,7 +92,7 @@ function BirdResultCard({ seed }: { seed: string }) {
                         </p>
                     </CardContent>
                     <CardFooter className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" onClick={onStartChat}>
                             <Bot className="h-6 w-6" />
                         </Button>
                         <Button variant="ghost" size="icon">
@@ -118,6 +150,32 @@ const CarouselNext = React.forwardRef<
 CarouselNext.displayName = "CarouselNext"
 
 export default function BirdBookPage() {
+    const [api, setApi] = useState<CarouselApi>();
+    const [isChatActive, setIsChatActive] = useState(false);
+    const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+
+    useEffect(() => {
+        if (!api) return;
+        
+        const onSelect = () => {
+            // Deactivate chat if we scroll away from the assistant card
+            if (api.selectedScrollSnap() !== 0) {
+                setIsChatActive(false);
+            }
+        };
+
+        api.on("select", onSelect);
+        return () => {
+            api.off("select", onSelect);
+        };
+    }, [api]);
+    
+    const startChat = () => {
+        api?.scrollTo(0);
+        setIsChatActive(true);
+        setChatHistory([{ sender: 'bot', text: 'Please ask me to filter, sort, or find a bird.' }]);
+    };
+
     return (
         <AppLayout>
             <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
@@ -128,26 +186,26 @@ export default function BirdBookPage() {
                     <ContrastButton />
                 </div>
 
-                <Carousel className="w-full max-w-3xl" opts={{ loop: true }}>
+                <Carousel className="w-full max-w-3xl" opts={{ loop: false }} setApi={setApi}>
                     <CarouselContent>
                         <CarouselItem>
                             <div className="p-1 h-[60rem]">
-                                <AiAssistantCard />
+                                <AiAssistantCard chatHistory={chatHistory} isChatActive={isChatActive} />
                             </div>
                         </CarouselItem>
                         <CarouselItem>
                             <div className="p-1 h-[60rem]">
-                               <BirdResultCard seed="bird1" />
+                               <BirdResultCard seed="bird1" onStartChat={startChat} />
                             </div>
                         </CarouselItem>
                         <CarouselItem>
                             <div className="p-1 h-[60rem]">
-                                <BirdResultCard seed="bird2" />
+                                <BirdResultCard seed="bird2" onStartChat={startChat} />
                             </div>
                         </CarouselItem>
                         <CarouselItem>
                             <div className="p-1 h-[60rem]">
-                               <BirdResultCard seed="bird3" />
+                               <BirdResultCard seed="bird3" onStartChat={startChat} />
                             </div>
                         </CarouselItem>
                     </CarouselContent>
