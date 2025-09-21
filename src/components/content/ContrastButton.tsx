@@ -10,62 +10,51 @@ const themes = ['light', 'dark', 'custom'];
 export function ContrastButton() {
   const [currentTheme, setCurrentTheme] = useState('light');
 
+  // Effect to set the initial theme from localStorage on mount.
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || 'light';
     setCurrentTheme(savedTheme);
-
-    const handleStorageChange = () => {
-      const newTheme = localStorage.getItem('theme') || 'light';
-      setCurrentTheme(newTheme);
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
   }, []);
 
   const toggleTheme = () => {
-    // Exit preview mode if active
-    const isPreviewing = sessionStorage.getItem('theme-preview-active') === 'true';
-    if (isPreviewing) {
-        sessionStorage.removeItem('theme-preview-active');
-        const lastActiveTheme = localStorage.getItem('active-theme-json');
-        if(lastActiveTheme) {
-            try {
-                const root = document.documentElement;
-                const theme = JSON.parse(lastActiveTheme);
-                if (theme) {
-                    root.style.setProperty('--custom-background-h', `${theme.colors.background.h}`);
-                    root.style.setProperty('--custom-background-s', `${theme.colors.background.s}%`);
-                    root.style.setProperty('--custom-background-l', `${theme.colors.background.l}%`);
-                    root.style.setProperty('--custom-foreground-h', `${theme.colors.foreground.h}`);
-                    root.style.setProperty('--custom-foreground-s', `${theme.colors.foreground.s}%`);
-                    root.style.setProperty('--custom-foreground-l', `${theme.colors.foreground.l}%`);
-                    root.style.setProperty('--custom-primary-h', `${theme.colors.primary.h}`);
-                    root.style.setProperty('--custom-primary-s', `${theme.colors.primary.s}%`);
-                    root.style.setProperty('--custom-primary-l', `${theme.colors.primary.l}%`);
-                    const ringColor = theme.colors.ring || theme.colors.primary;
-                    root.style.setProperty('--custom-ring-h', `${ringColor.h}`);
-                    root.style.setProperty('--custom-ring-s', `${ringColor.s}%`);
-                    root.style.setProperty('--custom-ring-l', `${ringColor.l}%`);
-                }
-            } catch (e) {
-                console.error("Failed to parse active theme from localStorage", e);
-            }
-        }
-        window.dispatchEvent(new Event('preview-exit'));
-        return;
-    }
-
-
     const currentIndex = themes.indexOf(currentTheme);
     const nextTheme = themes[(currentIndex + 1) % themes.length];
     
     localStorage.setItem('theme', nextTheme);
     
+    // Apply the new theme class to the document root.
     document.documentElement.classList.remove(...themes);
     document.documentElement.classList.add(nextTheme);
+
+    // If switching to custom, ensure its styles are applied from the active theme.
+    if (nextTheme === 'custom') {
+        const activeThemeJson = localStorage.getItem('active-theme-json');
+        if (activeThemeJson) {
+            try {
+                const activeTheme = JSON.parse(activeThemeJson);
+                if (activeTheme && activeTheme.colors) {
+                    const root = document.documentElement;
+                    const { colors } = activeTheme;
+                    const ringColor = colors.ring || colors.primary;
+
+                    root.style.setProperty('--custom-background-h', `${colors.background.h}`);
+                    root.style.setProperty('--custom-background-s', `${colors.background.s}%`);
+                    root.style.setProperty('--custom-background-l', `${colors.background.l}%`);
+                    root.style.setProperty('--custom-foreground-h', `${colors.foreground.h}`);
+                    root.style.setProperty('--custom-foreground-s', `${colors.foreground.s}%`);
+                    root.style.setProperty('--custom-foreground-l', `${colors.foreground.l}%`);
+                    root.style.setProperty('--custom-primary-h', `${colors.primary.h}`);
+                    root.style.setProperty('--custom-primary-s', `${colors.primary.s}%`);
+                    root.style.setProperty('--custom-primary-l', `${colors.primary.l}%`);
+                    root.style.setProperty('--custom-ring-h', `${ringColor.h}`);
+                    root.style.setProperty('--custom-ring-s', `${ringColor.s}%`);
+                    root.style.setProperty('--custom-ring-l', `${ringColor.l}%`);
+                }
+            } catch (e) {
+                console.error("Failed to apply custom theme styles:", e);
+            }
+        }
+    }
 
     setCurrentTheme(nextTheme);
   };
