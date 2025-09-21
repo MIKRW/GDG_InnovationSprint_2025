@@ -2,12 +2,35 @@
 'use server';
 
 import { revalidateTag } from 'next/cache';
-import { ref as storageRef, getDownloadURL, uploadString } from 'firebase/storage';
-import { doc, setDoc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, orderBy, runTransaction, writeBatch } from 'firebase/firestore';
+import { getBytes, getDownloadURL, ref as storageRef, uploadString } from 'firebase/storage';
+import {
+  arrayUnion,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  runTransaction,
+  setDoc,
+  updateDoc,
+  where,
+  writeBatch
+} from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { adminStorage } from './firebase-admin';
 import { v4 as uuidv4 } from 'uuid';
-import type { TestAudioMetadata, PromptSystem, PromptVersion, AppAIVersion, AppAIConfig, PromptContent, AnalysisRun, AppMode, IdentifyBirdOutput } from './types';
+import type {
+  AnalysisRun,
+  AppAIConfig,
+  AppAIVersion,
+  AppMode,
+  IdentifyBirdOutput,
+  PromptContent,
+  PromptSystem,
+  PromptVersion,
+  TestAudioMetadata
+} from './types';
 import { kebabCase } from 'lodash';
 import { cache } from 'react';
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
@@ -167,7 +190,8 @@ export async function createAnalysisRun(
     try {
         const analysisStartTime = Date.now();
         
-        const bucket = adminStorage.bucket(firebaseConfig.storageBucket);
+        // Use the Admin SDK to download the file on the server.
+        const bucket = adminStorage.bucket();
         const file = bucket.file(storagePath);
         
         const [audioBuffer] = await file.download();
@@ -506,3 +530,5 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
     revalidateTag('prompts-v7');
     return { id: newId, ...newContentData };
 }
+
+    
