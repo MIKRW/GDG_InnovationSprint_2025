@@ -141,7 +141,7 @@ const identifyBirdFlow = ai.defineFlow(
             scientificName: "Not identified",
             family: "Not identified",
             order: "Not identified",
-            description: "The AI did not detect a bird song in this audio recording. You can review it later in the Mystery Recordings log.",
+            description: output.description || "The AI did not detect a bird song in this audio recording. You can review it later in the Mystery Recordings log.",
             imagePrompt: "photo of a question mark in a forest",
             confidence: 0,
             season: output.season || "Unknown",

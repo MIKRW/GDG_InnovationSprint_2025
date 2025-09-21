@@ -173,7 +173,10 @@ export async function createAnalysisRun(
             mode: mode
         });
         
-        wasSuccessful = aiResult && aiResult.isBirdSong && !!aiResult.commonName;
+        // An analysis is successful if the AI flow returns a result,
+        // even if that result is "no bird song detected".
+        wasSuccessful = !!aiResult;
+        
         const analysisDurationMs = Date.now() - analysisStartTime;
         analysisTimings.primaryIdentificationMs = analysisDurationMs;
 
