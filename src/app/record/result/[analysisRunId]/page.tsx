@@ -23,6 +23,12 @@ import { cn } from '@/lib/utils';
 
 const SAVED_RUNS_KEY = 'saved-runs';
 
+interface ResultPageProps {
+    params: {
+        analysisRunId: string;
+    };
+}
+
 function BirdImage({ commonName }: { commonName: string }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -206,7 +212,7 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
 }
 
 
-export default function ResultPage({ params }: { params: { analysisRunId: string } }) {
+export default function ResultPage({ params }: ResultPageProps) {
     const [run, setRun] = useState<AnalysisRun | null>(null);
     const [loading, setLoading] = useState(true);
     const [isClient, setIsClient] = useState(false);
