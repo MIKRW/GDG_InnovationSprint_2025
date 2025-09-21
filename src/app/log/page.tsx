@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface ChatMessage {
     sender: 'user' | 'bot';
@@ -175,6 +176,11 @@ export default function BirdBookPage() {
     const [api, setApi] = useState<CarouselApi>();
     const [isChatActive, setIsChatActive] = useState(false);
     const [chatMode, setChatMode] = useState<'voice' | 'text'>('voice');
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     useEffect(() => {
         if (!api) return;
@@ -207,6 +213,9 @@ export default function BirdBookPage() {
         }
     };
 
+    if (!isClient) {
+        return null;
+    }
 
     return (
         <AppLayout>
