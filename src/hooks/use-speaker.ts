@@ -13,98 +13,110 @@ interface SpeakerSettings {
     isAutoPlayOn: boolean;
 }
 
-// A simple in-memory cache for audio data URIs
 const audioCache = new Map<string, string>();
 
-export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'carousel' = 'general') {
+export function useSpeaker(narrationSource: string) {
     const { toast } = useToast();
     const [settings, setSettings] = useState<SpeakerSettings>({
         isSpeakerOn: true,
-        isAutoPlayOn: false,
+        isAutoPlayOn: true,
     });
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
-    const hasInteractedRef = useRef(false);
+    
+    // Refs for the two audio players
+    const narrationAudioRef = useRef<HTMLAudioElement | null>(null);
+    const sfxAudioRef = useRef<HTMLAudioElement | null>(null);
 
+    // Effect to initialize everything on mount
     useEffect(() => {
-        hasInteractedRef.current = !!sessionStorage.getItem(FIRST_INTERACTION_KEY);
-        const audioEl = new Audio();
-        audioRef.current = audioEl;
-
-        const handlePlay = () => setIsPlaying(true);
-        const handleEnd = () => {
-            setIsPlaying(false);
-            if (audioRef.current) audioRef.current.currentTime = 0;
-        };
+        const hasInteracted = !!sessionStorage.getItem(FIRST_INTERACTION_KEY);
         
-        audioEl.addEventListener('play', handlePlay);
-        audioEl.addEventListener('ended', handleEnd);
-        audioEl.addEventListener('pause', handleEnd);
+        // Initialize Narration Player
+        const narrationPlayer = new Audio();
+        narrationAudioRef.current = narrationPlayer;
+        const handleNarrationEnd = () => setIsPlaying(false);
+        narrationPlayer.addEventListener('play', () => setIsPlaying(true));
+        narrationPlayer.addEventListener('pause', handleNarrationEnd);
+        narrationPlayer.addEventListener('ended', handleNarrationEnd);
 
+        // Initialize SFX Player
+        sfxAudioRef.current = new Audio();
+
+        // Load settings from localStorage
         const savedSettings = localStorage.getItem(SPEAKER_SETTINGS_KEY);
-        const defaultSettings = { isSpeakerOn: true, isAutoPlayOn: false };
-
         if (savedSettings) {
             try {
-                setSettings({ ...defaultSettings, ...JSON.parse(savedSettings) });
+                setSettings(JSON.parse(savedSettings));
             } catch (e) {
                 console.error("Failed to parse speaker settings:", e);
-                localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(defaultSettings));
             }
-        } else {
-            localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(defaultSettings));
+        }
+
+        // Auto-play logic for page load
+        if (settings.isAutoPlayOn && narrationSource && hasInteracted && narrationSource.endsWith('.wav')) {
+            narrationPlayer.src = narrationSource;
+            narrationPlayer.play().catch(e => console.error("Autoplay failed:", e));
         }
 
         return () => {
-            audioEl.removeEventListener('play', handlePlay);
-            audioEl.removeEventListener('ended', handleEnd);
-            audioEl.removeEventListener('pause', handleEnd);
-            audioEl.pause();
-            audioEl.src = '';
+            narrationPlayer.removeEventListener('play', () => setIsPlaying(true));
+            narrationPlayer.removeEventListener('pause', handleNarrationEnd);
+            narrationPlayer.removeEventListener('ended', handleNarrationEnd);
+            narrationPlayer.pause();
         };
-    }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [narrationSource]);
 
-    const getAudioDataUri = useCallback(async (source: string): Promise<string | null> => {
-        if (source.endsWith('.wav')) {
-            return source; // It's a static file path
+
+    const playNarration = useCallback(async (sourceToPlayOverride?: string) => {
+        const targetSource = sourceToPlayOverride || narrationSource;
+        const audio = narrationAudioRef.current;
+        if (!audio || !targetSource) return;
+
+        // Mark user as interacted if they haven't already
+        if (!sessionStorage.getItem(FIRST_INTERACTION_KEY)) {
+            sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
+        }
+
+        // If this exact sound is already playing, stop it.
+        if (isPlaying) {
+             audio.pause();
+             audio.currentTime = 0;
+             return;
+        }
+
+        // If the speaker is off, turn it on first.
+        if (!settings.isSpeakerOn) {
+            setSettings(prev => {
+                const newSettings = { ...prev, isSpeakerOn: true };
+                localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
+                return newSettings;
+            });
         }
         
-        // It's dynamic text, check cache first
-        if (audioCache.has(source)) {
-            return audioCache.get(source)!;
-        }
-
         setIsLoading(true);
         try {
-            const response = await textToSpeech(source);
-            const dataUri = response.audioDataUri;
-            audioCache.set(source, dataUri); // Cache the result
-            return dataUri;
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    const playAudio = useCallback(async (source: string) => {
-        const audio = audioRef.current;
-        if (!audio) return;
-
-        if (!audio.paused) {
-            audio.pause();
-            audio.currentTime = 0;
-        }
-        
-        try {
-            const dataUri = await getAudioDataUri(source);
+            let dataUri: string | null = null;
+            if (targetSource.endsWith('.wav')) {
+                dataUri = targetSource;
+            } else {
+                // It's text for TTS
+                if (audioCache.has(targetSource)) {
+                    dataUri = audioCache.get(targetSource)!;
+                } else {
+                    const response = await textToSpeech(targetSource);
+                    dataUri = response.audioDataUri;
+                    audioCache.set(targetSource, dataUri);
+                }
+            }
+            
             if (dataUri) {
                 audio.src = dataUri;
                 await audio.play();
             }
+
         } catch (error: any) {
-            if (error.name === 'AbortError') {
-                return;
-            }
              if (error.message === 'TTS_QUOTA_EXCEEDED') {
                 toast({
                     variant: 'destructive',
@@ -113,66 +125,28 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
                 });
             } else {
                 console.error("Failed to load or play audio:", error);
+                toast({ variant: 'destructive', title: "Audio Error", description: "Could not play the requested audio."});
             }
-            setIsPlaying(false);
+        } finally {
             setIsLoading(false);
         }
-    }, [getAudioDataUri, toast]);
+    }, [narrationSource, isPlaying, settings.isSpeakerOn, toast]);
 
-    const playNarration = useCallback(async (sourceToPlayOverride?: string) => {
-        const targetSource = sourceToPlayOverride || narrationSource;
-        const audio = audioRef.current;
-        if (!audio || !targetSource) return;
-
-        if (!hasInteractedRef.current) {
-            hasInteractedRef.current = true;
-            sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
+    const playSfx = useCallback((sfxPath: string) => {
+        const sfxPlayer = sfxAudioRef.current;
+        if (sfxPlayer && settings.isSpeakerOn) {
+            sfxPlayer.src = sfxPath;
+            sfxPlayer.play().catch(e => console.error("SFX play failed:", e));
         }
-        
-        if (isPlaying && audio.src === audioCache.get(targetSource)) {
-             audio.pause();
-             audio.currentTime = 0;
-             setIsPlaying(false);
-        } else {
-            if (!settings.isSpeakerOn) {
-                setSettings(prev => {
-                    const newSettings = { ...prev, isSpeakerOn: true };
-                    localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
-                    return newSettings;
-                });
-            }
-            playAudio(targetSource);
-        }
-    }, [narrationSource, isPlaying, settings.isSpeakerOn, playAudio]);
-
-    // This effect handles auto-play for STATIC .wav files ONLY.
-    useEffect(() => {
-        if (settings.isAutoPlayOn && settings.isSpeakerOn && narrationSource && hasInteractedRef.current) {
-            // Only autoplay if it's a pre-recorded file.
-            if (narrationSource.endsWith('.wav')) {
-                playAudio(narrationSource);
-            }
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [narrationSource, settings.isAutoPlayOn, settings.isSpeakerOn]);
-
-
-    const toggleAutoPlay = useCallback(() => {
-        setSettings(prev => {
-            const newSettings = { ...prev, isAutoPlayOn: !prev.isAutoPlayOn };
-            localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
-            return newSettings;
-        });
-    }, []);
+    }, [settings.isSpeakerOn]);
     
-
     return {
         isSpeakerOn: settings.isSpeakerOn,
         isAutoPlayOn: settings.isAutoPlayOn,
         isPlaying,
         isLoading,
         playNarration,
-        toggleAutoPlay,
+        playSfx,
     };
 }
 

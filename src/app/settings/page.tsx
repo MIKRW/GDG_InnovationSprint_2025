@@ -21,6 +21,7 @@ import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 
 
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
+const SPEAKER_SETTINGS_KEY = 'speaker-settings';
 
 const CarouselPrevious = React.forwardRef<
   HTMLButtonElement,
@@ -82,25 +83,34 @@ export default function SettingsPage() {
   const [hardware, setHardware] = useState('');
   const [isClient, setIsClient] = useState(false);
   const [narrationText, setNarrationText] = useState(NARRATION_TEXTS[0]);
-  const { playNarration, isAutoPlayOn, toggleAutoPlay, ...speakerProps } = useSpeaker(narrationText, 'carousel');
   const [api, setApi] = useState<CarouselApi>();
-  
-  const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
-    if (isAutoPlayOn) {
-        const newNarration = NARRATION_TEXTS[index];
-        if (newNarration) {
-            setNarrationText(newNarration);
-        }
-    }
-  }, 2000);
 
+  const [isAutoPlayOn, setIsAutoPlayOn] = useState(true);
+  const { playNarration, playSfx, ...speakerProps } = useSpeaker(narrationText);
+  
   useEffect(() => {
     setIsClient(true);
     const savedHardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
     if (savedHardware) {
       setHardware(savedHardware);
     }
+    const savedSpeakerSettings = localStorage.getItem(SPEAKER_SETTINGS_KEY);
+    if (savedSpeakerSettings) {
+      try {
+        const parsed = JSON.parse(savedSpeakerSettings);
+        setIsAutoPlayOn(parsed.isAutoPlayOn);
+      } catch {}
+    }
   }, []);
+
+  const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
+    if (isAutoPlayOn) {
+        const newNarration = NARRATION_TEXTS[index];
+        if (newNarration) {
+            playNarration(newNarration);
+        }
+    }
+  }, 2000);
 
   useEffect(() => {
     if (!api) return;
@@ -109,10 +119,9 @@ export default function SettingsPage() {
         const selectedIndex = api.selectedScrollSnap();
         const newNarration = NARRATION_TEXTS[selectedIndex];
         if (newNarration) {
+            setNarrationText(newNarration); // Set text for manual play
             if (isAutoPlayOn) {
                 debouncedNarration(selectedIndex);
-            } else {
-                setNarrationText(newNarration);
             }
         }
     };
@@ -122,7 +131,7 @@ export default function SettingsPage() {
     return () => {
         api.off("select", handleSelect);
     };
-  }, [api, isAutoPlayOn, debouncedNarration]);
+  }, [api, isAutoPlayOn, debouncedNarration, playNarration]);
   
   const handleSaveHardware = () => {
     if (hardware) {
@@ -134,6 +143,14 @@ export default function SettingsPage() {
     }
   };
 
+  const toggleAutoPlay = () => {
+    const newValue = !isAutoPlayOn;
+    setIsAutoPlayOn(newValue);
+    playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
+    const existingSettings = JSON.parse(localStorage.getItem(SPEAKER_SETTINGS_KEY) || '{}');
+    localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify({ ...existingSettings, isAutoPlayOn: newValue }));
+  };
+
   if (!isClient) {
     return null;
   }
@@ -142,7 +159,7 @@ export default function SettingsPage() {
     <AppLayout>
       <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
         <div className="absolute top-4 left-4 opacity-50">
-            <SpeakerButton onClick={() => playNarration(narrationText)} {...speakerProps} />
+            <SpeakerButton onClick={() => playNarration()} {...speakerProps} isSpeakerOn={speakerProps.isSpeakerOn ?? isAutoPlayOn} />
         </div>
         <div className="absolute top-4 right-4 opacity-50">
             <ContrastButton />
@@ -170,7 +187,7 @@ export default function SettingsPage() {
                     <CarouselItem>
                         <div className="p-1 h-full">
                            <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
-                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center text-center">
+                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center text-center cursor-pointer" onClick={toggleAutoPlay}>
                                     <CardHeader>
                                         <ToggleLeft className="h-32 w-32 text-foreground mx-auto" />
                                         <CardTitle className="text-4xl font-mono pt-4">Auto-play Narration</CardTitle>
@@ -179,12 +196,11 @@ export default function SettingsPage() {
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent className="flex flex-col items-center gap-6">
-                                        <div className="flex items-center space-x-2">
+                                        <div className="flex items-center space-x-2 pointer-events-none">
                                             <Label htmlFor="autoplay-switch" className="text-lg">Auto-play Narration</Label>
                                             <Switch
                                                 id="autoplay-switch"
                                                 checked={isAutoPlayOn}
-                                                onCheckedChange={toggleAutoPlay}
                                                 className="h-8 w-16 [&>span]:h-6 [&>span]:w-6 [&>span[data-state=checked]]:translate-x-9"
                                             />
                                         </div>
@@ -310,3 +326,4 @@ export default function SettingsPage() {
   );
 }
 
+    
