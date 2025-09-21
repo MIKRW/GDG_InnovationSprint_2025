@@ -2,7 +2,7 @@
 'use server';
 
 import { revalidateTag } from 'next/cache';
-import { ref as storageRef, getDownloadURL, uploadString, getBytes } from 'firebase/storage';
+import { ref as storageRef, getDownloadURL, uploadString } from 'firebase/storage';
 import { doc, setDoc, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs, orderBy, runTransaction, writeBatch } from 'firebase/firestore';
 import { db, storage } from './firebase';
 import { v4 as uuidv4 } from 'uuid';
@@ -11,6 +11,7 @@ import { kebabCase } from 'lodash';
 import { cache } from 'react';
 import { identifyBirdBySound } from '@/ai/flows/contextual-identify-bird-flow';
 import { logErrorToFirestore } from './error-logging';
+import { getStorage as getAdminStorage } from 'firebase-admin/storage';
 
 
 interface UploadMasterAudioInput {
@@ -137,15 +138,6 @@ export async function saveCanonicalImage(
     return downloadURL;
 }
 
-function uint8ArrayToBase64(bytes: Uint8Array) {
-    let binary = '';
-    const len = bytes.byteLength;
-    for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
-}
-
 
 export async function createAnalysisRun(
   storagePath: string,
@@ -175,15 +167,18 @@ export async function createAnalysisRun(
     try {
         const analysisStartTime = Date.now();
         
-        // 1. Fetch the audio data from Firebase Storage as a Uint8Array (server-safe).
-        const audioFileRef = storageRef(storage, storagePath);
-        const audioBytes = await getBytes(audioFileRef);
+        // 1. Get a reference to the storage bucket using the Admin SDK
+        const adminStorage = getAdminStorage().bucket(storage.bucket);
+        const file = adminStorage.file(storagePath);
         
-        // 2. Convert the Uint8Array to a Base64 Data URI.
-        const base64String = uint8ArrayToBase64(audioBytes);
+        // 2. Download the file contents into a server-side Buffer
+        const [audioBuffer] = await file.download();
+        
+        // 3. Convert the Buffer to a Base64 Data URI
+        const base64String = audioBuffer.toString('base64');
         const audioDataUri = `data:audio/webm;base64,${base64String}`;
 
-        // 3. Call the AI flow with the Data URI.
+        // 4. Call the AI flow with the Data URI.
         aiResult = await identifyBirdBySound({
             audio: { url: audioDataUri, contentType: 'audio/webm' },
             creationTime: creationTime,
@@ -516,5 +511,3 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
     revalidateTag('prompts-v7');
     return { id: newId, ...newContentData };
 }
-
-    
