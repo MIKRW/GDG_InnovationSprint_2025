@@ -8,7 +8,7 @@ import { Carousel, CarouselContent, CarouselItem, useCarousel } from '@/componen
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { BookImage, Settings, Home, Bot } from 'lucide-react';
+import { BookImage, Settings, Home, Bot, Mic } from 'lucide-react';
 import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
 import React from 'react';
@@ -59,8 +59,13 @@ function BirdResultCard({ seed }: { seed: string }) {
                             A small, common bird found in most parts of the world. Sparrows are known for their cheerful chirping and social nature.
                         </p>
                     </CardContent>
-                    <CardFooter>
-                        {/* Buttons will go here */}
+                    <CardFooter className="flex justify-end gap-2">
+                        <Button variant="ghost" size="icon">
+                            <Bot className="h-6 w-6" />
+                        </Button>
+                        <Button variant="ghost" size="icon">
+                            <Mic className="h-6 w-6" />
+                        </Button>
                     </CardFooter>
                 </div>
             </Card>
