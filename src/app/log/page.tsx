@@ -30,29 +30,49 @@ const PAGE_NARRATION = "This is the Bird Book, your personal log of identified b
 
 
 function AiAssistantCard({ 
-    onStartChat
+    onStartChat,
+    onSortComplete,
 }: { 
     onStartChat: () => void;
+    onSortComplete: () => void;
 }) {
     const [isChatActive, setIsChatActive] = useState(false);
     const [chatMode, setChatMode] = useState<'voice' | 'text'>('voice');
-    const [messages, setMessages] = useState<ChatMessage[]>([
-        { sender: 'bot', text: 'Please ask me to filter, sort, or find a bird.' }
-    ]);
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
+    const [conversationStep, setConversationStep] = useState(0);
 
     const handleToggleChat = () => {
         if (!isChatActive) {
             onStartChat();
+            setIsChatActive(true);
+            setConversationStep(1);
+            setMessages([{ sender: 'bot', text: 'Hello, please tell me the name of the bird card you would like to find.' }]);
         }
-        setIsChatActive(prev => !prev);
     };
 
     const handleSend = () => {
-        if (input.trim()) {
-            setMessages(prev => [...prev, { sender: 'user', text: input }]);
-            setInput('');
+        if (!input.trim()) return;
+
+        const userMessage: ChatMessage = { sender: 'user', text: input };
+        let newMessages = [...messages, userMessage];
+
+        if (conversationStep === 1) {
+            // After user gives bird name
+            const botMessage: ChatMessage = { sender: 'bot', text: 'Please tell me would you like to sort by most recent or least recent?' };
+            newMessages.push(botMessage);
+            setConversationStep(2);
+        } else if (conversationStep === 2) {
+            // After user gives sort order - simulate sort and finish
+            onSortComplete();
+            // Optional: add a final confirmation message
+            const botMessage: ChatMessage = { sender: 'bot', text: "Okay, I've sorted that for you." };
+            newMessages.push(botMessage);
+            setConversationStep(3); // End of conversation
         }
+
+        setMessages(newMessages);
+        setInput('');
     };
 
     return (
@@ -93,8 +113,9 @@ function AiAssistantCard({
                                     onChange={(e) => setInput(e.target.value)}
                                     placeholder="Type your command..."
                                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                                    disabled={conversationStep === 3}
                                 />
-                                <Button onClick={handleSend}>Send</Button>
+                                <Button onClick={handleSend} disabled={conversationStep === 3}>Send</Button>
                             </div>
                         </div>
                     )}
@@ -102,7 +123,13 @@ function AiAssistantCard({
             </Card>
              <div className="flex justify-center mt-4">
                 <Button
-                    onClick={() => setChatMode(chatMode === 'voice' ? 'text' : 'voice')}
+                    onClick={() => {
+                        setChatMode(chatMode === 'voice' ? 'text' : 'voice');
+                        // Automatically start chat if switching to text mode for the first time
+                        if (!isChatActive) {
+                            handleToggleChat();
+                        }
+                    }}
                     variant={chatMode === 'text' ? 'secondary' : 'default'}
                     className="rounded-full px-8 py-4 text-lg font-semibold transition-colors duration-300"
                 >
@@ -178,6 +205,13 @@ export default function BirdBookPage() {
     const startChat = () => {
         api?.scrollTo(0);
     };
+    
+    const handleSortComplete = () => {
+        // Placeholder for sorting logic, for now, just navigate to the first bird card
+        if (savedRuns.length > 0) {
+            api?.scrollTo(1);
+        }
+    };
 
     if (!isClient) {
         return null;
@@ -199,6 +233,7 @@ export default function BirdBookPage() {
                             <div className="p-1 h-full">
                                 <AiAssistantCard 
                                     onStartChat={startChat} 
+                                    onSortComplete={handleSortComplete}
                                 />
                             </div>
                         </CarouselItem>
@@ -260,5 +295,3 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
-
-    
