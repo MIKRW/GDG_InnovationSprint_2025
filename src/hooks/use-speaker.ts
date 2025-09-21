@@ -26,8 +26,6 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     const lastDataUriRef = useRef<string | null>(null);
     const hasInteractedRef = useRef(false);
 
-    const isLocalFile = (source: string) => source.startsWith('/audio/');
-
     // Initialize audio element and load settings from localStorage
     useEffect(() => {
         hasInteractedRef.current = !!sessionStorage.getItem(FIRST_INTERACTION_KEY);
@@ -68,11 +66,6 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     }, []);
 
     const getAudioDataUri = useCallback(async (source: string): Promise<string> => {
-        if (isLocalFile(source)) {
-            // Construct the full URL for local files
-            return new URL(source, window.location.origin).toString();
-        }
-        
         // If it's AI text, check cache first
         if (lastPlayedSourceRef.current === source && lastDataUriRef.current) {
             return lastDataUriRef.current;
@@ -119,7 +112,7 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
             sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
         }
         
-        if (isPlaying && audio.src.includes(targetSource.split('/').pop() || '')) {
+        if (isPlaying && (audio.src.endsWith(targetSource) || lastPlayedSourceRef.current === targetSource)) {
             audio.pause();
         } else {
             if (!settings.isSpeakerOn) {

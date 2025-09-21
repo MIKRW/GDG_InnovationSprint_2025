@@ -25,7 +25,7 @@ const LOCATION_SETTINGS_KEY = 'location-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 const ANALYSIS_TIMEOUT_MS = 90000; // 90 seconds
 
-const PAGE_NARRATION_PATH = "/audio/narration/home.mp3";
+const PAGE_NARRATION = "Welcome to Name that Bird! Press the large button to start a recording, or use the corner buttons to navigate to your bird book and settings.";
 const FIRST_INTERACTION_KEY = 'user-has-interacted';
 
 export default function Home() {
@@ -36,7 +36,7 @@ export default function Home() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const router = useRouter();
   const { toast } = useToast();
-  const { playNarration, ...speakerProps } = useSpeaker(PAGE_NARRATION_PATH, 'general');
+  const { playNarration, ...speakerProps } = useSpeaker(PAGE_NARRATION, 'general');
   const currentSessionId = useRef<string | null>(null);
   const currentCreationTime = useRef<string | null>(null);
 
@@ -63,7 +63,7 @@ export default function Home() {
     const handleFirstClick = () => {
         const hasInteracted = sessionStorage.getItem(FIRST_INTERACTION_KEY);
         if (!hasInteracted) {
-            playNarration(PAGE_NARRATION_PATH);
+            playNarration(PAGE_NARRATION);
             sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
         }
         // Remove the listener after the first click to avoid it firing again.
