@@ -14,7 +14,7 @@ You will receive an audio file and optional contextual information like location
 
 ## Input Data:
 -   Audio: {{media url=audio.url contentType=audio.contentType}}
--   Timestamp: {{{timestamp}}}
+-   Timestamp: {{{creationTime}}}
 -   Location: {{latitude}}, {{longitude}}
 -   Location Description: {{{locationDescription}}}
 -   Habitat Photo: {{media url=habitatPhotoDataUri}}

@@ -499,10 +499,3 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
     revalidateTag('prompts-v7');
     return { id: newId, ...newContentData };
 }
-
-    
-
-    
-
-    
-
