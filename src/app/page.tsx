@@ -187,8 +187,8 @@ export default function Home() {
         )}
         <div className="absolute bottom-4 left-4">
             <Link href="/log">
-                <Button variant="ghost" size="icon" className="h-20 w-20">
-                    <BookImage className="h-10 w-10 text-foreground" />
+                <Button variant="ghost" size="icon" className="h-40 w-40">
+                    <BookImage className="h-32 w-32 text-foreground" />
                 </Button>
             </Link>
         </div>
@@ -197,9 +197,9 @@ export default function Home() {
               <Button
                 variant='ghost'
                 size='icon'
-                className="h-20 w-20"
+                className="h-40 w-40"
               >
-                <Settings className="h-10 w-10 text-foreground" />
+                <Settings className="h-32 w-32 text-foreground" />
               </Button>
             </Link>
         </div>
