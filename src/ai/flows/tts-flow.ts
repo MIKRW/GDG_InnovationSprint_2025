@@ -13,13 +13,13 @@ import { z } from 'zod';
 import wav from 'wav';
 import { googleAI } from '@genkit-ai/googleai';
 
-const TextToSpeechInputSchema = z.string();
 export type TextToSpeechInput = z.infer<typeof TextToSpeechInputSchema>;
+const TextToSpeechInputSchema = z.string();
 
+export type TextToSpeechOutput = z.infer<typeof TextToSpeechOutputSchema>;
 const TextToSpeechOutputSchema = z.object({
   audioDataUri: z.string().describe("The generated audio as a data URI in WAV format. Expected format: 'data:audio/wav;base64,<encoded_data>'."),
 });
-export type TextToSpeechOutput = z.infer<typeof TextToSpeechOutputSchema>;
 
 
 async function toWav(
@@ -62,7 +62,7 @@ const textToSpeechFlow = ai.defineFlow(
         responseModalities: ['AUDIO'],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: 'Algenib' },
+            prebuiltVoiceConfig: { voiceName: 'Talar' },
           },
         },
       },
