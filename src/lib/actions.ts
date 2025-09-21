@@ -138,85 +138,80 @@ export async function saveCanonicalImage(
 }
 
 export async function createAnalysisRun(
-    storagePath: string,
-    recordingId: string,
-    locationData: any,
-    hardware: string | null,
-    mode: AppMode,
-    analysisTimings: AnalysisRun['analysisTimings'] = {},
-    sessionId: string,
-    creationTime: string,
-    existingError?: Error
-  ): Promise<string> {
-    
-    const analysisRunId = uuidv4();
-    const collectionName = 'all_analysis_runs';
-    const analysisRunRef = doc(db, collectionName, analysisRunId);
-    
-    let aiResult: IdentifyBirdOutput;
-    let wasSuccessful: boolean;
-    let downloadUrl: string | null = null;
-    
-    try {
-        if (existingError) {
-            throw existingError;
-        }
+  storagePath: string,
+  recordingId: string,
+  locationData: any,
+  hardware: string | null,
+  mode: AppMode,
+  analysisTimings: AnalysisRun['analysisTimings'] = {},
+  sessionId: string,
+  creationTime: string
+): Promise<string> {
+  
+  const analysisRunId = uuidv4();
+  const collectionName = 'all_analysis_runs';
+  const analysisRunRef = doc(db, collectionName, analysisRunId);
+  
+  let aiResult: IdentifyBirdOutput;
+  let wasSuccessful: boolean;
+  let downloadUrl: string | null = null;
+  
+  try {
+      const fileRef = storageRef(storage, storagePath);
+      downloadUrl = await getDownloadURL(fileRef);
 
-        const fileRef = storageRef(storage, storagePath);
-        downloadUrl = await getDownloadURL(fileRef);
+      const analysisStartTime = Date.now();
+      aiResult = await identifyBirdBySound({
+          audioDataUri: downloadUrl,
+          creationTime: creationTime,
+          ...locationData,
+          mode: mode
+      });
+      
+      // An analysis is successful if the AI flow returns a result,
+      // even if that result is "no bird song detected".
+      wasSuccessful = !!aiResult;
+      
+      const analysisDurationMs = Date.now() - analysisStartTime;
+      analysisTimings.primaryIdentificationMs = analysisDurationMs;
 
-        const analysisStartTime = Date.now();
-        aiResult = await identifyBirdBySound({
-            audioDataUri: downloadUrl,
-            creationTime: creationTime,
-            ...locationData,
-            mode: mode
-        });
-        
-        // An analysis is successful if the AI flow returns a result,
-        // even if that result is "no bird song detected".
-        wasSuccessful = !!aiResult;
-        
-        const analysisDurationMs = Date.now() - analysisStartTime;
-        analysisTimings.primaryIdentificationMs = analysisDurationMs;
-
-    } catch (error) {
-        wasSuccessful = false;
-        aiResult = { isBirdSong: false, error: (error as Error).message };
-        logErrorToFirestore(error as Error, 'ai-flow-execution-failure', { sessionId, recordingId, analysisRunId });
-    }
-    
-    const docToCreate: Partial<AnalysisRun> = {
-      id: analysisRunId,
-      creationTime: creationTime,
-      userId: 'anonymous',
-      sessionId: sessionId,
-      inputAudioUrl: downloadUrl,
-      inputAudioStoragePath: storagePath,
-      locationData: {
-        latitude: locationData?.latitude ?? null,
-        longitude: locationData?.longitude ?? null,
-        locationDescription: locationData?.locationDescription ?? null,
-      },
-      analysisMethod: aiResult.promptVersion || 'unknown',
-      aiResult: aiResult,
-      wasSuccessful: wasSuccessful,
-      wasSavedByUser: false,
-      mode: mode,
-      analysisTimings: analysisTimings,
-    };
-    
-    if (typeof aiResult.duration === 'number') {
-        docToCreate.recordingLengthSeconds = aiResult.duration;
-    }
-    
-    if (hardware) {
-        docToCreate.hardware = hardware;
-    }
-
-    await setDoc(analysisRunRef, docToCreate);
-    return analysisRunId;
+  } catch (error) {
+      wasSuccessful = false;
+      aiResult = { isBirdSong: false, error: (error as Error).message };
+      logErrorToFirestore(error as Error, 'ai-flow-execution-failure', { sessionId, recordingId, analysisRunId });
   }
+  
+  const docToCreate: Partial<AnalysisRun> = {
+    id: analysisRunId,
+    creationTime: creationTime,
+    userId: 'anonymous',
+    sessionId: sessionId,
+    inputAudioUrl: downloadUrl,
+    inputAudioStoragePath: storagePath,
+    locationData: {
+      latitude: locationData?.latitude ?? null,
+      longitude: locationData?.longitude ?? null,
+      locationDescription: locationData?.locationDescription ?? null,
+    },
+    analysisMethod: aiResult.promptVersion || 'unknown',
+    aiResult: aiResult,
+    wasSuccessful: wasSuccessful,
+    wasSavedByUser: false,
+    mode: mode,
+    analysisTimings: analysisTimings,
+  };
+  
+  if (typeof aiResult.duration === 'number') {
+      docToCreate.recordingLengthSeconds = aiResult.duration;
+  }
+  
+  if (hardware) {
+      docToCreate.hardware = hardware;
+  }
+
+  await setDoc(analysisRunRef, docToCreate);
+  return analysisRunId;
+}
 
 // =================================================================
 // Three-Tiered Prompt Versioning System Actions
@@ -440,7 +435,7 @@ export async function promoteDevelopmentVersionToLive(
     const liveVersionRef = doc(db, 'app_ai_versions', newLiveVersionId);
     
     const batch = writeBatch(db);
-    batch.set(liveVersionRef, newLiveVersion);
+batch.set(liveVersionRef, newLiveVersion);
     batch.update(doc(db, 'app_ai_config', 'main'), { activeAppAIVersion: newLiveVersionId });
     await batch.commit();
     
@@ -492,6 +487,8 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
     revalidateTag('prompts-v7');
     return { id: newId, ...newContentData };
 }
+
+    
 
     
 
