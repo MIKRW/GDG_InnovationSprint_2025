@@ -18,6 +18,7 @@ import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
 import { useToast } from '@/hooks/use-toast';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { app } from '@/lib/firebase';
 
 const LOCATION_SETTINGS_KEY = 'location-settings';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
@@ -33,7 +34,7 @@ export default function Home() {
 
   useEffect(() => {
     setIsClient(true);
-    const auth = getAuth();
+    const auth = getAuth(app);
     onAuthStateChanged(auth, (user) => {
       if (!user) {
         signInAnonymously(auth).catch((error) => {
@@ -146,7 +147,7 @@ export default function Home() {
             const audioDataUri = reader.result as string;
 
             try {
-                const timeoutPromise = new Promise<null>((_, reject) => 
+                const timeoutPromise = new Promise<string | null>((_, reject) => 
                     setTimeout(() => reject(new Error('Analysis timed out')), ANALYSIS_TIMEOUT_MS)
                 );
 

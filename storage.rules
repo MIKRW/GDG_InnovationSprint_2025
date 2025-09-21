@@ -1,16 +1,11 @@
 
 rules_version = '2';
+
 service firebase.storage {
   match /b/{bucket}/o {
-    // Allow reads and writes to the recordings folder only if the user is authenticated.
-    // This includes anonymous users signed in by the app.
+    // Allow authenticated users (including anonymous) to read and write
+    // to the recordings folder.
     match /recordings/{allPaths=**} {
-      allow read, write: if request.auth != null;
-    }
-
-    // All other paths in your bucket remain protected and require authentication by default.
-    // You can add more specific rules for other paths here if needed.
-    match /{path=**} {
       allow read, write: if request.auth != null;
     }
   }
