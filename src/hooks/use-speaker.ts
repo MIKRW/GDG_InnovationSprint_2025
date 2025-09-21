@@ -26,7 +26,12 @@ export function useSpeaker(narrationText: string) {
         audioRef.current = new Audio();
         
         const handlePlay = () => setIsPlaying(true);
-        const handleEnd = () => setIsPlaying(false);
+        const handleEnd = () => {
+            setIsPlaying(false);
+            if (audioRef.current) {
+                audioRef.current.currentTime = 0;
+            }
+        };
 
         const audioEl = audioRef.current;
         audioEl.addEventListener('play', handlePlay);
@@ -61,7 +66,19 @@ export function useSpeaker(narrationText: string) {
     }, []);
 
     const fetchAndCacheAudio = useCallback(async (shouldPlay: boolean) => {
-        if (!narrationText || !settings.isSpeakerOn || audioDataUriRef.current) return;
+        if (!narrationText || !settings.isSpeakerOn) return;
+        
+        // If we already have the audio, just play it if requested.
+        if (audioDataUriRef.current) {
+            if (shouldPlay && audioRef.current) {
+                if (audioRef.current.src !== audioDataUriRef.current) {
+                    audioRef.current.src = audioDataUriRef.current;
+                }
+                audioRef.current.play().catch(e => console.error("Audio playback failed:", e));
+            }
+            return;
+        }
+
         setIsLoading(true);
         try {
             const response = await textToSpeech(narrationText);
@@ -70,10 +87,8 @@ export function useSpeaker(narrationText: string) {
                 audioRef.current.src = response.audioDataUri;
                 audioRef.current.play().catch(e => console.error("Audio playback failed after fetch:", e));
             }
-            return response.audioDataUri;
         } catch (error) {
             console.error("Failed to fetch narration audio:", error);
-            return null;
         } finally {
             setIsLoading(false);
         }
@@ -82,24 +97,20 @@ export function useSpeaker(narrationText: string) {
     // Effect to proactively fetch audio on mount and handle auto-play
     useEffect(() => {
         if (settings.isSpeakerOn && narrationText) {
-            const shouldAutoPlay = settings.isAutoPlayOn;
-            fetchAndCacheAudio(shouldAutoPlay);
+            fetchAndCacheAudio(settings.isAutoPlayOn);
         }
-    // This effect should run once when the narration text or speaker settings change.
-    // The fetchAndCacheAudio function already prevents re-fetching if data is present.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [narrationText, settings.isSpeakerOn, settings.isAutoPlayOn]);
 
 
     const playNarration = useCallback(async () => {
-        // Toggle speaker on if it's off
+        // If the speaker is off, this click should turn it on. The `useEffect` will then handle fetching/playing.
         if (!settings.isSpeakerOn) {
              setSettings(prev => {
                 const newSettings = { ...prev, isSpeakerOn: true };
                 localStorage.setItem(SPEAKER_SETTINGS_KEY, JSON.stringify(newSettings));
                 return newSettings;
             });
-            // The useEffect will trigger the fetch/play when isSpeakerOn changes
             return;
         };
 
@@ -109,14 +120,8 @@ export function useSpeaker(narrationText: string) {
         if (isPlaying) {
             audio.pause();
             audio.currentTime = 0;
-            setIsPlaying(false); // Explicitly set state
-        } else if (audioDataUriRef.current) {
-            if(audio.src !== audioDataUriRef.current) {
-                audio.src = audioDataUriRef.current;
-            }
-            audio.play().catch(e => console.error("Failed to play narration:", e));
         } else {
-            // If not cached yet, fetch and play. Show loading state.
+            // If we have the audio cached, play it. Otherwise, fetchAndCacheAudio will handle it.
             await fetchAndCacheAudio(true);
         }
     }, [settings.isSpeakerOn, isPlaying, fetchAndCacheAudio]);
