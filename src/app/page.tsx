@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -220,11 +221,12 @@ export default function Home() {
         });
       }
     } finally {
-      setIsUploading(false);
-      setIsAnalyzing(false);
       if (analysisRunId) {
         router.push(`/record/result/${analysisRunId}`);
       } else {
+        // Only reset state if the process failed and we are not navigating
+        setIsUploading(false);
+        setIsAnalyzing(false);
         toast({
             variant: 'destructive',
             title: 'Critical Failure',
