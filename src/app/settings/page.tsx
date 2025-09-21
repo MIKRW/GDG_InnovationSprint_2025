@@ -1,13 +1,11 @@
 
 'use client';
 
-import { useEffect, useState, useRef, useCallback, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { BookImage, Home, Save, Settings, Palette, MapPin, ToggleLeft } from 'lucide-react';
 import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
@@ -18,6 +16,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 import { setSpeakerSettings, getSpeakerSettings, defaultSettings } from '@/lib/speaker-store';
+import { Input } from '@/components/ui/input';
 
 
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
@@ -160,7 +159,7 @@ export default function SettingsPage() {
     const newValue = !isAutoPlayOn;
     // This now updates the global store immediately.
     setSpeakerSettings({ isAutoPlayOn: newValue });
-    playSfx(newValue ? '/audio/narration-settings-autonarate-on.wav' : '/audio/narration-settings-autonarate-off.wav');
+    playSfx(newValue ? '/audio/narration/narration-settings-autonarate-on.wav' : '/audio/narration/narration-settings-autonarate-off.wav');
   };
 
   const toggleLocation = () => {
