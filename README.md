@@ -6,7 +6,7 @@ To get started, take a look at src/app/page.tsx.
 
 ---
 
-## First-Time Setup Guide: Authorizing the AI
+## First-Time Setup Guide: Authorizing the AI & Storage
 
 This application uses Google Cloud's recommended authentication methods to securely handle API access. This avoids exposing sensitive keys directly in the code.
 
@@ -25,26 +25,28 @@ Your deployed application now has permanent permission to call the AI services.
 
 ### 2. Local Development (One-Time Local Setup)
 
-Your local development server needs credentials to make calls on your behalf. There are two ways to do this:
+Your local development server needs credentials to make calls on your behalf.
 
-#### Option A: Recommended (gcloud CLI)
+#### Part A: Authorize the gcloud CLI (Most Secure)
 
-This is the most secure method. It uses your personal Google account credentials without needing an API key file.
+This uses your personal Google account credentials without needing an API key file.
 
 1.  **Install the gcloud CLI:** If you don't have it, [install the Google Cloud CLI](https://cloud.google.com/sdk/docs/install).
 2.  **Log In:** Run the following command in your terminal. It will open a browser window for you to log in to your Google account.
     ```bash
     gcloud auth application-default login
     ```
-3.  **Restart the Server:** If your `npm run dev` server is running, stop it and restart it for the change to take effect.
 
-#### Option B: API Key (Alternative)
+#### Part B: Configure Local Storage Access (CORS)
 
-If you prefer to use a traditional API key for local development:
+To allow your local server to upload files (like audio recordings) to Firebase Storage, you must apply a Cross-Origin Resource Sharing (CORS) policy.
 
-1.  **Create a `.env` file:** If it doesn't already exist, create a file named `.env` in the root of your project.
-2.  **Add the API Key:** Add the following line to your `.env` file, pasting your actual Gemini API key after the `=` sign.
+1.  **Find Your Bucket ID:** Go to the [Firebase Storage console](https://console.firebase.google.com/project/_/storage) for your project. Your bucket ID is shown at the top, usually in the format `gs://<YOUR_PROJECT_ID>.appspot.com`. Copy the `<YOUR_PROJECT_ID>.appspot.com` part.
+2.  **Run Command:** In your terminal, at the root of this project, run the following command, replacing `YOUR_BUCKET_ID_HERE` with the ID you just copied.
     ```bash
-    AI_GEN_MIRACLE_KEY=YOUR_GEMINI_API_KEY_HERE
+    gcloud storage buckets update gs://YOUR_BUCKET_ID_HERE --cors-file=cors.json
     ```
-3. **Restart the Server:** If your `npm run dev` server is running, stop it and restart it for the change to take effect.
+
+#### Part C: Restart the Development Server
+
+If your `npm run dev` server is running, stop it and restart it for all these changes to take effect.
