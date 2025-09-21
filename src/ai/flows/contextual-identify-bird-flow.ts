@@ -90,10 +90,6 @@ const getCurrentWeather = ai.defineTool(
 export async function identifyBirdBySound(
   input: IdentifyBirdInput
 ): Promise<IdentifyBirdOutput> {
-  if (!input.audioDataUri) {
-    throw new Error("No audio data provided. A data URI is required.");
-  }
-  
   return await identifyBirdFlow(input);
 }
 
@@ -123,10 +119,11 @@ const identifyBirdFlow = ai.defineFlow(
             }
         });
 
-        const { output, finishReason } = await identifyBirdPrompt(input);
+        const response = await identifyBirdPrompt(input);
+        const output = response.output;
 
         if (!output) {
-            if (finishReason === 'safety') {
+            if (response.finishReason === 'safety') {
                 throw new Error('The AI refused to process the audio due to its safety filters.');
             }
             throw new Error('The model failed to return a valid analysis.');
@@ -163,3 +160,4 @@ const identifyBirdFlow = ai.defineFlow(
     }
   }
 );
+
