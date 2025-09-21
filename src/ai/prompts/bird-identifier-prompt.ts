@@ -17,6 +17,6 @@ You will receive an audio file and optional contextual information like location
 -   Timestamp: {{{creationTime}}}
 -   Location: {{latitude}}, {{longitude}}
 -   Location Description: {{{locationDescription}}}
--   Habitat Photo: {{media url=habitatPhotoDataUri}}
+-   Habitat Photo: {{#if habitatPhotoDataUri}}{{media url=habitatPhotoDataUri}}{{/if}}
 -   Habitat Description: {{{habitatDescription}}}
 `;
