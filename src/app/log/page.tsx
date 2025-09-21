@@ -340,6 +340,8 @@ export default function BirdBookPage() {
         
         return () => {
             api.off("select", handleSelect);
+            // Cancel any pending debounced calls on unmount
+            debouncedNarration.cancel();
         };
     }, [api, getNarrationForSlide, isCarouselAutoPlayOn, debouncedNarration]);
     
@@ -436,3 +438,5 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
+
+    
