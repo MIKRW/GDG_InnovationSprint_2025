@@ -4,7 +4,7 @@
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Carousel, CarouselApi, CarouselContent, CarouselItem, useCarousel } from '@/components/ui/carousel';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { BookImage, Settings, Home, Bot, Mic } from 'lucide-react';
@@ -18,6 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import { useSpeaker } from '@/hooks/use-speaker';
 import { type AnalysisRun } from '@/lib/types';
 import { SavedRunCard } from '@/components/content/SavedRunCard';
+import { textToSpeech } from '@/ai/flows/tts-flow';
 
 interface ChatMessage {
     sender: 'user' | 'bot';
@@ -41,15 +42,66 @@ function AiAssistantCard({
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [conversationStep, setConversationStep] = useState(0);
+    const [isListening, setIsListening] = useState(false);
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    const handleToggleChat = () => {
+    useEffect(() => {
+        audioRef.current = new Audio();
+        const handleEnd = () => {
+            setIsSpeaking(false);
+            // After speaking, start listening
+            if (conversationStep === 1 || conversationStep === 2) {
+                setIsListening(true);
+            }
+        };
+        audioRef.current.addEventListener('ended', handleEnd);
+        return () => audioRef.current?.removeEventListener('ended', handleEnd);
+    }, [conversationStep]);
+
+    const playAudio = async (text: string) => {
+        setIsSpeaking(true);
+        try {
+            const response = await textToSpeech(text);
+            if (audioRef.current) {
+                audioRef.current.src = response.audioDataUri;
+                audioRef.current.play();
+            }
+        } catch (error) {
+            console.error("TTS failed", error);
+            setIsSpeaking(false);
+        }
+    };
+
+    const handleToggleChat = async () => {
         if (!isChatActive) {
             onStartChat();
             setIsChatActive(true);
             setConversationStep(1);
-            setMessages([{ sender: 'bot', text: 'Hello, please tell me the name of the bird card you would like to find.' }]);
+            if (chatMode === 'voice') {
+                await playAudio('Hello, please tell me the name of the bird card you would like to find.');
+            } else {
+                setMessages([{ sender: 'bot', text: 'Hello, please tell me the name of the bird card you would like to find.' }]);
+            }
         }
     };
+    
+    // Simulate receiving a voice response after listening
+    useEffect(() => {
+        if (isListening) {
+            const timer = setTimeout(() => {
+                setIsListening(false);
+                if (conversationStep === 1) {
+                    setConversationStep(2);
+                    playAudio('Please tell me would you like to sort by most recent or least recent?');
+                } else if (conversationStep === 2) {
+                    setConversationStep(3);
+                    onSortComplete();
+                }
+            }, 2000); // Simulate 2 seconds of listening
+            return () => clearTimeout(timer);
+        }
+    }, [isListening, conversationStep, onSortComplete]);
 
     const handleSend = () => {
         if (!input.trim()) return;
@@ -58,22 +110,26 @@ function AiAssistantCard({
         let newMessages = [...messages, userMessage];
 
         if (conversationStep === 1) {
-            // After user gives bird name
             const botMessage: ChatMessage = { sender: 'bot', text: 'Please tell me would you like to sort by most recent or least recent?' };
             newMessages.push(botMessage);
             setConversationStep(2);
         } else if (conversationStep === 2) {
-            // After user gives sort order - simulate sort and finish
             onSortComplete();
-            // Optional: add a final confirmation message
             const botMessage: ChatMessage = { sender: 'bot', text: "Okay, I've sorted that for you." };
             newMessages.push(botMessage);
-            setConversationStep(3); // End of conversation
+            setConversationStep(3); 
         }
 
         setMessages(newMessages);
         setInput('');
     };
+    
+    const getVoiceSubtitle = () => {
+        if (!isChatActive) return "Click the icon to give a command";
+        if (isSpeaking) return "Speaking...";
+        if (isListening) return "Listening...";
+        return "Processing...";
+    }
 
     return (
         <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
@@ -83,13 +139,13 @@ function AiAssistantCard({
                         <>
                             <div className="w-48 h-48">
                                 <Button variant="ghost" className="w-full h-full rounded-full hover:bg-background" onClick={handleToggleChat}>
-                                    <Bot className={cn("h-48 w-48 text-foreground", isChatActive && "animate-color-cycle")} />
+                                    <Bot className={cn("h-48 w-48 text-foreground", (isSpeaking || isListening) && "animate-color-cycle")} />
                                 </Button>
                             </div>
                             <div className="text-center">
                                 <h2 className="text-5xl font-mono font-bold">Bird Book</h2>
                                 <p className="text-lg font-mono text-foreground/80">
-                                    {isChatActive ? "Listening..." : "Click the icon to give a command"}
+                                    {getVoiceSubtitle()}
                                 </p>
                             </div>
                         </>
@@ -125,7 +181,6 @@ function AiAssistantCard({
                 <Button
                     onClick={() => {
                         setChatMode(chatMode === 'voice' ? 'text' : 'voice');
-                        // Automatically start chat if switching to text mode for the first time
                         if (!isChatActive) {
                             handleToggleChat();
                         }
@@ -207,7 +262,6 @@ export default function BirdBookPage() {
     };
     
     const handleSortComplete = () => {
-        // Placeholder for sorting logic, for now, just navigate to the first bird card
         if (savedRuns.length > 0) {
             api?.scrollTo(1);
         }
