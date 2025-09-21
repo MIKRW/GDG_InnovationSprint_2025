@@ -71,10 +71,7 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
     const { toast } = useToast();
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const { isBirdSong, commonName, scientificName, description, error } = run.aiResult;
-    const narrationText = isBirdSong ? `The AI has identified the bird as a ${commonName}. ${description}` : `The AI was not able to identify a bird in the recording. ${description || error}`;
-    const { playNarration, ...speakerProps } = useSpeaker(narrationText);
-
-
+    
     useEffect(() => {
         // Initialize Audio object only on the client side
         if (typeof window !== 'undefined') {
@@ -160,9 +157,6 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
 
     return (
         <>
-            <div className="absolute top-4 left-4 opacity-50">
-                <SpeakerButton onClick={playNarration} {...speakerProps} />
-            </div>
             {isBirdSong === false || error ? <NotIdentifiedCard /> : (
                 <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
                     <div className="relative w-full flex-1 pt-4">
@@ -218,6 +212,10 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
     const resolvedParams = use(params);
     const analysisRunId = resolvedParams.analysisRunId;
 
+    const narrationText = run?.aiResult.isBirdSong ? `The AI has identified the bird as a ${run.aiResult.commonName}. ${run.aiResult.description}` : `The AI was not able to identify a bird in the recording. ${run?.aiResult.description || run?.aiResult.error}`;
+    const { playNarration, ...speakerProps } = useSpeaker(narrationText);
+
+
     useEffect(() => {
         setIsClient(true);
     }, []);
@@ -251,12 +249,14 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
     return (
         <AppLayout>
             <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
-
+                <div className="absolute top-4 left-4 opacity-50">
+                    <SpeakerButton onClick={playNarration} {...speakerProps} />
+                </div>
                 <div className="absolute top-4 right-4 opacity-50">
                     <ContrastButton />
                 </div>
                 
-                <div className="w-full max-w-3xl h-[60rem]">
+                <div className="w-full max-w-xl h-[42rem]">
                     <div className="p-1 h-full">
                          <div className="bg-ring rounded-lg shadow-lg p-6 h-full relative">
                             {loading ? (
@@ -272,8 +272,8 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
 
                 <div className="absolute bottom-4 left-4 opacity-50">
                     <Link href="/log">
-                        <Button variant="ghost" size="icon" className="h-40 w-40">
-                            <BookImage className="h-32 w-32 text-foreground" />
+                        <Button variant="ghost" size="icon" className="h-28 w-28">
+                            <BookImage className="h-20 w-20 text-foreground" />
                         </Button>
                     </Link>
                 </div>
@@ -282,9 +282,9 @@ export default function ResultPage({ params }: { params: { analysisRunId: string
                       <Button
                         variant='ghost'
                         size='icon'
-                        className="h-40 w-40"
+                        className="h-28 w-28"
                       >
-                        <Home className="h-32 w-32 text-foreground" />
+                        <Home className="h-20 w-20 text-foreground" />
                       </Button>
                     </Link>
                 </div>
