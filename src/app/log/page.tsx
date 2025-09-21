@@ -40,12 +40,12 @@ function BirdResultCard({ seed }: { seed: string }) {
     return (
         <div className="bg-ring rounded-lg shadow-lg p-6 h-full">
             <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg">
-                <div className="relative w-full h-64">
+                <div className="relative w-full flex-1">
                     <Image
                         src={`https://picsum.photos/seed/${seed}/600/400`}
                         alt="A picture of a bird"
                         fill
-                        className="object-cover rounded-t-lg"
+                        className="object-contain rounded-t-lg"
                         data-ai-hint="bird nature"
                     />
                 </div>
