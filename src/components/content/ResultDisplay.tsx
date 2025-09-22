@@ -240,7 +240,7 @@ export function ResultDisplay({ run }: ResultDisplayProps) {
                 </div>
                 
                 <div className="w-full max-w-xl h-[42rem] relative">
-                     <Link href="/record">
+                     <Link href="/">
                         <Button
                             variant="ghost"
                             size="icon"
