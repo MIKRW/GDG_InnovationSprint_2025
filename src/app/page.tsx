@@ -21,11 +21,11 @@ import { app, auth, storage } from '@/lib/firebase';
 import { uploadBytes, ref as storageRef } from 'firebase/storage';
 import { useSpeaker } from '@/hooks/use-speaker';
 
-const LOCATION_SETTINGS_KEY = 'location-settings';
+const LOCATION_ENABLED_KEY = 'location-sharing-enabled';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
 const ANALYSIS_TIMEOUT_MS = 90000; // 90 seconds
 
-const PAGE_NARRATION = "/audio/narration-main-page.wav";
+const PAGE_NARRATION = "/audio/narration/narration-main-page.wav";
 const FIRST_INTERACTION_KEY = 'user-has-interacted';
 
 export default function Home() {
@@ -60,26 +60,6 @@ export default function Home() {
       }
     });
 
-    const handleFirstClick = () => {
-        const hasInteracted = sessionStorage.getItem(FIRST_INTERACTION_KEY);
-        if (!hasInteracted) {
-            playNarration(PAGE_NARRATION);
-            sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
-        }
-        // Remove the listener after the first click to avoid it firing again.
-        window.removeEventListener('click', handleFirstClick);
-    };
-
-    // Only add the listener if the user hasn't interacted in this session yet.
-    if (!sessionStorage.getItem(FIRST_INTERACTION_KEY)) {
-        window.addEventListener('click', handleFirstClick);
-    }
-    
-    // Cleanup the listener when the component unmounts.
-    return () => {
-        window.removeEventListener('click', handleFirstClick);
-    };
-
   }, [playNarration]);
 
   const handleStop = () => {
@@ -87,33 +67,23 @@ export default function Home() {
   };
 
   const getLocationForAIShot = (
-    callback: (locationData?: { latitude?: number; longitude?: number, locationDescription?: string }) => void
+    callback: (locationData?: { latitude?: number; longitude?: number }) => void
   ) => {
     if (!isClient) {
       callback();
       return;
     }
-    const savedSettingsJson = localStorage.getItem(LOCATION_SETTINGS_KEY);
-    let settings: LocationSettings = { mode: 'device', manual: { latitude: 0, longitude: 0 }, description: '', privacy: { isOutside: true } };
-    if (savedSettingsJson) {
-      try { 
-        const parsed = JSON.parse(savedSettingsJson);
-        if (parsed) {
-          settings = parsed;
-        }
-      } catch { /* Fallback to default */ }
-    }
+    const locationEnabled = localStorage.getItem(LOCATION_ENABLED_KEY);
+    // Default to 'true' if not set
+    const isSharingEnabled = locationEnabled ? JSON.parse(locationEnabled) : true;
 
-    if (settings.mode === 'device') {
+    if (isSharingEnabled) {
       navigator.geolocation.getCurrentPosition(
         (position) => callback({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
         () => callback() // Proceed without location on error/denial
       );
-    } else if (settings.mode === 'manual') {
-      callback(settings.manual);
-    } else if (settings.mode === 'description') {
-      callback({ locationDescription: settings.description });
-    } else { // privacy mode
+    } else {
+        // Location sharing is disabled
       callback();
     }
   };
@@ -158,6 +128,14 @@ export default function Home() {
   };
 
  const handleStart = async () => {
+    // This is the first meaningful interaction.
+    // Set the flag to allow auto-play on subsequent pages.
+    if (!sessionStorage.getItem(FIRST_INTERACTION_KEY)) {
+        sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
+        // We can also play the narration here if we want.
+        playNarration(PAGE_NARRATION);
+    }
+
     currentSessionId.current = uuidv4();
     currentCreationTime.current = new Date().toISOString();
     if (hasPermission === false) {
@@ -325,5 +303,7 @@ export default function Home() {
     </AppLayout>
   );
 }
+
+    
 
     

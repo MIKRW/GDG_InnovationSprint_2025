@@ -45,7 +45,7 @@ const textToSpeechFlow = ai.defineFlow(
 
         if (!media) {
              if (finishReason === 'blocked' || finishReason === 'error' || finishReason === 'other') {
-                throw new Error('TTS generation was blocked. This may be due to a project quota limit.');
+                throw new Error('TTS_QUOTA_EXCEEDED');
             }
             throw new Error('TTS generation failed to return media.');
         }
@@ -63,10 +63,6 @@ const textToSpeechFlow = ai.defineFlow(
     } catch (error) {
         // Gracefully handle the quota error by throwing a specific, catchable error.
         if (error instanceof Error && (error.message.includes('429') || error.message.includes('RESOURCE_EXHAUSTED') || error.message.includes('quota'))) {
-            console.warn(
-                `TTS feature has been blocked by a quota limit (e.g., 429 RESOURCE_EXHAUSTED).`
-            );
-            // Throw a specific error that the client-side can catch and handle.
             throw new Error('TTS_QUOTA_EXCEEDED');
         }
         // Re-throw any other unexpected errors.

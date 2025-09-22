@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Speaker, Volume2, VolumeX } from 'lucide-react';
+import { Speaker, VolumeX } from 'lucide-react';
 
 interface SpeakerButtonProps {
     onClick?: () => void;

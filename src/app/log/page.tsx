@@ -17,8 +17,6 @@ import { Label } from '@/components/ui/label';
 import { useSpeaker } from '@/hooks/use-speaker';
 import { type AnalysisRun } from '@/lib/types';
 import { SavedRunCard } from '@/components/content/SavedRunCard';
-import { textToSpeech } from '@/ai/flows/tts-flow';
-import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 
 interface ChatMessage {
     sender: 'user' | 'bot';
@@ -27,7 +25,8 @@ interface ChatMessage {
 
 const SAVED_RUNS_KEY = 'saved-runs';
 
-const PAGE_NARRATION = "This is the Bird Book, your personal log of identified birds. You can swipe left and right to view your saved identifications. The first card is the AI assistant, which can help you filter, sort, or find birds in your log. Click the bot icon to start a voice command, or toggle to text control at the bottom.";
+const PAGE_NARRATION_INTRO = "This is the Bird Book, your personal log of identified birds. You can swipe left and right to view your saved identifications. The first card is the AI assistant, which can help you filter, sort, or find birds in your log. Click the bot icon to start a voice command, or toggle to text control at the bottom.";
+const PAGE_NARRATION_ASSISTANT_CARD = "/audio/narration/narration-birdbook.wav";
 
 
 function AiAssistantCard({ 
@@ -78,11 +77,9 @@ function AiAssistantCard({
     const playAudio = async (text: string) => {
         setIsSpeaking(true);
         try {
-            const response = await textToSpeech(text);
-            if (audioRef.current) {
-                audioRef.current.src = response.audioDataUri;
-                audioRef.current.play();
-            }
+            // TTS is not implemented for chatbot yet
+            console.log(`Simulating TTS for: ${text}`);
+            
         } catch (error) {
             console.error("TTS failed", error);
             setIsSpeaking(false);
@@ -284,13 +281,12 @@ export default function BirdBookPage() {
     const [api, setApi] = useState<CarouselApi>();
     const [isClient, setIsClient] = useState(false);
     const [currentTheme, setCurrentTheme] = useState('light');
-    const [narrationText, setNarrationText] = useState(PAGE_NARRATION);
-    const { playNarration, isLoading: isSpeakerLoading, isCarouselAutoPlayOn, ...speakerProps } = useSpeaker(narrationText, 'carousel');
+    const { playNarration, isLoading: isSpeakerLoading, ...speakerProps } = useSpeaker(PAGE_NARRATION_INTRO, 'general');
     const [savedRuns, setSavedRuns] = useState<AnalysisRun[]>([]);
 
     const getNarrationForSlide = useCallback((index: number): string => {
         if (index === 0) {
-            return "This is the AI assistant. Click the bot icon to issue a command.";
+            return PAGE_NARRATION_ASSISTANT_CARD;
         }
         const runIndex = index - 1;
         if (savedRuns[runIndex]) {
@@ -298,19 +294,12 @@ export default function BirdBookPage() {
             if (run.aiResult.isBirdSong && run.aiResult.commonName) {
                 return `This is an entry for a ${run.aiResult.commonName}.`;
             } else {
-                return "This is a mystery recording where no bird was identified.";
+                return `This is a mystery recording where no bird was identified.`;
             }
         }
         return "Your Bird Book is empty. Make a recording to save your first entry.";
     }, [savedRuns]);
 
-    const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
-        if (isCarouselAutoPlayOn) {
-            const newNarration = getNarrationForSlide(index);
-            setNarrationText(newNarration);
-        }
-    }, 2000);
-    
     useEffect(() => {
         setIsClient(true);
         const theme = localStorage.getItem('theme') || 'light';
@@ -321,30 +310,14 @@ export default function BirdBookPage() {
             setSavedRuns(JSON.parse(savedRunsJson));
         }
     }, []);
-
-    useEffect(() => {
-        if (!api) return;
-
-        const handleSelect = () => {
-            const selectedIndex = api.selectedScrollSnap();
-            if (isCarouselAutoPlayOn) {
-                debouncedNarration(selectedIndex);
-            } else {
-                // If autoplay is off, update the text immediately for manual play.
-                const newNarration = getNarrationForSlide(selectedIndex);
-                setNarrationText(newNarration);
-            }
-        };
-
-        api.on("select", handleSelect);
-        
-        return () => {
-            api.off("select", handleSelect);
-            // Cancel any pending debounced calls on unmount
-            cancelDebouncedNarration();
-        };
-    }, [api, getNarrationForSlide, isCarouselAutoPlayOn, debouncedNarration, cancelDebouncedNarration]);
     
+    const handleSpeakerClick = () => {
+        if (!api) return;
+        const selectedIndex = api.selectedScrollSnap();
+        const narrationText = getNarrationForSlide(selectedIndex);
+        playNarration(narrationText);
+    };
+
     const startChat = () => {
         api?.scrollTo(0);
     };
@@ -363,7 +336,7 @@ export default function BirdBookPage() {
         <AppLayout>
             <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
                 <div className="absolute top-4 left-4 opacity-50">
-                    <SpeakerButton onClick={() => playNarration(narrationText)} isLoading={isSpeakerLoading} {...speakerProps} />
+                    <SpeakerButton onClick={handleSpeakerClick} isLoading={isSpeakerLoading} {...speakerProps} />
                 </div>
                 <div className="absolute top-4 right-4 opacity-50">
                     <ContrastButton key={currentTheme} />

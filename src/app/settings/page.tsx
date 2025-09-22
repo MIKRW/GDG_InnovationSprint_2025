@@ -1,26 +1,27 @@
 
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useSyncExternalStore, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { BookImage, Home, Save, Settings, Palette, MapPin, AudioLines, ToggleLeft } from 'lucide-react';
+import { BookImage, Home, Save, Settings, Palette, MapPin, ToggleLeft } from 'lucide-react';
 import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
 import { useSpeaker } from '@/hooks/use-speaker';
-import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Carousel, CarouselApi, CarouselContent, CarouselItem, useCarousel } from '@/components/ui/carousel';
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
+import { getSpeakerSettings, setSpeakerSettings, defaultSettings } from '@/lib/speaker-store';
+import { Input } from '@/components/ui/input';
 
 
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
+const LOCATION_ENABLED_KEY = 'location-sharing-enabled';
+
 
 const CarouselPrevious = React.forwardRef<
   HTMLButtonElement,
@@ -68,12 +69,11 @@ CarouselNext.displayName = "CarouselNext"
 
 
 const NARRATION_TEXTS: { [key: number]: string } = {
-    0: "/audio/narration-settings-intro.wav",
-    1: "/audio/narration-settings-narration.wav",
-    2: "/audio/narration-settings-theme.wav",
-    3: "/audio/narration-settings-location.wav",
-    4: "/audio/narration-settings-mode.wav",
-    5: "/audio/narration-settings-hardware.wav",
+    0: "/audio/narration/narration-settings-intro.wav",
+    1: "", // Dynamically set for auto-play
+    2: "", // Dynamically set for location
+    3: "/audio/narration/narration-settings-theme.wav",
+    4: "/audio/narration/narration-settings-hardware.wav",
 };
 
 
@@ -81,40 +81,67 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [hardware, setHardware] = useState('');
   const [isClient, setIsClient] = useState(false);
-  const [narrationText, setNarrationText] = useState(NARRATION_TEXTS[0]);
-  const { playNarration, isGeneralAutoPlayOn, toggleGeneralAutoPlay, isCarouselAutoPlayOn, toggleCarouselAutoPlay, ...speakerProps } = useSpeaker(narrationText, 'carousel');
-  const [api, setApi] = useState<CarouselApi>();
-  const [controlMode, setControlMode] = useState<'voice' | 'text'>('text');
   
-  const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
-    if (isCarouselAutoPlayOn) {
-        const newNarration = NARRATION_TEXTS[index];
-        if (newNarration) {
-            setNarrationText(newNarration);
-        }
+  const speakerSettings = useSyncExternalStore(
+    (onStoreChange) => {
+      window.addEventListener('speaker-settings-change', onStoreChange);
+      return () => window.removeEventListener('speaker-settings-change', onStoreChange);
+    },
+    getSpeakerSettings,
+    () => defaultSettings
+  );
+  const isAutoPlayOn = speakerSettings.isAutoPlayOn;
+  const [isLocationOn, setIsLocationOn] = useState(true);
+
+  const getNarrationForSlide = useCallback((index: number): string => {
+    if (index === 1) { // The Auto-play Narration card
+        return isAutoPlayOn 
+            ? '/audio/narration/narration-settings-autonarate-on.wav' 
+            : '/audio/narration/narration-settings-autonarate-off.wav';
     }
-  }, 2000);
+    if (index === 2) { // The Location card
+        return isLocationOn
+            ? '/audio/narration/narration-settings-location-on.wav'
+            : '/audio/narration/narration-settings-location-off.wav';
+    }
+    return NARRATION_TEXTS[index] || '';
+  }, [isAutoPlayOn, isLocationOn]);
+
+  
+  const [api, setApi] = useState<CarouselApi>();
+
+  const { playNarration, isPlaying, ...speakerProps } = useSpeaker('', 'carousel');
+  
 
   useEffect(() => {
     setIsClient(true);
+    
     const savedHardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
     if (savedHardware) {
       setHardware(savedHardware);
     }
+    
+    const savedLocation = localStorage.getItem(LOCATION_ENABLED_KEY);
+    if (savedLocation !== null) {
+      setIsLocationOn(JSON.parse(savedLocation));
+    }
+
   }, []);
+
+  const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
+      const newNarration = getNarrationForSlide(index);
+      if (newNarration && isAutoPlayOn) {
+          playNarration(newNarration);
+      }
+  }, 2000);
 
   useEffect(() => {
     if (!api) return;
 
     const handleSelect = () => {
         const selectedIndex = api.selectedScrollSnap();
-        const newNarration = NARRATION_TEXTS[selectedIndex];
-        if (newNarration) {
-            if (isCarouselAutoPlayOn) {
-                debouncedNarration(selectedIndex);
-            } else {
-                setNarrationText(newNarration);
-            }
+        if (isAutoPlayOn) {
+            debouncedNarration(selectedIndex);
         }
     };
 
@@ -123,7 +150,7 @@ export default function SettingsPage() {
     return () => {
         api.off("select", handleSelect);
     };
-  }, [api, isCarouselAutoPlayOn, debouncedNarration]);
+  }, [api, isAutoPlayOn, debouncedNarration, playNarration, getNarrationForSlide]);
   
   const handleSaveHardware = () => {
     if (hardware) {
@@ -135,29 +162,51 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSpeakerClick = () => {
+    if (!api) return;
+    const selectedIndex = api.selectedScrollSnap();
+    const narrationText = getNarrationForSlide(selectedIndex);
+    if (narrationText) {
+      playNarration(narrationText);
+    }
+  }
+
+  const toggleAutoPlay = () => {
+    const newValue = !isAutoPlayOn;
+    setSpeakerSettings({ isAutoPlayOn: newValue });
+    speakerProps.playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
+    
+    if (speakerSettings.isSpeakerOn) {
+        const newNarration = newValue 
+            ? '/audio/narration/narration-settings-autonarate-on.wav' 
+            : '/audio/narration/narration-settings-autonarate-off.wav';
+        playNarration(newNarration);
+    }
+  };
+
+  const toggleLocation = () => {
+    const newValue = !isLocationOn;
+    setIsLocationOn(newValue);
+    localStorage.setItem(LOCATION_ENABLED_KEY, JSON.stringify(newValue));
+    speakerProps.playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
+    
+    if (isAutoPlayOn) {
+        const newNarration = newValue 
+            ? '/audio/narration/narration-settings-location-on.wav'
+            : '/audio/narration/narration-settings-location-off.wav';
+        playNarration(newNarration);
+    }
+  };
+
   if (!isClient) {
     return null;
   }
-
-  const ControlButton = ({ onToggle }: { onToggle: () => void }) => (
-    <div className="flex justify-center mt-4">
-        <Button
-            onClick={onToggle}
-            variant={controlMode === 'text' ? 'secondary' : 'default'}
-            className="rounded-full px-8 py-4 text-lg font-semibold transition-colors duration-300"
-        >
-            {controlMode === 'voice' ? 'Voice Controlled' : 'Text Controlled'}
-        </Button>
-    </div>
-  )
-
-  const handleToggleControl = () => setControlMode(prev => prev === 'voice' ? 'text' : 'voice');
 
   return (
     <AppLayout>
       <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
         <div className="absolute top-4 left-4 opacity-50">
-            <SpeakerButton onClick={() => playNarration(narrationText)} {...speakerProps} />
+            <SpeakerButton onClick={handleSpeakerClick} isPlaying={isPlaying} {...speakerProps} />
         </div>
         <div className="absolute top-4 right-4 opacity-50">
             <ContrastButton />
@@ -177,7 +226,6 @@ export default function SettingsPage() {
                                         <CardDescription>Swipe to customize your app experience.</CardDescription>
                                     </CardHeader>
                                 </Card>
-                                <ControlButton onToggle={handleToggleControl} />
                             </div>
                         </div>
                     </CarouselItem>
@@ -186,36 +234,106 @@ export default function SettingsPage() {
                     <CarouselItem>
                         <div className="p-1 h-full">
                            <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
-                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center text-center">
+                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center text-center cursor-pointer" onClick={toggleAutoPlay}>
                                     <CardHeader>
                                         <ToggleLeft className="h-32 w-32 text-foreground mx-auto" />
                                         <CardTitle className="text-4xl font-mono pt-4">Auto-play Narration</CardTitle>
                                          <CardDescription>
-                                            Automatically play descriptive audio. Defaults to off to reduce AI costs.
+                                            Automatically play descriptive audio for pages and slides.
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent className="flex flex-col items-center gap-6">
-                                        <div className="flex items-center space-x-2">
-                                            <Label htmlFor="general-autoplay-switch" className="text-lg w-48 text-right">General Pages</Label>
-                                            <Switch
-                                                id="general-autoplay-switch"
-                                                checked={isGeneralAutoPlayOn}
-                                                onCheckedChange={toggleGeneralAutoPlay}
-                                                className="h-8 w-16 [&>span]:h-6 [&>span]:w-6 [&>span[data-state=checked]]:translate-x-9"
-                                            />
-                                        </div>
-                                         <div className="flex items-center space-x-2">
-                                            <Label htmlFor="carousel-autoplay-switch" className="text-lg w-48 text-right">Carousel Slides</Label>
-                                            <Switch
-                                                id="carousel-autoplay-switch"
-                                                checked={isCarouselAutoPlayOn}
-                                                onCheckedChange={toggleCarouselAutoPlay}
-                                                className="h-8 w-16 [&>span]:h-6 [&>span]:w-6 [&>span[data-state=checked]]:translate-x-9"
-                                            />
+                                        <div className="flex items-center space-x-2 pointer-events-none">
+                                            {/* Custom Large Toggle */}
+                                            <div
+                                            id="autoplay-switch"
+                                            className={cn(
+                                                "relative inline-flex h-24 w-48 shrink-0 cursor-pointer rounded-full border-4 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                                                isAutoPlayOn ? 'bg-primary' : 'bg-input'
+                                            )}
+                                            >
+                                                <span className="sr-only">Use setting</span>
+                                                <span
+                                                    aria-hidden="true"
+                                                    className={cn(
+                                                    'pointer-events-none absolute h-20 w-20 transform rounded-full bg-background shadow-lg ring-0 transition duration-200 ease-in-out',
+                                                    isAutoPlayOn ? 'translate-x-26' : 'translate-x-2'
+                                                    )}
+                                                />
+                                                 <span
+                                                    className={cn(
+                                                        "absolute inset-y-0 left-0 flex items-center justify-center w-1/2 text-2xl font-bold transition-opacity",
+                                                        isAutoPlayOn ? 'opacity-0' : 'opacity-100'
+                                                    )}
+                                                    >
+                                                    OFF
+                                                </span>
+                                                <span
+                                                    className={cn(
+                                                        "absolute inset-y-0 right-0 flex items-center justify-center w-1/2 text-2xl font-bold transition-opacity",
+                                                        isAutoPlayOn ? 'opacity-100' : 'opacity-0'
+                                                    )}
+                                                    >
+                                                    ON
+                                                </span>
+                                            </div>
                                         </div>
                                     </CardContent>
                                 </Card>
-                                <ControlButton onToggle={handleToggleControl} />
+                            </div>
+                        </div>
+                    </CarouselItem>
+                    
+                    {/* Location Settings Card */}
+                     <CarouselItem>
+                        <div className="p-1 h-full">
+                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
+                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center text-center cursor-pointer" onClick={toggleLocation}>
+                                    <CardHeader>
+                                        <MapPin className="h-32 w-32 text-foreground mx-auto" />
+                                        <CardTitle className="text-4xl font-mono pt-4">Share Location</CardTitle>
+                                         <CardDescription>
+                                            Allow the app to use your device's location to improve identification accuracy.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="flex flex-col items-center gap-6">
+                                        <div className="flex items-center space-x-2 pointer-events-none">
+                                            {/* Custom Large Toggle for Location */}
+                                            <div
+                                            id="location-switch"
+                                            className={cn(
+                                                "relative inline-flex h-24 w-48 shrink-0 cursor-pointer rounded-full border-4 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                                                isLocationOn ? 'bg-primary' : 'bg-input'
+                                            )}
+                                            >
+                                                <span className="sr-only">Location setting</span>
+                                                <span
+                                                    aria-hidden="true"
+                                                    className={cn(
+                                                    'pointer-events-none absolute h-20 w-20 transform rounded-full bg-background shadow-lg ring-0 transition duration-200 ease-in-out',
+                                                    isLocationOn ? 'translate-x-26' : 'translate-x-2'
+                                                    )}
+                                                />
+                                                 <span
+                                                    className={cn(
+                                                        "absolute inset-y-0 left-0 flex items-center justify-center w-1/2 text-2xl font-bold transition-opacity",
+                                                        isLocationOn ? 'opacity-0' : 'opacity-100'
+                                                    )}
+                                                    >
+                                                    OFF
+                                                </span>
+                                                <span
+                                                    className={cn(
+                                                        "absolute inset-y-0 right-0 flex items-center justify-center w-1/2 text-2xl font-bold transition-opacity",
+                                                        isLocationOn ? 'opacity-100' : 'opacity-0'
+                                                    )}
+                                                    >
+                                                    ON
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
                             </div>
                         </div>
                     </CarouselItem>
@@ -235,47 +353,6 @@ export default function SettingsPage() {
                                         </Button>
                                     </CardContent>
                                 </Card>
-                                <ControlButton onToggle={handleToggleControl} />
-                            </div>
-                        </div>
-                    </CarouselItem>
-
-                    {/* Location Settings Card */}
-                     <CarouselItem>
-                        <div className="p-1 h-full">
-                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
-                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
-                                    <CardHeader className="text-center">
-                                        <MapPin className="h-48 w-48 text-foreground mx-auto" />
-                                        <CardTitle className="text-4xl font-mono pt-4">Location Settings</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Button asChild variant="outline" size="lg" className="text-lg">
-                                          <Link href="/settings/location">Manage Location</Link>
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                                <ControlButton onToggle={handleToggleControl} />
-                            </div>
-                        </div>
-                    </CarouselItem>
-
-                    {/* App Mode Card */}
-                    <CarouselItem>
-                        <div className="p-1 h-full">
-                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
-                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
-                                    <CardHeader className="text-center">
-                                        <AudioLines className="h-48 w-48 text-foreground mx-auto" />
-                                        <CardTitle className="text-4xl font-mono pt-4">App Mode</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Button asChild variant="outline" size="lg" className="text-lg">
-                                          <Link href="/settings/mode">Change App Mode</Link>
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                                <ControlButton onToggle={handleToggleControl} />
                             </div>
                         </div>
                     </CarouselItem>
@@ -305,7 +382,6 @@ export default function SettingsPage() {
                                         </Button>
                                     </CardContent>
                                 </Card>
-                                <ControlButton onToggle={handleToggleControl} />
                             </div>
                         </div>
                     </CarouselItem>

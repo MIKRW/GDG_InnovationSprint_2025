@@ -27,6 +27,7 @@ interface ResultPageProps {
     params: {
         analysisRunId: string;
     };
+    searchParams: { [key: string]: string | string[] | undefined };
 }
 
 function BirdImage({ commonName }: { commonName: string }) {
@@ -278,7 +279,7 @@ export default function ResultPage({ params }: ResultPageProps) {
         <AppLayout>
             <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
                  <div className="absolute top-4 left-4 opacity-50">
-                    <SpeakerButton onClick={playNarration} {...speakerProps} />
+                    <SpeakerButton onClick={() => playNarration()} {...speakerProps} />
                 </div>
                 <div className="absolute top-4 right-4 opacity-50">
                     <ContrastButton />

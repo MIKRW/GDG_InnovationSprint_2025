@@ -277,15 +277,19 @@ export function ThemeGenerator() {
       });
     } catch (error) {
       console.error(error);
-      logErrorToFirestore(error as Error, 'theme-generation-failure', {
-        words: { word1: values.word1, word2: values.word2, word3: values.word3 },
-        mood: mood,
-      });
-
       const errorMessage = (error as Error).message || '';
-      if (errorMessage.includes('503') || errorMessage.toLowerCase().includes('overloaded')) {
-        setIsApiOverloaded(true);
+      
+      if (errorMessage.includes('AI_QUOTA_EXCEEDED')) {
+        toast({
+            variant: 'destructive',
+            title: 'AI Service Busy',
+            description: 'The theme generator is currently experiencing high demand. Please try again in a minute.',
+        });
       } else {
+        logErrorToFirestore(error as Error, 'theme-generation-failure', {
+          words: { word1: values.word1, word2: values.word2, word3: values.word3 },
+          mood: mood,
+        });
         toast({
             variant: 'destructive',
             title: 'Generation Failed',
