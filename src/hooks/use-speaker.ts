@@ -23,7 +23,6 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
 
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [queuedNarration, setQueuedNarration] = useState<string | null>(null);
     
     const narrationAudioRef = useRef<HTMLAudioElement | null>(null);
     const sfxAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -64,17 +63,6 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     }, [narrationSource, speakerSettings.isAutoPlayOn, autoPlayType]);
 
 
-     // Effect to handle playing a queued narration after the current one has stopped.
-    useEffect(() => {
-        if (queuedNarration && !isPlaying && !isLoading) {
-            const sourceToPlay = queuedNarration;
-            setQueuedNarration(null); // Clear the queue
-            // We recall the main play function to handle the queued track.
-            playNarration(sourceToPlay);
-        }
-    }, [queuedNarration, isPlaying, isLoading]);
-
-
     const playNarration = useCallback(async (sourceToPlayOverride?: string) => {
         if (isLoading) return; // Prevent new playbacks while one is loading.
 
@@ -89,12 +77,10 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         if (isPlaying) {
              audio.pause();
              audio.currentTime = 0;
-             // If the user wants to play a DIFFERENT source, queue it.
-             // If it's the same source, pausing is enough (toggle off).
-             if (audio.src !== targetSource) {
-                setQueuedNarration(targetSource);
+             // If it's the same source, we just stop. If different, the user will click again to play the new one.
+             if (audio.src === targetSource) {
+                return;
              }
-             return;
         }
 
         if (!speakerSettings.isSpeakerOn) return;
@@ -149,6 +135,7 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         isPlaying,
         isLoading,
         playNarration,
+        narrationAudioRef,
         playSfx,
     };
 }
