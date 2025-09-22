@@ -295,7 +295,7 @@ export default function BirdBookPage() {
     const [api, setApi] = useState<CarouselApi>();
     const [isClient, setIsClient] = useState(false);
     const [currentTheme, setCurrentTheme] = useState('light');
-    const [narrationText, setNarrationText] = useState(PAGE_NARRATION_INTRO);
+    const [narrationText, setNarrationText] = useState(PAGE_NARRATION_ASSISTANT_CARD);
     const { playNarration: playNarrationFromHook, isLoading: isSpeakerLoading, isAutoPlayOn, ...speakerProps } = useSpeaker(narrationText, 'carousel');
     const [savedRuns, setSavedRuns] = useState<AnalysisRun[]>([]);
 
@@ -307,37 +307,14 @@ export default function BirdBookPage() {
         if (savedRuns[runIndex]) {
             const run = savedRuns[runIndex];
             if (run.aiResult.isBirdSong && run.aiResult.commonName) {
-                // Return text for TTS, including a cache key.
-                const text = `This is an entry for a ${run.aiResult.commonName}.`;
-                return `tts-cache-key-${run.id}|||${text}`;
+                return `This is an entry for a ${run.aiResult.commonName}.`;
             } else {
-                return `tts-cache-key-${run.id}|||This is a mystery recording where no bird was identified.`;
+                return `This is a mystery recording where no bird was identified.`;
             }
         }
         return "Your Bird Book is empty. Make a recording to save your first entry.";
     }, [savedRuns]);
 
-    const playNarration = useCallback(async (source: string) => {
-        // Handle TTS caching logic here
-        if (source.startsWith('tts-cache-key-')) {
-            const [cacheKey, textToSpeak] = source.split('|||');
-            if (audioCache.has(cacheKey)) {
-                await playNarrationFromHook(audioCache.get(cacheKey));
-            } else {
-                try {
-                    const response = await textToSpeech(textToSpeak);
-                    audioCache.set(cacheKey, response.audioDataUri);
-                    await playNarrationFromHook(response.audioDataUri);
-                } catch (error) {
-                     console.error("TTS generation failed during narration:", error);
-                }
-            }
-        } else {
-            // It's a pre-recorded file path
-            await playNarrationFromHook(source);
-        }
-    }, [playNarrationFromHook]);
-    
     useEffect(() => {
         setIsClient(true);
         const theme = localStorage.getItem('theme') || 'light';
@@ -383,7 +360,7 @@ export default function BirdBookPage() {
         <AppLayout>
             <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
                 <div className="absolute top-4 left-4 opacity-50">
-                    <SpeakerButton onClick={() => playNarration(narrationText)} isLoading={isSpeakerLoading} {...speakerProps} />
+                    <SpeakerButton onClick={() => playNarrationFromHook(narrationText)} isLoading={isSpeakerLoading} {...speakerProps} />
                 </div>
                 <div className="absolute top-4 right-4 opacity-50">
                     <ContrastButton key={currentTheme} />
@@ -458,6 +435,8 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
+
+    
 
     
 
