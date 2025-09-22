@@ -294,8 +294,7 @@ export default function BirdBookPage() {
     const [api, setApi] = useState<CarouselApi>();
     const [isClient, setIsClient] = useState(false);
     const [currentTheme, setCurrentTheme] = useState('light');
-    const [narrationText, setNarrationText] = useState('');
-    const { playNarration: playNarrationFromHook, isLoading: isSpeakerLoading, isAutoPlayOn, ...speakerProps } = useSpeaker(narrationText, 'carousel');
+    const { playNarration: playNarrationFromHook, isLoading: isSpeakerLoading, ...speakerProps } = useSpeaker('');
     const [savedRuns, setSavedRuns] = useState<AnalysisRun[]>([]);
 
     const getNarrationForSlide = useCallback((index: number): string => {
@@ -324,25 +323,14 @@ export default function BirdBookPage() {
             setSavedRuns(JSON.parse(savedRunsJson));
         }
     }, []);
-
-    useEffect(() => {
-        if (!api) return;
-
-        const handleSelect = () => {
-            const selectedIndex = api.selectedScrollSnap();
-            const newNarration = getNarrationForSlide(selectedIndex);
-            setNarrationText(newNarration);
-        };
-
-        api.on("select", handleSelect);
-        // Set initial narration text
-        handleSelect();
-        
-        return () => {
-            api.off("select", handleSelect);
-        };
-    }, [api, getNarrationForSlide]);
     
+    const handleSpeakerClick = () => {
+        if (!api) return;
+        const selectedIndex = api.selectedScrollSnap();
+        const narrationText = getNarrationForSlide(selectedIndex);
+        playNarrationFromHook(narrationText);
+    };
+
     const startChat = () => {
         api?.scrollTo(0);
     };
@@ -361,7 +349,7 @@ export default function BirdBookPage() {
         <AppLayout>
             <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
                 <div className="absolute top-4 left-4 opacity-50">
-                    <SpeakerButton onClick={() => playNarrationFromHook(narrationText)} isLoading={isSpeakerLoading} {...speakerProps} />
+                    <SpeakerButton onClick={handleSpeakerClick} isLoading={isSpeakerLoading} {...speakerProps} />
                 </div>
                 <div className="absolute top-4 right-4 opacity-50">
                     <ContrastButton key={currentTheme} />
@@ -436,3 +424,5 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
+
+    
