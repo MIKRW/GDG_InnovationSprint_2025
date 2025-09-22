@@ -1,3 +1,4 @@
+>> this list needs updating it is a combinatioin of ideas from start to finsh and not all ideas may align with current direction of the app
 # Task List
 
 - **Fix Recording Button Lifecycle**: The record button currently has a React lifecycle issue ("Maximum update depth exceeded") that prevents it from correctly starting and stopping. Investigate the cause of the infinite loop, research robust solutions for handling the component's state and audio processing callbacks, and implement the fix.
@@ -49,6 +50,9 @@
 - **Metadata Scraper Browser Extension**: Develop a browser extension that can automatically scrape metadata (author, license, location, etc.) from a source URL (like Xeno-canto or Macaulay Library) when a developer is uploading a new master audio file.
 
 - **Embedded Metadata Extraction**: Implement a feature to automatically parse and import embedded metadata (e.g., ID3 tags) from master audio files upon upload.
+
+- ** create an ai flow that will identify thehabitat you are in based on photo
+- ** create a spot for user to input habbit manually 
 
 ---
 
