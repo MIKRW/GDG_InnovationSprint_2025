@@ -25,7 +25,6 @@ interface ChatMessage {
 
 const SAVED_RUNS_KEY = 'saved-runs';
 
-const PAGE_NARRATION_INTRO = "This is the Bird Book, your personal log of identified birds. You can swipe left and right to view your saved identifications. The first card is the AI assistant, which can help you filter, sort, or find birds in your log. Click the bot icon to start a voice command, or toggle to text control at the bottom.";
 const PAGE_NARRATION_ASSISTANT_CARD = "/audio/narration/narration-birdbook.wav";
 
 
@@ -78,7 +77,6 @@ function AiAssistantCard({
                 setIsListening(false);
                 if (conversationStep === 1) {
                     setConversationStep(2);
-                    // playAudio('Please tell me would you like to sort by most recent or least recent?');
                 } else if (conversationStep === 2) {
                     setConversationStep(3);
                     onSortComplete();
@@ -262,6 +260,22 @@ export default function BirdBookPage() {
         }
     }, []);
     
+    useEffect(() => {
+        if (!api) return;
+
+        const handleSelect = () => {
+            // This function is now intentionally left blank to prevent
+            // automatic narration on carousel slide changes.
+            // Narration will only be triggered by the user clicking the speaker button.
+        };
+
+        api.on("select", handleSelect);
+        
+        return () => {
+            api.off("select", handleSelect);
+        };
+    }, [api]);
+
     const handleSpeakerClick = () => {
         if (!api) return;
         const selectedIndex = api.selectedScrollSnap();
@@ -362,5 +376,3 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
-
-    
