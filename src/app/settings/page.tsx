@@ -107,10 +107,10 @@ export default function SettingsPage() {
     return NARRATION_TEXTS[index] || '';
   }, [isAutoPlayOn, isLocationOn]);
 
-  const [narrationText, setNarrationText] = useState(NARRATION_TEXTS[0]);
+  
   const [api, setApi] = useState<CarouselApi>();
 
-  const { playNarration, isPlaying, ...speakerProps } = useSpeaker(narrationText, 'carousel');
+  const { playNarration, isPlaying, ...speakerProps } = useSpeaker('', 'carousel');
   
 
   useEffect(() => {
@@ -140,23 +140,12 @@ export default function SettingsPage() {
 
     const handleSelect = () => {
         const selectedIndex = api.selectedScrollSnap();
-        const newNarration = getNarrationForSlide(selectedIndex);
-        
-        if (newNarration) {
-            setNarrationText(newNarration);
-        }
-
-        if (isAutoPlayOn && newNarration) {
+        if (isAutoPlayOn) {
             debouncedNarration(selectedIndex);
         }
     };
 
     api.on("select", handleSelect);
-    
-    const initialNarration = getNarrationForSlide(api.selectedScrollSnap());
-    if (initialNarration) {
-      setNarrationText(initialNarration);
-    }
     
     return () => {
         api.off("select", handleSelect);
@@ -173,16 +162,24 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSpeakerClick = () => {
+    if (!api) return;
+    const selectedIndex = api.selectedScrollSnap();
+    const narrationText = getNarrationForSlide(selectedIndex);
+    if (narrationText) {
+      playNarration(narrationText);
+    }
+  }
+
   const toggleAutoPlay = () => {
     const newValue = !isAutoPlayOn;
     setSpeakerSettings({ isAutoPlayOn: newValue });
     speakerProps.playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
     
-    const newNarration = newValue 
-        ? '/audio/narration/narration-settings-autonarate-on.wav' 
-        : '/audio/narration/narration-settings-autonarate-off.wav';
-
     if (speakerSettings.isSpeakerOn) {
+        const newNarration = newValue 
+            ? '/audio/narration/narration-settings-autonarate-on.wav' 
+            : '/audio/narration/narration-settings-autonarate-off.wav';
         playNarration(newNarration);
     }
   };
@@ -209,7 +206,7 @@ export default function SettingsPage() {
     <AppLayout>
       <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
         <div className="absolute top-4 left-4 opacity-50">
-            <SpeakerButton onClick={() => playNarration()} isPlaying={isPlaying} {...speakerProps} />
+            <SpeakerButton onClick={handleSpeakerClick} isPlaying={isPlaying} {...speakerProps} />
         </div>
         <div className="absolute top-4 right-4 opacity-50">
             <ContrastButton />

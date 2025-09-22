@@ -64,14 +64,15 @@ export function useSpeaker(narrationSource?: string, autoPlayType: 'general' | '
         const targetSource = sourceToPlayOverride || narrationSource;
         const audio = narrationAudioRef.current;
 
-        if (!audio || !targetSource) {
-            return;
-        }
+        if (!audio || !targetSource) return;
+
+        if (isLoading) return; // Prevent spamming if audio is already loading
 
         if (!sessionStorage.getItem(FIRST_INTERACTION_KEY)) {
             sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
         }
         
+        // Always stop currently playing audio before starting a new one
         if (!audio.paused) {
             audio.pause();
             audio.currentTime = 0;
@@ -114,7 +115,7 @@ export function useSpeaker(narrationSource?: string, autoPlayType: 'general' | '
         } finally {
             setIsLoading(false);
         }
-    }, [narrationSource, speakerSettings.isSpeakerOn, toast]);
+    }, [narrationSource, speakerSettings.isSpeakerOn, toast, isLoading]);
     
 
     const playSfx = useCallback((sfxPath: string) => {
