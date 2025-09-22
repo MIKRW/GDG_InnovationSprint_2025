@@ -176,14 +176,15 @@ export default function SettingsPage() {
   const toggleAutoPlay = () => {
     const newValue = !isAutoPlayOn;
     setSpeakerSettings({ isAutoPlayOn: newValue });
-    playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
+    speakerProps.playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
     
+    // Always play the narration for the new state, but only if the master speaker is on.
     const newNarration = newValue 
         ? '/audio/narration/narration-settings-autonarate-on.wav' 
         : '/audio/narration/narration-settings-autonarate-off.wav';
 
-    // Only play the full narration on toggle if the master toggle is being turned ON
-    if (newValue) {
+    // The hook now handles interruptions gracefully.
+    if (speakerSettings.isSpeakerOn) {
         playNarration(newNarration);
     }
   };
@@ -192,7 +193,7 @@ export default function SettingsPage() {
     const newValue = !isLocationOn;
     setIsLocationOn(newValue);
     localStorage.setItem(LOCATION_ENABLED_KEY, JSON.stringify(newValue));
-    playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
+    speakerProps.playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
     
     if (isAutoPlayOn) {
         const newNarration = newValue 
