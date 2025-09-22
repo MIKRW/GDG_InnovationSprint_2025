@@ -229,7 +229,7 @@ export default function Home() {
       }
     } finally {
       if (finalAnalysisRun) {
-        router.push(`/record/result?id=${finalAnalysisRun.id}`);
+        router.push(`/record/result/${finalAnalysisRun.id}`);
       } else {
         setIsUploading(false);
         setIsAnalyzing(false);
