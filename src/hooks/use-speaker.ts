@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { textToSpeech } from '@/ai/flows/tts-flow';
 import { useToast } from './use-toast';
-import { getSpeakerSettings, setSpeakerSettings as setGlobalSpeakerSettings, defaultSettings } from '@/lib/speaker-store';
+import { getSpeakerSettings, defaultSettings } from '@/lib/speaker-store';
 
 const FIRST_INTERACTION_KEY = 'user-has-interacted';
 const audioCache = new Map<string, string>();
@@ -23,6 +23,7 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
 
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [queuedNarration, setQueuedNarration] = useState<string | null>(null);
     
     const narrationAudioRef = useRef<HTMLAudioElement | null>(null);
     const sfxAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -54,8 +55,6 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
             }
         }
         
-        // This effect should only run once to set up the audio players.
-        // We add a cleanup function to be safe.
         const player = narrationAudioRef.current;
         return () => {
             if (player) {
@@ -65,11 +64,19 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
     }, [narrationSource, speakerSettings.isAutoPlayOn, autoPlayType]);
 
 
-    const playNarration = useCallback(async (sourceToPlayOverride?: string) => {
-        // Prevent new playbacks while one is already loading.
-        if (isLoading) {
-            return;
+     // Effect to handle playing a queued narration after the current one has stopped.
+    useEffect(() => {
+        if (queuedNarration && !isPlaying && !isLoading) {
+            const sourceToPlay = queuedNarration;
+            setQueuedNarration(null); // Clear the queue
+            // We recall the main play function to handle the queued track.
+            playNarration(sourceToPlay);
         }
+    }, [queuedNarration, isPlaying, isLoading]);
+
+
+    const playNarration = useCallback(async (sourceToPlayOverride?: string) => {
+        if (isLoading) return; // Prevent new playbacks while one is loading.
 
         const targetSource = sourceToPlayOverride || narrationSource;
         const audio = narrationAudioRef.current;
@@ -82,12 +89,15 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         if (isPlaying) {
              audio.pause();
              audio.currentTime = 0;
+             // If the user wants to play a DIFFERENT source, queue it.
+             // If it's the same source, pausing is enough (toggle off).
+             if (audio.src !== targetSource) {
+                setQueuedNarration(targetSource);
+             }
              return;
         }
 
-        if (!speakerSettings.isSpeakerOn) {
-            return;
-        }
+        if (!speakerSettings.isSpeakerOn) return;
         
         setIsLoading(true);
         try {
