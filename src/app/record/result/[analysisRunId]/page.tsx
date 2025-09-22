@@ -27,6 +27,7 @@ interface ResultPageProps {
     params: {
         analysisRunId: string;
     };
+    searchParams: { [key: string]: string | string[] | undefined };
 }
 
 function BirdImage({ commonName }: { commonName: string }) {
@@ -340,5 +341,3 @@ export default function ResultPage({ params }: ResultPageProps) {
         </AppLayout>
     );
 }
-
-    
