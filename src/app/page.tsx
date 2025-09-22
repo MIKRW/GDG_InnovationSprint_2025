@@ -208,16 +208,9 @@ export default function Home() {
   }
 
  const handleStart = async () => {
-    // This is the first meaningful interaction.
-    // Set the flag to allow auto-play on subsequent pages.
-    if (!sessionStorage.getItem(FIRST_INTERACTION_KEY)) {
-        sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
-        // We can also play the narration here if we want.
-        playNarration(PAGE_NARRATION);
-    }
-
     currentSessionId.current = uuidv4();
     currentCreationTime.current = new Date().toISOString();
+    
     if (hasPermission === false) {
       try {
         // Request permission
