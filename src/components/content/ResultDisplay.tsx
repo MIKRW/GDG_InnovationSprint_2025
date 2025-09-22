@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BookImage, Check, Download, Home, PlayCircle, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import { AlertTriangle, BookImage, Check, Download, Home, PlayCircle, Speaker, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import { generateBirdImage } from '@/ai/flows/instructional-generate-bird-image-flow';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -290,5 +290,3 @@ export function ResultDisplay({ run }: ResultDisplayProps) {
         </AppLayout>
     );
 }
-
-    
