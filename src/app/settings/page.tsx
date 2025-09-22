@@ -15,7 +15,7 @@ import { Carousel, CarouselApi, CarouselContent, CarouselItem, useCarousel } fro
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
-import { getSpeakerSettings, setSpeakerSettings, defaultSettings } from '@/lib/speaker-store';
+import { getSpeakerSettings, setSpeakerSettings } from '@/lib/speaker-store';
 import { Input } from '@/components/ui/input';
 
 
@@ -70,8 +70,9 @@ CarouselNext.displayName = "CarouselNext"
 
 const NARRATION_TEXTS: { [key: number]: string } = {
     0: "/audio/narration/narration-settings-intro.wav",
-    1: "", // This will be handled dynamically by getNarrationForSlide
-    2: "Allow the app to use your device's location to improve identification accuracy.",
+    // Index 1 (Auto-play) and 2 (Location) are handled dynamically by getNarrationForSlide
+    1: "", 
+    2: "",
     3: "/audio/narration/narration-settings-theme.wav",
     4: "/audio/narration/narration-settings-hardware.wav",
 };
@@ -91,6 +92,7 @@ export default function SettingsPage() {
     () => defaultSettings
   );
   const isAutoPlayOn = speakerSettings.isAutoPlayOn;
+  const [isLocationOn, setIsLocationOn] = useState(true);
 
   const getNarrationForSlide = useCallback((index: number): string => {
     if (index === 1) { // The Auto-play Narration card
@@ -98,15 +100,19 @@ export default function SettingsPage() {
             ? '/audio/narration/narration-settings-autonarate-on.wav' 
             : '/audio/narration/narration-settings-autonarate-off.wav';
     }
+    if (index === 2) { // The Location card
+        return isLocationOn
+            ? '/audio/narration/narration-settings-location-on.wav'
+            : '/audio/narration/narration-settings-location-off.wav';
+    }
     return NARRATION_TEXTS[index] || '';
-  }, [isAutoPlayOn]);
+  }, [isAutoPlayOn, isLocationOn]);
 
   const [narrationText, setNarrationText] = useState(NARRATION_TEXTS[0]);
   const [api, setApi] = useState<CarouselApi>();
 
   const { playNarration, playSfx, isPlaying, ...speakerProps } = useSpeaker(narrationText, 'carousel');
   
-  const [isLocationOn, setIsLocationOn] = useState(true);
 
   useEffect(() => {
     setIsClient(true);
@@ -153,7 +159,10 @@ export default function SettingsPage() {
     api.on("select", handleSelect);
     
     // Also set the initial narration text
-    setNarrationText(getNarrationForSlide(api.selectedScrollSnap()));
+    const initialNarration = getNarrationForSlide(api.selectedScrollSnap());
+    if (initialNarration) {
+      setNarrationText(initialNarration);
+    }
     
     return () => {
         api.off("select", handleSelect);
@@ -192,7 +201,7 @@ export default function SettingsPage() {
     <AppLayout>
       <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
         <div className="absolute top-4 left-4 opacity-50">
-            <SpeakerButton onClick={() => playNarration()} {...speakerProps} isPlaying={isPlaying} isSpeakerOn={speakerSettings.isSpeakerOn} />
+            <SpeakerButton onClick={() => playNarration()} isPlaying={isPlaying} {...speakerProps} />
         </div>
         <div className="absolute top-4 right-4 opacity-50">
             <ContrastButton />
