@@ -9,7 +9,7 @@ import { getSpeakerSettings, defaultSettings } from '@/lib/speaker-store';
 const FIRST_INTERACTION_KEY = 'user-has-interacted';
 const audioCache = new Map<string, string>();
 
-export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'carousel' = 'general') {
+export function useSpeaker(narrationSource?: string, autoPlayType: 'general' | 'carousel' = 'general') {
     const { toast } = useToast();
     
     const speakerSettings = useSyncExternalStore(
@@ -105,7 +105,7 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
                 toast({
                     variant: 'destructive',
                     title: 'TTS Narration Unavailable',
-                    description: 'The AI audio generation service is temporarily unavailable due to quota limits.',
+                    description: 'The AI audio generation service is temporarily unavailable due to high demand. Please try again in a minute.',
                 });
             } else if (error.name !== 'AbortError') { 
                 console.error("Failed to load or play audio:", error);
