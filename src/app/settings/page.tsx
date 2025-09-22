@@ -70,7 +70,6 @@ CarouselNext.displayName = "CarouselNext"
 
 const NARRATION_TEXTS: { [key: number]: string } = {
     0: "/audio/narration/narration-settings-intro.wav",
-    // Index 1 (Auto-play) and 2 (Location) are handled dynamically by getNarrationForSlide
     1: "", 
     2: "",
     3: "/audio/narration/narration-settings-theme.wav",
@@ -145,12 +144,10 @@ export default function SettingsPage() {
         const selectedIndex = api.selectedScrollSnap();
         const newNarration = getNarrationForSlide(selectedIndex);
         
-        // Always update the narration text so the manual speaker button works.
         if (newNarration) {
             setNarrationText(newNarration);
         }
 
-        // Only auto-play if the setting is on.
         if (isAutoPlayOn && newNarration) {
             debouncedNarration(selectedIndex);
         }
@@ -158,7 +155,6 @@ export default function SettingsPage() {
 
     api.on("select", handleSelect);
     
-    // Also set the initial narration text
     const initialNarration = getNarrationForSlide(api.selectedScrollSnap());
     if (initialNarration) {
       setNarrationText(initialNarration);
@@ -181,9 +177,16 @@ export default function SettingsPage() {
 
   const toggleAutoPlay = () => {
     const newValue = !isAutoPlayOn;
-    // This now updates the global store immediately.
     setSpeakerSettings({ isAutoPlayOn: newValue });
     playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
+    
+    // Only play the full narration on toggle if the master toggle itself is being turned ON.
+    if (newValue) {
+        const newNarration = newValue 
+            ? '/audio/narration/narration-settings-autonarate-on.wav' 
+            : '/audio/narration/narration-settings-autonarate-off.wav';
+        playNarration(newNarration);
+    }
   };
 
   const toggleLocation = () => {
@@ -285,7 +288,7 @@ export default function SettingsPage() {
                             </div>
                         </div>
                     </CarouselItem>
-
+                    
                     {/* Location Settings Card */}
                      <CarouselItem>
                         <div className="p-1 h-full">
@@ -418,4 +421,3 @@ export default function SettingsPage() {
   );
 }
 
-    
