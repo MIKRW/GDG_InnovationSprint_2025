@@ -17,7 +17,6 @@ import { Label } from '@/components/ui/label';
 import { useSpeaker } from '@/hooks/use-speaker';
 import { type AnalysisRun } from '@/lib/types';
 import { SavedRunCard } from '@/components/content/SavedRunCard';
-import { textToSpeech } from '@/ai/flows/tts-flow';
 
 interface ChatMessage {
     sender: 'user' | 'bot';
@@ -26,12 +25,8 @@ interface ChatMessage {
 
 const SAVED_RUNS_KEY = 'saved-runs';
 
-// The audio cache for TTS results
-const audioCache = new Map<string, string>();
-
-
 const PAGE_NARRATION_INTRO = "This is the Bird Book, your personal log of identified birds. You can swipe left and right to view your saved identifications. The first card is the AI assistant, which can help you filter, sort, or find birds in your log. Click the bot icon to start a voice command, or toggle to text control at the bottom.";
-const PAGE_NARRATION_ASSISTANT_CARD = "/audio/narration/narration-bird-book-assistant.wav";
+const PAGE_NARRATION_ASSISTANT_CARD = "/audio/narration/narration-birdbook.wav";
 
 
 function AiAssistantCard({ 
@@ -82,17 +77,9 @@ function AiAssistantCard({
     const playAudio = async (text: string) => {
         setIsSpeaking(true);
         try {
-            // Use the cache for chatbot responses
-            let audioDataUri = audioCache.get(text);
-            if (!audioDataUri) {
-                const response = await textToSpeech(text);
-                audioDataUri = response.audioDataUri;
-                audioCache.set(text, audioDataUri);
-            }
-            if (audioRef.current && audioDataUri) {
-                audioRef.current.src = audioDataUri;
-                audioRef.current.play();
-            }
+            // TTS is not implemented for chatbot yet
+            console.log(`Simulating TTS for: ${text}`);
+            
         } catch (error) {
             console.error("TTS failed", error);
             setIsSpeaking(false);
@@ -294,7 +281,7 @@ export default function BirdBookPage() {
     const [api, setApi] = useState<CarouselApi>();
     const [isClient, setIsClient] = useState(false);
     const [currentTheme, setCurrentTheme] = useState('light');
-    const { playNarration: playNarrationFromHook, isLoading: isSpeakerLoading, ...speakerProps } = useSpeaker('');
+    const { playNarration, isLoading: isSpeakerLoading, ...speakerProps } = useSpeaker(PAGE_NARRATION_INTRO, 'general');
     const [savedRuns, setSavedRuns] = useState<AnalysisRun[]>([]);
 
     const getNarrationForSlide = useCallback((index: number): string => {
@@ -328,7 +315,7 @@ export default function BirdBookPage() {
         if (!api) return;
         const selectedIndex = api.selectedScrollSnap();
         const narrationText = getNarrationForSlide(selectedIndex);
-        playNarrationFromHook(narrationText);
+        playNarration(narrationText);
     };
 
     const startChat = () => {
