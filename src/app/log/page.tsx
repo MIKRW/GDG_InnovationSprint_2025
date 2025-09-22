@@ -27,7 +27,12 @@ interface ChatMessage {
 
 const SAVED_RUNS_KEY = 'saved-runs';
 
-const PAGE_NARRATION = "This is the Bird Book, your personal log of identified birds. You can swipe left and right to view your saved identifications. The first card is the AI assistant, which can help you filter, sort, or find birds in your log. Click the bot icon to start a voice command, or toggle to text control at the bottom.";
+// The audio cache for TTS results
+const audioCache = new Map<string, string>();
+
+
+const PAGE_NARRATION_INTRO = "This is the Bird Book, your personal log of identified birds. You can swipe left and right to view your saved identifications. The first card is the AI assistant, which can help you filter, sort, or find birds in your log. Click the bot icon to start a voice command, or toggle to text control at the bottom.";
+const PAGE_NARRATION_ASSISTANT_CARD = "/audio/narration/narration-bird-book-assistant.wav";
 
 
 function AiAssistantCard({ 
@@ -78,9 +83,15 @@ function AiAssistantCard({
     const playAudio = async (text: string) => {
         setIsSpeaking(true);
         try {
-            const response = await textToSpeech(text);
-            if (audioRef.current) {
-                audioRef.current.src = response.audioDataUri;
+            // Use the cache for chatbot responses
+            let audioDataUri = audioCache.get(text);
+            if (!audioDataUri) {
+                const response = await textToSpeech(text);
+                audioDataUri = response.audioDataUri;
+                audioCache.set(text, audioDataUri);
+            }
+            if (audioRef.current && audioDataUri) {
+                audioRef.current.src = audioDataUri;
                 audioRef.current.play();
             }
         } catch (error) {
@@ -284,25 +295,48 @@ export default function BirdBookPage() {
     const [api, setApi] = useState<CarouselApi>();
     const [isClient, setIsClient] = useState(false);
     const [currentTheme, setCurrentTheme] = useState('light');
-    const [narrationText, setNarrationText] = useState(PAGE_NARRATION);
-    const { playNarration, isLoading: isSpeakerLoading, isAutoPlayOn, ...speakerProps } = useSpeaker(narrationText, 'carousel');
+    const [narrationText, setNarrationText] = useState(PAGE_NARRATION_INTRO);
+    const { playNarration: playNarrationFromHook, isLoading: isSpeakerLoading, isAutoPlayOn, ...speakerProps } = useSpeaker(narrationText, 'carousel');
     const [savedRuns, setSavedRuns] = useState<AnalysisRun[]>([]);
 
     const getNarrationForSlide = useCallback((index: number): string => {
         if (index === 0) {
-            return "This is the AI assistant. Click the bot icon to issue a command.";
+            return PAGE_NARRATION_ASSISTANT_CARD;
         }
         const runIndex = index - 1;
         if (savedRuns[runIndex]) {
             const run = savedRuns[runIndex];
             if (run.aiResult.isBirdSong && run.aiResult.commonName) {
-                return `This is an entry for a ${run.aiResult.commonName}.`;
+                // Return text for TTS, including a cache key.
+                const text = `This is an entry for a ${run.aiResult.commonName}.`;
+                return `tts-cache-key-${run.id}|||${text}`;
             } else {
-                return "This is a mystery recording where no bird was identified.";
+                return `tts-cache-key-${run.id}|||This is a mystery recording where no bird was identified.`;
             }
         }
         return "Your Bird Book is empty. Make a recording to save your first entry.";
     }, [savedRuns]);
+
+    const playNarration = useCallback(async (source: string) => {
+        // Handle TTS caching logic here
+        if (source.startsWith('tts-cache-key-')) {
+            const [cacheKey, textToSpeak] = source.split('|||');
+            if (audioCache.has(cacheKey)) {
+                await playNarrationFromHook(audioCache.get(cacheKey));
+            } else {
+                try {
+                    const response = await textToSpeech(textToSpeak);
+                    audioCache.set(cacheKey, response.audioDataUri);
+                    await playNarrationFromHook(response.audioDataUri);
+                } catch (error) {
+                     console.error("TTS generation failed during narration:", error);
+                }
+            }
+        } else {
+            // It's a pre-recorded file path
+            await playNarrationFromHook(source);
+        }
+    }, [playNarrationFromHook]);
     
     useEffect(() => {
         setIsClient(true);
@@ -424,5 +458,7 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
+
+    
 
     
