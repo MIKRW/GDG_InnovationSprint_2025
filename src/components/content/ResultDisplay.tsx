@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BookImage, Check, Download, Home, PlayCircle, Settings, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import { AlertTriangle, BookImage, Check, Download, Home, PlayCircle, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import { generateBirdImage } from '@/ai/flows/instructional-generate-bird-image-flow';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
@@ -206,10 +206,9 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
 
 interface ResultDisplayProps {
     run: AnalysisRun;
-    onReset: () => void;
 }
 
-export function ResultDisplay({ run, onReset }: ResultDisplayProps) {
+export function ResultDisplay({ run }: ResultDisplayProps) {
     const router = useRouter();
 
     const narrationText = run?.aiResult.isBirdSong ? `The AI has identified the bird as a ${run.aiResult.commonName}. ${run.aiResult.description}` : `The AI was not able to identify a bird in the recording. ${run?.aiResult.description || run?.aiResult.error}`;
@@ -241,15 +240,16 @@ export function ResultDisplay({ run, onReset }: ResultDisplayProps) {
                 </div>
                 
                 <div className="w-full max-w-xl h-[42rem] relative">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={onReset}
-                        className="absolute top-1/2 -translate-y-1/2 h-32 w-32 -left-40 text-primary hover:text-primary"
-                        aria-label="Discard analysis"
-                    >
-                        <X className="h-full w-full" />
-                    </Button>
+                     <Link href="/record">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-1/2 -translate-y-1/2 h-32 w-32 -left-40 text-primary hover:text-primary"
+                            aria-label="Discard analysis"
+                        >
+                            <X className="h-full w-full" />
+                        </Button>
+                    </Link>
 
                     <div className="p-1 h-full">
                          <div className="bg-ring rounded-lg shadow-lg p-6 h-full relative">

@@ -89,12 +89,12 @@ export default function RecordPage() {
             const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
             
             try {
-                const analysisRunId = await createAnalysisRun(
+                const run = await createAnalysisRun(
                     storagePath, recordingId, audioDataUri, locationData, hardware, 'newbie',
                     {},
                     currentSessionId.current, currentCreationTime.current!
                 );
-                resolve(analysisRunId);
+                resolve(run?.id || null);
 
             } catch (error) {
                 logErrorToFirestore(error as Error, 'ai-identification-failure', {
@@ -102,11 +102,11 @@ export default function RecordPage() {
                     locationData: locationData, userId: 'anonymous'
                 });
                 try {
-                    const failedRunId = await createAnalysisRun(
+                    const failedRun = await createAnalysisRun(
                         storagePath, recordingId, audioDataUri, locationData, hardware, 'newbie',
                         {}, currentSessionId.current, currentCreationTime.current!, error as Error
                     );
-                    resolve(failedRunId);
+                    resolve(failedRun?.id || null);
                 } catch (finalError) {
                     logErrorToFirestore(finalError as Error, 'failed-run-creation-failure', { sessionId: currentSessionId.current });
                     resolve(null);
@@ -200,13 +200,13 @@ export default function RecordPage() {
     } finally {
         setIsProcessing(false);
         if (analysisRunId) {
-            router.push(`/record/result/${analysisRunId}`);
+            router.push(`/record/result?id=${analysisRunId}`);
         }
     }
   }
 
   return (
-    <AppLayout header={<SecondaryHeader title="Microphone" />}>
+    <AppLayout header={<SecondaryHeader title="Record" />}>
       <main className="flex-1 flex items-center justify-center p-4 bg-muted relative">
         <div className="relative flex items-center justify-center w-full h-full">
             {isProcessing ? (
@@ -242,5 +242,3 @@ export default function RecordPage() {
     </AppLayout>
   );
 }
-
-    

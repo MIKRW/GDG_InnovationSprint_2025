@@ -35,7 +35,6 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [analysisRun, setAnalysisRun] = useState<AnalysisRun | null>(null);
   const router = useRouter();
   const { toast } = useToast();
   const { playNarration, ...speakerProps } = useSpeaker(PAGE_NARRATION, 'general');
@@ -231,7 +230,7 @@ export default function Home() {
     } finally {
       setIsAnalyzing(false);
       if (finalAnalysisRun) {
-        setAnalysisRun(finalAnalysisRun);
+        router.push(`/record/result?id=${finalAnalysisRun.id}`);
       } else {
         setIsUploading(false);
         toast({
@@ -241,14 +240,6 @@ export default function Home() {
         })
       }
     }
-  }
-
-  const handleReset = () => {
-    setAnalysisRun(null);
-  };
-
-  if (analysisRun) {
-    return <ResultDisplay run={analysisRun} onReset={handleReset} />;
   }
 
   return (
