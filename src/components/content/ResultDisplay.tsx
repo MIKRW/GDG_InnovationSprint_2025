@@ -2,33 +2,18 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { notFound, useRouter } from 'next/navigation';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import type { AnalysisRun } from '@/lib/types';
-import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, BookImage, Check, Download, Home, PlayCircle, Settings, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import { AlertTriangle, Download, PlayCircle, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { generateBirdImage } from '@/ai/flows/instructional-generate-bird-image-flow';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
-import { SpeakerButton } from '@/components/content/SpeakerButton';
-import { ContrastButton } from '@/components/content/ContrastButton';
-import Link from 'next/link';
-import { useSpeaker } from '@/hooks/use-speaker';
-import { cn } from '@/lib/utils';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
-const SAVED_RUNS_KEY = 'saved-runs';
-
-interface ResultPageProps {
-    params: {
-        analysisRunId: string;
-    };
-    searchParams: { [key: string]: string | string[] | undefined };
-}
 
 function BirdImage({ commonName }: { commonName: string }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -76,7 +61,11 @@ function BirdImage({ commonName }: { commonName: string }) {
     );
 }
 
-function ResultPageContent({ run }: { run: AnalysisRun }) {
+interface ResultDisplayProps {
+    run: AnalysisRun;
+}
+
+export function ResultDisplay({ run }: ResultDisplayProps) {
     const [feedbackGiven, setFeedbackGiven] = useState(false);
     const { toast } = useToast();
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -209,135 +198,5 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
                 </Card>
             )}
         </>
-    );
-}
-
-
-export default function ResultPage({ params }: ResultPageProps) {
-    const [run, setRun] = useState<AnalysisRun | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [isClient, setIsClient] = useState(false);
-    const router = useRouter();
-    const { analysisRunId } = params;
-
-    const narrationText = run?.aiResult.isBirdSong ? `The AI has identified the bird as a ${run.aiResult.commonName}. ${run.aiResult.description}` : `The AI was not able to identify a bird in the recording. ${run?.aiResult.description || run?.aiResult.error}`;
-    const { playNarration, ...speakerProps } = useSpeaker(narrationText);
-
-
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
-
-    useEffect(() => {
-        if (!analysisRunId) return;
-
-        const fetchRun = async () => {
-            setLoading(true);
-            try {
-                const docRef = doc(db, 'all_analysis_runs', analysisRunId);
-                const docSnap = await getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    setRun({ id: docSnap.id, ...docSnap.data() } as AnalysisRun);
-                } else {
-                    setRun(null);
-                }
-            } catch (error) {
-                console.error("Error fetching analysis run:", error);
-                setRun(null);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchRun();
-    }, [analysisRunId]);
-
-    const handleDiscard = () => {
-        router.push('/');
-    };
-
-    const handleSave = async () => {
-        if (!run) return;
-
-        // Add to localStorage for client-side rendering on log page
-        const savedRunsJson = localStorage.getItem(SAVED_RUNS_KEY);
-        const savedRuns: AnalysisRun[] = savedRunsJson ? JSON.parse(savedRunsJson) : [];
-        // Add new run to the beginning of the array
-        const newSavedRuns = [run, ...savedRuns];
-        localStorage.setItem(SAVED_RUNS_KEY, JSON.stringify(newSavedRuns));
-
-        // Update Firestore document
-        const docRef = doc(db, 'all_analysis_runs', run.id);
-        await updateDoc(docRef, { wasSavedByUser: true });
-        
-        router.push('/log');
-    };
-
-    if (!isClient) return null;
-
-    return (
-        <AppLayout>
-            <main className="flex-1 flex flex-col items-center justify-center p-4 bg-muted overflow-hidden relative">
-                 <div className="absolute top-4 left-4 opacity-50">
-                    <SpeakerButton onClick={() => playNarration()} {...speakerProps} />
-                </div>
-                <div className="absolute top-4 right-4 opacity-50">
-                    <ContrastButton />
-                </div>
-                
-                <div className="w-full max-w-xl h-[42rem] relative">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleDiscard}
-                        className="absolute top-1/2 -translate-y-1/2 h-32 w-32 -left-40 text-primary hover:text-primary"
-                        aria-label="Discard analysis"
-                    >
-                        <X className="h-full w-full" />
-                    </Button>
-
-                    <div className="p-1 h-full">
-                         <div className="bg-ring rounded-lg shadow-lg p-6 h-full relative">
-                            {loading ? (
-                                <Skeleton className="w-full h-full" />
-                            ) : run ? (
-                                <ResultPageContent run={run} />
-                            ) : (
-                                notFound()
-                            )}
-                        </div>
-                    </div>
-                    
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleSave}
-                        className="absolute top-1/2 -translate-y-1/2 h-32 w-32 -right-40 text-primary hover:text-primary"
-                        aria-label="Save analysis"
-                    >
-                        <Check className="h-full w-full" />
-                    </Button>
-                </div>
-
-                <div className="absolute bottom-4 left-4 opacity-50">
-                    <Link href="/log">
-                        <Button variant="ghost" size="icon" className="h-28 w-28">
-                            <BookImage className="h-20 w-20 text-foreground" />
-                        </Button>
-                    </Link>
-                </div>
-                <div className="absolute bottom-4 right-4 opacity-50">
-                    <Link href="/">
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        className="h-28 w-28"
-                      >
-                        <Home className="h-20 w-20 text-foreground" />
-                      </Button>
-                    </Link>
-                </div>
-            </main>
-        </AppLayout>
     );
 }

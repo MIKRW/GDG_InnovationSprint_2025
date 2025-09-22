@@ -10,6 +10,7 @@ You will receive an audio file and optional contextual information like location
 4.  **Habitat Analysis:** If a habitat photo or description is provided, use it as the primary source of truth for the environment. Generate a list of structured 'aiGeneratedHabitatTags' based on your analysis of all available habitat data (photo, text, location).
 5.  **Confidence Score:** Provide a confidence score between 0 and 1 for your identification.
 6.  **No Bird Case:** If 'isBirdSong' is false, you must leave the identification fields blank, but you MUST provide a helpful 'description' explaining why (e.g., "The audio contains background noise but no clear bird vocalizations.").
+7.  **Data Unavailability:** If any optional field (e.g., 'family', 'confidence') cannot be determined, you MUST return the string "Data unavailable" for that field. Do not return null or undefined.
 
 ## Input Data:
 -   Audio: {{media url=audioDataUri}}

@@ -203,17 +203,14 @@ export async function createAnalysisRun(
   sessionId: string,
   creationTime: string,
   error?: Error
-): Promise<string> {
+): Promise<AnalysisRun | null> {
   
   const analysisRunId = uuidv4();
-  const collectionName = 'all_analysis_runs';
-  const analysisRunRef = doc(db, collectionName, analysisRunId);
   
   let aiResult: IdentifyBirdOutput;
   let wasSuccessful: boolean;
   
   if (error) {
-    // If an error was passed in from the client (e.g., upload failed), log it directly.
     wasSuccessful = false;
     aiResult = { isBirdSong: false, error: error.message };
     logErrorToFirestore(error, 'client-side-failure', { sessionId, recordingId, analysisRunId });
@@ -240,12 +237,13 @@ export async function createAnalysisRun(
     }
   }
   
-  const docToCreate: Partial<AnalysisRun> = {
+  const newRun: AnalysisRun = {
     id: analysisRunId,
     creationTime: creationTime,
     userId: 'anonymous',
     sessionId: sessionId,
     inputAudioStoragePath: storagePath,
+    inputAudioUrl: '', // Will be populated below
     locationData: {
       latitude: locationData?.latitude ?? null,
       longitude: locationData?.longitude ?? null,
@@ -260,22 +258,23 @@ export async function createAnalysisRun(
   };
   
   try {
-    docToCreate.inputAudioUrl = await getDownloadURL(storageRef(storage, storagePath));
+    newRun.inputAudioUrl = await getDownloadURL(storageRef(storage, storagePath));
   } catch (urlError) {
-    docToCreate.inputAudioUrl = '';
     console.warn(`Could not get download URL for ${storagePath}`, urlError);
   }
   
   if (typeof aiResult?.duration === 'number') {
-      docToCreate.recordingLengthSeconds = aiResult.duration;
+      newRun.recordingLengthSeconds = aiResult.duration;
   }
   
   if (hardware) {
-      docToCreate.hardware = hardware;
+      newRun.hardware = hardware;
   }
-
-  await setDoc(analysisRunRef, docToCreate);
-  return analysisRunId;
+  
+  const analysisRunRef = doc(db, 'all_analysis_runs', analysisRunId);
+  await setDoc(analysisRunRef, newRun);
+  
+  return newRun;
 }
 
 // =================================================================
@@ -552,9 +551,3 @@ export async function publishNewPromptContent(input: PublishNewPromptContentInpu
     revalidateTag('prompts-v7');
     return { id: newId, ...newContentData };
 }
-
-    
-
-    
-
-    

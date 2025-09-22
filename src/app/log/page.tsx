@@ -25,7 +25,6 @@ interface ChatMessage {
 
 const SAVED_RUNS_KEY = 'saved-runs';
 
-const PAGE_NARRATION_INTRO = "This is the Bird Book, your personal log of identified birds. You can swipe left and right to view your saved identifications. The first card is the AI assistant, which can help you filter, sort, or find birds in your log. Click the bot icon to start a voice command, or toggle to text control at the bottom.";
 const PAGE_NARRATION_ASSISTANT_CARD = "/audio/narration/narration-birdbook.wav";
 
 
@@ -45,51 +44,8 @@ function AiAssistantCard({
     const [conversationStep, setConversationStep] = useState(0);
     const [isListening, setIsListening] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    // This effect ensures the chatbot waits for the main page narration to load first.
-    useEffect(() => {
-        if (!isPageSpeakerLoading && isChatActive && chatMode === 'voice' && conversationStep === 1 && !isSpeaking && !isListening) {
-             playAudio('Hello, please tell me the name of the bird card you would like to find.');
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isPageSpeakerLoading, isChatActive, chatMode, conversationStep]);
-
-
-    useEffect(() => {
-        audioRef.current = new Audio();
-        const handleEnd = () => {
-            setIsSpeaking(false);
-            // After speaking, start listening
-            if (conversationStep === 1 || conversationStep === 2) {
-                setIsListening(true);
-            }
-        };
-        audioRef.current.addEventListener('ended', handleEnd);
-        return () => {
-            if (audioRef.current) {
-                audioRef.current.removeEventListener('ended', handleEnd);
-                audioRef.current.pause();
-            }
-        };
-    }, [conversationStep]);
-
-    const playAudio = async (text: string) => {
-        setIsSpeaking(true);
-        try {
-            // TTS is not implemented for chatbot yet
-            console.log(`Simulating TTS for: ${text}`);
-            
-        } catch (error) {
-            console.error("TTS failed", error);
-            setIsSpeaking(false);
-        }
-    };
-    
     const resetChat = () => {
-        if (audioRef.current) {
-            audioRef.current.pause();
-        }
         setIsChatActive(false);
         setConversationStep(0);
         setIsListening(false);
@@ -99,7 +55,6 @@ function AiAssistantCard({
 
     const handleToggleChat = async () => {
         if (isChatActive) {
-            // Allow resetting the chat if clicked while active in voice mode
             if (chatMode === 'voice') {
                 resetChat();
             }
@@ -110,12 +65,7 @@ function AiAssistantCard({
         setIsChatActive(true);
         setConversationStep(1);
 
-        if (chatMode === 'voice') {
-            // If the page speaker is still loading, the useEffect will handle playing the audio.
-            if (!isPageSpeakerLoading) {
-                await playAudio('Hello, please tell me the name of the bird card you would like to find.');
-            }
-        } else {
+        if (chatMode === 'text') {
             setMessages([{ sender: 'bot', text: 'Hello, please tell me the name of the bird card you would like to find.' }]);
         }
     };
@@ -127,7 +77,6 @@ function AiAssistantCard({
                 setIsListening(false);
                 if (conversationStep === 1) {
                     setConversationStep(2);
-                    playAudio('Please tell me would you like to sort by most recent or least recent?');
                 } else if (conversationStep === 2) {
                     setConversationStep(3);
                     onSortComplete();
@@ -281,7 +230,7 @@ export default function BirdBookPage() {
     const [api, setApi] = useState<CarouselApi>();
     const [isClient, setIsClient] = useState(false);
     const [currentTheme, setCurrentTheme] = useState('light');
-    const { playNarration, isLoading: isSpeakerLoading, ...speakerProps } = useSpeaker(PAGE_NARRATION_INTRO, 'general');
+    const { playNarration, isLoading: isSpeakerLoading, ...speakerProps } = useSpeaker('', 'carousel');
     const [savedRuns, setSavedRuns] = useState<AnalysisRun[]>([]);
 
     const getNarrationForSlide = useCallback((index: number): string => {
@@ -311,6 +260,22 @@ export default function BirdBookPage() {
         }
     }, []);
     
+    useEffect(() => {
+        if (!api) return;
+
+        const handleSelect = () => {
+            // This function is now intentionally left blank to prevent
+            // automatic narration on carousel slide changes.
+            // Narration will only be triggered by the user clicking the speaker button.
+        };
+
+        api.on("select", handleSelect);
+        
+        return () => {
+            api.off("select", handleSelect);
+        };
+    }, [api]);
+
     const handleSpeakerClick = () => {
         if (!api) return;
         const selectedIndex = api.selectedScrollSnap();

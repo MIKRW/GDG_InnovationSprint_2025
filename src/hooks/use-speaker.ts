@@ -66,16 +66,16 @@ export function useSpeaker(narrationSource?: string, autoPlayType: 'general' | '
 
         if (!audio || !targetSource) return;
 
-        if (isLoading) return; // Prevent spamming if audio is already loading
+        if (isPlaying) {
+            audio.pause();
+            audio.currentTime = 0;
+            return;
+        }
+
+        if (isLoading) return;
 
         if (!sessionStorage.getItem(FIRST_INTERACTION_KEY)) {
             sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
-        }
-        
-        // Always stop currently playing audio before starting a new one
-        if (!audio.paused) {
-            audio.pause();
-            audio.currentTime = 0;
         }
 
         if (!speakerSettings.isSpeakerOn) return;
@@ -115,7 +115,7 @@ export function useSpeaker(narrationSource?: string, autoPlayType: 'general' | '
         } finally {
             setIsLoading(false);
         }
-    }, [narrationSource, speakerSettings.isSpeakerOn, toast, isLoading]);
+    }, [narrationSource, speakerSettings.isSpeakerOn, toast, isLoading, isPlaying]);
     
 
     const playSfx = useCallback((sfxPath: string) => {
