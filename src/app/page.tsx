@@ -61,7 +61,7 @@ export default function Home() {
       }
     });
 
-  }, [playNarration]);
+  }, []);
 
   const handleStop = () => {
     setIsRecording(false);
