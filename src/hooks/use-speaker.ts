@@ -66,6 +66,11 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
 
 
     const playNarration = useCallback(async (sourceToPlayOverride?: string) => {
+        // Prevent new playbacks while one is already loading.
+        if (isLoading) {
+            return;
+        }
+
         const targetSource = sourceToPlayOverride || narrationSource;
         const audio = narrationAudioRef.current;
         if (!audio || !targetSource) return;
@@ -111,14 +116,14 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
                     title: 'TTS Narration Unavailable',
                     description: 'The AI audio generation service is temporarily unavailable due to quota limits.',
                 });
-            } else {
+            } else if ((error as Error).name !== 'AbortError') { // Ignore user-initiated aborts
                 console.error("Failed to load or play audio:", error);
                 toast({ variant: 'destructive', title: "Audio Error", description: "Could not play the requested audio."});
             }
         } finally {
             setIsLoading(false);
         }
-    }, [narrationSource, isPlaying, speakerSettings.isSpeakerOn, toast]);
+    }, [narrationSource, isPlaying, isLoading, speakerSettings.isSpeakerOn, toast]);
 
     const playSfx = useCallback((sfxPath: string) => {
         const sfxPlayer = sfxAudioRef.current;
