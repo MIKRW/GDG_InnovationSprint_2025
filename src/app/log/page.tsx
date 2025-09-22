@@ -45,51 +45,8 @@ function AiAssistantCard({
     const [conversationStep, setConversationStep] = useState(0);
     const [isListening, setIsListening] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    // This effect ensures the chatbot waits for the main page narration to load first.
-    useEffect(() => {
-        if (!isPageSpeakerLoading && isChatActive && chatMode === 'voice' && conversationStep === 1 && !isSpeaking && !isListening) {
-             playAudio('Hello, please tell me the name of the bird card you would like to find.');
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isPageSpeakerLoading, isChatActive, chatMode, conversationStep]);
-
-
-    useEffect(() => {
-        audioRef.current = new Audio();
-        const handleEnd = () => {
-            setIsSpeaking(false);
-            // After speaking, start listening
-            if (conversationStep === 1 || conversationStep === 2) {
-                setIsListening(true);
-            }
-        };
-        audioRef.current.addEventListener('ended', handleEnd);
-        return () => {
-            if (audioRef.current) {
-                audioRef.current.removeEventListener('ended', handleEnd);
-                audioRef.current.pause();
-            }
-        };
-    }, [conversationStep]);
-
-    const playAudio = async (text: string) => {
-        setIsSpeaking(true);
-        try {
-            // TTS is not implemented for chatbot yet
-            console.log(`Simulating TTS for: ${text}`);
-            
-        } catch (error) {
-            console.error("TTS failed", error);
-            setIsSpeaking(false);
-        }
-    };
-    
     const resetChat = () => {
-        if (audioRef.current) {
-            audioRef.current.pause();
-        }
         setIsChatActive(false);
         setConversationStep(0);
         setIsListening(false);
@@ -99,7 +56,6 @@ function AiAssistantCard({
 
     const handleToggleChat = async () => {
         if (isChatActive) {
-            // Allow resetting the chat if clicked while active in voice mode
             if (chatMode === 'voice') {
                 resetChat();
             }
@@ -110,12 +66,7 @@ function AiAssistantCard({
         setIsChatActive(true);
         setConversationStep(1);
 
-        if (chatMode === 'voice') {
-            // If the page speaker is still loading, the useEffect will handle playing the audio.
-            if (!isPageSpeakerLoading) {
-                await playAudio('Hello, please tell me the name of the bird card you would like to find.');
-            }
-        } else {
+        if (chatMode === 'text') {
             setMessages([{ sender: 'bot', text: 'Hello, please tell me the name of the bird card you would like to find.' }]);
         }
     };
@@ -127,7 +78,7 @@ function AiAssistantCard({
                 setIsListening(false);
                 if (conversationStep === 1) {
                     setConversationStep(2);
-                    playAudio('Please tell me would you like to sort by most recent or least recent?');
+                    // playAudio('Please tell me would you like to sort by most recent or least recent?');
                 } else if (conversationStep === 2) {
                     setConversationStep(3);
                     onSortComplete();
@@ -411,3 +362,5 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
+
+    
