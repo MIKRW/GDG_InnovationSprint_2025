@@ -70,8 +70,8 @@ CarouselNext.displayName = "CarouselNext"
 
 const NARRATION_TEXTS: { [key: number]: string } = {
     0: "/audio/narration/narration-settings-intro.wav",
-    1: "", 
-    2: "",
+    1: "", // Dynamically set for auto-play
+    2: "", // Dynamically set for location
     3: "/audio/narration/narration-settings-theme.wav",
     4: "/audio/narration/narration-settings-hardware.wav",
 };
@@ -110,19 +110,17 @@ export default function SettingsPage() {
   const [narrationText, setNarrationText] = useState(NARRATION_TEXTS[0]);
   const [api, setApi] = useState<CarouselApi>();
 
-  const { playNarration, playSfx, isPlaying, ...speakerProps } = useSpeaker(narrationText, 'carousel');
+  const { playNarration, playSfx, isPlaying, narrationAudioRef, ...speakerProps } = useSpeaker(narrationText, 'carousel');
   
 
   useEffect(() => {
     setIsClient(true);
     
-    // Load Hardware setting
     const savedHardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
     if (savedHardware) {
       setHardware(savedHardware);
     }
     
-    // Load Location setting
     const savedLocation = localStorage.getItem(LOCATION_ENABLED_KEY);
     if (savedLocation !== null) {
       setIsLocationOn(JSON.parse(savedLocation));
@@ -180,11 +178,26 @@ export default function SettingsPage() {
     setSpeakerSettings({ isAutoPlayOn: newValue });
     playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
     
-    // Only play the full narration on toggle if the master toggle itself is being turned ON.
-    if (newValue) {
-        const newNarration = newValue 
-            ? '/audio/narration/narration-settings-autonarate-on.wav' 
-            : '/audio/narration/narration-settings-autonarate-off.wav';
+    const newNarration = newValue 
+        ? '/audio/narration/narration-settings-autonarate-on.wav' 
+        : '/audio/narration/narration-settings-autonarate-off.wav';
+
+    // If audio is playing when we toggle, we need to interrupt it
+    // and immediately play the new state's narration. This is a special
+    // case because the auto-play system is being turned off, so the normal
+    // queueing mechanism in useSpeaker won't work.
+    if (isPlaying && narrationAudioRef.current) {
+        const audio = narrationAudioRef.current;
+        const handleStopAndPlayNext = () => {
+            playNarration(newNarration);
+            audio.removeEventListener('pause', handleStopAndPlayNext);
+        };
+        audio.addEventListener('pause', handleStopAndPlayNext);
+        audio.pause();
+        audio.currentTime = 0;
+    } else if (newValue) {
+        // Only play the full narration on toggle if the master toggle is being turned ON
+        // and nothing was playing before.
         playNarration(newNarration);
     }
   };
@@ -421,3 +434,4 @@ export default function SettingsPage() {
   );
 }
 
+    
