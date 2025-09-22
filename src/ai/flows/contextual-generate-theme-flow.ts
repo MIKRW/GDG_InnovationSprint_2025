@@ -69,10 +69,10 @@ const generateThemeFlow = ai.defineFlow(
         },
       });
 
-      const { output, finishReason } = await themePrompt(input);
+      const { output, finishReason, finishMessage } = await themePrompt(input);
 
       if (!output) {
-        if (finishReason === 'safety') {
+        if (finishReason === 'blocked' && finishMessage?.includes('safety')) {
             throw new Error('The AI refused to generate a theme due to its safety filters. Please try different words.');
         }
         if (finishReason === 'blocked' || finishReason === 'error' || finishReason === 'other') {
