@@ -15,7 +15,7 @@ import { Carousel, CarouselApi, CarouselContent, CarouselItem, useCarousel } fro
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
-import { getSpeakerSettings, defaultSettings, setSpeakerSettings } from '@/lib/speaker-store';
+import { getSpeakerSettings, setSpeakerSettings, defaultSettings } from '@/lib/speaker-store';
 import { Input } from '@/components/ui/input';
 
 
@@ -71,8 +71,8 @@ CarouselNext.displayName = "CarouselNext"
 const NARRATION_TEXTS: { [key: number]: string } = {
     0: "/audio/narration/narration-settings-intro.wav",
     1: "", // This will be handled dynamically by getNarrationForSlide
-    2: "/audio/narration/narration-settings-theme.wav",
-    3: "Allow the app to use your device's location to improve identification accuracy.",
+    2: "Allow the app to use your device's location to improve identification accuracy.",
+    3: "/audio/narration/narration-settings-theme.wav",
     4: "/audio/narration/narration-settings-hardware.wav",
 };
 
@@ -270,25 +270,6 @@ export default function SettingsPage() {
                         </div>
                     </CarouselItem>
 
-                    {/* Theme Generator Card */}
-                    <CarouselItem>
-                        <div className="p-1 h-full">
-                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
-                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
-                                    <CardHeader className="text-center">
-                                        <Palette className="h-48 w-48 text-foreground mx-auto" />
-                                        <CardTitle className="text-4xl font-mono pt-4">Customize Theme</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Button asChild variant="outline" size="lg" className="text-lg">
-                                          <Link href="/theme">Open Theme Editor</Link>
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        </div>
-                    </CarouselItem>
-
                     {/* Location Settings Card */}
                      <CarouselItem>
                         <div className="p-1 h-full">
@@ -337,6 +318,25 @@ export default function SettingsPage() {
                                                 </span>
                                             </div>
                                         </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                    </CarouselItem>
+
+                    {/* Theme Generator Card */}
+                    <CarouselItem>
+                        <div className="p-1 h-full">
+                           <div className="bg-ring rounded-lg shadow-lg p-4 h-full flex flex-col">
+                                <Card className="w-full h-full shadow-2xl flex flex-col rounded-lg items-center justify-center">
+                                    <CardHeader className="text-center">
+                                        <Palette className="h-48 w-48 text-foreground mx-auto" />
+                                        <CardTitle className="text-4xl font-mono pt-4">Customize Theme</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Button asChild variant="outline" size="lg" className="text-lg">
+                                          <Link href="/theme">Open Theme Editor</Link>
+                                        </Button>
                                     </CardContent>
                                 </Card>
                             </div>
