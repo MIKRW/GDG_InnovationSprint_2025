@@ -16,7 +16,7 @@ export function SpeakerButton({ onClick, isSpeakerOn, isPlaying, isLoading }: Sp
     
     const Icon = () => {
         if (!isSpeakerOn) return <VolumeX className="h-32 w-32" strokeWidth={2.5} />;
-        return <Speaker className={cn("h-32 w-32", isPlaying && "animate-color-cycle")} strokeWidth={2.5} />;
+        return <Speaker className="h-32 w-32" strokeWidth={2.5} />;
     }
 
   return (
