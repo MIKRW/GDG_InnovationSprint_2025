@@ -119,11 +119,10 @@ const identifyBirdFlow = ai.defineFlow(
             }
         });
 
-        const response = await identifyBirdPrompt(input);
-        const output = response.output;
+        const { output, finishMessage, finishReason } = await identifyBirdPrompt(input);
 
         if (!output) {
-            if (response.finishReason === 'safety') {
+            if (finishReason === 'blocked' && finishMessage?.includes('safety')) {
                 throw new Error('The AI refused to process the audio due to its safety filters.');
             }
             throw new Error('The model failed to return a valid analysis.');
