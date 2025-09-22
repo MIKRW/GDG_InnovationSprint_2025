@@ -15,7 +15,7 @@ import { Carousel, CarouselApi, CarouselContent, CarouselItem, useCarousel } fro
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
-import { getSpeakerSettings, setSpeakerSettings } from '@/lib/speaker-store';
+import { getSpeakerSettings, setSpeakerSettings, defaultSettings } from '@/lib/speaker-store';
 import { Input } from '@/components/ui/input';
 
 
@@ -191,6 +191,13 @@ export default function SettingsPage() {
     setIsLocationOn(newValue);
     localStorage.setItem(LOCATION_ENABLED_KEY, JSON.stringify(newValue));
     playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
+    
+    if (isAutoPlayOn) {
+        const newNarration = newValue 
+            ? '/audio/narration/narration-settings-location-on.wav'
+            : '/audio/narration/narration-settings-location-off.wav';
+        playNarration(newNarration);
+    }
   };
 
   if (!isClient) {
