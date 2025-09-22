@@ -128,42 +128,7 @@ export default function Home() {
     });
   };
 
- const handleStart = async () => {
-    // This is the first meaningful interaction.
-    // Set the flag to allow auto-play on subsequent pages.
-    if (!sessionStorage.getItem(FIRST_INTERACTION_KEY)) {
-        sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
-        // We can also play the narration here if we want.
-        playNarration(PAGE_NARRATION);
-    }
-
-    currentSessionId.current = uuidv4();
-    currentCreationTime.current = new Date().toISOString();
-    if (hasPermission === false) {
-      try {
-        // Request permission
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        setHasPermission(true);
-        // Stop the tracks immediately so we don't leave the mic on
-        stream.getTracks().forEach(track => track.stop());
-        // Now that we have permission, we can proceed to start recording
-        setIsRecording(true);
-      } catch (err) {
-        console.error("Microphone permission denied by user.", err);
-        toast({
-          variant: 'destructive',
-          title: 'Microphone Required',
-          description: 'You must grant microphone access to record audio.',
-        });
-        setIsRecording(false);
-      }
-    } else {
-      // Permission is already granted
-      setIsRecording(true);
-    }
-  };
-
-  const handleRecordingComplete = async (audioBlob: Blob | null) => {
+ const handleRecordingComplete = async (audioBlob: Blob | null) => {
     setIsRecording(false); // Stop recording UI first
 
     if (!audioBlob) {
@@ -227,10 +192,11 @@ export default function Home() {
             description: 'Could not complete the analysis. This error has been logged.',
         });
       }
-    } finally {
-      if (finalAnalysisRun) {
-        router.push(`/record/result/${finalAnalysisRun.id}`);
-      } else {
+    } 
+    
+    if (finalAnalysisRun) {
+        router.push(`/record/result?id=${finalAnalysisRun.id}`);
+    } else {
         setIsUploading(false);
         setIsAnalyzing(false);
         toast({
@@ -238,9 +204,43 @@ export default function Home() {
             title: 'Critical Failure',
             description: 'Could not create an analysis log. The process has been stopped. This error has been logged.'
         })
-      }
     }
   }
+
+ const handleStart = async () => {
+    // This is the first meaningful interaction.
+    // Set the flag to allow auto-play on subsequent pages.
+    if (!sessionStorage.getItem(FIRST_INTERACTION_KEY)) {
+        sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
+        // We can also play the narration here if we want.
+        playNarration(PAGE_NARRATION);
+    }
+
+    currentSessionId.current = uuidv4();
+    currentCreationTime.current = new Date().toISOString();
+    if (hasPermission === false) {
+      try {
+        // Request permission
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setHasPermission(true);
+        // Stop the tracks immediately so we don't leave the mic on
+        stream.getTracks().forEach(track => track.stop());
+        // Now that we have permission, we can proceed to start recording
+        setIsRecording(true);
+      } catch (err) {
+        console.error("Microphone permission denied by user.", err);
+        toast({
+          variant: 'destructive',
+          title: 'Microphone Required',
+          description: 'You must grant microphone access to record audio.',
+        });
+        setIsRecording(false);
+      }
+    } else {
+      // Permission is already granted
+      setIsRecording(true);
+    }
+  };
 
   return (
     <AppLayout>
