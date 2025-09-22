@@ -228,11 +228,11 @@ export default function Home() {
         });
       }
     } finally {
-      setIsAnalyzing(false);
       if (finalAnalysisRun) {
         router.push(`/record/result?id=${finalAnalysisRun.id}`);
       } else {
         setIsUploading(false);
+        setIsAnalyzing(false);
         toast({
             variant: 'destructive',
             title: 'Critical Failure',
