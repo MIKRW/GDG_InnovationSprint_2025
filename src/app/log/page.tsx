@@ -303,13 +303,6 @@ export default function BirdBookPage() {
         }
         return "Your Bird Book is empty. Make a recording to save your first entry.";
     }, [savedRuns]);
-
-    const [debouncedNarration, cancelDebouncedNarration] = useDebouncedCallback((index: number) => {
-        if (isAutoPlayOn) {
-            const newNarration = getNarrationForSlide(index);
-            playNarration(newNarration);
-        }
-    }, 2000);
     
     useEffect(() => {
         setIsClient(true);
@@ -329,19 +322,14 @@ export default function BirdBookPage() {
             const selectedIndex = api.selectedScrollSnap();
             const newNarration = getNarrationForSlide(selectedIndex);
             setNarrationText(newNarration);
-            
-            if (isAutoPlayOn) {
-                debouncedNarration(selectedIndex);
-            }
         };
 
         api.on("select", handleSelect);
         
         return () => {
             api.off("select", handleSelect);
-            cancelDebouncedNarration();
         };
-    }, [api, getNarrationForSlide, isAutoPlayOn, debouncedNarration, cancelDebouncedNarration]);
+    }, [api, getNarrationForSlide]);
     
     const startChat = () => {
         api?.scrollTo(0);
