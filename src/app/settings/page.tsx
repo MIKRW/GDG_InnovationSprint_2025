@@ -178,12 +178,10 @@ export default function SettingsPage() {
     setSpeakerSettings({ isAutoPlayOn: newValue });
     speakerProps.playSfx(newValue ? '/audio/sfx-on.wav' : '/audio/sfx-off.wav');
     
-    // Always play the narration for the new state, but only if the master speaker is on.
     const newNarration = newValue 
         ? '/audio/narration/narration-settings-autonarate-on.wav' 
         : '/audio/narration/narration-settings-autonarate-off.wav';
 
-    // The hook now handles interruptions gracefully.
     if (speakerSettings.isSpeakerOn) {
         playNarration(newNarration);
     }

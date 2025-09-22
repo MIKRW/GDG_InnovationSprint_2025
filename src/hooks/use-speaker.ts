@@ -64,7 +64,7 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         const targetSource = sourceToPlayOverride || narrationSource;
         const audio = narrationAudioRef.current;
 
-        if (isLoading || !audio || !targetSource) {
+        if (!audio || !targetSource) {
             return;
         }
 
@@ -72,16 +72,9 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         if (!sessionStorage.getItem(FIRST_INTERACTION_KEY)) {
             sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
         }
-
-        // If the user clicks the button for the currently playing sound, treat it as a "stop" action.
-        if (isPlaying && audio.src && audio.src.endsWith(targetSource.substring(targetSource.lastIndexOf('/')))) {
-            audio.pause();
-            audio.currentTime = 0;
-            return;
-        }
-
-        // If another sound is already playing, stop it completely before proceeding.
-        if (isPlaying) {
+        
+        // Cleanly stop any currently playing audio before proceeding.
+        if (!audio.paused) {
             audio.pause();
             audio.currentTime = 0;
         }
@@ -122,7 +115,7 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         } finally {
             setIsLoading(false);
         }
-    }, [narrationSource, isPlaying, isLoading, speakerSettings.isSpeakerOn, toast]);
+    }, [narrationSource, speakerSettings.isSpeakerOn, toast]);
     
 
     const playSfx = useCallback((sfxPath: string) => {
