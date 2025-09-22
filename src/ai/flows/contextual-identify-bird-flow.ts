@@ -128,24 +128,6 @@ const identifyBirdFlow = ai.defineFlow(
             }
             throw new Error('The model failed to return a valid analysis.');
         }
-        
-        // If no bird song was detected, fill in placeholder text.
-        if (output.isBirdSong === false) {
-            return {
-                isBirdSong: false,
-                commonName: "Not identified",
-                scientificName: "Not identified",
-                family: "Not identified",
-                order: "Not identified",
-                description: output.description || "The AI did not detect a bird song in this audio recording. You can review it later in the Mystery Recordings log.",
-                confidence: 0,
-                season: output.season || "Unknown",
-                weather: output.weather || "Unknown",
-                aiGeneratedHabitatTags: [],
-                duration: output.duration,
-                promptVersion: output.promptVersion,
-            };
-        }
     
         return output;
     } catch (error) {
