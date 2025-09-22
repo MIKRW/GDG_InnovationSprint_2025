@@ -281,7 +281,7 @@ export default function BirdBookPage() {
     const [api, setApi] = useState<CarouselApi>();
     const [isClient, setIsClient] = useState(false);
     const [currentTheme, setCurrentTheme] = useState('light');
-    const { playNarration, isLoading: isSpeakerLoading, ...speakerProps } = useSpeaker(PAGE_NARRATION_INTRO, 'general');
+    const { playNarration, isLoading: isSpeakerLoading, ...speakerProps } = useSpeaker(PAGE_NARRATION_INTRO, 'carousel');
     const [savedRuns, setSavedRuns] = useState<AnalysisRun[]>([]);
 
     const getNarrationForSlide = useCallback((index: number): string => {
