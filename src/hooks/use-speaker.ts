@@ -64,9 +64,10 @@ export function useSpeaker(narrationSource?: string, autoPlayType: 'general' | '
         const targetSource = sourceToPlayOverride || narrationSource;
         const audio = narrationAudioRef.current;
 
+        // This is the critical fix: Do not proceed if the source is invalid.
         if (!audio || !targetSource) return;
 
-        // If audio is currently playing, just stop it and return.
+        // If audio is currently playing, stop it and return.
         if (isPlaying) {
             audio.pause();
             audio.currentTime = 0;
