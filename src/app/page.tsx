@@ -7,7 +7,7 @@ import { useState, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { logErrorToFirestore } from '@/lib/error-logging';
 import { createAnalysisRun } from '@/lib/actions';
-import type { LocationSettings } from '@/lib/types';
+import type { AnalysisRun, LocationSettings } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { ColorableLogo } from '@/components/content/ColorableLogo';
 import { BookImage, Settings, UploadCloud } from 'lucide-react';
@@ -20,6 +20,7 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { app, auth, storage } from '@/lib/firebase';
 import { uploadBytes, ref as storageRef } from 'firebase/storage';
 import { useSpeaker } from '@/hooks/use-speaker';
+import { ResultDisplay } from '@/components/content/ResultDisplay';
 
 const LOCATION_ENABLED_KEY = 'location-sharing-enabled';
 const HARDWARE_SETTINGS_KEY = 'recording-hardware-setting';
@@ -34,6 +35,7 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [analysisRun, setAnalysisRun] = useState<AnalysisRun | null>(null);
   const router = useRouter();
   const { toast } = useToast();
   const { playNarration, ...speakerProps } = useSpeaker(PAGE_NARRATION, 'general');
@@ -88,7 +90,7 @@ export default function Home() {
     }
   };
   
-  const processAudio = (storagePath: string, recordingId: string, audioDataUri: string): Promise<string | null> => {
+  const processAudio = (storagePath: string, recordingId: string, audioDataUri: string): Promise<AnalysisRun | null> => {
     return new Promise((resolve) => {
       getLocationForAIShot(async (locationData) => {
           if (!currentCreationTime.current || !currentSessionId.current) {
@@ -100,12 +102,12 @@ export default function Home() {
           const hardware = localStorage.getItem(HARDWARE_SETTINGS_KEY);
           
           try {
-              const analysisRunId = await createAnalysisRun(
+              const run = await createAnalysisRun(
                   storagePath, recordingId, audioDataUri, locationData, hardware, 'newbie',
                   {},
                   currentSessionId.current, currentCreationTime.current!
               );
-              resolve(analysisRunId);
+              resolve(run);
 
           } catch (error) {
               logErrorToFirestore(error as Error, 'ai-identification-failure', {
@@ -113,11 +115,11 @@ export default function Home() {
                   locationData: locationData, userId: 'anonymous'
               });
               try {
-                const failedRunId = await createAnalysisRun(
+                const failedRun = await createAnalysisRun(
                     storagePath, recordingId, audioDataUri, locationData, hardware, 'newbie',
                     {}, currentSessionId.current, currentCreationTime.current!, error as Error
                 );
-                resolve(failedRunId);
+                resolve(failedRun);
               } catch (finalError) {
                 logErrorToFirestore(finalError as Error, 'failed-run-creation-failure', { sessionId: currentSessionId.current });
                 resolve(null);
@@ -177,7 +179,7 @@ export default function Home() {
     setIsUploading(true);
 
     const recordingId = uuidv4();
-    let analysisRunId: string | null = null;
+    let finalAnalysisRun: AnalysisRun | null = null;
   
     try {
       const audioStoragePath = `recordings/${recordingId}.wav`;
@@ -195,11 +197,11 @@ export default function Home() {
         reader.readAsDataURL(audioBlob);
       });
 
-      const timeoutPromise = new Promise<string | null>((_, reject) =>
+      const timeoutPromise = new Promise<AnalysisRun | null>((_, reject) =>
         setTimeout(() => reject(new Error('Analysis timed out')), ANALYSIS_TIMEOUT_MS)
       );
   
-      analysisRunId = await Promise.race([
+      finalAnalysisRun = await Promise.race([
         processAudio(audioStoragePath, recordingId, audioDataUri),
         timeoutPromise
       ]);
@@ -227,12 +229,11 @@ export default function Home() {
         });
       }
     } finally {
-      if (analysisRunId) {
-        router.push(`/record/result/${analysisRunId}`);
+      setIsAnalyzing(false);
+      if (finalAnalysisRun) {
+        setAnalysisRun(finalAnalysisRun);
       } else {
-        // Only reset state if the process failed and we are not navigating
         setIsUploading(false);
-        setIsAnalyzing(false);
         toast({
             variant: 'destructive',
             title: 'Critical Failure',
@@ -242,6 +243,13 @@ export default function Home() {
     }
   }
 
+  const handleReset = () => {
+    setAnalysisRun(null);
+  };
+
+  if (analysisRun) {
+    return <ResultDisplay run={analysisRun} onReset={handleReset} />;
+  }
 
   return (
     <AppLayout>
@@ -303,7 +311,3 @@ export default function Home() {
     </AppLayout>
   );
 }
-
-    
-
-    

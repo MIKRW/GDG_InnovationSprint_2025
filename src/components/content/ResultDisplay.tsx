@@ -2,8 +2,8 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { notFound, useRouter } from 'next/navigation';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { AnalysisRun } from '@/lib/types';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -19,16 +19,8 @@ import { SpeakerButton } from '@/components/content/SpeakerButton';
 import { ContrastButton } from '@/components/content/ContrastButton';
 import Link from 'next/link';
 import { useSpeaker } from '@/hooks/use-speaker';
-import { cn } from '@/lib/utils';
 
 const SAVED_RUNS_KEY = 'saved-runs';
-
-interface ResultPageProps {
-    params: {
-        analysisRunId: string;
-    };
-    searchParams: { [key: string]: string | string[] | undefined };
-}
 
 function BirdImage({ commonName }: { commonName: string }) {
     const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -212,68 +204,31 @@ function ResultPageContent({ run }: { run: AnalysisRun }) {
     );
 }
 
+interface ResultDisplayProps {
+    run: AnalysisRun;
+    onReset: () => void;
+}
 
-export default function ResultPage({ params }: ResultPageProps) {
-    const [run, setRun] = useState<AnalysisRun | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [isClient, setIsClient] = useState(false);
+export function ResultDisplay({ run, onReset }: ResultDisplayProps) {
     const router = useRouter();
-    const { analysisRunId } = params;
 
     const narrationText = run?.aiResult.isBirdSong ? `The AI has identified the bird as a ${run.aiResult.commonName}. ${run.aiResult.description}` : `The AI was not able to identify a bird in the recording. ${run?.aiResult.description || run?.aiResult.error}`;
     const { playNarration, ...speakerProps } = useSpeaker(narrationText);
 
 
-    useEffect(() => {
-        setIsClient(true);
-    }, []);
-
-    useEffect(() => {
-        if (!analysisRunId) return;
-
-        const fetchRun = async () => {
-            setLoading(true);
-            try {
-                const docRef = doc(db, 'all_analysis_runs', analysisRunId);
-                const docSnap = await getDoc(docRef);
-
-                if (docSnap.exists()) {
-                    setRun({ id: docSnap.id, ...docSnap.data() } as AnalysisRun);
-                } else {
-                    setRun(null);
-                }
-            } catch (error) {
-                console.error("Error fetching analysis run:", error);
-                setRun(null);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchRun();
-    }, [analysisRunId]);
-
-    const handleDiscard = () => {
-        router.push('/');
-    };
-
     const handleSave = async () => {
         if (!run) return;
 
-        // Add to localStorage for client-side rendering on log page
         const savedRunsJson = localStorage.getItem(SAVED_RUNS_KEY);
         const savedRuns: AnalysisRun[] = savedRunsJson ? JSON.parse(savedRunsJson) : [];
-        // Add new run to the beginning of the array
         const newSavedRuns = [run, ...savedRuns];
         localStorage.setItem(SAVED_RUNS_KEY, JSON.stringify(newSavedRuns));
 
-        // Update Firestore document
         const docRef = doc(db, 'all_analysis_runs', run.id);
         await updateDoc(docRef, { wasSavedByUser: true });
         
         router.push('/log');
     };
-
-    if (!isClient) return null;
 
     return (
         <AppLayout>
@@ -289,7 +244,7 @@ export default function ResultPage({ params }: ResultPageProps) {
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={handleDiscard}
+                        onClick={onReset}
                         className="absolute top-1/2 -translate-y-1/2 h-32 w-32 -left-40 text-primary hover:text-primary"
                         aria-label="Discard analysis"
                     >
@@ -298,13 +253,7 @@ export default function ResultPage({ params }: ResultPageProps) {
 
                     <div className="p-1 h-full">
                          <div className="bg-ring rounded-lg shadow-lg p-6 h-full relative">
-                            {loading ? (
-                                <Skeleton className="w-full h-full" />
-                            ) : run ? (
-                                <ResultPageContent run={run} />
-                            ) : (
-                                notFound()
-                            )}
+                            <ResultPageContent run={run} />
                         </div>
                     </div>
                     
