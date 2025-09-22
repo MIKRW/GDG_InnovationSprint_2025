@@ -1,4 +1,3 @@
-
 'use client';
 
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -89,7 +88,7 @@ export default function Home() {
     }
   };
   
-  const processAudio = (storagePath: string, recordingId: string, audioDataUri: string): Promise<AnalysisRun | null> => {
+  const processAudio = (storagePath: string, recordingId: string): Promise<AnalysisRun | null> => {
     return new Promise((resolve) => {
       getLocationForAIShot(async (locationData) => {
           if (!currentCreationTime.current || !currentSessionId.current) {
@@ -102,7 +101,7 @@ export default function Home() {
           
           try {
               const run = await createAnalysisRun(
-                  storagePath, recordingId, audioDataUri, locationData, hardware, 'newbie',
+                  storagePath, recordingId, locationData, hardware, 'newbie',
                   {},
                   currentSessionId.current, currentCreationTime.current!
               );
@@ -115,7 +114,7 @@ export default function Home() {
               });
               try {
                 const failedRun = await createAnalysisRun(
-                    storagePath, recordingId, audioDataUri, locationData, hardware, 'newbie',
+                    storagePath, recordingId, locationData, hardware, 'newbie',
                     {}, currentSessionId.current, currentCreationTime.current!, error as Error
                 );
                 resolve(failedRun);
@@ -154,19 +153,12 @@ export default function Home() {
       setIsUploading(false);
       setIsAnalyzing(true);
       
-      const audioDataUri = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(audioBlob);
-      });
-
       const timeoutPromise = new Promise<AnalysisRun | null>((_, reject) =>
         setTimeout(() => reject(new Error('Analysis timed out')), ANALYSIS_TIMEOUT_MS)
       );
   
       finalAnalysisRun = await Promise.race([
-        processAudio(audioStoragePath, recordingId, audioDataUri),
+        processAudio(audioStoragePath, recordingId),
         timeoutPromise
       ]);
   

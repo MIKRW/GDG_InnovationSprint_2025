@@ -1,4 +1,3 @@
-
 'use server';
 
 import { revalidateTag } from 'next/cache';
@@ -195,7 +194,6 @@ export async function saveCanonicalImage(
 export async function createAnalysisRun(
   storagePath: string,
   recordingId: string,
-  audioDataUri: string,
   locationData: any,
   hardware: string | null,
   mode: AppMode,
@@ -219,7 +217,7 @@ export async function createAnalysisRun(
         const analysisStartTime = Date.now();
         
         aiResult = await identifyBirdBySound({
-            audioDataUri,
+            audioStoragePath: storagePath,
             creationTime: creationTime,
             ...locationData,
             mode: mode

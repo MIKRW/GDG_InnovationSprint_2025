@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview An AI flow for identifying bird species from audio recordings.
@@ -12,10 +11,11 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { googleAI } from '@genkit-ai/googleai';
 import { BIRD_ID_PROMPT } from '@/ai/prompts/bird-identifier-prompt';
-
+import { getStorage } from 'firebase-admin/storage';
+import { adminApp } from '@/lib/firebase-admin';
 
 const IdentifyBirdInputSchema = z.object({
-  audioDataUri: z.string().describe("A recording of a bird song, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:audio/wav;base64,<encoded_data>'."),
+  audioStoragePath: z.string().describe("The path to the bird song recording in Firebase Storage."),
   creationTime: z.string().describe('The UTC timestamp of when the recording was made, in ISO 8601 format.'),
   latitude: z.number().optional().describe('The latitude of where the recording was made.'),
   longitude: z.number().optional().describe('The longitude of where the recording was made.'),
@@ -93,7 +93,6 @@ export async function identifyBirdBySound(
   return await identifyBirdFlow(input);
 }
 
-
 const identifyBirdFlow = ai.defineFlow(
   {
     name: 'identifyBirdFlow',
@@ -101,42 +100,54 @@ const identifyBirdFlow = ai.defineFlow(
     outputSchema: IdentifyBirdOutputSchema,
   },
   async (input) => {
-
     try {
-        if (!input.audioDataUri) {
-            throw new Error("Audio data URI is missing from the input.");
-        }
-        
-        const identifyBirdPrompt = ai.definePrompt({
-            name: 'identifyBirdPrompt',
-            prompt: BIRD_ID_PROMPT,
-            input: { schema: IdentifyBirdInputSchema },
-            output: { schema: IdentifyBirdOutputSchema },
-            model: googleAI.model('gemini-1.5-flash-latest'),
-            tools: [getCurrentWeather],
-            config: {
-                temperature: 0.3,
-            }
-        });
+      if (!input.audioStoragePath) {
+        throw new Error("Audio storage path is missing from the input.");
+      }
+      
+      // Download the audio from Firebase Storage on the server.
+      const bucket = getStorage(adminApp).bucket();
+      const file = bucket.file(input.audioStoragePath);
+      const [buffer] = await file.download();
+      const audioDataUri = `data:audio/wav;base64,${buffer.toString('base64')}`;
 
-        const { output, finishMessage, finishReason } = await identifyBirdPrompt(input);
+      // This new input object is sent to the prompt, not the flow.
+      const promptInput = {
+        ...input,
+        audioDataUri, // Add the server-fetched data URI for the prompt
+      };
 
-        if (!output) {
-            if (finishReason === 'blocked' && finishMessage?.includes('safety')) {
-                throw new Error('The AI refused to process the audio due to its safety filters.');
-            }
-            throw new Error('The model failed to return a valid analysis.');
+      const identifyBirdPrompt = ai.definePrompt({
+        name: 'identifyBirdPrompt',
+        prompt: BIRD_ID_PROMPT,
+        input: { schema: z.object({ ...IdentifyBirdInputSchema.shape, audioDataUri: z.string() }) }, // The prompt now expects audioDataUri
+        output: { schema: IdentifyBirdOutputSchema },
+        model: googleAI.model('gemini-1.5-flash-latest'),
+        tools: [getCurrentWeather],
+        config: {
+          temperature: 0.3,
         }
+      });
+
+      const { output, finishMessage, finishReason } = await identifyBirdPrompt(promptInput);
+
+      if (!output) {
+        if (finishReason === 'blocked' && finishMessage?.includes('safety')) {
+          throw new Error('The AI refused to process the audio due to its safety filters.');
+        }
+        throw new Error('The model failed to return a valid analysis.');
+      }
     
-        return output;
+      return output;
+
     } catch (error) {
-        if (error instanceof Error && (error.message.includes('Could not refresh access token') || error.message.includes('500'))) {
-            const projectId = process.env.GCLOUD_PROJECT;
-            const iamUrl = `https://console.cloud.google.com/iam-admin/iam?project=${projectId}`;
-            throw new Error(`AI Authentication Failed: The server lacks permission to call the AI. Please grant the "Vertex AI User" role to the App Hosting service account in your project's IAM settings. You can go to ${iamUrl} to fix this.`);
-        }
-        // Re-throw any other errors
-        throw error;
+      if (error instanceof Error && (error.message.includes('Could not refresh access token') || error.message.includes('500'))) {
+        const projectId = process.env.GCLOUD_PROJECT;
+        const iamUrl = `https://console.cloud.google.com/iam-admin/iam?project=${projectId}`;
+        throw new Error(`AI Authentication Failed: The server lacks permission to call the AI. Please grant the "Vertex AI User" role to the App Hosting service account in your project's IAM settings. You can go to ${iamUrl} to fix this.`);
+      }
+      // Re-throw any other errors
+      throw error;
     }
   }
 );
