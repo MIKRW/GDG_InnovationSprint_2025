@@ -18,7 +18,6 @@ import { useSpeaker } from '@/hooks/use-speaker';
 import { type AnalysisRun } from '@/lib/types';
 import { SavedRunCard } from '@/components/content/SavedRunCard';
 import { textToSpeech } from '@/ai/flows/tts-flow';
-import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 
 interface ChatMessage {
     sender: 'user' | 'bot';
@@ -295,7 +294,7 @@ export default function BirdBookPage() {
     const [api, setApi] = useState<CarouselApi>();
     const [isClient, setIsClient] = useState(false);
     const [currentTheme, setCurrentTheme] = useState('light');
-    const [narrationText, setNarrationText] = useState(PAGE_NARRATION_ASSISTANT_CARD);
+    const [narrationText, setNarrationText] = useState('');
     const { playNarration: playNarrationFromHook, isLoading: isSpeakerLoading, isAutoPlayOn, ...speakerProps } = useSpeaker(narrationText, 'carousel');
     const [savedRuns, setSavedRuns] = useState<AnalysisRun[]>([]);
 
@@ -336,6 +335,8 @@ export default function BirdBookPage() {
         };
 
         api.on("select", handleSelect);
+        // Set initial narration text
+        handleSelect();
         
         return () => {
             api.off("select", handleSelect);
@@ -435,9 +436,3 @@ export default function BirdBookPage() {
         </AppLayout>
     );
 }
-
-    
-
-    
-
-    

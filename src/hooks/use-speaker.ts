@@ -68,12 +68,10 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
             return;
         }
 
-        // Always ensure the interaction flag is set
         if (!sessionStorage.getItem(FIRST_INTERACTION_KEY)) {
             sessionStorage.setItem(FIRST_INTERACTION_KEY, 'true');
         }
         
-        // Cleanly stop any currently playing audio before proceeding.
         if (!audio.paused) {
             audio.pause();
             audio.currentTime = 0;
@@ -84,6 +82,7 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
         setIsLoading(true);
         try {
             let dataUri: string | null = null;
+
             if (targetSource.endsWith('.wav')) {
                 dataUri = targetSource;
             } else {
@@ -102,13 +101,13 @@ export function useSpeaker(narrationSource: string, autoPlayType: 'general' | 'c
             }
 
         } catch (error: any) {
-             if (error.message === 'TTS_QUOTA_EXCEEDED') {
+             if (error.message.includes('TTS_QUOTA_EXCEEDED')) {
                 toast({
                     variant: 'destructive',
                     title: 'TTS Narration Unavailable',
                     description: 'The AI audio generation service is temporarily unavailable due to quota limits.',
                 });
-            } else if (error.name !== 'AbortError') { // Ignore user-initiated aborts
+            } else if (error.name !== 'AbortError') { 
                 console.error("Failed to load or play audio:", error);
                 toast({ variant: 'destructive', title: "Audio Error", description: "Could not play the requested audio."});
             }
