@@ -1,3 +1,22 @@
+**Name that Bird :**
+
+This Repo contains the code/ edit history and commits for my 2025 Innovation Sprint. I create this app using google firebase, mainly utilizing in built AI to complete the coding. The main concept for the app was to use AI to identify bird sound. The idea was that in national parks sitting areas or on peoples phones you could record the bird sound you could hear and then the app would Identify the bird. I wanted to make bird identification more accessible to people with limited sight to actually spot the birds in the area.  Pictured Below is are the details of the innovation sprint and under that section is the contents of the Original Read.me File. At the time of creating this app it was my first time using GitHub with firebase, most of the comments and commits are created using AI and typed instructions. The video Submission and final submission PDF can be found in the Repo. 
+
+
+<img width="1448" height="1301" alt="image" src="https://github.com/user-attachments/assets/a9a1cb08-d77f-4aba-b722-4423ac803d58" />
+<img width="1087" height="1237" alt="image" src="https://github.com/user-attachments/assets/bf0266a0-e02d-4003-b235-9c9fcf6a0144" />
+<img width="987" height="1235" alt="image" src="https://github.com/user-attachments/assets/50c3a83b-3289-4f15-af68-0f0eb263c919" />
+<img width="998" height="950" alt="image" src="https://github.com/user-attachments/assets/d245a4ce-091f-4925-94f8-e2899d290d02" />
+
+
+
+
+
+
+
+
+
+
 # Name that Bird
 
 Name that Bird is an intelligent, modern web application designed to identify bird species from audio recordings using the power of generative AI. It offers a seamless user experience, allowing users to capture bird songs and receive detailed information about the identified species. The application features a customizable interface and is built with a focus on accessibility.
